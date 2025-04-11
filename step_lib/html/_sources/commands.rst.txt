@@ -1,0 +1,137 @@
+========
+Commands
+========
+
+The commands are available in the library to interact with the STEP MQTT broker using ITS 
+packets and to decode or to encode the ITS packets. 
+
+The following the complete list.
+
+-------
+Version
+-------
+
+The command is designed to print the version of the library.
+
+.. code-block:: bash
+
+   $step_lib -v
+
+Example:
+
+.. code-block:: bash
+
+    $step_lib -v
+    step_lib version: 1.2.0
+
+---------------------------
+Decode ITS facility packets
+---------------------------
+
+The command is designed to decode the ITS facility from binary (hex format) to dictionary
+printed on the console.
+
+.. code-block:: bash
+
+   $step_lib -d <hex_string> -m <message_type>
+
+The parameters are:
+
+- <hex_string> is the binary string in hex format.
+
+.. note::
+    Both of these are required.
+
+Example:
+
+.. code-block:: bash
+
+    $step_lib -d 0201012fd537c78097ea9b81ed9f2ce6ba8767cb39aea1dceaa4d8d72bb42e617917900018b5010546001f3030cc200d9647e08cfc023fffeffffe39c3ff0901c031b0
+
+Decoded message in ASN.1 format:
+
+.. code-block:: python
+
+    { 'header': { 'protocolVersion': 2,
+                'messageId': 1,
+                'stationId': 19911991},
+    'denm': { 'management': { 'actionId': { 'originatingStationId': 19911991,
+                                            'sequenceNumber': 987},
+                                'detectionTime': 1071178437691,
+                                'referenceTime': 1071178437691,
+                                'eventPosition': { 'latitude': 419783821,
+                                                'longitude': 124874982,
+                                                'positionConfidenceEllipse': { 'semiMajorConfidence': 377,
+                                                                                'semiMinorConfidence': 377,
+                                                                                'semiMajorOrientation': 0},
+                                                'altitude': { 'altitudeValue': 1200,
+                                                                'altitudeConfidence': 'alt-000-02'}},
+                                'awarenessDistance': 'lessThan50m',
+                                'trafficDirection': 'allTrafficDirections',
+                                'validityDuration': 86400,
+                                'transmissionInterval': 500,
+                                'stationType': 3},
+                'situation': { 'informationQuality': 3,
+                            'eventType': { 'ccAndScc': ( 'collisionRisk97',
+                                                            0)}},
+                'location': { 'eventSpeed': { 'speedValue': 13000,
+                                            'speedConfidence': 127},
+                            'eventPositionHeading': { 'value': 140,
+                                                        'confidence': 127},
+                            'detectionZonesToEventPosition': [ [ { 'pathPosition': { 'deltaLatitude': 0,
+                                                                                    'deltaLongitude': 0,
+                                                                                    'deltaAltitude': 12800}},
+                                                                { 'pathPosition': { 'deltaLatitude': -123,
+                                                                                    'deltaLongitude': 897,
+                                                                                    'deltaAltitude': 20}}]]}}}
+
+Message in JSON format:
+
+.. code-block:: json
+    
+    {
+        "stationId": 19911991,
+        "managementContainer": {
+            "actionId": {
+            "originatingStationId": 19911991,
+            "sequenceNumber": 987
+            },
+            "detectionTime": "2037-12-10T21:33:57.691Z",
+            "referenceTime": "2037-12-10T21:33:57.691Z",
+            "termination": null,
+            "eventPosition": {
+            "latitude": 41.9783821,
+            "longitude": 12.4874982,
+            "positionConfidence": {
+                "semiMajorAxisLengthConfidence": 377,
+                "semiMinorAxisLengthConfidence": 377,
+                "semiMajorAxisOrientation": 0
+            },
+            "altitude": {
+                "value": 1200,
+                "confidence": 2
+            }
+            },
+            "awarenessDistance": 49,
+            "trafficDirection": "allTrafficDirections",
+            "validityDuration": 86400,
+            "transmissionInterval": 500,
+            "stationType": "moped"
+        },
+        "situationContainer": {
+            "informationQuality": 3,
+            "eventType": "collisionRisk97"
+        },
+        "locationContainer": {
+            "eventSpeed": {
+            "value": 13000,
+            "confidence": null
+            },
+            "eventPositionHeading": {
+            "value": 140,
+            "confidence": null
+            },
+            "roadType": null
+        },
+        "preCrashContainer": null
+    }
