@@ -1,0 +1,201 @@
+============
+Architecture
+============
+
+The STEP Cloud Schemas project provides a standardized way to define and validate 
+data structures used in cloud-based STEP (Standard for the Exchange of Product model data) 
+implementations.
+The system is composed of three main components:
+
+    #.  **Step Broker**: The broker is responsible for routing messages to the clients subscribed.
+    #.  **Step Elaboration System**: The system is responsible for adapting the messages to be used 
+        by **Machine Learning** subsystem and for sending any warnings.
+    #.  **Machine Learning**: The subsystem is responsible for processing the messages received and for finding 
+        any possible future crashes.
+
+-------
+Library
+-------
+
+The library uses the following external libraries:
+    
+    * **Pydantic**
+    * **Heversine**
+
+----------------
+Pydantic Library
+----------------
+
+Pydantic is a data validation and settings management library for Python, leveraging Python type annotations.
+It provides a way to define data models with type hints and validate data against these models.
+
+Key features of Pydantic include:
+
+    * **Data validation**: Automatically validates data against the defined types.
+    * **Data parsing**: Parses input data into the specified types.
+    * **Settings management**: Easily manage application settings with environment variable support.
+    * **Serialization**: Convert models to and from JSON and other formats.
+
+Example usage:
+
+.. code-block:: python
+
+    from pydantic import BaseModel
+
+    class User(BaseModel):
+        id: int
+        name: str
+        signup_ts: Optional[datetime] = None
+        friends: List[int] = []
+
+    user = User(id=123, name='John Doe', friends=[1, 2, 3])
+    print(user.dict())
+
+-----------------
+Heversine Library
+-----------------
+
+Heversine is a Python library used to calculate the great-circle distance between two points 
+on the Earth's surface, given their latitude and longitude. This distance is the shortest 
+path over the Earth's surface, giving an "as-the-crow-flies" distance between the points 
+(ignoring any hills, valleys, or other obstacles).
+
+Key features of Heversine include:
+
+    * **Distance calculation**: Compute the distance between two geographic coordinates.
+    * **Units**: Supports multiple units of measurement, including kilometers, miles, and nautical miles.
+    * **Simple API**: Easy-to-use functions for quick integration into projects.
+
+Example usage:
+
+.. code-block:: python
+
+    from heversine import heversine, Unit
+
+    # Coordinates of two points (latitude, longitude)
+    point1 = (52.2296756, 21.0122287)
+    point2 = (41.8919300, 12.5113300)
+
+    # Calculate the distance in kilometers
+    distance_km = heversine(point1, point2)
+    print(f"Distance: {distance_km} km")
+
+    # Calculate the distance in miles
+    distance_miles = heversine(point1, point2, unit=Unit.MILES)
+    print(f"Distance: {distance_miles} miles")
+
+-----------
+Flow Format
+-----------
+
+Each flow is encapsulated in a :xref:`Cloud Events JSON Format` message.
+The general structure of the message is:
+
+#. **id**: Unique identifies the event.
+#. **source**: The process that produced the event.
+#. **specversion**: The version of the :xref:`Cloud Events` specification which the event uses.
+#. **datacontenttype**: The content type of data value.
+#. **time**: Timestamp of when the occurrence happened.
+#. **type**: Type of the message.
+#. **dataschema**: Identifies the schema that data adheres to.
+#. **data**: The data of the message.
+
+An example is the following:
+
+.. code-block:: json
+
+    {
+        "id": "56c5ecec-00ef-5a27-a5a0-bcb85a7378c1",
+        "source": "instance_1",
+        "specversion": "1.0",
+        "datacontenttype": "application/json",
+        "time": "2018-04-05T17:31:00.000Z",
+        "type": "CAM",
+        "dataschema": "cam_data_v1_schema.json",        
+        "data": "message data"
+    }
+
+-------------------------------
+Component Diagram of the System
+-------------------------------
+
+The following component diagram shows the main flows of the system:
+
+.. plantuml::
+    :align: center
+
+    interface "ASN.1 C-ITS" as messages
+
+    package "Step Communication System" {
+        [Step Broker] as step
+    }
+
+    package "Step Elaboration System" {
+        [Step Client] as client
+        [Step Adapter] as adapter
+        [Step Producer] as producer
+        package "Machine Learning" {
+            [Trajectory\nForecasting] as trajectory
+            [Avoidance\nCollision] as collision
+            [Data\nStorage] as data
+        }
+        client -left-> adapter: "3. CAM,DENM,CPM,VAM"
+        client -down-> producer: "7. DENM"
+        adapter -left-> trajectory: "4. Position points\narray"
+        trajectory <-down-> data: "Query data"
+        collision <-up-> data: "Query data"
+        collision -left-> producer: "5. Event forecasted"
+        producer -up-> client: "6. DENM"
+    }
+    step --right--( messages
+    step --down--> client: "1. ASN.1 ITS\nCAN,DENM,CPM,VAM"
+    client --up--> step: "2. ASN.1 ITS\nDENM"
+
+----------------
+Flow Description
+----------------
+
+In the previous diagram, the flows are numerated. The description of each flow is:
+
+    1.  **ANS.1 ITS from step broker to client**: The messages in the flow are:
+        
+            * CAM 
+            * DENM
+            * CPM
+            * VAM
+
+        The messages received are based on the geo-hashing in the MQTT topic.
+    2.  **ANS.1 ITS from step client to step broker**: The messages in the flow are:
+        
+            * DENM
+
+        The message sent contains a forecasting of a Crash. The message contains the 
+        information of only 2 actors involved. So if the crash involves more than 2 actors,
+        the messages generated will be the number of actors decreased by one. 
+    3.  **CAM,DENM,CPM,VAM from step client to adapter**: The messages received by Step Client
+        are encoded in CloudEvent compatible format. The data field contains:
+        
+            * CAM
+            * DENM
+            * CPM
+            * VAM
+
+        The message is validated by JSON schema :ref:`target_cloud_events_step_adapter_schema`.
+    4.  **Position points array from adapter to trajectory**: Step Adapter executes the 
+        following tasks:
+            
+            * Collect the messages per station id or perceptive object id
+            * Filter duplicate message (**duplication filter**)
+            * Sequence the position point per station id
+            * Interpolate data to recover lost point a constant rate (**fill in the gap**)
+            * Merge different source flow of the same actor (**idempotence**)
+            * Down or up sampling to have a constant rate (**sampling normalize**)
+
+        The message is validated by JSON schema :ref:`target_cloud_events_step_trajectory_schema`.
+    5.  **Event forecasted from avoidance collision to producer**: The message contains the
+        position point of the station involved in the event. The message is validated by JSON schema
+        :ref:`target_cloud_events_step_producer_schema`.
+    6.  **DENM from producer to client**: The message DENM contains the pre-crash container. The message
+        is validated by JSON schema :ref:`target_cloud_events_step_client_schema`.
+    7.  **DENM from client to producer**: The message DENM contains the environment notification generated 
+        by other actors. The message is validated by JSON schema :ref:`target_cloud_events_step_producer_schema`.
