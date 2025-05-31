@@ -1,0 +1,246 @@
+Redis Usage Guide
+=================
+
+Introduction
+------------
+
+The STEP (Standardized Transport Event Protocol) Library provides robust Redis integration through the ``step_redis`` module. 
+This module offers asynchronous Redis interaction capabilities specifically designed for the STEP Framework, including connection 
+pooling, SSL/TLS support, and efficient stream management.
+
+This guide explains how to use the Redis components in the STEP Library, with examples based on actual implementation patterns.
+
+Key Components
+--------------
+
+The ``step_redis`` module provides three main components:
+
+    #. **StepRedisPoolParams**: A dataclass containing all connection parameters for Redis, 
+       including host, port, authentication details, SSL settings, and connection parameters.
+    #. **StepRedisPool**: An enhanced blocking connection pool with asynchronous context 
+       management, supporting both SSL and non-SSL connections.
+    #. **StepRedisStream**: A Redis Streams interface for publish/subscribe patterns, providing 
+       methods for creating streams, publishing messages, and consuming messages.
+
+Basic Usage
+-----------
+
+General Pattern
+~~~~~~~~~~~~~~~
+
+The typical usage pattern involves:
+
+    #. Configure Redis connection parameters using ``StepRedisPoolParams``
+    #. Create a connection pool with ``StepRedisPool``
+    #. Initialize a stream interface with ``StepRedisStream``
+    #. Use asynchronous context managers for proper resource management
+
+.. code-block:: python
+
+    import asyncio
+    from logging import getLogger
+    from step_lib import StepRedisPoolParams, StepRedisPool, StepRedisStream
+
+    async def main():
+        logger = getLogger("redis_example")
+        
+        # 1. Configure connection parameters
+        redis_params = StepRedisPoolParams(
+            host="redis.example.com",
+            port=6379,
+            username="user",  # Optional
+            password="secret",
+            db=0,
+            socket_timeout=30,
+            socket_connect_timeout=30,
+            socket_keep_idle=30,
+            socket_keep_alive=30,
+            socket_keep_cnt=5,
+            ssl_enable=True,
+            ssl_client_key_file="/path/to/key.pem",  # Optional
+            ssl_client_key_file_password=None,  # Optional
+            ssl_client_cert_file="/path/to/cert.pem",  # Optional
+            ssl_cert_requested=False,
+            ssl_ca_certs_file="/path/to/ca.pem",  # Optional
+            health_check_interval=20,
+            max_connections=10,
+            connection_available_timeout=2,
+            protocol=3,
+        )
+        
+        # 2. Create and use connection pool as context manager
+        async with StepRedisPool(params=redis_params, logger=logger) as pool:
+            # 3. Create a stream interface
+            async with StepRedisStream(pool, logger) as stream:
+                # 4. Create a stream and consumer group
+                await stream.create_input_stream("data_stream", "processor_group")
+                
+                # 5. Publish a message
+                await stream.publish_message("data_stream", "Hello, Redis!", 1000)
+                
+                # 6. Receive a message
+                message = await stream.receive_message(
+                    "data_stream", "processor_group", "consumer1", 5000
+                )
+                logger.info(f"Received message: {message}")
+
+    if __name__ == "__main__":
+        asyncio.run(main())
+
+Advanced Usage: STEP Producer Example
+-------------------------------------
+
+A real-world implementation of Redis in the STEP Framework can be seen in the producer 
+stream module. This example demonstrates how to extend the base Redis components for specific use cases.
+
+StepProducerRedisPool
+~~~~~~~~~~~~~~~~~~~~~
+
+The ``StepProducerRedisPool`` extends ``StepRedisPool`` to provide a specialized Redis connection pool for Producer operations:
+
+.. code-block:: python
+
+    class StepProducerRedisPool(StepRedisPool):
+        """Redis connection pool for Step producer."""
+        
+        def __init__(self, logger: Logger) -> None:
+            super().__init__(
+                params=StepRedisPoolParams(
+                    host="redis-host.example.com",
+                    port=17059,
+                    username="default",
+                    password="your-password",
+                    db=0,
+                    socket_timeout=30,
+                    socket_connect_timeout=30,
+                    socket_keep_idle=30,
+                    socket_keep_alive=30,
+                    socket_keep_cnt=5,
+                    ssl_enable=False,
+                    ssl_client_key_file=None,
+                    ssl_client_key_file_password=None,
+                    ssl_client_cert_file=None,
+                    ssl_cert_requested=False,
+                    ssl_ca_certs_file=None,
+                    health_check_interval=20,
+                    max_connections=2,
+                    connection_available_timeout=2,
+                    protocol=3,
+                ),
+                logger=logger,
+            )
+
+Stream Configuration
+~~~~~~~~~~~~~~~~~~~~
+
+Configuration classes help organize stream settings:
+
+.. code-block:: python
+
+    @dataclass(frozen=True, kw_only=True, slots=True)
+    class RedisStreamOutput:
+        """Redis stream output configuration."""
+        stream_id: str
+        max_length: int
+
+    @dataclass(frozen=True, kw_only=True, slots=True)
+    class RedisStreamInput:
+        """Redis stream input configuration."""
+        stream_id: str
+        group_id: str
+        wait_timeout: int
+
+StepProducerRedisStream
+~~~~~~~~~~~~~~~~~~~~~~~
+
+The specialized stream implementation handles specific message formats and operations:
+
+.. code-block:: python
+
+    class StepProducerRedisStream(StepRedisStream):
+        """A Redis stream implementation for STEP Producer functionality."""
+        
+        def __init__(
+            self,
+            logger: Logger,
+            pool: StepProducerRedisPool,
+            consumer_name: str,
+        ) -> None:
+            self._input_config = RedisStreamInput(
+                stream_id="stepProducerStream",
+                group_id="stepProducerGroup",
+                wait_timeout=5000,
+            )
+            self._output_config = RedisStreamOutput(
+                stream_id="stepClientStream",
+                max_length=1000,
+            )
+            self._consumer_name = consumer_name
+            super().__init__(pool=pool, logger=logger)
+            
+        async def create_producer_input_stream(self) -> None:
+            await self.create_input_stream(
+                stream_id=self._input_config.stream_id, 
+                group_id=self._input_config.group_id
+            )
+            self._logger.info(
+                msg=f"Created input stream {self._input_config.stream_id} "
+                    f"with group {self._input_config.group_id}"
+            )
+            
+        async def publish_its_message(self, message: FacilityMessage) -> None:
+            # Specialized method to publish ITS messages
+            # Implementation details...
+            
+        async def receive_its_message(self) -> ProducerCloudEventsJsonRoot:
+            # Specialized method to receive and validate ITS messages
+            # Implementation details...
+
+Complete Producer Example
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This complete example shows how to use the Producer stream components:
+
+.. code-block:: python
+
+    import asyncio
+    from logging import getLogger
+    from step_lib import DenmMessageV1
+    from producer_stream import StepProducerRedisPool, StepProducerRedisStream
+
+    async def main():
+        logger = getLogger("producer_example")
+        
+        # Create Redis pool and stream for the producer
+        async with StepProducerRedisPool(logger) as redis_pool:
+            async with StepProducerRedisStream(logger, redis_pool, "producer1") as stream:
+                # Create input stream if needed
+                await stream.create_producer_input_stream()
+                
+                # Receive messages (blocking call with timeout)
+                message = await stream.receive_its_message()
+                logger.info(f"Received message: {message}")
+                
+                # Process and publish response message
+                denm_message = DenmMessageV1(...)  # Create appropriate message
+                await stream.publish_its_message(denm_message)
+                
+    if __name__ == "__main__":
+        asyncio.run(main())
+
+Best Practices
+--------------
+
+    #. **Use Context Managers**: Always use async context managers with Redis pools and streams 
+       to ensure proper resource cleanup.
+    #. **Configure Timeouts**: Set appropriate socket and connection timeouts based 
+       on your network environment.
+    #. **Enable SSL for Production**: In production environments, enable SSL/TLS encryption 
+       for secure Redis connections.
+    #. **Limit Pool Size**: Set reasonable max_connections value to avoid exhausting system resources.
+    #. **Handle Errors**: Implement proper error handling for common Redis exceptions, 
+       especially for network-related issues.
+    #. **Monitor Health**: Use the health_check_interval parameter to ensure connections remain healthy.
+    #. **Organize Stream Configs**: Use dedicated configuration classes (like RedisStreamInput/Output)
+       to organize stream settings.
+    #. **Implement Ping**: Periodically ping the Redis server to verify connectivity.
