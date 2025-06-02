@@ -1,22 +1,21 @@
 
 
-
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" data-content_root="./">
 <head>
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Architecture &mdash; STEP Redis 1.0.0 documentation</title>
+  <title>Architecture &mdash; STEP Redis 1.0.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="_static/tabs.css?v=4c969af8" />
-      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=b04a84b5" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=5b54ee2a" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=8d563738"></script>
+      <script src="_static/documentation_options.js?v=292eb321"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
       <script src="_static/tabs.js?v=3ee01567"></script>
@@ -58,21 +57,19 @@
 <li class="toctree-l2"><a class="reference internal" href="installation.html#installing-from-pypi">Installing from PyPI</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="redis_usage.html">Redis Usage Guide</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="redis_usage.html#introduction">Introduction</a></li>
-<li class="toctree-l2"><a class="reference internal" href="redis_usage.html#key-components">Key Components</a></li>
-<li class="toctree-l2"><a class="reference internal" href="redis_usage.html#basic-usage">Basic Usage</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="redis_usage.html#general-pattern">General Pattern</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Redis Usage Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#introduction">Introduction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#key-components">Key Components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#basic-usage">Basic Usage</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="usage.html#general-pattern">General Pattern</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="redis_usage.html#advanced-usage-step-producer-example">Advanced Usage: STEP Producer Example</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="redis_usage.html#stepproducerredispool">StepProducerRedisPool</a></li>
-<li class="toctree-l3"><a class="reference internal" href="redis_usage.html#stream-configuration">Stream Configuration</a></li>
-<li class="toctree-l3"><a class="reference internal" href="redis_usage.html#stepproducerredisstream">StepProducerRedisStream</a></li>
-<li class="toctree-l3"><a class="reference internal" href="redis_usage.html#complete-producer-example">Complete Producer Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#advanced-usage-stream-demo-example">Advanced Usage: Stream Demo Example</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="usage.html#stream-demo-components">Stream Demo Components</a></li>
+<li class="toctree-l3"><a class="reference internal" href="usage.html#running-the-demo-application">Running the Demo Application</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="redis_usage.html#best-practices">Best Practices</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#best-practices">Best Practices</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="package_script.html">Package Script</a><ul>
@@ -81,7 +78,23 @@
 <li class="toctree-l2"><a class="reference internal" href="package_script.html#pdf-conversion">PDF conversion</a></li>
 </ul>
 </li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Architecture</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Architecture</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#key-components">Key Components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#component-details">Component Details</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#stepredispool">StepRedisPool</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#stepredisstream">StepRedisStream</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#package-integration">Package Integration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#usage-patterns">Usage Patterns</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#example-usage">Example Usage</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#error-handling">Error Handling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#design-considerations">Design Considerations</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="step_redis_rst/step_redis.html">step_redis package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="step_redis_rst/step_redis.html#submodules">Submodules</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="step_redis_rst/step_redis.step_redis_pool.html">step_redis.step_redis_pool module</a><ul>
@@ -226,6 +239,234 @@
              
   <section id="architecture">
 <h1>Architecture<a class="headerlink" href="#architecture" title="Link to this heading"></a></h1>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">step_redis</span></code> package provides robust asynchronous Redis connectivity and stream processing capabilities designed for Safer Transport for Europe Platform (STEP) applications. It offers enhanced Redis client functionality with a focus on connection management, stream operations, and reliable message processing.</p>
+<p>The package is built on top of the Redis Python client library and extends it with additional features specifically tailored for the needs of distributed systems that require reliable message handling.</p>
+</section>
+<section id="key-components">
+<h2>Key Components<a class="headerlink" href="#key-components" title="Link to this heading"></a></h2>
+<p>The package consists of two main components:</p>
+<ol class="arabic simple">
+<li><p><strong>StepRedisPool</strong>: An extended Redis connection pool with asyncio support</p></li>
+<li><p><strong>StepRedisStream</strong>: A comprehensive interface for Redis Streams operations</p></li>
+</ol>
+</section>
+<section id="component-details">
+<h2>Component Details<a class="headerlink" href="#component-details" title="Link to this heading"></a></h2>
+<section id="stepredispool">
+<h3>StepRedisPool<a class="headerlink" href="#stepredispool" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">StepRedisPool</span></code> extends the <code class="docutils literal notranslate"><span class="pre">BlockingConnectionPool</span></code> from redis-py to provide enhanced features for asyncio applications. It manages Redis connections with configurable parameters and supports both SSL and non-SSL connections.</p>
+<figure class="align-center">
+<p class="plantuml">
+<object data="_images/plantuml-ecc7014af26dfeb9ddff8fbacdfa7bb94d0193d0.svg" type="image/svg+xml" style="width:509px;height:626px;background:#FFFFFF;">
+<img src="_images/plantuml-ecc7014af26dfeb9ddff8fbacdfa7bb94d0193d0.png" alt="!theme plain
+skinparam classAttributeIconSize 0
+
+class StepRedisPoolParams {
+   +host: str
+   +port: int
+   +username: Optional[str]
+   +password: str
+   +db: int
+   +socket_timeout: int
+   +socket_connect_timeout: int
+   +socket_keep_idle: int
+   +socket_keep_alive: bool
+   +socket_keep_cnt: int
+   +ssl_enable: bool
+   +ssl_client_key_file: Optional[str]
+   +ssl_client_key_file_password: Optional[str]
+   +ssl_client_cert_file: Optional[str]
+   +ssl_cert_requested: bool
+   +ssl_ca_certs_file: Optional[str]
+   +health_check_interval: int
+   +max_connections: int
+   +connection_available_timeout: Optional[int]
+   +protocol: int
+}
+
+class StepRedisPool {
+   -_params: StepRedisPoolParams
+   -_logger: Optional[Logger]
+   -_pool: BlockingConnectionPool
+   +__init__(params: StepRedisPoolParams, logger: Optional[Logger])
+   +__aenter__(): StepRedisPool
+   +__aexit__(exc_type, exc_val, exc_tb): None
+   +get_pool(): BlockingConnectionPool
+}
+
+StepRedisPool o-- StepRedisPoolParams"/>
+
+</object></p>
+</figure>
+<p><strong>Key Features</strong>:</p>
+<ul class="simple">
+<li><p>SSL/TLS secure connections</p></li>
+<li><p>TCP keepalive configuration for connection stability</p></li>
+<li><p>Configurable connection limits and timeouts</p></li>
+<li><p>Proper resource management through async context managers</p></li>
+<li><p>Integrated logging support</p></li>
+</ul>
+</section>
+<section id="stepredisstream">
+<h3>StepRedisStream<a class="headerlink" href="#stepredisstream" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">StepRedisStream</span></code> provides a comprehensive interface for Redis Streams that enables creating, managing, and utilizing Redis streams with consumer groups for reliable message processing.</p>
+<figure class="align-center">
+<p class="plantuml">
+<object data="_images/plantuml-01b6c71206934d51818ff84eaae365e4c2808c13.svg" type="image/svg+xml" style="width:1176px;height:388px;background:#FFFFFF;">
+<img src="_images/plantuml-01b6c71206934d51818ff84eaae365e4c2808c13.png" alt="!theme plain
+skinparam classAttributeIconSize 0
+
+class StepRedisStream {
+   -_pool: Any
+   -_logger: Logger
+   -_redis: Redis
+   +__init__(pool: Any, logger: Logger)
+   +__aenter__(): StepRedisStream
+   +__aexit__(exc_type, exc_val, exc_tb): None
+   +create_input_stream(stream_name: str, group_name: str, ttl_seconds: Optional[int]): Awaitable[bool]
+   +publish_message(stream_name: str, message: Dict[str, Any], max_len: Optional[int]): Awaitable[str]
+   +receive_message(stream_name: str, group_name: str, consumer_name: str, wait_ms: int, count: int, ttl_seconds: Optional[int]): Awaitable[List[Dict[str, Any]]]
+   +acknowledge_message(stream_name: str, group_name: str, message_id: str): Awaitable[int]
+   +ping(): Awaitable[bool]
+   +set_ttl(key: str, ttl_seconds: int): Awaitable[bool]
+}
+
+class StepRedisPool {
+}
+
+StepRedisStream o-- StepRedisPool : uses"/>
+
+</object></p>
+</figure>
+<p><strong>Key Features</strong>:</p>
+<ul class="simple">
+<li><p>Creating and managing streams with consumer groups</p></li>
+<li><p>Publishing messages with configurable maximum length</p></li>
+<li><p>Consuming messages with proper acknowledgment handling</p></li>
+<li><p>Setting and managing Time-To-Live (TTL) for streams</p></li>
+<li><p>Connection health monitoring</p></li>
+</ul>
+</section>
+</section>
+<section id="package-integration">
+<h2>Package Integration<a class="headerlink" href="#package-integration" title="Link to this heading"></a></h2>
+<p>The diagram below illustrates how the components of the <code class="docutils literal notranslate"><span class="pre">step_redis</span></code> package interact with each other and with the Redis server:</p>
+<figure class="align-center">
+<p class="plantuml">
+<object data="_images/plantuml-782573e0404c7e67a5c0d458d4ecb4e9a32ce6fe.svg" type="image/svg+xml" style="width:698px;height:560px;background:#FFFFFF;">
+<img src="_images/plantuml-782573e0404c7e67a5c0d458d4ecb4e9a32ce6fe.png" alt="!theme plain
+
+package &quot;Client Application&quot; {
+   [Client Code]
+}
+
+package &quot;step_redis&quot; {
+   [StepRedisPool] as Pool
+   [StepRedisStream] as Stream
+   [StepRedisPoolParams] as Params
+}
+
+database &quot;Redis Server&quot; {
+   [Redis Streams] as RedisStreams
+   [Redis Connection] as RedisConnection
+}
+
+[Client Code] --&gt; Stream : uses
+[Client Code] --&gt; Pool : creates
+Pool ..&gt; Params : configured by
+Stream --&gt; Pool : uses
+Pool --&gt; RedisConnection : manages
+Stream --&gt; RedisStreams : interacts with"/>
+
+</object></p>
+</figure>
+</section>
+<section id="usage-patterns">
+<h2>Usage Patterns<a class="headerlink" href="#usage-patterns" title="Link to this heading"></a></h2>
+<p>The package is designed to be used with async/await syntax in Python and follows context manager patterns for proper resource management. Here’s a typical usage flow:</p>
+<ol class="arabic simple">
+<li><p>Create a <code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams</span></code> instance with appropriate connection parameters</p></li>
+<li><p>Initialize a <code class="docutils literal notranslate"><span class="pre">StepRedisPool</span></code> with the parameters</p></li>
+<li><p>Use the pool to create a <code class="docutils literal notranslate"><span class="pre">StepRedisStream</span></code> instance</p></li>
+<li><p>Perform stream operations (create streams, publish/consume messages)</p></li>
+<li><p>Properly clean up resources using context managers</p></li>
+</ol>
+<section id="example-usage">
+<h3>Example Usage<a class="headerlink" href="#example-usage" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">step_redis.step_redis_pool</span><span class="w"> </span><span class="kn">import</span> <span class="n">StepRedisPoolParams</span><span class="p">,</span> <span class="n">StepRedisPool</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">step_redis.step_redis_stream</span><span class="w"> </span><span class="kn">import</span> <span class="n">StepRedisStream</span>
+
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
+    <span class="c1"># Setup logging</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">)</span>
+    <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;redis_example&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Configure Redis connection parameters</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="n">StepRedisPoolParams</span><span class="p">(</span>
+        <span class="n">host</span><span class="o">=</span><span class="s2">&quot;redis.example.com&quot;</span><span class="p">,</span>
+        <span class="n">port</span><span class="o">=</span><span class="mi">6379</span><span class="p">,</span>
+        <span class="n">username</span><span class="o">=</span><span class="s2">&quot;user&quot;</span><span class="p">,</span>
+        <span class="n">password</span><span class="o">=</span><span class="s2">&quot;password&quot;</span><span class="p">,</span>
+        <span class="n">db</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">ssl_enable</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="c1"># Other configuration parameters</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Create a Redis pool</span>
+    <span class="k">async</span> <span class="k">with</span> <span class="n">StepRedisPool</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span> <span class="k">as</span> <span class="n">pool</span><span class="p">:</span>
+        <span class="c1"># Use the stream as a context manager</span>
+        <span class="k">async</span> <span class="k">with</span> <span class="n">StepRedisStream</span><span class="p">(</span><span class="n">pool</span><span class="p">,</span> <span class="n">logger</span><span class="p">)</span> <span class="k">as</span> <span class="n">stream</span><span class="p">:</span>
+            <span class="c1"># Create a stream with a consumer group</span>
+            <span class="k">await</span> <span class="n">stream</span><span class="o">.</span><span class="n">create_input_stream</span><span class="p">(</span><span class="s2">&quot;my_stream&quot;</span><span class="p">,</span> <span class="s2">&quot;my_group&quot;</span><span class="p">,</span> <span class="n">ttl_seconds</span><span class="o">=</span><span class="mi">3600</span><span class="p">)</span>
+
+            <span class="c1"># Publish a message</span>
+            <span class="k">await</span> <span class="n">stream</span><span class="o">.</span><span class="n">publish_message</span><span class="p">(</span><span class="s2">&quot;my_stream&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;data&quot;</span><span class="p">:</span> <span class="s2">&quot;Hello, Redis!&quot;</span><span class="p">},</span> <span class="mi">1000</span><span class="p">)</span>
+
+            <span class="c1"># Consume a message</span>
+            <span class="n">messages</span> <span class="o">=</span> <span class="k">await</span> <span class="n">stream</span><span class="o">.</span><span class="n">receive_message</span><span class="p">(</span>
+                <span class="s2">&quot;my_stream&quot;</span><span class="p">,</span> <span class="s2">&quot;my_group&quot;</span><span class="p">,</span> <span class="s2">&quot;consumer1&quot;</span><span class="p">,</span> <span class="mi">5000</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ttl_seconds</span><span class="o">=</span><span class="mi">3600</span>
+            <span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">messages</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Received: </span><span class="si">{</span><span class="n">messages</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+                <span class="c1"># Acknowledge the message</span>
+                <span class="k">for</span> <span class="n">msg</span> <span class="ow">in</span> <span class="n">messages</span><span class="p">:</span>
+                    <span class="n">message_id</span> <span class="o">=</span> <span class="n">msg</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span>
+                    <span class="k">await</span> <span class="n">stream</span><span class="o">.</span><span class="n">acknowledge_message</span><span class="p">(</span><span class="s2">&quot;my_stream&quot;</span><span class="p">,</span> <span class="s2">&quot;my_group&quot;</span><span class="p">,</span> <span class="n">message_id</span><span class="p">)</span>
+
+<span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="error-handling">
+<h2>Error Handling<a class="headerlink" href="#error-handling" title="Link to this heading"></a></h2>
+<p>The package provides robust error handling for various Redis connection issues:</p>
+<ul class="simple">
+<li><p>Connection failures (network issues, authentication failures)</p></li>
+<li><p>Operation timeouts</p></li>
+<li><p>Stream-specific errors (non-existent streams/groups)</p></li>
+<li><p>Consumer group management errors</p></li>
+</ul>
+<p>All operations log appropriate error messages and raise relevant exceptions that can be caught and handled by the client application.</p>
+</section>
+<section id="design-considerations">
+<h2>Design Considerations<a class="headerlink" href="#design-considerations" title="Link to this heading"></a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">step_redis</span></code> package was designed with the following considerations:</p>
+<ul class="simple">
+<li><p><strong>Reliability</strong>: Ensuring reliable message delivery and processing with proper acknowledgments</p></li>
+<li><p><strong>Performance</strong>: Minimizing overhead and maximizing throughput for high-performance applications</p></li>
+<li><p><strong>Resource Management</strong>: Proper handling of connections and resources to prevent leaks</p></li>
+<li><p><strong>Security</strong>: Support for SSL/TLS connections and authentication</p></li>
+<li><p><strong>Configurability</strong>: Extensive configuration options to adapt to various deployment scenarios</p></li>
+</ul>
+<p>This architectural design ensures that the package can handle the demands of distributed systems while providing a clean and intuitive API for developers.</p>
+</section>
 </section>
 
 
@@ -256,17 +497,7 @@
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script>
-<footer class="footer">
-  <div class="container">
-    <p class="pull-right">
-      <a href="#">Back to top</a>
-    </p>
-    <p>
-      <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/4.0/80x15.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License</a>
-    </p>
-  </div>
-</footer>
+  </script> 
 
 </body>
 </html>

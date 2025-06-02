@@ -36,7 +36,7 @@ The typical usage pattern involves:
     #. Use asynchronous context managers for proper resource management
 
 .. code-block:: python
-
+    
     import asyncio
     from logging import getLogger
     from step_lib import StepRedisPoolParams, StepRedisPool, StepRedisStream
@@ -67,7 +67,6 @@ The typical usage pattern involves:
             connection_available_timeout=2,
             protocol=3,
         )
-        
         # 2. Create and use connection pool as context manager
         async with StepRedisPool(params=redis_params, logger=logger) as pool:
             # 3. Create a stream interface
@@ -83,31 +82,43 @@ The typical usage pattern involves:
                     "data_stream", "processor_group", "consumer1", 5000
                 )
                 logger.info(f"Received message: {message}")
-
     if __name__ == "__main__":
         asyncio.run(main())
 
-Advanced Usage: STEP Producer Example
--------------------------------------
+Advanced Usage: Stream Demo Example
+-----------------------------------
 
-A real-world implementation of Redis in the STEP Framework can be seen in the producer 
-stream module. This example demonstrates how to extend the base Redis components for specific use cases.
+The ``step_redis`` module includes a comprehensive demonstration example in the ``stream_demo``
+package. This example showcases how to extend the base Redis components for specific use cases,
+and provides a complete implementation that can be run as a standalone application.
 
-StepProducerRedisPool
-~~~~~~~~~~~~~~~~~~~~~
+Stream Demo Components
+~~~~~~~~~~~~~~~~~~~~~~
 
-The ``StepProducerRedisPool`` extends ``StepRedisPool`` to provide a specialized Redis connection pool for Producer operations:
+The example consists of the following key components:
+
+    #. **DemoRedisPool**: An extension of ``StepRedisPool`` with pre-configured connection parameters
+    #. **RedisStreamInput/Output**: Configuration classes for stream operations
+    #. **DemoRedisStream**: A specialized stream implementation for demonstration purposes
+
+Let's look at how these components are implemented:
 
 .. code-block:: python
 
-    class StepProducerRedisPool(StepRedisPool):
-        """Redis connection pool for Step producer."""
+    # Standard Library Imports
+    from dataclasses import dataclass
+    from logging import Logger
+    # step_redis Package Imports
+    from step_redis import StepRedisPool, StepRedisPoolParams, StepRedisStream
+    # Custom Redis Pool Implementation
+    class DemoRedisPool(StepRedisPool):
+        """A Redis connection pool for demonstration purposes."""
         
         def __init__(self, logger: Logger) -> None:
             super().__init__(
                 params=StepRedisPoolParams(
-                    host="redis-host.example.com",
-                    port=17059,
+                    host="redis-demo.example.com",
+                    port=6379,
                     username="default",
                     password="your-password",
                     db=0,
@@ -130,103 +141,132 @@ The ``StepProducerRedisPool`` extends ``StepRedisPool`` to provide a specialized
                 logger=logger,
             )
 
-Stream Configuration
-~~~~~~~~~~~~~~~~~~~~
-
-Configuration classes help organize stream settings:
-
-.. code-block:: python
-
+    # Configuration Classes
     @dataclass(frozen=True, kw_only=True, slots=True)
     class RedisStreamOutput:
         """Redis stream output configuration."""
         stream_id: str
         max_length: int
-
+    
     @dataclass(frozen=True, kw_only=True, slots=True)
     class RedisStreamInput:
         """Redis stream input configuration."""
         stream_id: str
         group_id: str
         wait_timeout: int
-
-StepProducerRedisStream
-~~~~~~~~~~~~~~~~~~~~~~~
-
-The specialized stream implementation handles specific message formats and operations:
-
-.. code-block:: python
-
-    class StepProducerRedisStream(StepRedisStream):
-        """A Redis stream implementation for STEP Producer functionality."""
-        
+    
+    # Custom Stream Implementation
+    class DemoRedisStream(StepRedisStream):
+        """A demonstration Redis stream implementation."""
+    
         def __init__(
             self,
             logger: Logger,
-            pool: StepProducerRedisPool,
+            pool: DemoRedisPool,
             consumer_name: str,
         ) -> None:
             self._input_config = RedisStreamInput(
-                stream_id="stepProducerStream",
-                group_id="stepProducerGroup",
+                stream_id="demoInputStream",
+                group_id="demoGroup",
                 wait_timeout=5000,
             )
             self._output_config = RedisStreamOutput(
-                stream_id="stepClientStream",
+                stream_id="demoOutputStream",
                 max_length=1000,
             )
             self._consumer_name = consumer_name
             super().__init__(pool=pool, logger=logger)
-            
-        async def create_producer_input_stream(self) -> None:
+    
+        async def create_demo_input_stream(self) -> None:
+            """Creates the demo input stream with consumer group."""
             await self.create_input_stream(
-                stream_id=self._input_config.stream_id, 
-                group_id=self._input_config.group_id
+                stream_id=self._input_config.stream_id,
+                group_id=self._input_config.group_id,
+                ttl_seconds=self._input_config.wait_timeout * 6 // 1000,
             )
-            self._logger.info(
-                msg=f"Created input stream {self._input_config.stream_id} "
-                    f"with group {self._input_config.group_id}"
+    
+        async def publish_msg(self, message: str) -> None:
+            """Publishes a message to the demo output stream."""
+            await self.publish_message(
+                stream_id=self._output_config.stream_id,
+                message=message,
+                stream_max_len=self._output_config.max_length,
             )
-            
-        async def publish_its_message(self, message: FacilityMessage) -> None:
-            # Specialized method to publish ITS messages
-            # Implementation details...
-            
-        async def receive_its_message(self) -> ProducerCloudEventsJsonRoot:
-            # Specialized method to receive and validate ITS messages
-            # Implementation details...
+            # Set TTL for automatic cleanup after 120 seconds
+            await self.update_stream_ttl(
+                stream_id=self._output_config.stream_id, ttl_seconds=120
+            )
+    
+        async def receive_msg(self) -> str:
+            """Receives a message from the demo input stream."""
+            msg = await self.receive_message(
+                stream_id=self._input_config.stream_id,
+                group_id=self._input_config.group_id,
+                consumer_name=self._consumer_name,
+                block_timeout=self._input_config.wait_timeout,
+                ttl_seconds=self._input_config.wait_timeout * 6 // 1000,
+            )
+            return str(object=msg)
 
-Complete Producer Example
-~~~~~~~~~~~~~~~~~~~~~~~~~
+Running the Demo Application
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This complete example shows how to use the Producer stream components:
+The demo package also includes a complete runnable application that demonstrates a continuous loop
+of publishing and consuming messages. Here's an excerpt from the main implementation:
 
 .. code-block:: python
 
-    import asyncio
-    from logging import getLogger
-    from step_lib import DenmMessageV1
-    from producer_stream import StepProducerRedisPool, StepProducerRedisStream
-
-    async def main():
-        logger = getLogger("producer_example")
+    async def _main_async(logger: Logger) -> ExitCode:
+        """Main async function for the Redis stream demo."""
         
-        # Create Redis pool and stream for the producer
-        async with StepProducerRedisPool(logger) as redis_pool:
-            async with StepProducerRedisStream(logger, redis_pool, "producer1") as stream:
-                # Create input stream if needed
-                await stream.create_producer_input_stream()
+        # Set up exception handling for the event loop
+        get_event_loop().set_exception_handler(
+            handler=lambda loop, context: _exception_handler(context=context, logger=logger)
+        )
+        
+        # Use async context managers for proper resource management
+        async with DemoRedisPool(logger=logger) as redis_pool:
+            async with DemoRedisStream(
+                logger=logger, pool=redis_pool, consumer_name="demo_1"
+            ) as stream:
+                logger.info(msg="Stream input connection established")
                 
-                # Receive messages (blocking call with timeout)
-                message = await stream.receive_its_message()
-                logger.info(f"Received message: {message}")
+                # Create the input stream and consumer group
+                await stream.create_demo_input_stream()
                 
-                # Process and publish response message
-                denm_message = DenmMessageV1(...)  # Create appropriate message
-                await stream.publish_its_message(denm_message)
-                
+                # Continuous publish and receive loop
+                while True:
+                    try:
+                        # Publish a message
+                        await stream.publish_msg(
+                            message="Hello, this is a message from the Demo!"
+                        )
+                        
+                        # Receive and log the message
+                        msg = await stream.receive_msg()
+                        logger.info(msg=f"Received message: {msg}")
+                    except KeyError as e:
+                        logger.warning(msg=f"Error in stream input: {e}, type {type(e)}")
+        
+        return ExitCode.OK
+
+    # Run the demo
     if __name__ == "__main__":
-        asyncio.run(main())
+        main()
+
+You can run the demo application directly with:
+
+.. code-block:: console
+
+    $ python -m stream_demo
+
+The demo showcases best practices for Redis stream usage, including:
+
+    #. Proper signal handling for clean shutdown
+    #. Comprehensive error handling
+    #. Efficient resource management with async context managers
+    #. Stream TTL management for automatic cleanup
+    #. Consumer group pattern for reliable message delivery
 
 Best Practices
 --------------

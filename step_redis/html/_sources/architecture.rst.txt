@@ -1,3 +1,232 @@
-============
 Architecture
 ============
+
+Overview
+--------
+
+The ``step_redis`` package provides robust asynchronous Redis connectivity and stream processing capabilities designed for Safer Transport for Europe Platform (STEP) applications. It offers enhanced Redis client functionality with a focus on connection management, stream operations, and reliable message processing.
+
+The package is built on top of the Redis Python client library and extends it with additional features specifically tailored for the needs of distributed systems that require reliable message handling.
+
+Key Components
+--------------
+
+The package consists of two main components:
+
+1. **StepRedisPool**: An extended Redis connection pool with asyncio support
+2. **StepRedisStream**: A comprehensive interface for Redis Streams operations
+
+Component Details
+-----------------
+
+StepRedisPool
+~~~~~~~~~~~~~
+
+``StepRedisPool`` extends the ``BlockingConnectionPool`` from redis-py to provide enhanced features for asyncio applications. It manages Redis connections with configurable parameters and supports both SSL and non-SSL connections.
+
+.. plantuml::
+   :align: center
+
+   !theme plain
+   skinparam classAttributeIconSize 0
+   
+   class StepRedisPoolParams {
+      +host: str
+      +port: int
+      +username: Optional[str]
+      +password: str
+      +db: int
+      +socket_timeout: int
+      +socket_connect_timeout: int
+      +socket_keep_idle: int
+      +socket_keep_alive: bool
+      +socket_keep_cnt: int
+      +ssl_enable: bool
+      +ssl_client_key_file: Optional[str]
+      +ssl_client_key_file_password: Optional[str]
+      +ssl_client_cert_file: Optional[str]
+      +ssl_cert_requested: bool
+      +ssl_ca_certs_file: Optional[str]
+      +health_check_interval: int
+      +max_connections: int
+      +connection_available_timeout: Optional[int]
+      +protocol: int
+   }
+   
+   class StepRedisPool {
+      -_params: StepRedisPoolParams
+      -_logger: Optional[Logger]
+      -_pool: BlockingConnectionPool
+      +__init__(params: StepRedisPoolParams, logger: Optional[Logger])
+      +__aenter__(): StepRedisPool
+      +__aexit__(exc_type, exc_val, exc_tb): None
+      +get_pool(): BlockingConnectionPool
+   }
+   
+   StepRedisPool o-- StepRedisPoolParams
+
+**Key Features**:
+
+* SSL/TLS secure connections
+* TCP keepalive configuration for connection stability
+* Configurable connection limits and timeouts
+* Proper resource management through async context managers
+* Integrated logging support
+
+StepRedisStream
+~~~~~~~~~~~~~~~
+
+``StepRedisStream`` provides a comprehensive interface for Redis Streams that enables creating, managing, and utilizing Redis streams with consumer groups for reliable message processing.
+
+.. plantuml::
+   :align: center
+
+   !theme plain
+   skinparam classAttributeIconSize 0
+   
+   class StepRedisStream {
+      -_pool: Any
+      -_logger: Logger
+      -_redis: Redis
+      +__init__(pool: Any, logger: Logger)
+      +__aenter__(): StepRedisStream
+      +__aexit__(exc_type, exc_val, exc_tb): None
+      +create_input_stream(stream_name: str, group_name: str, ttl_seconds: Optional[int]): Awaitable[bool]
+      +publish_message(stream_name: str, message: Dict[str, Any], max_len: Optional[int]): Awaitable[str]
+      +receive_message(stream_name: str, group_name: str, consumer_name: str, wait_ms: int, count: int, ttl_seconds: Optional[int]): Awaitable[List[Dict[str, Any]]]
+      +acknowledge_message(stream_name: str, group_name: str, message_id: str): Awaitable[int]
+      +ping(): Awaitable[bool]
+      +set_ttl(key: str, ttl_seconds: int): Awaitable[bool]
+   }
+   
+   class StepRedisPool {
+   }
+   
+   StepRedisStream o-- StepRedisPool : uses
+
+**Key Features**:
+
+* Creating and managing streams with consumer groups
+* Publishing messages with configurable maximum length
+* Consuming messages with proper acknowledgment handling
+* Setting and managing Time-To-Live (TTL) for streams
+* Connection health monitoring
+
+Package Integration
+-------------------
+
+The diagram below illustrates how the components of the ``step_redis`` package interact with each other and with the Redis server:
+
+.. plantuml::
+   :align: center
+
+   !theme plain
+   
+   package "Client Application" {
+      [Client Code]
+   }
+   
+   package "step_redis" {
+      [StepRedisPool] as Pool
+      [StepRedisStream] as Stream
+      [StepRedisPoolParams] as Params
+   }
+   
+   database "Redis Server" {
+      [Redis Streams] as RedisStreams
+      [Redis Connection] as RedisConnection
+   }
+   
+   [Client Code] --> Stream : uses
+   [Client Code] --> Pool : creates
+   Pool ..> Params : configured by
+   Stream --> Pool : uses
+   Pool --> RedisConnection : manages
+   Stream --> RedisStreams : interacts with
+
+Usage Patterns
+--------------
+
+The package is designed to be used with async/await syntax in Python and follows context manager patterns for proper resource management. Here's a typical usage flow:
+
+1. Create a ``StepRedisPoolParams`` instance with appropriate connection parameters
+2. Initialize a ``StepRedisPool`` with the parameters
+3. Use the pool to create a ``StepRedisStream`` instance
+4. Perform stream operations (create streams, publish/consume messages)
+5. Properly clean up resources using context managers
+
+Example Usage
+~~~~~~~~~~~~~
+
+.. code-block:: python
+
+   import asyncio
+   import logging
+   from step_redis.step_redis_pool import StepRedisPoolParams, StepRedisPool
+   from step_redis.step_redis_stream import StepRedisStream
+
+   async def main():
+       # Setup logging
+       logging.basicConfig(level=logging.DEBUG)
+       logger = logging.getLogger("redis_example")
+
+       # Configure Redis connection parameters
+       params = StepRedisPoolParams(
+           host="redis.example.com",
+           port=6379,
+           username="user",
+           password="password",
+           db=0,
+           ssl_enable=True,
+           # Other configuration parameters
+       )
+
+       # Create a Redis pool
+       async with StepRedisPool(params=params, logger=logger) as pool:
+           # Use the stream as a context manager
+           async with StepRedisStream(pool, logger) as stream:
+               # Create a stream with a consumer group
+               await stream.create_input_stream("my_stream", "my_group", ttl_seconds=3600)
+
+               # Publish a message
+               await stream.publish_message("my_stream", {"data": "Hello, Redis!"}, 1000)
+
+               # Consume a message
+               messages = await stream.receive_message(
+                   "my_stream", "my_group", "consumer1", 5000, 1, ttl_seconds=3600
+               )
+               
+               if messages:
+                   print(f"Received: {messages}")
+                   
+                   # Acknowledge the message
+                   for msg in messages:
+                       message_id = msg['id']
+                       await stream.acknowledge_message("my_stream", "my_group", message_id)
+
+   asyncio.run(main())
+
+Error Handling
+--------------
+
+The package provides robust error handling for various Redis connection issues:
+
+* Connection failures (network issues, authentication failures)
+* Operation timeouts
+* Stream-specific errors (non-existent streams/groups)
+* Consumer group management errors
+
+All operations log appropriate error messages and raise relevant exceptions that can be caught and handled by the client application.
+
+Design Considerations
+---------------------
+
+The ``step_redis`` package was designed with the following considerations:
+
+* **Reliability**: Ensuring reliable message delivery and processing with proper acknowledgments
+* **Performance**: Minimizing overhead and maximizing throughput for high-performance applications
+* **Resource Management**: Proper handling of connections and resources to prevent leaks
+* **Security**: Support for SSL/TLS connections and authentication
+* **Configurability**: Extensive configuration options to adapt to various deployment scenarios
+
+This architectural design ensures that the package can handle the demands of distributed systems while providing a clean and intuitive API for developers.
