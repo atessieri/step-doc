@@ -1,0 +1,400 @@
+Architecture
+============
+
+This document describes the architecture of the STEP Client, a Python package 
+for communicating with the STEP (Secure Traffic Event Platform) MQTT broker 
+to receive and send ITS (Intelligent Transport Systems) messages.
+
+Overview
+--------
+
+The STEP Client serves as an interface between the STEP MQTT broker and Redis 
+streams for message processing. It provides functionality for subscribing to MQTT topics, 
+publishing ITS messages, and managing message queuing.
+
+Components
+----------
+
+The architecture follows a modular design pattern that separates concerns between MQTT 
+communication, Redis integration, and configuration management. This enables flexibility 
+and maintainability in the system design.
+
+Main Components:
+
+    #. **StepGw**: Gateway class for MQTT communication with the STEP broker
+    #. **StepConfig**: Configuration management for the client
+    #. **StepClientRedisPool/StepClientRedisStream**: Redis integration 
+       for message queuing
+    #. **StepLogger**: Logging utilities specific to the STEP client
+    #. **StepException**: Custom exceptions for error handling
+
+StepGw
+^^^^^^
+
+The ``StepGw`` (STEP Gateway) is a core component of the STEP Client architecture
+that manages MQTT communication with the STEP broker. Extending the ``AsyncComManager`` class, 
+it provides an asynchronous interface for secure, reliable message exchange between 
+client applications and the STEP ecosystem.
+
+Key responsibilities of ``StepGw`` include:
+
+    #. **MQTT Connection Management**: Establishes and maintains secure TLS/SSL connections 
+       to the MQTT broker, handling reconnection and error scenarios.
+    #. **Topic Subscription**: Manages subscriptions to MQTT topics with configurable 
+       Quality of Service (QoS) levels to receive ITS messages from the STEP broker.
+    #. **Message Publication**: Publishes ITS messages to the STEP broker with
+       appropriate topic selection and message encoding.
+    #. **Message Conversion**: Handles bidirectional conversion between raw 
+       messages and CloudEventsItsMessage format.
+    #. **Integration with Redis**: Coordinates with ``StepClientRedisStream`` to queue 
+       received messages in Redis streams and publish client-generated messages.
+    #. **Context Management**: Implements asynchronous context management through 
+       ``__aenter__`` and ``__aexit__`` methods for clean resource handling.
+
+The ``StepGw`` class uses asynchronous patterns throughout to ensure non-blocking operations, 
+making it suitable for high-throughput messaging environments in ITS applications.
+
+StepConfig
+^^^^^^^^^^
+
+The ``StepConfig`` component is responsible for configuration management in the STEP Client architecture. 
+Built as a Pydantic ``BaseModel``, it provides a robust, type-safe mechanism for loading,
+validating, and accessing configuration settings throughout the application. 
+
+Key features of ``StepConfig`` include:
+
+    #. **JSON Configuration Loading**: Loads configuration settings from a JSON file specified 
+       at startup, providing a centralized source of configuration for all components.
+    #. **Type Validation**: Leverages Pydantic's validation system to ensure all configuration 
+       values meet the expected types and constraints, preventing configuration errors at runtime.
+    #. **Hierarchical Structure**: Organizes configuration in a hierarchical manner, with nested 
+       models for different aspects of the system:
+       
+        * MQTT Client configuration (connection parameters, security settings)
+        * MQTT Protocol configuration (QoS, topic management)
+        * Redis Client configuration (for message broker integration)
+        * Logging configuration (handlers, levels, formatting)
+    
+    #. **Immutable Configuration**: Once loaded at startup, the configuration becomes immutable, 
+       ensuring consistency throughout the application's lifecycle.
+    #. **Configuration Sharing**: Acts as a central repository of configuration settings that 
+       is shared with other components, providing a single source of truth for system settings.
+    #. **Default Configuration**: Provides ``get_default()`` methods to generate sensible 
+       default configurations when specific values are not provided.
+    #. **JSON Schema Generation**: Supports generating JSON schemas for configuration 
+       validation through the ``StepConfigGenerateJsonSchema`` utility class.
+
+The design of ``StepConfig`` emphasizes immutability and strong validation, helping prevent 
+configuration-related issues during runtime while providing a clear, structured 
+approach to configuration management.
+
+StepClientRedisPool and StepClientRedisStream
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The ``StepClientRedisPool`` and ``StepClientRedisStream`` components provide the Redis
+integration layer for the STEP Client architecture, enabling efficient message
+queuing and distribution between different system components.
+
+``StepClientRedisPool``:
+
+    #. **Connection Management**: Extends the ``StepRedisPool`` base class to handle 
+       Redis connection pooling specifically for STEP Client needs.
+    #. **Resource Management**: Provides asynchronous context management through 
+       ``__aenter__`` and ``__aexit__`` methods for safe connection handling.
+    #. **Connection Configuration**: Manages Redis connection parameters such 
+       as host, port, and authentication details.
+    #. **Connection Pooling**: Implements connection pooling to optimize performance 
+       and resource utilization when interacting with Redis.
+
+``StepClientRedisStream``:
+
+    #. **Stream Management**: Extends the ``StepRedisStream`` base class to implement 
+       specialized stream handling for ITS messages.
+    #. **Input Stream Processing**: Manages connections to input streams from ``step_producer`` 
+       components to receive DENM (Decentralized Environmental Notification Messages).
+    #. **Output Stream Management**: Handles output streams with specific routing:
+       
+       * Connects to ``step_producer`` for sending DENM messages
+       * Connects to ``step_adapter`` for sending various ITS message types, including:
+
+         - CAM (Cooperative Awareness Messages)
+         - DENM (Decentralized Environmental Notification Messages)
+         - CPM (Collective Perception Messages)
+         - VAM (Vulnerable Road User Awareness Messages)
+    
+    #. **Stream Creation**: Creates and configures input streams with appropriate consumer 
+       group IDs for message distribution.
+    #. **Message Publishing**: Provides methods to publish messages to the configured output streams.
+    #. **Message Receiving**: Offers functionality to receive and parse messages from input streams.
+    #. **Format Conversion**: Handles the conversion between CloudEvents format and STEP facility 
+       messages according to the CloudEvents specification.
+
+Together, these components form the communication infrastructure that enables standardized 
+message exchange between STEP Client and other components in the STEP ecosystem through 
+Redis streams.
+
+StepLogger
+^^^^^^^^^^
+
+The ``StepLogger`` component provides specialized logging functionality for the STEP Client
+architecture, enabling comprehensive and configurable logging throughout the application. 
+It serves as a wrapper around Python's standard logging facilities with additional features 
+tailored to STEP Client's needs.
+
+Key features of ``StepLogger`` include:
+
+    #. **Multi-destination Logging**: Supports logging to different output formats and 
+       destinations, including:
+       
+        * File-based logging for persistent records
+        * Standard output (console) for development and debugging
+        * Syslog integration for system monitoring
+        * Configurable log rotation based on size or time intervals
+    
+    #. **Log Level Management**: Provides fine-grained control over logging verbosity 
+       with standard log levels (DEBUG, INFO, WARNING, ERROR, CRITICAL).
+    #. **Structured Formatting**: Implements customizable log formats with timestamp, 
+       severity level, source component, and structured message content.
+    #. **Context-aware Logging**: Includes context information such as component IDs, 
+       transaction IDs, and operation details to facilitate troubleshooting.
+    #. **Configuration Integration**: Leverages the logging configuration section 
+       from ``StepConfig`` to enable consistent setup across components.
+    #. **Utility Methods**: Offers utility methods like ``setup_logging()`` for initial 
+       configuration and ``get_logger()`` for retrieving appropriately configured 
+       logger instances.
+    #. **Error Handling**: Includes robust error handling to prevent logging failures 
+       from impacting core application functionality.
+
+The ``StepLogger`` component ensures that the STEP Client maintains comprehensive 
+logging capabilities to support monitoring, debugging, and operational insights 
+across all system components.
+
+StepException
+^^^^^^^^^^^^^
+
+The ``StepException`` component provides a structured exception handling mechanism 
+for the STEP Client architecture. It defines a hierarchy of custom exceptions tailored 
+to the specific error conditions that can occur during STEP Client operations.
+
+Key aspects of ``StepException`` include:
+
+    #. **Exception Hierarchy**: Establishes a well-organized hierarchy of exception 
+       types that extend from a base ``StepException`` class, allowing for specific 
+       error handling based on exception types.
+    #. **Contextual Information**: Captures and preserves contextual information about 
+       errors, including:
+       
+        * Operation being performed when the error occurred
+        * Component that raised the exception
+        * Underlying system errors or exceptions
+        * Relevant configuration or state data
+    
+    #. **Error Classification**: Categorizes errors into distinct types such as:
+       
+        * Connection errors (MQTT broker or Redis connection failures)
+        * Configuration errors (missing or invalid configuration parameters)
+        * Protocol errors (malformed messages or protocol violations)
+        * Authentication errors (security or credential issues)
+        * Resource errors (unavailable streams or queues)
+    
+    #. **Error Reporting**: Provides formatted error messages with detailed diagnostics
+       to assist in troubleshooting.
+    #. **Recovery Hints**: Includes information about possible recovery strategies or 
+       corrective actions when appropriate.
+    #. **Integration with Logging**: Collaborates with the ``StepLogger`` component to 
+       ensure that exceptions are properly logged with appropriate severity levels.
+
+The ``StepException`` component enables robust error handling throughout the STEP Client, 
+allowing application code to catch and handle specific types of exceptions appropriately 
+while providing meaningful information for debugging and system monitoring.
+
+Component Diagram
+^^^^^^^^^^^^^^^^^
+
+The following component diagram illustrates the high-level architecture of the STEP Client 
+and its interactions with external systems. It shows the relationships between the core 
+components (StepGw, StepConfig, StepClientRedisPool, StepClientRedisStream, StepLogger, 
+and StepException) and how they interact with the MQTT Broker and Redis database. The 
+diagram highlights the separation of concerns in the architecture, with StepGw handling 
+MQTT communication and StepClientRedisStream managing Redis message queuing, while both 
+rely on configuration provided by StepConfig and logging services from StepLogger.
+
+.. plantuml::
+   :align: center
+    
+   package "STEP Client" {
+      [StepGw] as GW
+      [StepConfig] as Config
+      [StepClientRedisPool] as RedisPool
+      [StepClientRedisStream] as RedisStream
+      [StepLogger] as Logger
+      [StepException] as Exception
+      note left of GW
+        Gateway for MQTT 
+        communication
+        with the STEP broker
+      end note
+   }
+    
+   cloud "MQTT Broker" as MQTT
+   database "Redis" as Redis
+    
+   GW -up-> Config : uses
+   GW -down-> RedisStream : uses
+   RedisStream -down-> RedisPool : uses
+   GW <-right-> MQTT : connects to
+   RedisStream <-left-> Redis : connects to
+   GW -up-> Logger : uses
+   GW -down-> Exception : throws
+
+   note bottom of MQTT
+      Subscribe and
+      Publish
+   end note
+
+   note bottom of Redis
+      Input and
+      Output stream
+   end note
+
+   note top of Config
+      Configuration management
+      for the client
+   end note
+
+   note top of RedisStream
+      Redis integration for
+      message processing
+   end note
+
+Class Diagram
+-------------
+
+The class diagram below illustrates the structure and relationships between 
+the key classes in the STEP Client architecture. It shows the main methods 
+and attributes of each class and how they interact with one another. The 
+diagram highlights the dependency relationships, where StepGw relies on 
+multiple components like StepConfig, StepClientRedisStream, and StepLogger, 
+while StepClientRedisStream depends on StepClientRedisPool for Redis connection 
+management. This object-oriented design allows for clear separation of 
+responsibilities and modular development.
+
+.. plantuml::
+   :align: center
+   
+   !theme plain
+   skinparam classAttributeIconSize 0
+
+    class StepGw {
+      +async __aenter__()
+      +async __aexit__()
+      +async aclose()
+      +connect()
+      +disconnect()
+      +subscribe()
+      +unsubscribe()
+      +publish()
+    }
+    
+    class StepConfig {
+      +mqtt_client
+      +mqtt_protocol
+      +redis_client
+      +logging
+      +get_default()
+      +model_validate()
+    }
+    
+    class StepClientRedisPool {
+      +async __aenter__()
+      +async __aexit__()
+      +get_connection()
+    }
+    
+    class StepClientRedisStream {
+      +async __aenter__()
+      +async __aexit__()
+      +publish()
+      +receive()
+      +create_input_stream()
+    }
+    
+    class StepLogger {
+      +setup_logging()
+      +get_logger()
+    }
+    
+    class StepException {
+    }
+    
+    StepGw --> StepConfig : uses
+    StepGw --> StepClientRedisStream : uses
+    StepGw --> StepLogger : uses
+    StepGw --> StepException : throws
+    StepClientRedisStream --> StepClientRedisPool : uses
+  
+
+Sequence Diagrams
+-----------------
+
+The sequence diagrams below illustrate the two primary message flows 
+in the STEP Client: message publication and message subscription. These 
+diagrams show the sequence of interactions between components and the 
+temporal flow of operations as messages move through the system.
+
+Sequence Diagram - Message Publication
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The following sequence diagram depicts the process of publishing a message 
+from a STEP Producer on Redis Stream to publish to STEP MQTT broker. 
+It demonstrates how the StepGw component handles message ITS encoding, 
+publication to the MQTT broker, and synchronization with Redis streams, 
+providing a comprehensive view of the outbound message flow.
+
+.. plantuml::
+   :align: center
+
+   participant "STEP Producer" as Producer
+   participant "StepClientRedisStream" as Redis
+   participant "StepGw" as Gateway
+   participant "STEP MQTT Broker" as MQTT
+
+   Producer -> Redis : redis_stream(JSON_message)
+   Redis -> Gateway: JSON_message
+   note over Gateway
+      Convert message
+      from JSON cloud events
+      to ITS format
+   end note
+   Gateway -> Gateway : encode_ITS(JSON_message)
+   Gateway -> MQTT : mqtt_publish(ITS_message)
+   MQTT --> Gateway : publish_success
+   
+Sequence Diagram - Message Subscription
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The sequence diagram below illustrates the process of subscribing to 
+topics and receiving messages from the MQTT broker. It shows how the 
+StepGw component handles subscription requests, receives messages from 
+the broker, decodes them, and routes them to Redis streams, providing 
+a complete view of the inbound message flow.
+
+.. plantuml::
+   :align: center
+
+   participant "STEP MQTT Broker" as MQTT
+   participant "StepGw" as Gateway
+   participant "StepClientRedisStream" as Redis
+   participant "STEP Adapter" as Adapter
+    
+   Gateway -> MQTT : mqtt_subscribe(topic)
+   Gateway <- MQTT : success
+   MQTT -> Gateway: on_message(ITS_message)
+   note over Gateway
+      Convert message
+      from ITS format
+      to JSON cloud events
+   end note
+   Gateway -> Gateway: ITS_decode(ITS_message)
+   Gateway -> Redis: JSON_message    
+   Redis -> Adapter: redis_stream(JSON_message)

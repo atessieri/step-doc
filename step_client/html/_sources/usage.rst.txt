@@ -1,0 +1,192 @@
+Step Client Usage Guide
+=======================
+
+Introduction
+------------
+
+STEP Client is a Python package designed to facilitate communication between 
+the STEP (Secure Traffic Event Platform) MQTT broker and Redis streams for 
+ITS (Intelligent Transport Systems) message processing. This guide walks 
+through the different ways to use the STEP Client, from basic configuration 
+to advanced usage patterns.
+
+Prerequisites
+-------------
+
+Before using the STEP Client, make sure you have:
+
+    #. Python 3.13 or higher installed
+    #. Access to a STEP MQTT broker
+    #. A Redis server for stream processing (optional, but recommended)
+    #. The step_client package installed in your environment
+
+Installation
+------------
+
+You can install the STEP Client package using pip:
+
+.. code-block:: bash
+
+    pip install step-client
+
+Or if you're using a development version:
+
+.. code-block:: bash
+
+    pip install -e /path/to/step_client
+
+Basic Concepts
+--------------
+
+STEP Client operates as a bridge between MQTT messaging and 
+Redis streams, specifically designed for ITS message exchange. 
+Key concepts include:
+
+    * **StepGw**: Gateway component that handles MQTT communication with the STEP broker
+    * **StepConfig**: Configuration management for the client
+    * **StepClientRedisPool/StepClientRedisStream**: Redis integration for message queuing
+    * **ITS Messages**: Standard message formats like CAM (Cooperative Awareness Messages), 
+      DENM (Decentralized Environmental Notification Messages), CPM (Cooperative Perception Messages),
+      and VAM (Vehicle Awareness Messages)
+
+Configuration
+-------------
+
+STEP Client requires configuration for both MQTT and optional Redis 
+connections. The configuration is managed through a JSON file.
+
+Creating a Configuration File
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+To create a default configuration template:
+
+.. code-block:: bash
+
+    step_client --conf_template my_config_template.json
+
+This generates a template that you can customize for your specific needs.
+
+Key Configuration Parameters
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* **MQTT Client Configuration**:
+  
+  * host: MQTT broker hostname or IP
+  * port: MQTT broker port (typically 1883 for non-TLS, 8883 for TLS)
+  * username and password: Authentication credentials
+  * sslEnable: Whether to use TLS/SSL encryption
+  
+* **MQTT Protocol Configuration**:
+  
+  * keepalive: Keep-alive interval in seconds
+  * cleanStart: Whether to start with a clean session
+  * subscriptionTopics: List of topics to subscribe to
+  * publishTopics: Configuration for topics to publish to
+  
+* **Redis Configuration** (optional):
+  
+  * connection: Redis server connection details
+  * streams: Configuration for Redis streams (inputs and outputs)
+  
+* **General Configuration**:
+  
+  * instanceName: Unique name for this client instance
+  * stationId: Station identification number
+  * reconnectInterval: Time between reconnection attempts
+
+Example Configuration
+^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: json
+
+    {
+      "templateVersion": "1",
+      "instanceName": "example_step_client",
+      "stationId": 12345,
+      "reconnectInterval": 5,
+      "stepClient": {
+        "mqttClient": {
+          "host": "mqtt.example.com",
+          "port": 8883,
+          "username": "user",
+          "password": "password",
+          "sslEnable": true,
+          "sslCertRequested": true,
+          "sslCaCertsFile": "/path/to/ca.crt"
+        },
+        "mqttProtocol": {
+          "keepalive": 60,
+          "cleanStart": true,
+          "subscriptionTopics": ["its/message/#"],
+          "publishTopics": [
+            {
+              "name": "its/message/cam",
+              "qos": 1
+            }
+          ]
+        },
+        "cacheDir": ".cache"
+      },
+      "redis": {
+        "connection": {
+          "host": "localhost",
+          "port": 6379,
+          "password": "redis_password",
+          "db": 0
+        },
+        "streams": {
+          "outputs": {
+            "adapter": {
+              "streamName": "step:client:adapter",
+              "maxLen": 1000
+            },
+            "producer": {
+              "streamName": "step:client:producer",
+              "maxLen": 1000
+            }
+          },
+          "input": {
+            "streamName": "step:adapter:client",
+            "consumerGroup": "step_client_group",
+            "consumerName": "client1",
+            "blockMs": 2000
+          }
+        }
+      },
+      "log": {
+        "level": "INFO",
+        "handlers": [
+          {
+            "type": "stream",
+            "name": "stdout",
+            "level": "INFO"
+          }
+        ]
+      }
+    }
+
+Running STEP Client as a Service
+--------------------------------
+
+To run the STEP Client as a standalone service:
+
+.. code-block:: bash
+
+    step_client --config /path/to/config.json
+
+This will start the client, which will:
+
+    #. Connect to the configured MQTT broker
+    #. Subscribe to the specified topics
+    #. Connect to Redis (if configured)
+    #. Process ITS messages between MQTT and Redis
+
+Command-Line Options
+--------------------
+
+The STEP Client supports several command-line options:
+
+    * ``--config``, ``-c``: Path to configuration file
+    * ``--conf_template``: Generate a configuration template
+    * ``--version``, ``-v``: Show version information
+    * ``--help``, ``-h``: Show help information
