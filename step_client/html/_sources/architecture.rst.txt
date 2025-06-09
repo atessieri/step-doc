@@ -22,7 +22,7 @@ and maintainability in the system design.
 Main Components:
 
     #. **StepGw**: Gateway class for MQTT communication with the STEP broker
-    #. **StepConfig**: Configuration management for the client
+    #. **StepClientConfig**: Configuration management for the client
     #. **StepClientRedisPool/StepClientRedisStream**: Redis integration 
        for message queuing
     #. **StepLogger**: Logging utilities specific to the STEP client
@@ -54,14 +54,14 @@ Key responsibilities of ``StepGw`` include:
 The ``StepGw`` class uses asynchronous patterns throughout to ensure non-blocking operations, 
 making it suitable for high-throughput messaging environments in ITS applications.
 
-StepConfig
-^^^^^^^^^^
+StepClientConfig
+^^^^^^^^^^^^^^^^
 
-The ``StepConfig`` component is responsible for configuration management in the STEP Client architecture. 
+The ``StepClientConfig`` component is responsible for configuration management in the STEP Client architecture. 
 Built as a Pydantic ``BaseModel``, it provides a robust, type-safe mechanism for loading,
 validating, and accessing configuration settings throughout the application. 
 
-Key features of ``StepConfig`` include:
+Key features of ``StepClientConfig`` include:
 
     #. **JSON Configuration Loading**: Loads configuration settings from a JSON file specified 
        at startup, providing a centralized source of configuration for all components.
@@ -84,7 +84,7 @@ Key features of ``StepConfig`` include:
     #. **JSON Schema Generation**: Supports generating JSON schemas for configuration 
        validation through the ``StepConfigGenerateJsonSchema`` utility class.
 
-The design of ``StepConfig`` emphasizes immutability and strong validation, helping prevent 
+The design of ``StepClientConfig`` emphasizes immutability and strong validation, helping prevent 
 configuration-related issues during runtime while providing a clear, structured 
 approach to configuration management.
 
@@ -158,7 +158,7 @@ Key features of ``StepLogger`` include:
     #. **Context-aware Logging**: Includes context information such as component IDs, 
        transaction IDs, and operation details to facilitate troubleshooting.
     #. **Configuration Integration**: Leverages the logging configuration section 
-       from ``StepConfig`` to enable consistent setup across components.
+       from ``StepClientConfig`` to enable consistent setup across components.
     #. **Utility Methods**: Offers utility methods like ``setup_logging()`` for initial 
        configuration and ``get_logger()`` for retrieving appropriately configured 
        logger instances.
@@ -213,18 +213,18 @@ Component Diagram
 
 The following component diagram illustrates the high-level architecture of the STEP Client 
 and its interactions with external systems. It shows the relationships between the core 
-components (StepGw, StepConfig, StepClientRedisPool, StepClientRedisStream, StepLogger, 
+components (StepGw, StepClientConfig, StepClientRedisPool, StepClientRedisStream, StepLogger, 
 and StepException) and how they interact with the MQTT Broker and Redis database. The 
 diagram highlights the separation of concerns in the architecture, with StepGw handling 
 MQTT communication and StepClientRedisStream managing Redis message queuing, while both 
-rely on configuration provided by StepConfig and logging services from StepLogger.
+rely on configuration provided by StepClientConfig and logging services from StepLogger.
 
 .. plantuml::
    :align: center
     
    package "STEP Client" {
       [StepGw] as GW
-      [StepConfig] as Config
+      [StepClientConfig] as Config
       [StepClientRedisPool] as RedisPool
       [StepClientRedisStream] as RedisStream
       [StepLogger] as Logger
@@ -274,7 +274,7 @@ The class diagram below illustrates the structure and relationships between
 the key classes in the STEP Client architecture. It shows the main methods 
 and attributes of each class and how they interact with one another. The 
 diagram highlights the dependency relationships, where StepGw relies on 
-multiple components like StepConfig, StepClientRedisStream, and StepLogger, 
+multiple components like StepClientConfig, StepClientRedisStream, and StepLogger, 
 while StepClientRedisStream depends on StepClientRedisPool for Redis connection 
 management. This object-oriented design allows for clear separation of 
 responsibilities and modular development.
@@ -295,8 +295,8 @@ responsibilities and modular development.
       +unsubscribe()
       +publish()
     }
-    
-    class StepConfig {
+
+    class StepClientConfig {
       +mqtt_client
       +mqtt_protocol
       +redis_client
@@ -327,7 +327,7 @@ responsibilities and modular development.
     class StepException {
     }
     
-    StepGw --> StepConfig : uses
+    StepGw --> StepClientConfig : uses
     StepGw --> StepClientRedisStream : uses
     StepGw --> StepLogger : uses
     StepGw --> StepException : throws

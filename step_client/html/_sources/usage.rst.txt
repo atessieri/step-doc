@@ -43,7 +43,7 @@ Redis streams, specifically designed for ITS message exchange.
 Key concepts include:
 
     * **StepGw**: Gateway component that handles MQTT communication with the STEP broker
-    * **StepConfig**: Configuration management for the client
+    * **StepClientConfig**: Configuration management for the client
     * **StepClientRedisPool/StepClientRedisStream**: Redis integration for message queuing
     * **ITS Messages**: Standard message formats like CAM (Cooperative Awareness Messages), 
       DENM (Decentralized Environmental Notification Messages), CPM (Cooperative Perception Messages),
@@ -97,73 +97,10 @@ Key Configuration Parameters
 Example Configuration
 ^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: json
+The schema of the example below is: :ref:`STEP Client Configuration Schema<step_client_config_schema>`
 
-    {
-      "templateVersion": "1",
-      "instanceName": "example_step_client",
-      "stationId": 12345,
-      "reconnectInterval": 5,
-      "stepClient": {
-        "mqttClient": {
-          "host": "mqtt.example.com",
-          "port": 8883,
-          "username": "user",
-          "password": "password",
-          "sslEnable": true,
-          "sslCertRequested": true,
-          "sslCaCertsFile": "/path/to/ca.crt"
-        },
-        "mqttProtocol": {
-          "keepalive": 60,
-          "cleanStart": true,
-          "subscriptionTopics": ["its/message/#"],
-          "publishTopics": [
-            {
-              "name": "its/message/cam",
-              "qos": 1
-            }
-          ]
-        },
-        "cacheDir": ".cache"
-      },
-      "redis": {
-        "connection": {
-          "host": "localhost",
-          "port": 6379,
-          "password": "redis_password",
-          "db": 0
-        },
-        "streams": {
-          "outputs": {
-            "adapter": {
-              "streamName": "step:client:adapter",
-              "maxLen": 1000
-            },
-            "producer": {
-              "streamName": "step:client:producer",
-              "maxLen": 1000
-            }
-          },
-          "input": {
-            "streamName": "step:adapter:client",
-            "consumerGroup": "step_client_group",
-            "consumerName": "client1",
-            "blockMs": 2000
-          }
-        }
-      },
-      "log": {
-        "level": "INFO",
-        "handlers": [
-          {
-            "type": "stream",
-            "name": "stdout",
-            "level": "INFO"
-          }
-        ]
-      }
-    }
+.. literalinclude:: schemas_examples/step_client_config_v1_schema.json
+  :language: JSON
 
 Running STEP Client as a Service
 --------------------------------
@@ -178,7 +115,7 @@ This will start the client, which will:
 
     #. Connect to the configured MQTT broker
     #. Subscribe to the specified topics
-    #. Connect to Redis (if configured)
+    #. Connect to Redis
     #. Process ITS messages between MQTT and Redis
 
 Command-Line Options
