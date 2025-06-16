@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>step_redis.step_redis_stream &mdash; STEP Redis 1.0.2 documentation</title>
+  <title>step_redis.step_redis_stream &mdash; STEP Redis 1.0.3 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=4c969af8" />
@@ -14,7 +14,7 @@
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=1ed6394b"></script>
+      <script src="../../_static/documentation_options.js?v=baaebd52"></script>
       <script src="../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
       <script src="../../_static/tabs.js?v=3ee01567"></script>
@@ -287,7 +287,7 @@
 <span class="linenos"> 50</span>
 <span class="linenos"> 51</span><span class="c1"># Standard Library Imports</span>
 <span class="linenos"> 52</span><span class="kn">from</span><span class="w"> </span><span class="nn">logging</span><span class="w"> </span><span class="kn">import</span> <span class="n">Logger</span>
-<span class="linenos"> 53</span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">cast</span>
+<span class="linenos"> 53</span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Optional</span>
 <span class="linenos"> 54</span>
 <span class="linenos"> 55</span><span class="c1"># Third Party Imports</span>
 <span class="linenos"> 56</span><span class="kn">from</span><span class="w"> </span><span class="nn">redis.asyncio</span><span class="w"> </span><span class="kn">import</span> <span class="n">Redis</span>
@@ -439,7 +439,7 @@
 <span class="linenos">189</span>            <span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Updating TTL to </span><span class="si">{</span><span class="n">ttl_seconds</span><span class="si">}</span><span class="s2"> seconds for stream </span><span class="si">{</span><span class="n">stream_id</span><span class="si">}</span><span class="s2">&quot;</span>
 <span class="linenos">190</span>        <span class="p">)</span>
 <span class="linenos">191</span>        <span class="c1"># The Redis EXPIRE command returns 1 if the timeout was set, 0 if the key doesn&#39;t exist</span>
-<span class="linenos">192</span>        <span class="n">result</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_redis</span><span class="o">.</span><span class="n">expire</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">stream_id</span><span class="p">,</span> <span class="n">time</span><span class="o">=</span><span class="n">ttl_seconds</span><span class="p">))</span>
+<span class="linenos">192</span>        <span class="n">result</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_redis</span><span class="o">.</span><span class="n">expire</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">stream_id</span><span class="p">,</span> <span class="n">time</span><span class="o">=</span><span class="n">ttl_seconds</span><span class="p">))</span>
 <span class="linenos">193</span>        <span class="k">if</span> <span class="n">result</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
 <span class="linenos">194</span>            <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
 <span class="linenos">195</span>                <span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Failed to update TTL for stream </span><span class="si">{</span><span class="n">stream_id</span><span class="si">}</span><span class="s2">, unexpected error&quot;</span>
@@ -470,7 +470,7 @@
 <span class="linenos">217</span><span class="sd">            A return value of -1 indicates the key exists but has no associated expiration.</span>
 <span class="linenos">218</span><span class="sd">        &quot;&quot;&quot;</span>
 <span class="linenos">219</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Getting TTL for stream </span><span class="si">{</span><span class="n">stream_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="linenos">220</span>        <span class="n">ttl</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_redis</span><span class="o">.</span><span class="n">ttl</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">stream_id</span><span class="p">))</span>
+<span class="linenos">220</span>        <span class="n">ttl</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_redis</span><span class="o">.</span><span class="n">ttl</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">stream_id</span><span class="p">))</span>
 <span class="linenos">221</span>        <span class="k">if</span> <span class="n">ttl</span> <span class="o">==</span> <span class="o">-</span><span class="mi">2</span><span class="p">:</span>
 <span class="linenos">222</span>            <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Stream </span><span class="si">{</span><span class="n">stream_id</span><span class="si">}</span><span class="s2"> does not exist&quot;</span><span class="p">)</span>
 <span class="linenos">223</span>        <span class="k">elif</span> <span class="n">ttl</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
@@ -582,8 +582,8 @@
 <span class="linenos">320</span>                <span class="p">)</span>
 <span class="linenos">321</span>                <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Received response: </span><span class="si">{</span><span class="n">response</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 <span class="linenos">322</span>                <span class="k">if</span> <span class="n">stream_id</span> <span class="ow">in</span> <span class="n">response</span><span class="p">:</span>
-<span class="linenos">323</span>                    <span class="n">message_id</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">response</span><span class="p">[</span><span class="n">stream_id</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
-<span class="linenos">324</span>                    <span class="n">message</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">response</span><span class="p">[</span><span class="n">stream_id</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="s2">&quot;payload&quot;</span><span class="p">])</span>
+<span class="linenos">323</span>                    <span class="n">message_id</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="nb">object</span><span class="o">=</span><span class="n">response</span><span class="p">[</span><span class="n">stream_id</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+<span class="linenos">324</span>                    <span class="n">message</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="nb">object</span><span class="o">=</span><span class="n">response</span><span class="p">[</span><span class="n">stream_id</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="s2">&quot;payload&quot;</span><span class="p">])</span>
 <span class="linenos">325</span>                    <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
 <span class="linenos">326</span>                        <span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Received message </span><span class="si">{</span><span class="n">message_id</span><span class="si">}</span><span class="s2"> from Redis: </span><span class="si">{</span><span class="n">message</span><span class="si">}</span><span class="s2">&quot;</span>
 <span class="linenos">327</span>                    <span class="p">)</span>
@@ -610,7 +610,7 @@
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2024, Vodafone Automotive.</p>
+    <p>&#169; Copyright 2025, Vodafone Automotive.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
