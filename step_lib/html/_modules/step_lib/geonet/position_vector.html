@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>step_lib.geonet.position_vector &mdash; STEP Library 1.5.3 documentation</title>
+  <title>step_lib.geonet.position_vector &mdash; STEP Library 1.5.4 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="../../../_static/tabs.css?v=4c969af8" />
@@ -14,7 +14,7 @@
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=d75fd82e"></script>
+      <script src="../../../_static/documentation_options.js?v=1cd648e3"></script>
       <script src="../../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
       <script src="../../../_static/tabs.js?v=3ee01567"></script>
@@ -889,114 +889,113 @@
 <span class="linenos">161</span>        <span class="c1"># GN_ADDR (8 bytes)</span>
 <span class="linenos">162</span>        <span class="n">address</span> <span class="o">=</span> <span class="n">GeoNetworkAddress</span><span class="o">.</span><span class="n">from_bytes_stream</span><span class="p">(</span><span class="n">stream</span><span class="o">=</span><span class="n">stream</span><span class="p">)</span>
 <span class="linenos">163</span>        <span class="c1"># TST (4 bytes)</span>
-<span class="linenos">164</span>        <span class="n">time</span> <span class="o">=</span> <span class="n">ItsTime</span><span class="p">()</span>
-<span class="linenos">165</span>        <span class="n">time</span><span class="o">.</span><span class="n">set_time_from_delta_time</span><span class="p">(</span>
-<span class="linenos">166</span>            <span class="n">delta_time_ms</span><span class="o">=</span><span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">stream</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">4</span><span class="p">),</span> <span class="n">byteorder</span><span class="o">=</span><span class="s2">&quot;big&quot;</span><span class="p">,</span> <span class="n">signed</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
-<span class="linenos">167</span>            <span class="n">module</span><span class="o">=</span><span class="n">PositionVector</span><span class="o">.</span><span class="n">DELTA_TIME_MODULE</span><span class="p">,</span>
-<span class="linenos">168</span>        <span class="p">)</span>
-<span class="linenos">169</span>        <span class="c1"># LAT (4 bytes)</span>
-<span class="linenos">170</span>        <span class="n">latitude</span> <span class="o">=</span> <span class="p">(</span>
-<span class="linenos">171</span>            <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="nb">bytes</span><span class="o">=</span><span class="n">stream</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">4</span><span class="p">),</span> <span class="n">byteorder</span><span class="o">=</span><span class="s2">&quot;big&quot;</span><span class="p">,</span> <span class="n">signed</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="linenos">172</span>            <span class="o">/</span> <span class="n">PositionVector</span><span class="o">.</span><span class="n">LAT_LON_SCALE</span>
-<span class="linenos">173</span>        <span class="p">)</span>
-<span class="linenos">174</span>        <span class="c1"># LONG (4 bytes)</span>
-<span class="linenos">175</span>        <span class="n">longitude</span> <span class="o">=</span> <span class="p">(</span>
-<span class="linenos">176</span>            <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="nb">bytes</span><span class="o">=</span><span class="n">stream</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">4</span><span class="p">),</span> <span class="n">byteorder</span><span class="o">=</span><span class="s2">&quot;big&quot;</span><span class="p">,</span> <span class="n">signed</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="linenos">177</span>            <span class="o">/</span> <span class="n">PositionVector</span><span class="o">.</span><span class="n">LAT_LON_SCALE</span>
-<span class="linenos">178</span>        <span class="p">)</span>
-<span class="linenos">179</span>        <span class="k">if</span> <span class="n">packet_type</span> <span class="o">==</span> <span class="n">PositionVectorType</span><span class="o">.</span><span class="n">LONG</span><span class="p">:</span>
-<span class="linenos">180</span>            <span class="n">bits</span> <span class="o">=</span> <span class="n">ConstBitStream</span><span class="p">(</span><span class="nb">bytes</span><span class="o">=</span><span class="n">stream</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span>
-<span class="linenos">181</span>            <span class="c1"># PAI (1 bit)</span>
-<span class="linenos">182</span>            <span class="n">is_accurate</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">bits</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">fmt</span><span class="o">=</span><span class="s2">&quot;bool&quot;</span><span class="p">))</span>
-<span class="linenos">183</span>            <span class="c1"># S (15 bits)</span>
-<span class="linenos">184</span>            <span class="n">speed</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">bits</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">fmt</span><span class="o">=</span><span class="s2">&quot;uint:15&quot;</span><span class="p">))</span>
-<span class="linenos">185</span>            <span class="k">if</span> <span class="n">speed</span> <span class="o">==</span> <span class="n">PositionVector</span><span class="o">.</span><span class="n">SPEED_INVALID</span><span class="p">:</span>
-<span class="linenos">186</span>                <span class="n">speed</span> <span class="o">=</span> <span class="kc">None</span>
-<span class="linenos">187</span>            <span class="c1"># H (2 bytes)</span>
-<span class="linenos">188</span>            <span class="n">heading</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span>
-<span class="linenos">189</span>                <span class="nb">bytes</span><span class="o">=</span><span class="n">stream</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span> <span class="n">byteorder</span><span class="o">=</span><span class="s2">&quot;big&quot;</span><span class="p">,</span> <span class="n">signed</span><span class="o">=</span><span class="kc">True</span>
-<span class="linenos">190</span>            <span class="p">)</span>
-<span class="linenos">191</span>            <span class="k">if</span> <span class="n">heading</span> <span class="o">==</span> <span class="n">PositionVector</span><span class="o">.</span><span class="n">HEADING_INVALID</span><span class="p">:</span>
-<span class="linenos">192</span>                <span class="n">heading</span> <span class="o">=</span> <span class="kc">None</span>
-<span class="linenos">193</span>        <span class="k">else</span><span class="p">:</span>
-<span class="linenos">194</span>            <span class="n">is_accurate</span> <span class="o">=</span> <span class="kc">False</span>
-<span class="linenos">195</span>            <span class="n">speed</span> <span class="o">=</span> <span class="kc">None</span>
-<span class="linenos">196</span>            <span class="n">heading</span> <span class="o">=</span> <span class="kc">None</span>
-<span class="linenos">197</span>        <span class="k">return</span> <span class="n">PositionVector</span><span class="p">(</span>
-<span class="linenos">198</span>            <span class="n">address</span><span class="o">=</span><span class="n">address</span><span class="p">,</span>
-<span class="linenos">199</span>            <span class="n">time</span><span class="o">=</span><span class="n">time</span><span class="p">,</span>
-<span class="linenos">200</span>            <span class="n">latitude</span><span class="o">=</span><span class="n">latitude</span><span class="p">,</span>
-<span class="linenos">201</span>            <span class="n">longitude</span><span class="o">=</span><span class="n">longitude</span><span class="p">,</span>
-<span class="linenos">202</span>            <span class="n">is_accurate</span><span class="o">=</span><span class="n">is_accurate</span><span class="p">,</span>
-<span class="linenos">203</span>            <span class="n">speed</span><span class="o">=</span><span class="n">speed</span><span class="p">,</span>
-<span class="linenos">204</span>            <span class="n">heading</span><span class="o">=</span><span class="n">heading</span><span class="p">,</span>
-<span class="linenos">205</span>        <span class="p">)</span></div>
+<span class="linenos">164</span>        <span class="n">time</span> <span class="o">=</span> <span class="n">ItsTime</span><span class="o">.</span><span class="n">create_from_delta_time</span><span class="p">(</span>
+<span class="linenos">165</span>            <span class="n">delta_time_ms</span><span class="o">=</span><span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">stream</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">4</span><span class="p">),</span> <span class="n">byteorder</span><span class="o">=</span><span class="s2">&quot;big&quot;</span><span class="p">,</span> <span class="n">signed</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+<span class="linenos">166</span>            <span class="n">module</span><span class="o">=</span><span class="n">PositionVector</span><span class="o">.</span><span class="n">DELTA_TIME_MODULE</span><span class="p">,</span>
+<span class="linenos">167</span>        <span class="p">)</span>
+<span class="linenos">168</span>        <span class="c1"># LAT (4 bytes)</span>
+<span class="linenos">169</span>        <span class="n">latitude</span> <span class="o">=</span> <span class="p">(</span>
+<span class="linenos">170</span>            <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="nb">bytes</span><span class="o">=</span><span class="n">stream</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">4</span><span class="p">),</span> <span class="n">byteorder</span><span class="o">=</span><span class="s2">&quot;big&quot;</span><span class="p">,</span> <span class="n">signed</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="linenos">171</span>            <span class="o">/</span> <span class="n">PositionVector</span><span class="o">.</span><span class="n">LAT_LON_SCALE</span>
+<span class="linenos">172</span>        <span class="p">)</span>
+<span class="linenos">173</span>        <span class="c1"># LONG (4 bytes)</span>
+<span class="linenos">174</span>        <span class="n">longitude</span> <span class="o">=</span> <span class="p">(</span>
+<span class="linenos">175</span>            <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="nb">bytes</span><span class="o">=</span><span class="n">stream</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">4</span><span class="p">),</span> <span class="n">byteorder</span><span class="o">=</span><span class="s2">&quot;big&quot;</span><span class="p">,</span> <span class="n">signed</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="linenos">176</span>            <span class="o">/</span> <span class="n">PositionVector</span><span class="o">.</span><span class="n">LAT_LON_SCALE</span>
+<span class="linenos">177</span>        <span class="p">)</span>
+<span class="linenos">178</span>        <span class="k">if</span> <span class="n">packet_type</span> <span class="o">==</span> <span class="n">PositionVectorType</span><span class="o">.</span><span class="n">LONG</span><span class="p">:</span>
+<span class="linenos">179</span>            <span class="n">bits</span> <span class="o">=</span> <span class="n">ConstBitStream</span><span class="p">(</span><span class="nb">bytes</span><span class="o">=</span><span class="n">stream</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span>
+<span class="linenos">180</span>            <span class="c1"># PAI (1 bit)</span>
+<span class="linenos">181</span>            <span class="n">is_accurate</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">bits</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">fmt</span><span class="o">=</span><span class="s2">&quot;bool&quot;</span><span class="p">))</span>
+<span class="linenos">182</span>            <span class="c1"># S (15 bits)</span>
+<span class="linenos">183</span>            <span class="n">speed</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">bits</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">fmt</span><span class="o">=</span><span class="s2">&quot;uint:15&quot;</span><span class="p">))</span>
+<span class="linenos">184</span>            <span class="k">if</span> <span class="n">speed</span> <span class="o">==</span> <span class="n">PositionVector</span><span class="o">.</span><span class="n">SPEED_INVALID</span><span class="p">:</span>
+<span class="linenos">185</span>                <span class="n">speed</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="linenos">186</span>            <span class="c1"># H (2 bytes)</span>
+<span class="linenos">187</span>            <span class="n">heading</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span>
+<span class="linenos">188</span>                <span class="nb">bytes</span><span class="o">=</span><span class="n">stream</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span> <span class="n">byteorder</span><span class="o">=</span><span class="s2">&quot;big&quot;</span><span class="p">,</span> <span class="n">signed</span><span class="o">=</span><span class="kc">True</span>
+<span class="linenos">189</span>            <span class="p">)</span>
+<span class="linenos">190</span>            <span class="k">if</span> <span class="n">heading</span> <span class="o">==</span> <span class="n">PositionVector</span><span class="o">.</span><span class="n">HEADING_INVALID</span><span class="p">:</span>
+<span class="linenos">191</span>                <span class="n">heading</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="linenos">192</span>        <span class="k">else</span><span class="p">:</span>
+<span class="linenos">193</span>            <span class="n">is_accurate</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="linenos">194</span>            <span class="n">speed</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="linenos">195</span>            <span class="n">heading</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="linenos">196</span>        <span class="k">return</span> <span class="n">PositionVector</span><span class="p">(</span>
+<span class="linenos">197</span>            <span class="n">address</span><span class="o">=</span><span class="n">address</span><span class="p">,</span>
+<span class="linenos">198</span>            <span class="n">time</span><span class="o">=</span><span class="n">time</span><span class="p">,</span>
+<span class="linenos">199</span>            <span class="n">latitude</span><span class="o">=</span><span class="n">latitude</span><span class="p">,</span>
+<span class="linenos">200</span>            <span class="n">longitude</span><span class="o">=</span><span class="n">longitude</span><span class="p">,</span>
+<span class="linenos">201</span>            <span class="n">is_accurate</span><span class="o">=</span><span class="n">is_accurate</span><span class="p">,</span>
+<span class="linenos">202</span>            <span class="n">speed</span><span class="o">=</span><span class="n">speed</span><span class="p">,</span>
+<span class="linenos">203</span>            <span class="n">heading</span><span class="o">=</span><span class="n">heading</span><span class="p">,</span>
+<span class="linenos">204</span>        <span class="p">)</span></div>
 
-<span class="linenos">206</span>
+<span class="linenos">205</span>
 <div class="viewcode-block" id="PositionVector.to_bytes">
 <a class="viewcode-back" href="../../../step_lib_rst/geonet/step_lib.geonet.position_vector.html#step_lib.geonet.position_vector.PositionVector.to_bytes">[docs]</a>
-<span class="linenos">207</span>    <span class="k">def</span><span class="w"> </span><span class="nf">to_bytes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">packet_type</span><span class="p">:</span> <span class="n">PositionVectorType</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
-<span class="linenos">208</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Converts the position vector to its binary representation.</span>
-<span class="linenos">209</span>
-<span class="linenos">210</span><span class="sd">        This method serializes the position vector into a byte stream according to the</span>
-<span class="linenos">211</span><span class="sd">        specified packet type.</span>
-<span class="linenos">212</span><span class="sd">        For all packet types, the following fields are included:</span>
-<span class="linenos">213</span>
-<span class="linenos">214</span><span class="sd">            - GN_ADDR (8 bytes): The address.</span>
-<span class="linenos">215</span><span class="sd">            - TST (4 bytes): The timestamp as delta time in milliseconds.</span>
-<span class="linenos">216</span><span class="sd">            - LAT (4 bytes): The latitude scaled by LAT_LON_SCALE.</span>
-<span class="linenos">217</span><span class="sd">            - LONG (4 bytes): The longitude scaled by LAT_LON_SCALE.</span>
-<span class="linenos">218</span>
-<span class="linenos">219</span><span class="sd">        For the LONG packet type, additional fields are included:</span>
-<span class="linenos">220</span>
-<span class="linenos">221</span><span class="sd">            - PAI (1 bit): Position accuracy indicator (is_accurate flag).</span>
-<span class="linenos">222</span><span class="sd">            - S (15 bits): Speed value or SPEED_INVALID if None.</span>
-<span class="linenos">223</span><span class="sd">            - H (2 bytes): Heading value or HEADING_INVALID if None.</span>
-<span class="linenos">224</span>
-<span class="linenos">225</span><span class="sd">        Args:</span>
-<span class="linenos">226</span><span class="sd">            packet_type (PositionVectorType): The type of position vector packet to generate.</span>
-<span class="linenos">227</span><span class="sd">                Determines which fields are included in the binary representation.</span>
-<span class="linenos">228</span>
-<span class="linenos">229</span><span class="sd">        Returns:</span>
-<span class="linenos">230</span><span class="sd">            bytes: Binary representation of the position vector.</span>
-<span class="linenos">231</span><span class="sd">        &quot;&quot;&quot;</span>
-<span class="linenos">232</span>        <span class="n">stream</span> <span class="o">=</span> <span class="n">BytesIO</span><span class="p">()</span>
-<span class="linenos">233</span>        <span class="c1"># GN_ADDR (8 bytes)</span>
-<span class="linenos">234</span>        <span class="n">stream</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">address</span><span class="o">.</span><span class="n">to_bytes</span><span class="p">())</span>
-<span class="linenos">235</span>        <span class="c1"># TST (4 bytes)</span>
-<span class="linenos">236</span>        <span class="n">stream</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
-<span class="linenos">237</span>            <span class="bp">self</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">get_delta_time_ms</span><span class="p">(</span><span class="n">module</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">DELTA_TIME_MODULE</span><span class="p">)</span><span class="o">.</span><span class="n">to_bytes</span><span class="p">(</span>
-<span class="linenos">238</span>                <span class="n">length</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">byteorder</span><span class="o">=</span><span class="s2">&quot;big&quot;</span><span class="p">,</span> <span class="n">signed</span><span class="o">=</span><span class="kc">False</span>
-<span class="linenos">239</span>            <span class="p">)</span>
-<span class="linenos">240</span>        <span class="p">)</span>
-<span class="linenos">241</span>        <span class="c1"># LAT (4 bytes)</span>
-<span class="linenos">242</span>        <span class="n">stream</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
-<span class="linenos">243</span>            <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">latitude</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">LAT_LON_SCALE</span><span class="p">)</span><span class="o">.</span><span class="n">to_bytes</span><span class="p">(</span>
-<span class="linenos">244</span>                <span class="n">length</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">byteorder</span><span class="o">=</span><span class="s2">&quot;big&quot;</span><span class="p">,</span> <span class="n">signed</span><span class="o">=</span><span class="kc">True</span>
-<span class="linenos">245</span>            <span class="p">)</span>
-<span class="linenos">246</span>        <span class="p">)</span>
-<span class="linenos">247</span>        <span class="c1"># LONG (4 bytes)</span>
-<span class="linenos">248</span>        <span class="n">stream</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
-<span class="linenos">249</span>            <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">longitude</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">LAT_LON_SCALE</span><span class="p">)</span><span class="o">.</span><span class="n">to_bytes</span><span class="p">(</span>
-<span class="linenos">250</span>                <span class="n">length</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">byteorder</span><span class="o">=</span><span class="s2">&quot;big&quot;</span><span class="p">,</span> <span class="n">signed</span><span class="o">=</span><span class="kc">True</span>
-<span class="linenos">251</span>            <span class="p">)</span>
-<span class="linenos">252</span>        <span class="p">)</span>
-<span class="linenos">253</span>        <span class="k">if</span> <span class="n">packet_type</span> <span class="o">==</span> <span class="n">PositionVectorType</span><span class="o">.</span><span class="n">LONG</span><span class="p">:</span>
-<span class="linenos">254</span>            <span class="n">bits</span> <span class="o">=</span> <span class="n">BitStream</span><span class="p">()</span>
-<span class="linenos">255</span>            <span class="c1"># PAI (1 bit)</span>
-<span class="linenos">256</span>            <span class="n">bits</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;bool:1=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">is_accurate</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="linenos">257</span>            <span class="c1"># S (15 bits)</span>
-<span class="linenos">258</span>            <span class="n">bits</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-<span class="linenos">259</span>                <span class="sa">f</span><span class="s2">&quot;uint:15=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">speed</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">speed</span><span class="w"> </span><span class="ow">is</span><span class="w"> </span><span class="ow">not</span><span class="w"> </span><span class="kc">None</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">SPEED_INVALID</span><span class="si">}</span><span class="s2">&quot;</span>
-<span class="linenos">260</span>            <span class="p">)</span>
-<span class="linenos">261</span>            <span class="n">stream</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">bits</span><span class="o">.</span><span class="n">tobytes</span><span class="p">())</span>
-<span class="linenos">262</span>            <span class="c1"># H (2 bytes)</span>
-<span class="linenos">263</span>            <span class="n">stream</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
-<span class="linenos">264</span>                <span class="p">(</span>
-<span class="linenos">265</span>                    <span class="bp">self</span><span class="o">.</span><span class="n">heading</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">heading</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">HEADING_INVALID</span>
-<span class="linenos">266</span>                <span class="p">)</span><span class="o">.</span><span class="n">to_bytes</span><span class="p">(</span><span class="n">length</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">byteorder</span><span class="o">=</span><span class="s2">&quot;big&quot;</span><span class="p">,</span> <span class="n">signed</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="linenos">267</span>            <span class="p">)</span>
-<span class="linenos">268</span>        <span class="k">return</span> <span class="n">stream</span><span class="o">.</span><span class="n">getvalue</span><span class="p">()</span></div>
+<span class="linenos">206</span>    <span class="k">def</span><span class="w"> </span><span class="nf">to_bytes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">packet_type</span><span class="p">:</span> <span class="n">PositionVectorType</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+<span class="linenos">207</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Converts the position vector to its binary representation.</span>
+<span class="linenos">208</span>
+<span class="linenos">209</span><span class="sd">        This method serializes the position vector into a byte stream according to the</span>
+<span class="linenos">210</span><span class="sd">        specified packet type.</span>
+<span class="linenos">211</span><span class="sd">        For all packet types, the following fields are included:</span>
+<span class="linenos">212</span>
+<span class="linenos">213</span><span class="sd">            - GN_ADDR (8 bytes): The address.</span>
+<span class="linenos">214</span><span class="sd">            - TST (4 bytes): The timestamp as delta time in milliseconds.</span>
+<span class="linenos">215</span><span class="sd">            - LAT (4 bytes): The latitude scaled by LAT_LON_SCALE.</span>
+<span class="linenos">216</span><span class="sd">            - LONG (4 bytes): The longitude scaled by LAT_LON_SCALE.</span>
+<span class="linenos">217</span>
+<span class="linenos">218</span><span class="sd">        For the LONG packet type, additional fields are included:</span>
+<span class="linenos">219</span>
+<span class="linenos">220</span><span class="sd">            - PAI (1 bit): Position accuracy indicator (is_accurate flag).</span>
+<span class="linenos">221</span><span class="sd">            - S (15 bits): Speed value or SPEED_INVALID if None.</span>
+<span class="linenos">222</span><span class="sd">            - H (2 bytes): Heading value or HEADING_INVALID if None.</span>
+<span class="linenos">223</span>
+<span class="linenos">224</span><span class="sd">        Args:</span>
+<span class="linenos">225</span><span class="sd">            packet_type (PositionVectorType): The type of position vector packet to generate.</span>
+<span class="linenos">226</span><span class="sd">                Determines which fields are included in the binary representation.</span>
+<span class="linenos">227</span>
+<span class="linenos">228</span><span class="sd">        Returns:</span>
+<span class="linenos">229</span><span class="sd">            bytes: Binary representation of the position vector.</span>
+<span class="linenos">230</span><span class="sd">        &quot;&quot;&quot;</span>
+<span class="linenos">231</span>        <span class="n">stream</span> <span class="o">=</span> <span class="n">BytesIO</span><span class="p">()</span>
+<span class="linenos">232</span>        <span class="c1"># GN_ADDR (8 bytes)</span>
+<span class="linenos">233</span>        <span class="n">stream</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">address</span><span class="o">.</span><span class="n">to_bytes</span><span class="p">())</span>
+<span class="linenos">234</span>        <span class="c1"># TST (4 bytes)</span>
+<span class="linenos">235</span>        <span class="n">stream</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+<span class="linenos">236</span>            <span class="bp">self</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">get_delta_time_ms</span><span class="p">(</span><span class="n">module</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">DELTA_TIME_MODULE</span><span class="p">)</span><span class="o">.</span><span class="n">to_bytes</span><span class="p">(</span>
+<span class="linenos">237</span>                <span class="n">length</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">byteorder</span><span class="o">=</span><span class="s2">&quot;big&quot;</span><span class="p">,</span> <span class="n">signed</span><span class="o">=</span><span class="kc">False</span>
+<span class="linenos">238</span>            <span class="p">)</span>
+<span class="linenos">239</span>        <span class="p">)</span>
+<span class="linenos">240</span>        <span class="c1"># LAT (4 bytes)</span>
+<span class="linenos">241</span>        <span class="n">stream</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+<span class="linenos">242</span>            <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">latitude</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">LAT_LON_SCALE</span><span class="p">)</span><span class="o">.</span><span class="n">to_bytes</span><span class="p">(</span>
+<span class="linenos">243</span>                <span class="n">length</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">byteorder</span><span class="o">=</span><span class="s2">&quot;big&quot;</span><span class="p">,</span> <span class="n">signed</span><span class="o">=</span><span class="kc">True</span>
+<span class="linenos">244</span>            <span class="p">)</span>
+<span class="linenos">245</span>        <span class="p">)</span>
+<span class="linenos">246</span>        <span class="c1"># LONG (4 bytes)</span>
+<span class="linenos">247</span>        <span class="n">stream</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+<span class="linenos">248</span>            <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">longitude</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">LAT_LON_SCALE</span><span class="p">)</span><span class="o">.</span><span class="n">to_bytes</span><span class="p">(</span>
+<span class="linenos">249</span>                <span class="n">length</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">byteorder</span><span class="o">=</span><span class="s2">&quot;big&quot;</span><span class="p">,</span> <span class="n">signed</span><span class="o">=</span><span class="kc">True</span>
+<span class="linenos">250</span>            <span class="p">)</span>
+<span class="linenos">251</span>        <span class="p">)</span>
+<span class="linenos">252</span>        <span class="k">if</span> <span class="n">packet_type</span> <span class="o">==</span> <span class="n">PositionVectorType</span><span class="o">.</span><span class="n">LONG</span><span class="p">:</span>
+<span class="linenos">253</span>            <span class="n">bits</span> <span class="o">=</span> <span class="n">BitStream</span><span class="p">()</span>
+<span class="linenos">254</span>            <span class="c1"># PAI (1 bit)</span>
+<span class="linenos">255</span>            <span class="n">bits</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;bool:1=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">is_accurate</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="linenos">256</span>            <span class="c1"># S (15 bits)</span>
+<span class="linenos">257</span>            <span class="n">bits</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+<span class="linenos">258</span>                <span class="sa">f</span><span class="s2">&quot;uint:15=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">speed</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">speed</span><span class="w"> </span><span class="ow">is</span><span class="w"> </span><span class="ow">not</span><span class="w"> </span><span class="kc">None</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">SPEED_INVALID</span><span class="si">}</span><span class="s2">&quot;</span>
+<span class="linenos">259</span>            <span class="p">)</span>
+<span class="linenos">260</span>            <span class="n">stream</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">bits</span><span class="o">.</span><span class="n">tobytes</span><span class="p">())</span>
+<span class="linenos">261</span>            <span class="c1"># H (2 bytes)</span>
+<span class="linenos">262</span>            <span class="n">stream</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+<span class="linenos">263</span>                <span class="p">(</span>
+<span class="linenos">264</span>                    <span class="bp">self</span><span class="o">.</span><span class="n">heading</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">heading</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">HEADING_INVALID</span>
+<span class="linenos">265</span>                <span class="p">)</span><span class="o">.</span><span class="n">to_bytes</span><span class="p">(</span><span class="n">length</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">byteorder</span><span class="o">=</span><span class="s2">&quot;big&quot;</span><span class="p">,</span> <span class="n">signed</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="linenos">266</span>            <span class="p">)</span>
+<span class="linenos">267</span>        <span class="k">return</span> <span class="n">stream</span><span class="o">.</span><span class="n">getvalue</span><span class="p">()</span></div>
 </div>
 
 </pre></div>
