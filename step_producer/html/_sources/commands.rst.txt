@@ -1,0 +1,204 @@
+======================
+Command Line Interface
+======================
+
+Overview
+========
+
+The step_producer command line interface (CLI) provides a way to interact 
+with the STEP Producer.
+
+The CLI allows users to:
+
+* View the program version
+* Generate JSON schema documentation for configuration
+* Create configuration templates
+* Load and run the module with a specific configuration
+
+Basic Usage
+===========
+
+.. code-block:: bash
+
+    step_producer [options]
+
+If no options are provided, the program will display the help message.
+
+Options
+=======
+
+The following command line options are available:
+
+``-h, --help``
+    Display the help message and exit.
+
+``-v, --version``
+    Show the program version and exit.
+
+``-s, --conf_schema <schema file>``
+    Write the configuration JSON schema to the specified file.
+
+``-t, --conf_template <template file>``
+    Write a configuration template to the specified file.
+
+``-c, --config <config file>``
+    Load the configuration from the specified file and run the module.
+
+Detailed Command Description
+============================
+
+Help Command
+------------
+
+To display help information:
+
+.. code-block:: bash
+
+    step_producer --help
+
+This will output usage instructions and a list of available options.
+
+Version Command
+---------------
+
+To display the program version:
+
+.. code-block:: bash
+
+    step_producer --version
+
+This will output the current version of the step_producer.
+
+Configuration Schema Generation
+-------------------------------
+
+To generate a JSON schema file documenting all configuration options:
+
+.. code-block:: bash
+
+    step_producer --conf_schema /path/to/schema_file.json
+
+This command creates a JSON schema file at the specified path. The file describes
+all available configuration options, their types, defaults, and constraints. 
+The schema can be used for validation or as a reference for creating custom configurations.
+
+Configuration Template Generation
+---------------------------------
+
+To generate a configuration template file with default values:
+
+.. code-block:: bash
+
+    step_producer --conf_template /path/to/template_file.json
+
+This command creates a JSON configuration file with default values 
+for all settings. Users can modify this file as needed to customize their configuration.
+
+Running with Configuration
+--------------------------
+
+To run the module with a specific configuration:
+
+.. code-block:: bash
+
+    step_producer --config /path/to/config_file.json
+
+This loads the configuration from the specified file and starts the step_producer.
+The module will connect to the Redis streams as specified in the configuration.
+
+Configuration File Structure
+============================
+
+The configuration file is a JSON document that defines the behavior of the step_producer. 
+It includes settings for:
+
+* Module basic settings
+* Redis client connection
+* Redis streams
+* Logging configuration
+
+Here's an example of the configuration structure:
+
+.. literalinclude:: schemas_examples/step_producer_config_v1_schema.json
+  :language: JSON
+
+For the :ref:`STEP Producer Configuration Schema<step_producer_config_schema>` with all configuration 
+options, generate a schema file using the ``--conf_schema`` option.
+
+Exit Codes
+==========
+
+The program uses the following exit codes:
+
+* ``0`` (OK): Successful termination
+* ``1`` (USAGE): Command line usage error
+* ``2`` (ERROR): General error during execution
+* ``3`` (ABORTED): Operation aborted by user or system
+
+Examples
+========
+
+Generate a configuration schema:
+
+.. code-block:: bash
+
+    step_producer --conf_schema ./schema.json
+
+Create a configuration template:
+
+.. code-block:: bash
+
+    step_producer --conf_template ./template.json
+
+Run with specific configuration:
+
+.. code-block:: bash
+
+    step_producer --config ./my_config.json
+
+Generate both schema and template:
+
+.. code-block:: bash
+
+    step_producer --conf_schema ./schema.json --conf_template ./template.json
+
+Program Operation
+=================
+
+When running with a configuration file, the step_producer 
+performs the following operations:
+
+   #. Connects to the Redis server using the provided connection settings
+   #. Starts two asynchronous tasks:
+
+      - **Stream Message Reception**: Continuously listens to Redis input streams for incoming messages, 
+        processes DENM records and station collision arrays, and handles message routing based on message type
+      - **Periodic DENM Cleanup**: Automatically identifies and cancels expired DENM 
+        (Decentralized Environmental Notification Message) records, publishing cancellation messages to 
+        Redis streams at configurable intervals
+   
+   #. Automatically handles reconnection if connections are lost (using the specified reconnect interval)
+   #. Manages graceful shutdown when interrupted
+
+The module will continue running until manually interrupted (e.g., with Ctrl+C) or until a system signal is received.
+
+Advanced Usage
+==============
+
+Signal Handling
+---------------
+
+The step_producer properly handles system signals for graceful shutdown. When a signal is received, 
+it cleans up resources and terminates with the appropriate exit code.
+
+Logging
+-------
+
+The step_producer includes detailed logging capabilities. Log settings can be configured 
+in the configuration file, including:
+
+* Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+* Console logging
+* File logging with rotation options
+
+You can enable debug logging to troubleshoot connection or message handling issues.

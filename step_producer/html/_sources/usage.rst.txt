@@ -1,0 +1,132 @@
+Step Producer Usage Guide
+=========================
+
+Introduction
+------------
+
+The **step_producer** is a critical component of the STEP (Secure Transport Events Platform) ecosystem, 
+specifically designed for processing and managing Decentralized Environmental Notification Messages (DENM) 
+within Intelligent Transportation Systems (ITS) environments. This Redis-based microservice implements 
+the DEN (Decentralized Environmental Notification) service for collision prediction and environmental 
+hazard notifications.
+
+Prerequisites
+-------------
+
+Before using the STEP Producer, make sure you have:
+
+    #. Python 3.13 or higher installed
+    #. Access to a STEP MQTT broker
+    #. A Redis server for stream processing (optional, but recommended)
+    #. The step_producer package installed in your environment
+
+Installation
+------------
+
+You can install the STEP Producer package using pip:
+
+.. code-block:: bash
+
+    pip install step-producer
+
+Or if you're using a development version:
+
+.. code-block:: bash
+
+    pip install -e /path/to/step_producer
+
+Basic Concepts
+--------------
+
+STEP Producer operates as a bridge between MQTT messaging and
+Redis streams, specifically designed for ITS message exchange. 
+Key concepts include:
+
+* **DENM (Decentralized Environmental Notification Messages)**: Environmental hazard notifications 
+  that inform other ITS stations about potential dangers like collisions, road conditions, or traffic incidents
+* **Redis Stream Processing**: Asynchronous message consumption from Redis streams 
+  for real-time processing of collision prediction data and station collision arrays
+* **DEN Service Management**: Lifecycle management of DENM messages including creation, 
+  processing, termination, and automatic cleanup of expired records
+* **Station Collision Processing**: Conversion of incoming collision data into standardized 
+  DENM messages for distribution to other ITS stations
+* **Message Termination**: Processing of DENM negations and cancellations to remove 
+  corresponding active records from the system
+* **Periodic Cleanup**: Automatic identification and cancellation of expired 
+  DENM records with configurable cleanup intervals
+* **Event-Driven Architecture**: Asynchronous task groups handling concurrent 
+  stream reception and periodic maintenance operations
+* **Signal Handling**: Graceful shutdown capabilities with proper resource 
+  cleanup when interrupted by system signals
+* **Automatic Reconnection**: Built-in retry mechanism with configurable 
+  intervals for handling connection failures
+
+Configuration
+-------------
+
+STEP Producer requires configuration for Redis 
+connections. The configuration is managed through a JSON file.
+
+Creating a Configuration File
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+To create a default configuration template:
+
+.. code-block:: bash
+
+    step_producer --conf_template my_config_template.json
+
+This generates a template that you can customize for your specific needs.
+
+Key Configuration Parameters
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  
+* **Base Configuration**:
+
+  * instanceName: Unique name for this client instance
+  * stationId: Station identification number
+  * timeout: Timeout used for various operations
+
+* **Redis Configuration**:
+  
+  * connection: Redis server connection details
+  * streams: Configuration for Redis streams (inputs and outputs)
+  
+* **Log Configuration**:
+
+  * level: Logging level (e.g., DEBUG, INFO, WARNING, ERROR)
+  * format: Log message format
+  * handlers: List of log handlers (e.g., console, file)
+
+Example Configuration
+^^^^^^^^^^^^^^^^^^^^^
+
+The schema of the example below is: :ref:`STEP Producer Configuration Schema<step_producer_config_schema>`
+
+.. literalinclude:: schemas_examples/step_producer_config_v1_schema.json
+  :language: JSON
+
+Running STEP Producer as a Service
+----------------------------------
+
+To run the STEP Producer as a standalone service:
+
+.. code-block:: bash
+
+    step_producer --config /path/to/config.json
+
+This will start the producer, which will:
+
+    #. Connect to Redis
+    #. Process messages between Step Client and Step Crash Prediction
+
+Command-Line Options
+--------------------
+
+The STEP Producer supports several command-line options:
+
+  * ``--version``, ``-v``: Show version information
+  * ``--help``, ``-h``: Show help information
+  * ``--conf_schema``, ``-s``: Generate a JSON schema for the configuration
+  * ``--conf_template``, ``-t``: Generate a configuration template
+  * ``--config``, ``-c``: Path to configuration file
