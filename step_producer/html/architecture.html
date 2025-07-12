@@ -137,6 +137,11 @@
 </li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Architecture</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#library">Library</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#core-dependencies">Core Dependencies</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#architecture-integration">Architecture Integration</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="#components">Components</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#denservicemanager">DenServiceManager</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#denservicedatamanager">DenServiceDataManager</a></li>
@@ -151,6 +156,15 @@
 <li class="toctree-l2"><a class="reference internal" href="#sequence-diagrams">Sequence Diagrams</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#denm-creation-and-publication">DENM creation and publication</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#denm-negation">DENM negation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#performance-considerations">Performance Considerations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#data-structure-performance-characteristics">Data Structure Performance Characteristics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#collision-message-processing-performance">Collision Message Processing Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#denm-negation-processing-performance">DENM Negation Processing Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#periodic-cleanup-performance">Periodic Cleanup Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#memory-complexity-analysis">Memory Complexity Analysis</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#bottleneck-analysis">Bottleneck Analysis</a></li>
 </ul>
 </li>
 </ul>
@@ -334,6 +348,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="step_producer_rst/step_producer.step_exception.html">step_producer.step_exception module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="step_producer_rst/step_producer.step_exception.html#step_producer.step_exception.StepCliException"><code class="docutils literal notranslate"><span class="pre">StepCliException</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="step_producer_rst/step_producer.step_exception.html#step_producer.step_exception.StepInterruptException"><code class="docutils literal notranslate"><span class="pre">StepInterruptException</span></code></a></li>
 </ul>
 </li>
@@ -369,7 +384,6 @@
 <li class="toctree-l5"><a class="reference internal" href="step_producer_rst/step_producer.step_producer_config.html#step_producer.step_producer_config.LogHandlerType.FILE"><code class="docutils literal notranslate"><span class="pre">LogHandlerType.FILE</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="step_producer_rst/step_producer.step_producer_config.html#step_producer.step_producer_config.LogHandlerType.SIZE_FILE_ROTATE"><code class="docutils literal notranslate"><span class="pre">LogHandlerType.SIZE_FILE_ROTATE</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="step_producer_rst/step_producer.step_producer_config.html#step_producer.step_producer_config.LogHandlerType.TIME_FILE_ROTATE"><code class="docutils literal notranslate"><span class="pre">LogHandlerType.TIME_FILE_ROTATE</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="step_producer_rst/step_producer.step_producer_config.html#step_producer.step_producer_config.LogHandlerType.__get_pydantic_json_schema__"><code class="docutils literal notranslate"><span class="pre">LogHandlerType.__get_pydantic_json_schema__()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l4"><a class="reference internal" href="step_producer_rst/step_producer.step_producer_config.html#step_producer.step_producer_config.LogIntervalType"><code class="docutils literal notranslate"><span class="pre">LogIntervalType</span></code></a><ul>
@@ -501,7 +515,6 @@
 </li>
 <li class="toctree-l4"><a class="reference internal" href="step_producer_rst/step_producer.step_producer_config.html#step_producer.step_producer_config.StepProducerConfig"><code class="docutils literal notranslate"><span class="pre">StepProducerConfig</span></code></a><ul>
 <li class="toctree-l5"><a class="reference internal" href="step_producer_rst/step_producer.step_producer_config.html#step_producer.step_producer_config.StepProducerConfig.templateVersion"><code class="docutils literal notranslate"><span class="pre">StepProducerConfig.templateVersion</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="step_producer_rst/step_producer.step_producer_config.html#step_producer.step_producer_config.StepProducerConfig.instanceName"><code class="docutils literal notranslate"><span class="pre">StepProducerConfig.instanceName</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="step_producer_rst/step_producer.step_producer_config.html#step_producer.step_producer_config.StepProducerConfig.stationId"><code class="docutils literal notranslate"><span class="pre">StepProducerConfig.stationId</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="step_producer_rst/step_producer.step_producer_config.html#step_producer.step_producer_config.StepProducerConfig.timeAfterCollision"><code class="docutils literal notranslate"><span class="pre">StepProducerConfig.timeAfterCollision</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="step_producer_rst/step_producer.step_producer_config.html#step_producer.step_producer_config.StepProducerConfig.denmLastUpdateMaxDelay"><code class="docutils literal notranslate"><span class="pre">StepProducerConfig.denmLastUpdateMaxDelay</span></code></a></li>
@@ -543,6 +556,24 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="test_rst/test.html">Unit Test package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="test_rst/test.html#submodules">Submodules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="test_rst/test.test___main__.html">test.test___main__ module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.TestExitCode"><code class="docutils literal notranslate"><span class="pre">TestExitCode</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.TestExitCode.test_enum_length"><code class="docutils literal notranslate"><span class="pre">TestExitCode.test_enum_length()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.TestExitCode.test_enum_values"><code class="docutils literal notranslate"><span class="pre">TestExitCode.test_enum_values()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test___os_signal_config"><code class="docutils literal notranslate"><span class="pre">test___os_signal_config()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test_args_parse"><code class="docutils literal notranslate"><span class="pre">test_args_parse()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test_exception_handler"><code class="docutils literal notranslate"><span class="pre">test_exception_handler()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test_get_config_schema_file"><code class="docutils literal notranslate"><span class="pre">test_get_config_schema_file()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test_get_config_template_file"><code class="docutils literal notranslate"><span class="pre">test_get_config_template_file()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test_main"><code class="docutils literal notranslate"><span class="pre">test_main()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test_main_async"><code class="docutils literal notranslate"><span class="pre">test_main_async()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test_main_interrupt_exception"><code class="docutils literal notranslate"><span class="pre">test_main_interrupt_exception()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test_shutdown"><code class="docutils literal notranslate"><span class="pre">test_shutdown()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test_stream_receive_run"><code class="docutils literal notranslate"><span class="pre">test_stream_receive_run()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="test_rst/test.test_den_service_data_manager.html">test.test_den_service_data_manager module</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_den_service_data_manager.html#test.test_den_service_data_manager.TestDenServiceDataManager"><code class="docutils literal notranslate"><span class="pre">TestDenServiceDataManager</span></code></a><ul>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_den_service_data_manager.html#test.test_den_service_data_manager.TestDenServiceDataManager.mock_logger"><code class="docutils literal notranslate"><span class="pre">TestDenServiceDataManager.mock_logger()</span></code></a></li>
@@ -597,12 +628,65 @@
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_logger.html#test.test_step_logger.TestUtcFormatter.test_converter_returns_struct_time_for_given_timestamp"><code class="docutils literal notranslate"><span class="pre">TestUtcFormatter.test_converter_returns_struct_time_for_given_timestamp()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_logger.html#test.test_step_logger.test_get_logger"><code class="docutils literal notranslate"><span class="pre">test_get_logger()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_logger.html#test.test_step_logger.test_namer_replaces_log_extension_with_bz2"><code class="docutils literal notranslate"><span class="pre">test_namer_replaces_log_extension_with_bz2()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_logger.html#test.test_step_logger.test_rotator_compresses_file_and_removes_source"><code class="docutils literal notranslate"><span class="pre">test_rotator_compresses_file_and_removes_source()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="test_rst/test.test_step_producer_config.html">test.test_step_producer_config module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_producer_config.html#test.test_step_producer_config.TestLogIntervalType"><code class="docutils literal notranslate"><span class="pre">TestLogIntervalType</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_producer_config.html#test.test_step_producer_config.TestLogIntervalType.test_to_when"><code class="docutils literal notranslate"><span class="pre">TestLogIntervalType.test_to_when()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_producer_config.html#test.test_step_producer_config.TestLogIntervalType.test_to_when_invalid"><code class="docutils literal notranslate"><span class="pre">TestLogIntervalType.test_to_when_invalid()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_producer_config.html#test.test_step_producer_config.TestLogMode"><code class="docutils literal notranslate"><span class="pre">TestLogMode</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_producer_config.html#test.test_step_producer_config.TestLogMode.test_to_logging_level_invalid"><code class="docutils literal notranslate"><span class="pre">TestLogMode.test_to_logging_level_invalid()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_producer_config.html#test.test_step_producer_config.TestLogMode.test_to_logging_level_valid"><code class="docutils literal notranslate"><span class="pre">TestLogMode.test_to_logging_level_valid()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_producer_config.html#test.test_step_producer_config.TestLogNullHandler"><code class="docutils literal notranslate"><span class="pre">TestLogNullHandler</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_producer_config.html#test.test_step_producer_config.TestLogNullHandler.test_get_default"><code class="docutils literal notranslate"><span class="pre">TestLogNullHandler.test_get_default()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_producer_config.html#test.test_step_producer_config.TestLogSizeFileRotateHandler"><code class="docutils literal notranslate"><span class="pre">TestLogSizeFileRotateHandler</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_producer_config.html#test.test_step_producer_config.TestLogSizeFileRotateHandler.test_get_default"><code class="docutils literal notranslate"><span class="pre">TestLogSizeFileRotateHandler.test_get_default()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_producer_config.html#test.test_step_producer_config.TestLogStreamHandler"><code class="docutils literal notranslate"><span class="pre">TestLogStreamHandler</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_producer_config.html#test.test_step_producer_config.TestLogStreamHandler.test_get_default"><code class="docutils literal notranslate"><span class="pre">TestLogStreamHandler.test_get_default()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_producer_config.html#test.test_step_producer_config.TestLogTimeFileRotateHandler"><code class="docutils literal notranslate"><span class="pre">TestLogTimeFileRotateHandler</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_producer_config.html#test.test_step_producer_config.TestLogTimeFileRotateHandler.test_get_default"><code class="docutils literal notranslate"><span class="pre">TestLogTimeFileRotateHandler.test_get_default()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_producer_config.html#test.test_step_producer_config.TestStepProducerConfig"><code class="docutils literal notranslate"><span class="pre">TestStepProducerConfig</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_producer_config.html#test.test_step_producer_config.TestStepProducerConfig.test_print_config_example"><code class="docutils literal notranslate"><span class="pre">TestStepProducerConfig.test_print_config_example()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_producer_config.html#test.test_step_producer_config.TestStepProducerConfig.test_print_config_schema"><code class="docutils literal notranslate"><span class="pre">TestStepProducerConfig.test_print_config_schema()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="test_rst/test.test_step_producer_init.html">test.test_step_producer_init module</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_producer_init.html#test.test_step_producer_init.TestStepClientPackage"><code class="docutils literal notranslate"><span class="pre">TestStepClientPackage</span></code></a><ul>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_producer_init.html#test.test_step_producer_init.TestStepClientPackage.test_package_exports"><code class="docutils literal notranslate"><span class="pre">TestStepClientPackage.test_package_exports()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_producer_init.html#test.test_step_producer_init.TestStepClientPackage.test_version"><code class="docutils literal notranslate"><span class="pre">TestStepClientPackage.test_version()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="test_rst/test.test_step_producer_redis.html">test.test_step_producer_redis module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_producer_redis.html#test.test_step_producer_redis.TestStepProducerRedisPool"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisPool</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_producer_redis.html#test.test_step_producer_redis.TestStepProducerRedisPool.test_aenter"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisPool.test_aenter()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_producer_redis.html#test.test_step_producer_redis.TestStepProducerRedisPool.test_init"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisPool.test_init()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_producer_redis.html#test.test_step_producer_redis.TestStepProducerRedisStream"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisStream</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_producer_redis.html#test.test_step_producer_redis.TestStepProducerRedisStream.test__aenter__"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisStream.test__aenter__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_producer_redis.html#test.test_step_producer_redis.TestStepProducerRedisStream.test_create_client_input_stream"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisStream.test_create_client_input_stream()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_producer_redis.html#test.test_step_producer_redis.TestStepProducerRedisStream.test_publish_its_message"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisStream.test_publish_its_message()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_producer_redis.html#test.test_step_producer_redis.TestStepProducerRedisStream.test_receive_producer_message"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisStream.test_receive_producer_message()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_producer_redis.html#test.test_step_producer_redis.TestStepProducerRedisStream.test_stream_init"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisStream.test_stream_init()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -648,6 +732,83 @@ specifically designed for processing and managing Decentralized Environmental No
 within Intelligent Transportation Systems (ITS) environments. This Redis-based microservice implements
 the DEN (Decentralized Environmental Notification) service for collision prediction and environmental
 hazard notifications.</p>
+</section>
+<section id="library">
+<h2>Library<a class="headerlink" href="#library" title="Link to this heading"></a></h2>
+<p>The STEP Producer leverages a carefully selected set of libraries and frameworks to implement
+robust, high-performance ITS message processing capabilities. The library architecture follows
+a layered approach with core Python libraries, specialized third-party packages, and custom STEP
+ecosystem components.</p>
+<section id="core-dependencies">
+<h3>Core Dependencies<a class="headerlink" href="#core-dependencies" title="Link to this heading"></a></h3>
+<dl>
+<dt><strong>Pydantic</strong></dt><dd><p>Advanced data validation and settings management library that provides the foundation for
+configuration management throughout the STEP Producer. Pydantic enables:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><strong>Type Safety</strong>: Strong typing with automatic validation for all configuration parameters</p></li>
+<li><p><strong>Schema Generation</strong>: Automated JSON schema creation for configuration documentation</p></li>
+<li><p><strong>Serialization</strong>: Robust JSON serialization/deserialization for configuration persistence</p></li>
+<li><p><strong>Model Validation</strong>: Runtime validation of configuration data with detailed error reporting</p></li>
+</ul>
+</div></blockquote>
+<p>Used extensively in <code class="docutils literal notranslate"><span class="pre">StepProducerConfig</span></code> and related configuration classes to ensure
+type-safe, validated configuration management across all producer components.</p>
+</dd>
+<dt><strong>SortedContainers</strong></dt><dd><p>High-performance pure-Python sorted container implementation that provides the data structure
+foundation for efficient DENM record management. Key capabilities include:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><strong>Sorted Lists</strong>: O(log n) insertion and deletion with maintained ordering</p></li>
+<li><p><strong>Memory Efficiency</strong>: Optimized memory layout for large collections</p></li>
+<li><p><strong>Performance</strong>: Fast search, insert, and delete operations for time-ordered records</p></li>
+</ul>
+</div></blockquote>
+<p>Critical for the <code class="docutils literal notranslate"><span class="pre">DenServiceDataManager</span></code> where chronologically ordered DENM records
+require efficient insertion, removal, and time-based queries for expiration management.</p>
+</dd>
+<dt><strong>step-cloud-schemas</strong></dt><dd><p>Custom STEP ecosystem library that defines standardized ITS message schemas and data structures.
+This library provides:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><strong>DENM Schemas</strong>: Complete <code class="docutils literal notranslate"><span class="pre">DenmDataV1</span></code> message structures compliant with ETSI standards</p></li>
+<li><p><strong>Cloud Events</strong>: Standardized cloud event wrappers for ITS message distribution</p></li>
+<li><p><strong>ITS Primitives</strong>: Core ITS data types including timestamps, positions, and identifiers</p></li>
+<li><p><strong>Collision Data</strong>: <code class="docutils literal notranslate"><span class="pre">StationCollisionArrayV1</span></code> structures for collision prediction integration</p></li>
+</ul>
+</div></blockquote>
+<p>Essential for maintaining compatibility across the STEP ecosystem and ensuring standard-compliant
+message generation and processing.</p>
+</dd>
+<dt><strong>step_redis</strong></dt><dd><p>STEP-specific Redis integration library that provides the messaging and stream processing
+foundation. Core functionality includes:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><strong>Connection Pooling</strong>: Efficient Redis connection management with automatic reconnection</p></li>
+<li><p><strong>Stream Processing</strong>: High-level abstractions for Redis streams with consumer group support</p></li>
+<li><p><strong>Message Serialization</strong>: Automatic conversion between Python objects and Redis stream data</p></li>
+<li><p><strong>Error Handling</strong>: Robust error handling and recovery mechanisms for Redis operations</p></li>
+</ul>
+</div></blockquote>
+<p>Provides the base classes <code class="docutils literal notranslate"><span class="pre">StepRedisPool</span></code> and <code class="docutils literal notranslate"><span class="pre">StepRedisStream</span></code> that are extended by
+<code class="docutils literal notranslate"><span class="pre">StepProducerRedisPool</span></code> and <code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream</span></code> for producer-specific functionality.</p>
+</dd>
+</dl>
+</section>
+<section id="architecture-integration">
+<h3>Architecture Integration<a class="headerlink" href="#architecture-integration" title="Link to this heading"></a></h3>
+<p>The library selection supports the STEP Producer’s architectural requirements:</p>
+<ul class="simple">
+<li><p><strong>High Performance</strong>: SortedContainers and asyncio enable efficient handling of high-frequency
+collision detection scenarios</p></li>
+<li><p><strong>Type Safety</strong>: Pydantic provides compile-time and runtime type validation throughout the system</p></li>
+<li><p><strong>Standards Compliance</strong>: step-cloud-schemas ensures ETSI ITS standard compliance for all messages</p></li>
+<li><p><strong>Scalability</strong>: step_redis abstractions support horizontal scaling through Redis stream
+distribution</p></li>
+<li><p><strong>Maintainability</strong>: Comprehensive development tooling ensures code quality and documentation
+standards</p></li>
+</ul>
+</section>
 </section>
 <section id="components">
 <h2>Components<a class="headerlink" href="#components" title="Link to this heading"></a></h2>
@@ -1211,6 +1372,120 @@ end note"/>
 
 </object></p>
 </figure>
+</section>
+</section>
+<section id="performance-considerations">
+<h2>Performance Considerations<a class="headerlink" href="#performance-considerations" title="Link to this heading"></a></h2>
+<p>The STEP Producer architecture is designed for high-performance processing of ITS messages with
+careful consideration of algorithmic complexity and data structure selection. The following analysis
+provides Big O complexity calculations for the two primary message processing scenarios.</p>
+<section id="data-structure-performance-characteristics">
+<h3>Data Structure Performance Characteristics<a class="headerlink" href="#data-structure-performance-characteristics" title="Link to this heading"></a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">DenServiceDataManager</span></code> employs a multi-index architecture optimized for different access patterns:</p>
+<ul class="simple">
+<li><p><strong>Sorted List (``_denm_sorted_records``)</strong>: Maintains chronological ordering with O(log n) insertion/deletion</p></li>
+<li><p><strong>Hash-based Indices (``_record_key_index``, ``_action_id_index``)</strong>: Provide O(1) average-case lookup</p></li>
+<li><p><strong>Record Key Generation</strong>: O(1) constant time operation for unique key creation</p></li>
+</ul>
+<p>Where n represents the total number of active DENM records in the system.</p>
+</section>
+<section id="collision-message-processing-performance">
+<h3>Collision Message Processing Performance<a class="headerlink" href="#collision-message-processing-performance" title="Link to this heading"></a></h3>
+<p><strong>Scenario</strong>: Processing <code class="docutils literal notranslate"><span class="pre">StationCollisionArrayV1</span></code> from <code class="docutils literal notranslate"><span class="pre">step_crash_prediction</span></code></p>
+<p><strong>Algorithm Complexity Analysis:</strong></p>
+<p>For processing a collision array containing k + 1 vehicles which generates k DENM records:</p>
+<ol class="arabic simple">
+<li><p><strong>Record Key Generation</strong>: O(k) - Linear iteration through collision array</p></li>
+<li><p><strong>Existing Record Lookup</strong>: O(k) - Hash table lookup for each collision record</p></li>
+<li><p><strong>New Record Insertion</strong>:</p>
+<ul class="simple">
+<li><p>Sorted list insertion: O(k × log n) - Each new record requires binary search positioning</p></li>
+<li><p>Hash index updates: O(k) - Constant time insertion per index</p></li>
+</ul>
+</li>
+<li><p><strong>DENM Message Creation</strong>: O(k) - Linear with number of collision records</p></li>
+<li><p><strong>Redis Stream Publication</strong>: O(k) - Linear network operations</p></li>
+</ol>
+<p><strong>Overall Complexity</strong>: <strong>O(k × log n)</strong></p>
+<p><strong>Performance Implications:</strong></p>
+<ul class="simple">
+<li><p><strong>Best Case</strong>: All collision records already exist → O(k) for lookups only</p></li>
+<li><p><strong>Worst Case</strong>: All collision records are new → O(k × log n) for full processing</p></li>
+<li><p><strong>Space Complexity</strong>: O(n) for maintaining active DENM records</p></li>
+</ul>
+<p><strong>Scalability Considerations:</strong></p>
+<ul class="simple">
+<li><p>With k=100 collision records and n=10,000 active DENMs: ~1,300 operations</p></li>
+<li><p>System performance degrades logarithmically with active record count</p></li>
+<li><p>Memory usage scales linearly with concurrent collision scenarios</p></li>
+</ul>
+</section>
+<section id="denm-negation-processing-performance">
+<h3>DENM Negation Processing Performance<a class="headerlink" href="#denm-negation-processing-performance" title="Link to this heading"></a></h3>
+<p><strong>Scenario</strong>: Processing DENM negation messages from <code class="docutils literal notranslate"><span class="pre">step_client</span></code></p>
+<p><strong>Algorithm Complexity Analysis:</strong></p>
+<p>For processing a single DENM negation:</p>
+<ol class="arabic simple">
+<li><p><strong>Action ID Lookup</strong>: O(1) - Hash table lookup in <code class="docutils literal notranslate"><span class="pre">_action_id_index</span></code></p></li>
+<li><p><strong>Record Removal from Sorted List</strong>: O(log n) - Binary search and removal</p></li>
+<li><p><strong>Hash Index Cleanup</strong>: O(1) - Constant time removal from both indices</p></li>
+<li><p><strong>Memory Deallocation</strong>: O(1) - Single record cleanup</p></li>
+</ol>
+<p><strong>Overall Complexity</strong>: <strong>O(log n)</strong></p>
+<p><strong>Performance Implications:</strong></p>
+<ul class="simple">
+<li><p><strong>Consistent Performance</strong>: Negation processing time grows logarithmically with total records</p></li>
+<li><p><strong>Efficient Cleanup</strong>: Fast removal enables real-time termination handling</p></li>
+<li><p><strong>Memory Recovery</strong>: Immediate memory release prevents accumulation</p></li>
+</ul>
+<p><strong>Batch Negation Scenarios:</strong></p>
+<p>For processing m concurrent negations: <strong>O(m × log n)</strong></p>
+</section>
+<section id="periodic-cleanup-performance">
+<h3>Periodic Cleanup Performance<a class="headerlink" href="#periodic-cleanup-performance" title="Link to this heading"></a></h3>
+<p><strong>Scenario</strong>: Automatic expiration cleanup in <code class="docutils literal notranslate"><span class="pre">periodical_cleanup_run()</span></code></p>
+<p><strong>Algorithm Complexity Analysis:</strong></p>
+<ol class="arabic simple">
+<li><p><strong>Expired Record Identification</strong>: O(n) - Linear scan of chronologically sorted records</p></li>
+<li><p><strong>Batch Record Removal</strong>: O(e × log n) where e is the number of expired records</p></li>
+<li><p><strong>Cancellation Message Generation</strong>: O(e) - Linear with expired count</p></li>
+<li><p><strong>Redis Stream Publication</strong>: O(e) - Linear network operations</p></li>
+</ol>
+<p><strong>Overall Complexity</strong>: <strong>O(n + e × log n)</strong></p>
+<p><strong>Performance Optimization:</strong></p>
+<ul class="simple">
+<li><p><strong>Early Termination</strong>: Sorted list enables early exit when unexpired records are encountered</p></li>
+<li><p><strong>Batch Processing</strong>: Minimizes Redis stream overhead through batched publications</p></li>
+<li><p><strong>Adaptive Scheduling</strong>: Cleanup interval adapts based on system load</p></li>
+</ul>
+</section>
+<section id="memory-complexity-analysis">
+<h3>Memory Complexity Analysis<a class="headerlink" href="#memory-complexity-analysis" title="Link to this heading"></a></h3>
+<p><strong>Memory Usage Breakdown:</strong></p>
+<ul class="simple">
+<li><p><strong>DENM Records</strong>: O(n × s) where s is average DENM message size</p></li>
+<li><p><strong>Sorted List Overhead</strong>: O(n) for maintaining chronological order</p></li>
+<li><p><strong>Hash Index Overhead</strong>: O(n) per index (2 indices total)</p></li>
+<li><p><strong>Redis Connection Pool</strong>: O(c) where c is connection pool size</p></li>
+</ul>
+<p><strong>Total Memory Complexity</strong>: <strong>O(n × (s + 3))</strong></p>
+<p><strong>Memory Management Strategies:</strong></p>
+<ul class="simple">
+<li><p><strong>Automatic Expiration</strong>: Prevents unbounded memory growth</p></li>
+<li><p><strong>Efficient Data Structures</strong>: Minimal overhead through <code class="docutils literal notranslate"><span class="pre">__slots__</span></code> usage</p></li>
+<li><p><strong>Connection Pooling</strong>: Controlled resource allocation for Redis connections</p></li>
+</ul>
+</section>
+<section id="bottleneck-analysis">
+<h3>Bottleneck Analysis<a class="headerlink" href="#bottleneck-analysis" title="Link to this heading"></a></h3>
+<p>The STEP Producer architecture is designed to handle high-frequency collision detection scenarios,
+but certain bottlenecks may arise. The following analysis identifies
+potential bottlenecks and mitigation strategies:</p>
+<ul class="simple">
+<li><p><strong>Primary Bottleneck</strong>: Redis stream publication latency (network I/O bound)</p></li>
+<li><p><strong>Secondary Bottleneck</strong>: Sorted list maintenance for large record sets</p></li>
+<li><p><strong>Mitigation Strategy</strong>: Asynchronous processing and connection pooling</p></li>
+</ul>
 </section>
 </section>
 </section>

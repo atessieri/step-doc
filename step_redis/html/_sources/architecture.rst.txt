@@ -4,9 +4,36 @@ Architecture
 Overview
 --------
 
-The ``step_redis`` package provides robust asynchronous Redis connectivity and stream processing capabilities designed for Safer Transport for Europe Platform (STEP) applications. It offers enhanced Redis client functionality with a focus on connection management, stream operations, and reliable message processing.
+The ``step_redis`` package provides robust asynchronous Redis connectivity and stream processing 
+capabilities designed for Safer Transport for Europe Platform (STEP) applications. It offers 
+enhanced Redis client functionality with a focus on connection management, stream operations, 
+and reliable message processing.
 
-The package is built on top of the Redis Python client library and extends it with additional features specifically tailored for the needs of distributed systems that require reliable message handling.
+The package is built on top of the Redis Python client library and extends it with additional 
+features specifically tailored for the needs of distributed systems that require reliable message handling.
+
+Library
+-------
+
+The ``step_redis`` package is built on top of the **redis-py** library, the official Python 
+client for Redis. This foundational library provides the core Redis functionality that 
+``step_redis`` extends and enhances.
+
+**redis-py** is a mature, well-maintained Python library that offers:
+
+   * Comprehensive Redis command support
+   * Connection pooling capabilities
+   * Async/await support for asynchronous operations
+   * SSL/TLS encryption support
+   * Pub/Sub messaging functionality
+   * Redis Streams support
+   * Cluster support for Redis deployments
+
+The ``step_redis`` package leverages redis-py's ``BlockingConnectionPool`` and ``Redis`` 
+client classes as its foundation, extending them with additional features specifically 
+designed for the Safer Transport for Europe Platform (STEP) requirements. This approach 
+ensures compatibility with the broader Redis ecosystem while providing enhanced functionality 
+for stream processing, connection management, and reliable message handling.
 
 Key Components
 --------------
@@ -22,7 +49,9 @@ Component Details
 StepRedisPool
 ~~~~~~~~~~~~~
 
-``StepRedisPool`` extends the ``BlockingConnectionPool`` from redis-py to provide enhanced features for asyncio applications. It manages Redis connections with configurable parameters and supports both SSL and non-SSL connections.
+``StepRedisPool`` extends the ``BlockingConnectionPool`` from redis-py to provide enhanced 
+features for asyncio applications. It manages Redis connections with configurable parameters 
+and supports both SSL and non-SSL connections.
 
 .. plantuml::
    :align: center
@@ -76,7 +105,8 @@ StepRedisPool
 StepRedisStream
 ~~~~~~~~~~~~~~~
 
-``StepRedisStream`` provides a comprehensive interface for Redis Streams that enables creating, managing, and utilizing Redis streams with consumer groups for reliable message processing.
+``StepRedisStream`` provides a comprehensive interface for Redis Streams that enables creating, 
+managing, and utilizing Redis streams with consumer groups for reliable message processing.
 
 .. plantuml::
    :align: center
@@ -115,7 +145,8 @@ StepRedisStream
 Package Integration
 -------------------
 
-The diagram below illustrates how the components of the ``step_redis`` package interact with each other and with the Redis server:
+The diagram below illustrates how the components of the ``step_redis`` package interact 
+with each other and with the Redis server:
 
 .. plantuml::
    :align: center
@@ -147,13 +178,14 @@ The diagram below illustrates how the components of the ``step_redis`` package i
 Usage Patterns
 --------------
 
-The package is designed to be used with async/await syntax in Python and follows context manager patterns for proper resource management. Here's a typical usage flow:
+The package is designed to be used with async/await syntax in Python and follows context 
+manager patterns for proper resource management. Here's a typical usage flow:
 
-1. Create a ``StepRedisPoolParams`` instance with appropriate connection parameters
-2. Initialize a ``StepRedisPool`` with the parameters
-3. Use the pool to create a ``StepRedisStream`` instance
-4. Perform stream operations (create streams, publish/consume messages)
-5. Properly clean up resources using context managers
+   #. Create a ``StepRedisPoolParams`` instance with appropriate connection parameters
+   #. Initialize a ``StepRedisPool`` with the parameters
+   #. Use the pool to create a ``StepRedisStream`` instance
+   #. Perform stream operations (create streams, publish/consume messages)
+   #. Properly clean up resources using context managers
 
 Example Usage
 ~~~~~~~~~~~~~
@@ -211,22 +243,24 @@ Error Handling
 
 The package provides robust error handling for various Redis connection issues:
 
-* Connection failures (network issues, authentication failures)
-* Operation timeouts
-* Stream-specific errors (non-existent streams/groups)
-* Consumer group management errors
+   * Connection failures (network issues, authentication failures)
+   * Operation timeouts
+   * Stream-specific errors (non-existent streams/groups)
+   * Consumer group management errors
 
-All operations log appropriate error messages and raise relevant exceptions that can be caught and handled by the client application.
+All operations log appropriate error messages and raise relevant exceptions 
+that can be caught and handled by the client application.
 
 Design Considerations
 ---------------------
 
 The ``step_redis`` package was designed with the following considerations:
 
-* **Reliability**: Ensuring reliable message delivery and processing with proper acknowledgments
-* **Performance**: Minimizing overhead and maximizing throughput for high-performance applications
-* **Resource Management**: Proper handling of connections and resources to prevent leaks
-* **Security**: Support for SSL/TLS connections and authentication
-* **Configurability**: Extensive configuration options to adapt to various deployment scenarios
+   * **Reliability**: Ensuring reliable message delivery and processing with proper acknowledgments
+   * **Performance**: Minimizing overhead and maximizing throughput for high-performance applications
+   * **Resource Management**: Proper handling of connections and resources to prevent leaks
+   * **Security**: Support for SSL/TLS connections and authentication
+   * **Configurability**: Extensive configuration options to adapt to various deployment scenarios
 
-This architectural design ensures that the package can handle the demands of distributed systems while providing a clean and intuitive API for developers.
+This architectural design ensures that the package can handle the demands of distributed 
+systems while providing a clean and intuitive API for developers.
