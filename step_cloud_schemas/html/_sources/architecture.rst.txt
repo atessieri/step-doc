@@ -139,7 +139,7 @@ The following component diagram shows the main flows of the system:
             [Avoidance\nCollision] as collision
             [Data\nStorage] as data
         }
-        client -left-> adapter: "3. CAM,DENM,CPM,VAM"
+        client -left-> adapter: "3. CAM,CPM,VAM"
         client -down-> producer: "7. DENM"
         adapter -left-> trajectory: "4. Position points\narray"
         trajectory <-down-> data: "Query data"
@@ -157,7 +157,7 @@ Flow Description
 
 In the previous diagram, the flows are numerated. The description of each flow is:
 
-    1.  **ANS.1 ITS from step broker to client**: The messages in the flow are:
+    #.  **ANS.1 ITS from step broker to client**: The messages in the flow are:
         
             * CAM 
             * DENM
@@ -165,23 +165,22 @@ In the previous diagram, the flows are numerated. The description of each flow i
             * VAM
 
         The messages received are based on the geo-hashing in the MQTT topic.
-    2.  **ANS.1 ITS from step client to step broker**: The messages in the flow are:
+    #.  **ANS.1 ITS from step client to step broker**: The messages in the flow are:
         
             * DENM
 
         The message sent contains a forecasting of a Crash. The message contains the 
         information of only 2 stations involved. So if the crash involves more than 2 stations,
         the messages generated will be the number of stations decreased by one. 
-    3.  **CAM,DENM,CPM,VAM from step client to adapter**: The messages received by Step Client
+    #.  **CAM,CPM,VAM from step client to adapter**: The messages received by Step Client
         are encoded in CloudEvent compatible format. The data field contains:
         
             * CAM
-            * DENM
             * CPM
             * VAM
 
         The message is validated by JSON schema :ref:`target_cloud_events_step_adapter_schema`.
-    4.  **Position points array from adapter to trajectory**: Step Adapter executes the 
+    #.  **Position points array from adapter to trajectory**: Step Adapter executes the 
         following tasks:
             
             * Collect the messages per station id or perceptive object id
@@ -192,10 +191,10 @@ In the previous diagram, the flows are numerated. The description of each flow i
             * Down or up sampling to have a constant rate (**sampling normalize**)
 
         The message is validated by JSON schema :ref:`target_cloud_events_step_crash_prediction_schema`.
-    5.  **Event forecasted from avoidance collision to producer**: The message contains the
+    #.  **Event forecasted from avoidance collision to producer**: The message contains the
         position point of the station involved in the event. The message is validated by JSON schema
         :ref:`target_cloud_events_step_producer_schema`.
-    6.  **DENM from producer to client**: The message DENM contains the pre-crash container. The message
+    #.  **DENM from producer to client**: The message DENM contains the pre-crash container. The message
         is validated by JSON schema :ref:`target_cloud_events_step_client_schema`.
-    7.  **DENM from client to producer**: The message DENM contains the environment notification generated 
+    #.  **DENM from client to producer**: The message DENM contains the environment notification generated 
         by other stations. The message is validated by JSON schema :ref:`target_cloud_events_step_producer_schema`.
