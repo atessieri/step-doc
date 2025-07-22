@@ -640,11 +640,13 @@ Data Structure Performance Characteristics
 
 The ``DenServiceDataManager`` employs a multi-index architecture optimized for different access patterns:
 
-* **Sorted List (``_denm_sorted_records``)**: Maintains chronological ordering with O(log n) insertion/deletion
-* **Hash-based Indices (``_record_key_index``, ``_action_id_index``)**: Provide O(1) average-case lookup
-* **Record Key Generation**: O(1) constant time operation for unique key creation
+* **Sorted List (``_denm_sorted_records``)**: Maintains chronological 
+  ordering with O(log n) insertion/deletion
+* **Hash-based Indices (``_record_key_index``, ``_action_id_index``)**: Provide O(1) 
+  constant time operation for accessing.
+* **Record Key Insertion**: O(1) constant time operation for unique key insertion.
 
-Where n represents the total number of active DENM records in the system.
+Where **n** represents the total number of active DENM records in the system.
 
 Collision Message Processing Performance
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -653,11 +655,12 @@ Collision Message Processing Performance
 
 **Algorithm Complexity Analysis:**
 
-For processing a collision array containing k + 1 vehicles which generates k DENM records:
+For processing a collision array containing k + 1 vehicles which generates **k** 
+DENM records:
 
 1. **Record Key Generation**: O(k) - Linear iteration through collision array
 2. **Existing Record Lookup**: O(k) - Hash table lookup for each collision record
-3. **New Record Insertion**: 
+3. **New Record Insertion (updating or creation)**: 
    
    * Sorted list insertion: O(k × log n) - Each new record requires binary search positioning
    * Hash index updates: O(k) - Constant time insertion per index
@@ -667,7 +670,7 @@ For processing a collision array containing k + 1 vehicles which generates k DEN
 
 **Overall Complexity**: **O(k × log n)**
 
-**Performance Implications:**
+**Performance Implications**:
 
 * **Best Case**: All collision records already exist → O(k) for lookups only
 * **Worst Case**: All collision records are new → O(k × log n) for full processing
@@ -675,7 +678,7 @@ For processing a collision array containing k + 1 vehicles which generates k DEN
 
 **Scalability Considerations:**
 
-* With k=100 collision records and n=10,000 active DENMs: ~1,300 operations
+* With k=10 collision records and n=10,000 active DENMs in the system: ~130 operations
 * System performance degrades logarithmically with active record count
 * Memory usage scales linearly with concurrent collision scenarios
 
@@ -701,10 +704,6 @@ For processing a single DENM negation:
 * **Efficient Cleanup**: Fast removal enables real-time termination handling
 * **Memory Recovery**: Immediate memory release prevents accumulation
 
-**Batch Negation Scenarios:**
-
-For processing m concurrent negations: **O(m × log n)**
-
 Periodic Cleanup Performance
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -712,30 +711,17 @@ Periodic Cleanup Performance
 
 **Algorithm Complexity Analysis:**
 
-1. **Expired Record Identification**: O(n) - Linear scan of chronologically sorted records
-2. **Batch Record Removal**: O(e × log n) where e is the number of expired records
-3. **Cancellation Message Generation**: O(e) - Linear with expired count
-4. **Redis Stream Publication**: O(e) - Linear network operations
+#. **Batch Record Identification and Removal**: O(e × log n) where e is the number of expired records
+#. **Cancellation Message Generation**: O(e) - Linear with expired count
+#. **Redis Stream Publication**: O(e) - Linear network operations
 
-**Overall Complexity**: **O(n + e × log n)**
+**Overall Complexity**: **O(e × log n)**
 
 **Performance Optimization:**
 
 * **Early Termination**: Sorted list enables early exit when unexpired records are encountered
 * **Batch Processing**: Minimizes Redis stream overhead through batched publications
 * **Adaptive Scheduling**: Cleanup interval adapts based on system load
-
-Memory Complexity Analysis
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-**Memory Usage Breakdown:**
-
-* **DENM Records**: O(n × s) where s is average DENM message size
-* **Sorted List Overhead**: O(n) for maintaining chronological order
-* **Hash Index Overhead**: O(n) per index (2 indices total)
-* **Redis Connection Pool**: O(c) where c is connection pool size
-
-**Total Memory Complexity**: **O(n × (s + 3))**
 
 **Memory Management Strategies:**
 
