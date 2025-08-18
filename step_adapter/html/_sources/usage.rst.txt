@@ -1,0 +1,172 @@
+STEP Adapter Usage Guide
+========================
+
+Introduction
+------------
+
+The **STEP Adapter** is a critical component of the Smart Transportation Ecosystem Platform (STEP) 
+that processes raw GNSS tracking data into smooth, regularly-sampled position arrays 
+optimized for crash prediction algorithms. This Redis-based microservice serves as a sophisticated 
+data preprocessing pipeline for real-time position data processing, including advanced 
+interpolation, validation, and streaming capabilities.
+
+**Core Functionality:**
+
+The adapter operates as a comprehensive data processing pipeline that:
+
+  * **Vehicle Position Processing**: Transforms raw GNSS measurements into smooth position trajectories 
+    using cubic spline interpolation techniques for enhanced accuracy and consistency
+  * **ITS Message Processing**: Processes CAM (Cooperative Awareness Messages), CPM (Collective 
+    Perception Messages), and VAM (Vulnerable Road User Awareness Messages) from communication systems
+  * **Real-time Stream Processing**: Integrates with Redis Streams for scalable message processing 
+    and crash prediction data distribution with high-throughput capabilities
+  * **Actor Dataset Management**: Maintains temporal actor datasets with automatic lifecycle 
+    management and memory optimization
+
+**Performance Characteristics:**
+
+The STEP Adapter is designed for high-performance real-time processing:
+
+  * **Output Frequencies**: Efficiently handles 1Hz to 10Hz sampling rates
+  * **Real-time Latency**: < 100 ms processing latency for typical configurations
+  * **Memory Management**: Bounded growth with sliding window approach preventing memory accumulation
+  * **Scalability**: Linear scaling with Redis Streams up to infrastructure limits
+
+**Key Components:**
+
+  * **Point Dataset Management**: High-level interface for managing position datasets 
+    with advanced interpolation capabilities
+  * **Redis Integration**: Specialized connection pooling and stream management for real-time messaging
+  * **Configuration System**: Hierarchical Pydantic-based configuration models with comprehensive validation
+  * **Interpolation Engine**: Core cubic spline interpolation system for generating smooth trajectories
+  * **Actor Management**: Vehicle metadata and dataset lifecycle management with automatic cleanup
+
+Prerequisites
+-------------
+
+Before using the STEP Adapter, make sure you have:
+
+    #. Python 3.13 or higher installed
+    #. Access to a Redis server for stream processing
+    #. Raw GNSS tracking data or ITS communication messages (CAM, CPM, VAM)
+    #. The step_adapter package installed in your environment
+
+Installation
+------------
+
+You can install the STEP Adapter package using pip:
+
+.. code-block:: bash
+
+    pip install step-adapter
+
+Or if you're using a development version:
+
+.. code-block:: bash
+
+    pip install -e /path/to/step_adapter
+
+Basic Concepts
+--------------
+
+STEP Adapter operates as a real-time position processing pipeline,
+transforming raw GNSS tracking data into optimized datasets for crash prediction. 
+Key concepts include:
+
+  * **Position Processing**: Transforms raw GNSS measurements into smooth position 
+    trajectories using cubic spline interpolation techniques for accurate tracking
+  * **ITS Message Processing**: Processes CAM (Cooperative Awareness Messages), CPM (Collective 
+    Perception Messages), and VAM (Vulnerable Road User Awareness Messages) from communication systems
+  * **Redis Stream Processing**: Asynchronous message consumption from Redis streams 
+    for real-time processing of tracking data and position array generation
+  * **Actor Dataset Management**: Maintains temporal actor datasets with automatic 
+    data lifecycle management and cross-actor contamination prevention
+  * **Position Array Generation**: Creates regularly-sampled position arrays optimized 
+    for crash prediction algorithms and traffic monitoring systems
+  * **Data Interpolation**: Advanced cubic spline interpolation engine for generating 
+    smooth position trajectories from irregular GNSS data points
+  * **Event-Driven Architecture**: Asynchronous task groups handling concurrent 
+    stream reception and periodic dataset cleanup operations
+  * **Signal Handling**: Graceful shutdown capabilities with proper resource 
+    cleanup when interrupted by system signals
+  * **Automatic Reconnection**: Built-in retry mechanism with configurable 
+    intervals for handling Redis connection failures
+
+Configuration
+-------------
+
+STEP Adapter requires configuration for Redis connections, 
+actor dataset management, and position processing parameters. 
+The configuration is managed through a JSON file.
+
+Creating a Configuration File
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+To create a default configuration template:
+
+.. code-block:: bash
+
+    step_adapter --conf_template my_config_template.json
+
+This generates a template that you can customize for your specific needs.
+
+Key Configuration Parameters
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  
+* **Base Configuration**:
+
+  * instanceName: Unique name for this adapter instance
+  * stationId: Station identification number
+  * timeout: Timeout used for various operations
+
+* **Redis Configuration**:
+  
+  * connection: Redis server connection details
+  * streams: Configuration for Redis streams (inputs and outputs)
+  
+* **Actor Dataset Configuration**:
+
+  * path_length_ms: Maximum path length in milliseconds for position tracking
+  * output_period_ms: Output sampling period for position arrays
+  * cleanup_period_s: Cleanup interval for expired actor data
+  
+* **Log Configuration**:
+
+  * level: Logging level (e.g., DEBUG, INFO, WARNING, ERROR)
+  * format: Log message format
+  * handlers: List of log handlers (e.g., console, file)
+
+Example Configuration
+^^^^^^^^^^^^^^^^^^^^^
+
+The schema of the example below is: :ref:`STEP Adapter Configuration Schema<step_adapter_config_schema>`
+
+.. literalinclude:: schemas_examples/step_adapter_config_v1_schema.json
+  :language: JSON
+
+Running STEP Adapter as a Service
+----------------------------------
+
+To run the STEP Adapter as a standalone service:
+
+.. code-block:: bash
+
+    step_adapter --config /path/to/config.json
+
+This will start the adapter, which will:
+
+    #. Connect to Redis
+    #. Process position data and ITS messages
+    #. Generate position arrays for crash prediction
+
+Command-Line Options
+--------------------
+
+The STEP Adapter supports several command-line options:
+
+  * ``--version``, ``-v``: Show version information
+  * ``--help``, ``-h``: Show help information
+  * ``--conf_schema``, ``-s``: Generate a JSON schema for the configuration
+  * ``--conf_template``, ``-t``: Generate a configuration template
+  * ``--config``, ``-c``: Path to configuration file
+  * ``--instance``, ``-i``: Specify the instance name

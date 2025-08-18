@@ -1,0 +1,1579 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Architecture &mdash; STEP Adapter 0.2.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/tabs.css?v=4c969af8" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=5b54ee2a" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=938c9ccc"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/tabs.js?v=3ee01567"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="JSON Schemas" href="schemas_rst/json_schemas.html" />
+    <link rel="prev" title="Package Script" href="package_script.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            STEP Adapter
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">STEP Adapter:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#purpose">Purpose</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#key-features">Key Features</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="overview.html#real-time-data-processing">Real-time Data Processing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="overview.html#interpolation-and-validation">Interpolation and Validation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="overview.html#configuration-and-monitoring">Configuration and Monitoring</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#core-components">Core Components</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="overview.html#actor-dataset-manager">Actor Dataset Manager</a></li>
+<li class="toctree-l3"><a class="reference internal" href="overview.html#point-dataset-manager">Point Dataset Manager</a></li>
+<li class="toctree-l3"><a class="reference internal" href="overview.html#point-interpolation-engine">Point Interpolation Engine</a></li>
+<li class="toctree-l3"><a class="reference internal" href="overview.html#redis-integration">Redis Integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="overview.html#configuration-system">Configuration System</a></li>
+<li class="toctree-l3"><a class="reference internal" href="overview.html#logging-infrastructure">Logging Infrastructure</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#architecture">Architecture</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="overview.html#event-driven-processing">Event-Driven Processing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="overview.html#asynchronous-operations">Asynchronous Operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="overview.html#message-flow">Message Flow</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#standards-compliance">Standards Compliance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#dependencies">Dependencies</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="overview.html#core-dependencies">Core Dependencies</a></li>
+<li class="toctree-l3"><a class="reference internal" href="overview.html#development-dependencies">Development Dependencies</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#deployment">Deployment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#usage-patterns">Usage Patterns</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="overview.html#service-mode">Service Mode</a></li>
+<li class="toctree-l3"><a class="reference internal" href="overview.html#configuration-generation">Configuration Generation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="overview.html#integration-mode">Integration Mode</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#testing">Testing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#getting-started">Getting Started</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#installing-from-pypi">Installing from PyPI</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="commands.html">Command Line Interface</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="commands.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="commands.html#basic-usage">Basic Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="commands.html#options">Options</a></li>
+<li class="toctree-l2"><a class="reference internal" href="commands.html#detailed-command-description">Detailed Command Description</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="commands.html#help-command">Help Command</a></li>
+<li class="toctree-l3"><a class="reference internal" href="commands.html#version-command">Version Command</a></li>
+<li class="toctree-l3"><a class="reference internal" href="commands.html#configuration-schema-generation">Configuration Schema Generation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="commands.html#configuration-template-generation">Configuration Template Generation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="commands.html#running-with-configuration">Running with Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="commands.html#configuration-file-structure">Configuration File Structure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="commands.html#exit-codes">Exit Codes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="commands.html#examples">Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="commands.html#program-operation">Program Operation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="commands.html#advanced-usage">Advanced Usage</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="commands.html#signal-handling">Signal Handling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="commands.html#logging">Logging</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">STEP Adapter Usage Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#introduction">Introduction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#prerequisites">Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#installation">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#basic-concepts">Basic Concepts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#configuration">Configuration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="usage.html#creating-a-configuration-file">Creating a Configuration File</a></li>
+<li class="toctree-l3"><a class="reference internal" href="usage.html#key-configuration-parameters">Key Configuration Parameters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="usage.html#example-configuration">Example Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#running-step-adapter-as-a-service">Running STEP Adapter as a Service</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#command-line-options">Command-Line Options</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="package_script.html">Package Script</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="package_script.html#create-environment">Create environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="package_script.html#make">Make</a></li>
+<li class="toctree-l2"><a class="reference internal" href="package_script.html#pdf-conversion">PDF conversion</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Architecture</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#library">Library</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#core-dependencies">Core Dependencies</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#architecture-integration">Architecture Integration</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#components">Components</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#denservicemanager">DenServiceManager</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#denservicedatamanager">DenServiceDataManager</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#stepproducerconfig">StepProducerConfig</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#stepproducerredispool-and-stepproducerredisstream">StepProducerRedisPool and StepProducerRedisStream</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#steplogger">StepLogger</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#stepinterruptexception">StepInterruptException</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#component-diagram">Component Diagram</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#class-diagram">Class Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sequence-diagrams">Sequence Diagrams</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#denm-creation-and-publication">DENM creation and publication</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#denm-negation">DENM negation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#performance-considerations">Performance Considerations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#data-structure-performance-characteristics">Data Structure Performance Characteristics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#collision-message-processing-performance">Collision Message Processing Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#denm-negation-processing-performance">DENM Negation Processing Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#periodic-cleanup-performance">Periodic Cleanup Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#bottleneck-analysis">Bottleneck Analysis</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="schemas_rst/json_schemas.html">JSON Schemas</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="schemas_rst/json_schemas.html#input-message-schema">Input Message Schema</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="schemas_rst/cloud_events_step_adapter_schema.html">STEP Adapter Schema</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="schemas_rst/cloud_events_step_adapter_schema.html#cloud-event-step-adapter">Cloud Event Step Adapter</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_adapter_schema.html#acceleration-component">Acceleration Component</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_adapter_schema.html#cloud-event-cam-data-v1">Cloud Event Cam Data V1</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_adapter_schema.html#reference-altitude">Reference Altitude</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_adapter_schema.html#cam-data-version-1">CAM Data Version 1</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_adapter_schema.html#curvature">Curvature</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_adapter_schema.html#curvature-calculation-mode">Curvature Calculation Mode</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_adapter_schema.html#cloud-event-data-content-types">Cloud Event Data Content Types</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_adapter_schema.html#drive-direction">Drive Direction</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_adapter_schema.html#heading">Heading</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_adapter_schema.html#identification">Identification</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_adapter_schema.html#position-confidence-ellipse">Position Confidence Ellipse</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_adapter_schema.html#reference-position">Reference Position</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_adapter_schema.html#cloudevents-specification-version">CloudEvents Specification Version</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_adapter_schema.html#speed">Speed</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_adapter_schema.html#traffic-participant-type">Traffic Participant Type</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_adapter_schema.html#vehicle-length">Vehicle Length</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_adapter_schema.html#vehicle-length-confidence-indication">Vehicle Length Confidence Indication</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_adapter_schema.html#vehicle-role">Vehicle Role</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_adapter_schema.html#yaw-rate">Yaw Rate</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="schemas_rst/json_schemas.html#output-message-schema">Output Message Schema</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="schemas_rst/cloud_events_step_crash_prediction_schema.html">STEP Crash Prediction Schema</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="schemas_rst/cloud_events_step_crash_prediction_schema.html#cloud-event-step-crash-prediction">Cloud Event Step Crash Prediction</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_crash_prediction_schema.html#reference-altitude">Reference Altitude</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_crash_prediction_schema.html#cloud-event-position-array-v1">Cloud Event Position Array V1</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_crash_prediction_schema.html#cloud-event-data-content-types">Cloud Event Data Content Types</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_crash_prediction_schema.html#drive-direction">Drive Direction</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_crash_prediction_schema.html#heading">Heading</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_crash_prediction_schema.html#identification">Identification</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_crash_prediction_schema.html#position-array-version-1">Position Array Version 1</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_crash_prediction_schema.html#position-confidence-ellipse">Position Confidence Ellipse</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_crash_prediction_schema.html#position-info">Position Info</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_crash_prediction_schema.html#position-type">Position Type</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_crash_prediction_schema.html#reference-position">Reference Position</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_crash_prediction_schema.html#cloudevents-specification-version">CloudEvents Specification Version</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_crash_prediction_schema.html#speed">Speed</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_crash_prediction_schema.html#traffic-participant-type">Traffic Participant Type</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_crash_prediction_schema.html#vehicle-length">Vehicle Length</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_crash_prediction_schema.html#vehicle-length-confidence-indication">Vehicle Length Confidence Indication</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="schemas_rst/json_schemas.html#its-message-schema">ITS Message Schema</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="schemas_rst/cam_message.html">CAM Message</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="schemas_rst/cam_data_v1_schema.html">CAM Data V1 Schema</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cam_data_v1_schema.html#cam-data-version-1">CAM Data Version 1</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/cam_data_v1_schema.html#acceleration-component">Acceleration Component</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/cam_data_v1_schema.html#reference-altitude">Reference Altitude</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/cam_data_v1_schema.html#curvature">Curvature</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/cam_data_v1_schema.html#curvature-calculation-mode">Curvature Calculation Mode</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/cam_data_v1_schema.html#drive-direction">Drive Direction</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/cam_data_v1_schema.html#heading">Heading</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/cam_data_v1_schema.html#identification">Identification</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/cam_data_v1_schema.html#position-confidence-ellipse">Position Confidence Ellipse</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/cam_data_v1_schema.html#reference-position">Reference Position</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/cam_data_v1_schema.html#speed">Speed</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/cam_data_v1_schema.html#traffic-participant-type">Traffic Participant Type</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/cam_data_v1_schema.html#vehicle-length">Vehicle Length</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/cam_data_v1_schema.html#vehicle-length-confidence-indication">Vehicle Length Confidence Indication</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/cam_data_v1_schema.html#vehicle-role">Vehicle Role</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/cam_data_v1_schema.html#yaw-rate">Yaw Rate</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="schemas_rst/json_schemas.html#configuration-schema">Configuration Schema</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="schemas_rst/step_adapter_config_schema.html">STEP Adapter Config V1 Schema</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="schemas_rst/step_adapter_config_schema.html#overview">Overview</a></li>
+<li class="toctree-l4"><a class="reference internal" href="schemas_rst/step_adapter_config_schema.html#features-and-benefits">Features and Benefits</a></li>
+<li class="toctree-l4"><a class="reference internal" href="schemas_rst/step_adapter_config_schema.html#example">Example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="schemas_rst/step_adapter_config_schema.html#json-schema">JSON Schema</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/step_adapter_config_schema.html#step-adapter-configuration">STEP Adapter Configuration</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/step_adapter_config_schema.html#log-configuration">Log Configuration</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/step_adapter_config_schema.html#log-file-handler">Log File Handler</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/step_adapter_config_schema.html#log-interval-type">Log Interval Type</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/step_adapter_config_schema.html#logging-level">Logging Level</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/step_adapter_config_schema.html#log-null-handler">Log Null Handler</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/step_adapter_config_schema.html#log-size-file-rotate-handler">Log Size File Rotate Handler</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/step_adapter_config_schema.html#log-stream-handler">Log Stream Handler</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/step_adapter_config_schema.html#log-time-file-rotate-handler">Log Time File Rotate Handler</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/step_adapter_config_schema.html#redis-configuration">Redis Configuration</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/step_adapter_config_schema.html#redis-connection-configuration">Redis Connection Configuration</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/step_adapter_config_schema.html#redis-stream-input-configuration">Redis Stream Input Configuration</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/step_adapter_config_schema.html#redis-stream-output-configuration">Redis Stream Output Configuration</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/step_adapter_config_schema.html#redis-stream-outputs-configuration">Redis Stream Outputs Configuration</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/step_adapter_config_schema.html#redis-stream-configuration">Redis Stream Configuration</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="step_adapter_rst/step_adapter.html">step_adapter package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="step_adapter_rst/step_adapter.html#submodules">Submodules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="step_adapter_rst/step_adapter.actor_dataset.html">step_adapter.actor_dataset module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="step_adapter_rst/step_adapter.actor_dataset.html#step_adapter.actor_dataset.ActorDataset"><code class="docutils literal notranslate"><span class="pre">ActorDataset</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.actor_dataset.html#step_adapter.actor_dataset.ActorDataset.config"><code class="docutils literal notranslate"><span class="pre">ActorDataset.config</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.actor_dataset.html#step_adapter.actor_dataset.ActorDataset.logger"><code class="docutils literal notranslate"><span class="pre">ActorDataset.logger</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.actor_dataset.html#step_adapter.actor_dataset.ActorDataset.clear_old_points"><code class="docutils literal notranslate"><span class="pre">ActorDataset.clear_old_points()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.actor_dataset.html#step_adapter.actor_dataset.ActorDataset.insert_cam_message"><code class="docutils literal notranslate"><span class="pre">ActorDataset.insert_cam_message()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="step_adapter_rst/step_adapter.actor_dataset.html#step_adapter.actor_dataset.ActorDatasetConfig"><code class="docutils literal notranslate"><span class="pre">ActorDatasetConfig</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.actor_dataset.html#step_adapter.actor_dataset.ActorDatasetConfig.path_length_seconds"><code class="docutils literal notranslate"><span class="pre">ActorDatasetConfig.path_length_seconds</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.actor_dataset.html#step_adapter.actor_dataset.ActorDatasetConfig.output_nominal_frequency"><code class="docutils literal notranslate"><span class="pre">ActorDatasetConfig.output_nominal_frequency</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.actor_dataset.html#step_adapter.actor_dataset.ActorDatasetConfig.period_max_deviation_ms"><code class="docutils literal notranslate"><span class="pre">ActorDatasetConfig.period_max_deviation_ms</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.actor_dataset.html#step_adapter.actor_dataset.ActorDatasetConfig.__post_init__"><code class="docutils literal notranslate"><span class="pre">ActorDatasetConfig.__post_init__()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="step_adapter_rst/step_adapter.point_dataset.html">step_adapter.point_dataset module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.PointDataset"><code class="docutils literal notranslate"><span class="pre">PointDataset</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.PointDataset.station_id_par"><code class="docutils literal notranslate"><span class="pre">PointDataset.station_id_par</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.PointDataset.object_id_par"><code class="docutils literal notranslate"><span class="pre">PointDataset.object_id_par</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.PointDataset.config"><code class="docutils literal notranslate"><span class="pre">PointDataset.config</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.PointDataset.logger"><code class="docutils literal notranslate"><span class="pre">PointDataset.logger</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.PointDataset.__repr__"><code class="docutils literal notranslate"><span class="pre">PointDataset.__repr__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.PointDataset.__str__"><code class="docutils literal notranslate"><span class="pre">PointDataset.__str__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.PointDataset.add_point"><code class="docutils literal notranslate"><span class="pre">PointDataset.add_point()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.PointDataset.get_points"><code class="docutils literal notranslate"><span class="pre">PointDataset.get_points()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.PointDataset.last_record_time"><code class="docutils literal notranslate"><span class="pre">PointDataset.last_record_time</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.PointDataset.object_id"><code class="docutils literal notranslate"><span class="pre">PointDataset.object_id</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.PointDataset.station_id"><code class="docutils literal notranslate"><span class="pre">PointDataset.station_id</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.PointDataset.vehicle_length"><code class="docutils literal notranslate"><span class="pre">PointDataset.vehicle_length</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.PointDataset.vehicle_width"><code class="docutils literal notranslate"><span class="pre">PointDataset.vehicle_width</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.PointDatasetConfig"><code class="docutils literal notranslate"><span class="pre">PointDatasetConfig</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.PointDatasetConfig.path_length_seconds"><code class="docutils literal notranslate"><span class="pre">PointDatasetConfig.path_length_seconds</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.PointDatasetConfig.output_nominal_frequency"><code class="docutils literal notranslate"><span class="pre">PointDatasetConfig.output_nominal_frequency</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.PointDatasetConfig.period_max_deviation_ms"><code class="docutils literal notranslate"><span class="pre">PointDatasetConfig.period_max_deviation_ms</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.PointDatasetConfig.__post_init__"><code class="docutils literal notranslate"><span class="pre">PointDatasetConfig.__post_init__()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="step_adapter_rst/step_adapter.point_interpolation.html">step_adapter.point_interpolation module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="step_adapter_rst/step_adapter.point_interpolation.html#step_adapter.point_interpolation.PointInterpolation"><code class="docutils literal notranslate"><span class="pre">PointInterpolation</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.point_interpolation.html#step_adapter.point_interpolation.PointInterpolation.config"><code class="docutils literal notranslate"><span class="pre">PointInterpolation.config</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.point_interpolation.html#step_adapter.point_interpolation.PointInterpolation.logger"><code class="docutils literal notranslate"><span class="pre">PointInterpolation.logger</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.point_interpolation.html#step_adapter.point_interpolation.PointInterpolation.InsertPointResult"><code class="docutils literal notranslate"><span class="pre">PointInterpolation.InsertPointResult</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="step_adapter_rst/step_adapter.point_interpolation.html#step_adapter.point_interpolation.PointInterpolation.InsertPointResult.SUCCESS"><code class="docutils literal notranslate"><span class="pre">PointInterpolation.InsertPointResult.SUCCESS</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="step_adapter_rst/step_adapter.point_interpolation.html#step_adapter.point_interpolation.PointInterpolation.InsertPointResult.FILLING_PERIOD"><code class="docutils literal notranslate"><span class="pre">PointInterpolation.InsertPointResult.FILLING_PERIOD</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="step_adapter_rst/step_adapter.point_interpolation.html#step_adapter.point_interpolation.PointInterpolation.InsertPointResult.PERIOD_TOO_SHORT"><code class="docutils literal notranslate"><span class="pre">PointInterpolation.InsertPointResult.PERIOD_TOO_SHORT</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="step_adapter_rst/step_adapter.point_interpolation.html#step_adapter.point_interpolation.PointInterpolation.InsertPointResult.PERIOD_TOO_LONG"><code class="docutils literal notranslate"><span class="pre">PointInterpolation.InsertPointResult.PERIOD_TOO_LONG</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.point_interpolation.html#step_adapter.point_interpolation.PointInterpolation.__repr__"><code class="docutils literal notranslate"><span class="pre">PointInterpolation.__repr__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.point_interpolation.html#step_adapter.point_interpolation.PointInterpolation.__str__"><code class="docutils literal notranslate"><span class="pre">PointInterpolation.__str__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.point_interpolation.html#step_adapter.point_interpolation.PointInterpolation.add_point"><code class="docutils literal notranslate"><span class="pre">PointInterpolation.add_point()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.point_interpolation.html#step_adapter.point_interpolation.PointInterpolation.get_interpolated_values"><code class="docutils literal notranslate"><span class="pre">PointInterpolation.get_interpolated_values()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.point_interpolation.html#step_adapter.point_interpolation.PointInterpolation.last_point_time"><code class="docutils literal notranslate"><span class="pre">PointInterpolation.last_point_time</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="step_adapter_rst/step_adapter.point_interpolation.html#step_adapter.point_interpolation.PointInterpolationConfig"><code class="docutils literal notranslate"><span class="pre">PointInterpolationConfig</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.point_interpolation.html#step_adapter.point_interpolation.PointInterpolationConfig.path_length_ms"><code class="docutils literal notranslate"><span class="pre">PointInterpolationConfig.path_length_ms</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.point_interpolation.html#step_adapter.point_interpolation.PointInterpolationConfig.output_nominal_period_ms"><code class="docutils literal notranslate"><span class="pre">PointInterpolationConfig.output_nominal_period_ms</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.point_interpolation.html#step_adapter.point_interpolation.PointInterpolationConfig.period_max_deviation_ms"><code class="docutils literal notranslate"><span class="pre">PointInterpolationConfig.period_max_deviation_ms</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.point_interpolation.html#step_adapter.point_interpolation.PointInterpolationConfig.__post_init__"><code class="docutils literal notranslate"><span class="pre">PointInterpolationConfig.__post_init__()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html">step_adapter.step_adapter_config module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogConfig"><code class="docutils literal notranslate"><span class="pre">LogConfig</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogConfig.handler"><code class="docutils literal notranslate"><span class="pre">LogConfig.handler</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogConfig.level"><code class="docutils literal notranslate"><span class="pre">LogConfig.level</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogConfig.format"><code class="docutils literal notranslate"><span class="pre">LogConfig.format</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogConfig.dateFormat"><code class="docutils literal notranslate"><span class="pre">LogConfig.dateFormat</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogConfig.get_default"><code class="docutils literal notranslate"><span class="pre">LogConfig.get_default()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogConfig.model_config"><code class="docutils literal notranslate"><span class="pre">LogConfig.model_config</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogFileHandler"><code class="docutils literal notranslate"><span class="pre">LogFileHandler</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogFileHandler.handlerType"><code class="docutils literal notranslate"><span class="pre">LogFileHandler.handlerType</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogFileHandler.path"><code class="docutils literal notranslate"><span class="pre">LogFileHandler.path</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogFileHandler.filenameTrailer"><code class="docutils literal notranslate"><span class="pre">LogFileHandler.filenameTrailer</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogFileHandler.append"><code class="docutils literal notranslate"><span class="pre">LogFileHandler.append</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogFileHandler.get_default"><code class="docutils literal notranslate"><span class="pre">LogFileHandler.get_default()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogFileHandler.model_config"><code class="docutils literal notranslate"><span class="pre">LogFileHandler.model_config</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogHandlerType"><code class="docutils literal notranslate"><span class="pre">LogHandlerType</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogHandlerType.STREAM"><code class="docutils literal notranslate"><span class="pre">LogHandlerType.STREAM</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogHandlerType.NULL"><code class="docutils literal notranslate"><span class="pre">LogHandlerType.NULL</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogHandlerType.FILE"><code class="docutils literal notranslate"><span class="pre">LogHandlerType.FILE</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogHandlerType.SIZE_FILE_ROTATE"><code class="docutils literal notranslate"><span class="pre">LogHandlerType.SIZE_FILE_ROTATE</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogHandlerType.TIME_FILE_ROTATE"><code class="docutils literal notranslate"><span class="pre">LogHandlerType.TIME_FILE_ROTATE</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogIntervalType"><code class="docutils literal notranslate"><span class="pre">LogIntervalType</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogIntervalType.SECONDS"><code class="docutils literal notranslate"><span class="pre">LogIntervalType.SECONDS</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogIntervalType.MINUTES"><code class="docutils literal notranslate"><span class="pre">LogIntervalType.MINUTES</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogIntervalType.HOURS"><code class="docutils literal notranslate"><span class="pre">LogIntervalType.HOURS</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogIntervalType.DAYS"><code class="docutils literal notranslate"><span class="pre">LogIntervalType.DAYS</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogIntervalType.SUNDAY"><code class="docutils literal notranslate"><span class="pre">LogIntervalType.SUNDAY</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogIntervalType.MONDAY"><code class="docutils literal notranslate"><span class="pre">LogIntervalType.MONDAY</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogIntervalType.TUESDAY"><code class="docutils literal notranslate"><span class="pre">LogIntervalType.TUESDAY</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogIntervalType.WEDNESDAY"><code class="docutils literal notranslate"><span class="pre">LogIntervalType.WEDNESDAY</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogIntervalType.THURSDAY"><code class="docutils literal notranslate"><span class="pre">LogIntervalType.THURSDAY</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogIntervalType.FRIDAY"><code class="docutils literal notranslate"><span class="pre">LogIntervalType.FRIDAY</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogIntervalType.SATURDAY"><code class="docutils literal notranslate"><span class="pre">LogIntervalType.SATURDAY</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogIntervalType.MIDNIGHT"><code class="docutils literal notranslate"><span class="pre">LogIntervalType.MIDNIGHT</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogIntervalType.__get_pydantic_json_schema__"><code class="docutils literal notranslate"><span class="pre">LogIntervalType.__get_pydantic_json_schema__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogIntervalType.to_when"><code class="docutils literal notranslate"><span class="pre">LogIntervalType.to_when()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogMode"><code class="docutils literal notranslate"><span class="pre">LogMode</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogMode.CRITICAL"><code class="docutils literal notranslate"><span class="pre">LogMode.CRITICAL</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogMode.ERROR"><code class="docutils literal notranslate"><span class="pre">LogMode.ERROR</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogMode.WARNING"><code class="docutils literal notranslate"><span class="pre">LogMode.WARNING</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogMode.INFO"><code class="docutils literal notranslate"><span class="pre">LogMode.INFO</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogMode.DEBUG"><code class="docutils literal notranslate"><span class="pre">LogMode.DEBUG</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogMode.__get_pydantic_json_schema__"><code class="docutils literal notranslate"><span class="pre">LogMode.__get_pydantic_json_schema__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogMode.to_logging_level"><code class="docutils literal notranslate"><span class="pre">LogMode.to_logging_level()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogNullHandler"><code class="docutils literal notranslate"><span class="pre">LogNullHandler</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogNullHandler.handlerType"><code class="docutils literal notranslate"><span class="pre">LogNullHandler.handlerType</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogNullHandler.get_default"><code class="docutils literal notranslate"><span class="pre">LogNullHandler.get_default()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogNullHandler.model_config"><code class="docutils literal notranslate"><span class="pre">LogNullHandler.model_config</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogSizeFileRotateHandler"><code class="docutils literal notranslate"><span class="pre">LogSizeFileRotateHandler</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogSizeFileRotateHandler.handlerType"><code class="docutils literal notranslate"><span class="pre">LogSizeFileRotateHandler.handlerType</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogSizeFileRotateHandler.path"><code class="docutils literal notranslate"><span class="pre">LogSizeFileRotateHandler.path</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogSizeFileRotateHandler.filenameTrailer"><code class="docutils literal notranslate"><span class="pre">LogSizeFileRotateHandler.filenameTrailer</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogSizeFileRotateHandler.append"><code class="docutils literal notranslate"><span class="pre">LogSizeFileRotateHandler.append</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogSizeFileRotateHandler.maxBytes"><code class="docutils literal notranslate"><span class="pre">LogSizeFileRotateHandler.maxBytes</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogSizeFileRotateHandler.backupCount"><code class="docutils literal notranslate"><span class="pre">LogSizeFileRotateHandler.backupCount</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogSizeFileRotateHandler.get_default"><code class="docutils literal notranslate"><span class="pre">LogSizeFileRotateHandler.get_default()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogSizeFileRotateHandler.model_config"><code class="docutils literal notranslate"><span class="pre">LogSizeFileRotateHandler.model_config</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogStreamHandler"><code class="docutils literal notranslate"><span class="pre">LogStreamHandler</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogStreamHandler.handlerType"><code class="docutils literal notranslate"><span class="pre">LogStreamHandler.handlerType</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogStreamHandler.get_default"><code class="docutils literal notranslate"><span class="pre">LogStreamHandler.get_default()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogStreamHandler.model_config"><code class="docutils literal notranslate"><span class="pre">LogStreamHandler.model_config</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogTimeFileRotateHandler"><code class="docutils literal notranslate"><span class="pre">LogTimeFileRotateHandler</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogTimeFileRotateHandler.handlerType"><code class="docutils literal notranslate"><span class="pre">LogTimeFileRotateHandler.handlerType</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogTimeFileRotateHandler.path"><code class="docutils literal notranslate"><span class="pre">LogTimeFileRotateHandler.path</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogTimeFileRotateHandler.filenameTrailer"><code class="docutils literal notranslate"><span class="pre">LogTimeFileRotateHandler.filenameTrailer</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogTimeFileRotateHandler.append"><code class="docutils literal notranslate"><span class="pre">LogTimeFileRotateHandler.append</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogTimeFileRotateHandler.intervalType"><code class="docutils literal notranslate"><span class="pre">LogTimeFileRotateHandler.intervalType</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogTimeFileRotateHandler.interval"><code class="docutils literal notranslate"><span class="pre">LogTimeFileRotateHandler.interval</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogTimeFileRotateHandler.backupCount"><code class="docutils literal notranslate"><span class="pre">LogTimeFileRotateHandler.backupCount</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogTimeFileRotateHandler.get_default"><code class="docutils literal notranslate"><span class="pre">LogTimeFileRotateHandler.get_default()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.LogTimeFileRotateHandler.model_config"><code class="docutils literal notranslate"><span class="pre">LogTimeFileRotateHandler.model_config</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisClientConfig"><code class="docutils literal notranslate"><span class="pre">RedisClientConfig</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisClientConfig.connection"><code class="docutils literal notranslate"><span class="pre">RedisClientConfig.connection</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisClientConfig.streams"><code class="docutils literal notranslate"><span class="pre">RedisClientConfig.streams</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisClientConfig.get_default"><code class="docutils literal notranslate"><span class="pre">RedisClientConfig.get_default()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisClientConfig.model_config"><code class="docutils literal notranslate"><span class="pre">RedisClientConfig.model_config</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisConnection"><code class="docutils literal notranslate"><span class="pre">RedisConnection</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisConnection.host"><code class="docutils literal notranslate"><span class="pre">RedisConnection.host</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisConnection.port"><code class="docutils literal notranslate"><span class="pre">RedisConnection.port</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisConnection.username"><code class="docutils literal notranslate"><span class="pre">RedisConnection.username</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisConnection.password"><code class="docutils literal notranslate"><span class="pre">RedisConnection.password</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisConnection.db"><code class="docutils literal notranslate"><span class="pre">RedisConnection.db</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisConnection.socketTimeout"><code class="docutils literal notranslate"><span class="pre">RedisConnection.socketTimeout</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisConnection.socketConnectTimeout"><code class="docutils literal notranslate"><span class="pre">RedisConnection.socketConnectTimeout</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisConnection.socketKeepIdle"><code class="docutils literal notranslate"><span class="pre">RedisConnection.socketKeepIdle</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisConnection.socketKeepAlive"><code class="docutils literal notranslate"><span class="pre">RedisConnection.socketKeepAlive</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisConnection.socketKeepCnt"><code class="docutils literal notranslate"><span class="pre">RedisConnection.socketKeepCnt</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisConnection.sslEnable"><code class="docutils literal notranslate"><span class="pre">RedisConnection.sslEnable</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisConnection.sslClientKeyFile"><code class="docutils literal notranslate"><span class="pre">RedisConnection.sslClientKeyFile</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisConnection.sslClientKeyFilePassword"><code class="docutils literal notranslate"><span class="pre">RedisConnection.sslClientKeyFilePassword</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisConnection.sslClientCertFile"><code class="docutils literal notranslate"><span class="pre">RedisConnection.sslClientCertFile</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisConnection.sslCertRequested"><code class="docutils literal notranslate"><span class="pre">RedisConnection.sslCertRequested</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisConnection.sslCaCertsFile"><code class="docutils literal notranslate"><span class="pre">RedisConnection.sslCaCertsFile</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisConnection.healthCheckInterval"><code class="docutils literal notranslate"><span class="pre">RedisConnection.healthCheckInterval</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisConnection.connectionAvailableTimeout"><code class="docutils literal notranslate"><span class="pre">RedisConnection.connectionAvailableTimeout</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisConnection.protocol"><code class="docutils literal notranslate"><span class="pre">RedisConnection.protocol</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisConnection.get_default"><code class="docutils literal notranslate"><span class="pre">RedisConnection.get_default()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisConnection.model_config"><code class="docutils literal notranslate"><span class="pre">RedisConnection.model_config</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisStreamInput"><code class="docutils literal notranslate"><span class="pre">RedisStreamInput</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisStreamInput.streamId"><code class="docutils literal notranslate"><span class="pre">RedisStreamInput.streamId</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisStreamInput.groupId"><code class="docutils literal notranslate"><span class="pre">RedisStreamInput.groupId</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisStreamInput.waitTimeout"><code class="docutils literal notranslate"><span class="pre">RedisStreamInput.waitTimeout</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisStreamInput.get_default"><code class="docutils literal notranslate"><span class="pre">RedisStreamInput.get_default()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisStreamInput.model_config"><code class="docutils literal notranslate"><span class="pre">RedisStreamInput.model_config</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisStreamOutput"><code class="docutils literal notranslate"><span class="pre">RedisStreamOutput</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisStreamOutput.streamId"><code class="docutils literal notranslate"><span class="pre">RedisStreamOutput.streamId</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisStreamOutput.maxLength"><code class="docutils literal notranslate"><span class="pre">RedisStreamOutput.maxLength</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisStreamOutput.get_default"><code class="docutils literal notranslate"><span class="pre">RedisStreamOutput.get_default()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisStreamOutput.model_config"><code class="docutils literal notranslate"><span class="pre">RedisStreamOutput.model_config</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisStreamOutputs"><code class="docutils literal notranslate"><span class="pre">RedisStreamOutputs</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisStreamOutputs.client"><code class="docutils literal notranslate"><span class="pre">RedisStreamOutputs.client</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisStreamOutputs.get_default"><code class="docutils literal notranslate"><span class="pre">RedisStreamOutputs.get_default()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisStreamOutputs.model_config"><code class="docutils literal notranslate"><span class="pre">RedisStreamOutputs.model_config</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisStreams"><code class="docutils literal notranslate"><span class="pre">RedisStreams</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisStreams.outputs"><code class="docutils literal notranslate"><span class="pre">RedisStreams.outputs</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisStreams.input"><code class="docutils literal notranslate"><span class="pre">RedisStreams.input</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisStreams.get_default"><code class="docutils literal notranslate"><span class="pre">RedisStreams.get_default()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisStreams.model_config"><code class="docutils literal notranslate"><span class="pre">RedisStreams.model_config</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.StepAdapterConfig"><code class="docutils literal notranslate"><span class="pre">StepAdapterConfig</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.StepAdapterConfig.templateVersion"><code class="docutils literal notranslate"><span class="pre">StepAdapterConfig.templateVersion</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.StepAdapterConfig.reconnectInterval"><code class="docutils literal notranslate"><span class="pre">StepAdapterConfig.reconnectInterval</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.StepAdapterConfig.receiveClientNumber"><code class="docutils literal notranslate"><span class="pre">StepAdapterConfig.receiveClientNumber</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.StepAdapterConfig.redis"><code class="docutils literal notranslate"><span class="pre">StepAdapterConfig.redis</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.StepAdapterConfig.log"><code class="docutils literal notranslate"><span class="pre">StepAdapterConfig.log</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.StepAdapterConfig.get_default"><code class="docutils literal notranslate"><span class="pre">StepAdapterConfig.get_default()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.StepAdapterConfig.model_config"><code class="docutils literal notranslate"><span class="pre">StepAdapterConfig.model_config</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.StepAdapterConfig.print_config_example"><code class="docutils literal notranslate"><span class="pre">StepAdapterConfig.print_config_example()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.StepAdapterConfig.print_config_schema"><code class="docutils literal notranslate"><span class="pre">StepAdapterConfig.print_config_schema()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.StepConfigGenerateJsonSchema"><code class="docutils literal notranslate"><span class="pre">StepConfigGenerateJsonSchema</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.StepConfigGenerateJsonSchema.generate"><code class="docutils literal notranslate"><span class="pre">StepConfigGenerateJsonSchema.generate()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.StepConfigVersion"><code class="docutils literal notranslate"><span class="pre">StepConfigVersion</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.StepConfigVersion.VERSION"><code class="docutils literal notranslate"><span class="pre">StepConfigVersion.VERSION</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_redis.html">step_adapter.step_adapter_redis module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_redis.html#step_adapter.step_adapter_redis.StepAdapterRedisPool"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisPool</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_redis.html#step_adapter.step_adapter_redis.StepAdapterRedisPool.max_connections"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisPool.max_connections</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_redis.html#step_adapter.step_adapter_redis.StepAdapterRedisPool.__aenter__"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisPool.__aenter__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_redis.html#step_adapter.step_adapter_redis.StepAdapterRedisStream"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_redis.html#step_adapter.step_adapter_redis.StepAdapterRedisStream.consumer_name"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream.consumer_name</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_redis.html#step_adapter.step_adapter_redis.StepAdapterRedisStream.config"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream.config</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_redis.html#step_adapter.step_adapter_redis.StepAdapterRedisStream.logger"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream.logger</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_redis.html#step_adapter.step_adapter_redis.StepAdapterRedisStream.pool"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream.pool</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_redis.html#step_adapter.step_adapter_redis.StepAdapterRedisStream.__aenter__"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream.__aenter__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_redis.html#step_adapter.step_adapter_redis.StepAdapterRedisStream.create_client_input_stream"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream.create_client_input_stream()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_redis.html#step_adapter.step_adapter_redis.StepAdapterRedisStream.publish_position_array"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream.publish_position_array()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_redis.html#step_adapter.step_adapter_redis.StepAdapterRedisStream.receive_adapter_message"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream.receive_adapter_message()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="step_adapter_rst/step_adapter.step_exception.html">step_adapter.step_exception module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="step_adapter_rst/step_adapter.step_exception.html#step_adapter.step_exception.StepCliException"><code class="docutils literal notranslate"><span class="pre">StepCliException</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="step_adapter_rst/step_adapter.step_exception.html#step_adapter.step_exception.StepInterruptException"><code class="docutils literal notranslate"><span class="pre">StepInterruptException</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="step_adapter_rst/step_adapter.step_logger.html">step_adapter.step_logger module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="step_adapter_rst/step_adapter.step_logger.html#step_adapter.step_logger.UtcFormatter"><code class="docutils literal notranslate"><span class="pre">UtcFormatter</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_logger.html#step_adapter.step_logger.UtcFormatter.converter"><code class="docutils literal notranslate"><span class="pre">UtcFormatter.converter()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="step_adapter_rst/step_adapter.step_logger.html#step_adapter.step_logger.get_logger"><code class="docutils literal notranslate"><span class="pre">get_logger()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="test_rst/test.html">Unit Test package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="test_rst/test.html#submodules">Submodules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="test_rst/test.test___init__.html">test.test___init__ module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___init__.html#test.test___init__.test_package_exports"><code class="docutils literal notranslate"><span class="pre">test_package_exports()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___init__.html#test.test___init__.test_version"><code class="docutils literal notranslate"><span class="pre">test_version()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="test_rst/test.test___main__.html">test.test___main__ module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.TestExitCode"><code class="docutils literal notranslate"><span class="pre">TestExitCode</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.TestExitCode.test_enum_length"><code class="docutils literal notranslate"><span class="pre">TestExitCode.test_enum_length()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.TestExitCode.test_enum_values"><code class="docutils literal notranslate"><span class="pre">TestExitCode.test_enum_values()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test___os_signal_config"><code class="docutils literal notranslate"><span class="pre">test___os_signal_config()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test_args_parse"><code class="docutils literal notranslate"><span class="pre">test_args_parse()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test_exception_handler"><code class="docutils literal notranslate"><span class="pre">test_exception_handler()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test_get_config_schema_file"><code class="docutils literal notranslate"><span class="pre">test_get_config_schema_file()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test_get_config_template_file"><code class="docutils literal notranslate"><span class="pre">test_get_config_template_file()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test_main"><code class="docutils literal notranslate"><span class="pre">test_main()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test_main_async"><code class="docutils literal notranslate"><span class="pre">test_main_async()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test_main_interrupt_exception"><code class="docutils literal notranslate"><span class="pre">test_main_interrupt_exception()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test_shutdown"><code class="docutils literal notranslate"><span class="pre">test_shutdown()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test_stream_cleaner_run"><code class="docutils literal notranslate"><span class="pre">test_stream_cleaner_run()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test_stream_receive_run"><code class="docutils literal notranslate"><span class="pre">test_stream_receive_run()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="test_rst/test.test_actor_dataset.html">test.test_actor_dataset module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_actor_dataset.html#test.test_actor_dataset.TestActorDataset"><code class="docutils literal notranslate"><span class="pre">TestActorDataset</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_actor_dataset.html#test.test_actor_dataset.TestActorDataset.actor_dataset"><code class="docutils literal notranslate"><span class="pre">TestActorDataset.actor_dataset()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_actor_dataset.html#test.test_actor_dataset.TestActorDataset.mock_logger"><code class="docutils literal notranslate"><span class="pre">TestActorDataset.mock_logger()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_actor_dataset.html#test.test_actor_dataset.TestActorDataset.now"><code class="docutils literal notranslate"><span class="pre">TestActorDataset.now()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_actor_dataset.html#test.test_actor_dataset.TestActorDataset.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestActorDataset.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_actor_dataset.html#test.test_actor_dataset.TestActorDataset.test_cam_data_to_position_info"><code class="docutils literal notranslate"><span class="pre">TestActorDataset.test_cam_data_to_position_info()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_actor_dataset.html#test.test_actor_dataset.TestActorDataset.test_clear_old_points_empty_dataset"><code class="docutils literal notranslate"><span class="pre">TestActorDataset.test_clear_old_points_empty_dataset()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_actor_dataset.html#test.test_actor_dataset.TestActorDataset.test_clear_old_points_no_old_points"><code class="docutils literal notranslate"><span class="pre">TestActorDataset.test_clear_old_points_no_old_points()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_actor_dataset.html#test.test_actor_dataset.TestActorDataset.test_clear_old_points_removes_old_points"><code class="docutils literal notranslate"><span class="pre">TestActorDataset.test_clear_old_points_removes_old_points()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_actor_dataset.html#test.test_actor_dataset.TestActorDataset.test_get_points"><code class="docutils literal notranslate"><span class="pre">TestActorDataset.test_get_points()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_actor_dataset.html#test.test_actor_dataset.TestActorDataset.test_initialization"><code class="docutils literal notranslate"><span class="pre">TestActorDataset.test_initialization()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_actor_dataset.html#test.test_actor_dataset.TestActorDataset.test_insert_cam_message_array"><code class="docutils literal notranslate"><span class="pre">TestActorDataset.test_insert_cam_message_array()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_actor_dataset.html#test.test_actor_dataset.TestActorDataset.test_insert_cam_message_none"><code class="docutils literal notranslate"><span class="pre">TestActorDataset.test_insert_cam_message_none()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_actor_dataset.html#test.test_actor_dataset.TestActorDataset.test_insert_point_dataset"><code class="docutils literal notranslate"><span class="pre">TestActorDataset.test_insert_point_dataset()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_actor_dataset.html#test.test_actor_dataset.TestActorDatasetConfig"><code class="docutils literal notranslate"><span class="pre">TestActorDatasetConfig</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_actor_dataset.html#test.test_actor_dataset.TestActorDatasetConfig.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestActorDatasetConfig.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_actor_dataset.html#test.test_actor_dataset.TestActorDatasetConfig.test_data"><code class="docutils literal notranslate"><span class="pre">TestActorDatasetConfig.test_data()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="test_rst/test.test_point_dataset.html">test.test_point_dataset module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDataset"><code class="docutils literal notranslate"><span class="pre">TestPointDataset</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDataset.mock_logger"><code class="docutils literal notranslate"><span class="pre">TestPointDataset.mock_logger()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDataset.point_dataset"><code class="docutils literal notranslate"><span class="pre">TestPointDataset.point_dataset()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDataset.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestPointDataset.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDataset.test_add_point"><code class="docutils literal notranslate"><span class="pre">TestPointDataset.test_add_point()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDataset.test_get_points"><code class="docutils literal notranslate"><span class="pre">TestPointDataset.test_get_points()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDataset.test_initialization"><code class="docutils literal notranslate"><span class="pre">TestPointDataset.test_initialization()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDataset.test_last_record_time"><code class="docutils literal notranslate"><span class="pre">TestPointDataset.test_last_record_time()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDataset.test_object_id"><code class="docutils literal notranslate"><span class="pre">TestPointDataset.test_object_id()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDataset.test_repr"><code class="docutils literal notranslate"><span class="pre">TestPointDataset.test_repr()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDataset.test_station_id"><code class="docutils literal notranslate"><span class="pre">TestPointDataset.test_station_id()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDataset.test_str"><code class="docutils literal notranslate"><span class="pre">TestPointDataset.test_str()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDataset.test_vehicle_length"><code class="docutils literal notranslate"><span class="pre">TestPointDataset.test_vehicle_length()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDataset.test_vehicle_width"><code class="docutils literal notranslate"><span class="pre">TestPointDataset.test_vehicle_width()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDatasetConfig"><code class="docutils literal notranslate"><span class="pre">TestPointDatasetConfig</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDatasetConfig.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestPointDatasetConfig.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDatasetConfig.test_data"><code class="docutils literal notranslate"><span class="pre">TestPointDatasetConfig.test_data()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="test_rst/test.test_point_interpolation.html">test.test_point_interpolation module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_point_interpolation.html#test.test_point_interpolation.TestPointInterpolation"><code class="docutils literal notranslate"><span class="pre">TestPointInterpolation</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_point_interpolation.html#test.test_point_interpolation.TestPointInterpolation.mock_logger"><code class="docutils literal notranslate"><span class="pre">TestPointInterpolation.mock_logger()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_point_interpolation.html#test.test_point_interpolation.TestPointInterpolation.point_interpolation"><code class="docutils literal notranslate"><span class="pre">TestPointInterpolation.point_interpolation()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_point_interpolation.html#test.test_point_interpolation.TestPointInterpolation.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestPointInterpolation.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_point_interpolation.html#test.test_point_interpolation.TestPointInterpolation.test_add_point"><code class="docutils literal notranslate"><span class="pre">TestPointInterpolation.test_add_point()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_point_interpolation.html#test.test_point_interpolation.TestPointInterpolation.test_create_interpolated_position"><code class="docutils literal notranslate"><span class="pre">TestPointInterpolation.test_create_interpolated_position()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_point_interpolation.html#test.test_point_interpolation.TestPointInterpolation.test_create_interpolators"><code class="docutils literal notranslate"><span class="pre">TestPointInterpolation.test_create_interpolators()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_point_interpolation.html#test.test_point_interpolation.TestPointInterpolation.test_end_time_calculation"><code class="docutils literal notranslate"><span class="pre">TestPointInterpolation.test_end_time_calculation()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_point_interpolation.html#test.test_point_interpolation.TestPointInterpolation.test_history_clear"><code class="docutils literal notranslate"><span class="pre">TestPointInterpolation.test_history_clear()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_point_interpolation.html#test.test_point_interpolation.TestPointInterpolation.test_initialization"><code class="docutils literal notranslate"><span class="pre">TestPointInterpolation.test_initialization()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_point_interpolation.html#test.test_point_interpolation.TestPointInterpolation.test_insert_point_result_value"><code class="docutils literal notranslate"><span class="pre">TestPointInterpolation.test_insert_point_result_value()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_point_interpolation.html#test.test_point_interpolation.TestPointInterpolation.test_last_point_time"><code class="docutils literal notranslate"><span class="pre">TestPointInterpolation.test_last_point_time()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_point_interpolation.html#test.test_point_interpolation.TestPointInterpolation.test_modify_real_point"><code class="docutils literal notranslate"><span class="pre">TestPointInterpolation.test_modify_real_point()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_point_interpolation.html#test.test_point_interpolation.TestPointInterpolation.test_repr"><code class="docutils literal notranslate"><span class="pre">TestPointInterpolation.test_repr()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_point_interpolation.html#test.test_point_interpolation.TestPointInterpolation.test_str"><code class="docutils literal notranslate"><span class="pre">TestPointInterpolation.test_str()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_point_interpolation.html#test.test_point_interpolation.TestPointInterpolationConfig"><code class="docutils literal notranslate"><span class="pre">TestPointInterpolationConfig</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_point_interpolation.html#test.test_point_interpolation.TestPointInterpolationConfig.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestPointInterpolationConfig.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_point_interpolation.html#test.test_point_interpolation.TestPointInterpolationConfig.test_data"><code class="docutils literal notranslate"><span class="pre">TestPointInterpolationConfig.test_data()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="test_rst/test.test_step_adapter_config.html">test.test_step_adapter_config module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestLogHandlerType"><code class="docutils literal notranslate"><span class="pre">TestLogHandlerType</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestLogHandlerType.test_value"><code class="docutils literal notranslate"><span class="pre">TestLogHandlerType.test_value()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestLogIntervalType"><code class="docutils literal notranslate"><span class="pre">TestLogIntervalType</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestLogIntervalType.test_to_when"><code class="docutils literal notranslate"><span class="pre">TestLogIntervalType.test_to_when()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestLogIntervalType.test_to_when_invalid"><code class="docutils literal notranslate"><span class="pre">TestLogIntervalType.test_to_when_invalid()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestLogMode"><code class="docutils literal notranslate"><span class="pre">TestLogMode</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestLogMode.test_to_logging_level_invalid"><code class="docutils literal notranslate"><span class="pre">TestLogMode.test_to_logging_level_invalid()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestLogMode.test_to_logging_level_valid"><code class="docutils literal notranslate"><span class="pre">TestLogMode.test_to_logging_level_valid()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestLogNullHandler"><code class="docutils literal notranslate"><span class="pre">TestLogNullHandler</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestLogNullHandler.test_get_default"><code class="docutils literal notranslate"><span class="pre">TestLogNullHandler.test_get_default()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestLogSizeFileRotateHandler"><code class="docutils literal notranslate"><span class="pre">TestLogSizeFileRotateHandler</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestLogSizeFileRotateHandler.test_get_default"><code class="docutils literal notranslate"><span class="pre">TestLogSizeFileRotateHandler.test_get_default()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestLogStreamHandler"><code class="docutils literal notranslate"><span class="pre">TestLogStreamHandler</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestLogStreamHandler.test_get_default"><code class="docutils literal notranslate"><span class="pre">TestLogStreamHandler.test_get_default()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestLogTimeFileRotateHandler"><code class="docutils literal notranslate"><span class="pre">TestLogTimeFileRotateHandler</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestLogTimeFileRotateHandler.test_get_default"><code class="docutils literal notranslate"><span class="pre">TestLogTimeFileRotateHandler.test_get_default()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestRedisClientConfig"><code class="docutils literal notranslate"><span class="pre">TestRedisClientConfig</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestRedisClientConfig.test_get_default"><code class="docutils literal notranslate"><span class="pre">TestRedisClientConfig.test_get_default()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestRedisConnection"><code class="docutils literal notranslate"><span class="pre">TestRedisConnection</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestRedisConnection.test_get_default"><code class="docutils literal notranslate"><span class="pre">TestRedisConnection.test_get_default()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestRedisStreamInput"><code class="docutils literal notranslate"><span class="pre">TestRedisStreamInput</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestRedisStreamInput.test_get_default"><code class="docutils literal notranslate"><span class="pre">TestRedisStreamInput.test_get_default()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestRedisStreamOutput"><code class="docutils literal notranslate"><span class="pre">TestRedisStreamOutput</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestRedisStreamOutput.test_get_default"><code class="docutils literal notranslate"><span class="pre">TestRedisStreamOutput.test_get_default()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestRedisStreamOutputs"><code class="docutils literal notranslate"><span class="pre">TestRedisStreamOutputs</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestRedisStreamOutputs.test_get_default"><code class="docutils literal notranslate"><span class="pre">TestRedisStreamOutputs.test_get_default()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestRedisStreams"><code class="docutils literal notranslate"><span class="pre">TestRedisStreams</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestRedisStreams.test_get_default"><code class="docutils literal notranslate"><span class="pre">TestRedisStreams.test_get_default()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestStepAdapterConfig"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterConfig</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestStepAdapterConfig.test_get_default"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterConfig.test_get_default()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestStepAdapterConfig.test_print_config_example"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterConfig.test_print_config_example()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestStepAdapterConfig.test_print_config_schema"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterConfig.test_print_config_schema()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestStepConfigVersion"><code class="docutils literal notranslate"><span class="pre">TestStepConfigVersion</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestStepConfigVersion.test_value"><code class="docutils literal notranslate"><span class="pre">TestStepConfigVersion.test_value()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="test_rst/test.test_step_adapter_redis.html">test.test_step_adapter_redis module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_adapter_redis.html#test.test_step_adapter_redis.TestStepAdapterRedisPool"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterRedisPool</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_adapter_redis.html#test.test_step_adapter_redis.TestStepAdapterRedisPool.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterRedisPool.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_adapter_redis.html#test.test_step_adapter_redis.TestStepAdapterRedisPool.test_aenter"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterRedisPool.test_aenter()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_adapter_redis.html#test.test_step_adapter_redis.TestStepAdapterRedisPool.test_init"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterRedisPool.test_init()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_adapter_redis.html#test.test_step_adapter_redis.TestStepAdapterRedisStream"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterRedisStream</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_adapter_redis.html#test.test_step_adapter_redis.TestStepAdapterRedisStream.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterRedisStream.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_adapter_redis.html#test.test_step_adapter_redis.TestStepAdapterRedisStream.test__aenter__"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterRedisStream.test__aenter__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_adapter_redis.html#test.test_step_adapter_redis.TestStepAdapterRedisStream.test_create_client_input_stream"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterRedisStream.test_create_client_input_stream()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_adapter_redis.html#test.test_step_adapter_redis.TestStepAdapterRedisStream.test_publish_position_array"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterRedisStream.test_publish_position_array()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_adapter_redis.html#test.test_step_adapter_redis.TestStepAdapterRedisStream.test_receive_adapter_message"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterRedisStream.test_receive_adapter_message()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_adapter_redis.html#test.test_step_adapter_redis.TestStepAdapterRedisStream.test_stream_init"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterRedisStream.test_stream_init()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="test_rst/test.test_step_logger.html">test.test_step_logger module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_logger.html#test.test_step_logger.TestUtcFormatter"><code class="docutils literal notranslate"><span class="pre">TestUtcFormatter</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_logger.html#test.test_step_logger.TestUtcFormatter.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestUtcFormatter.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_logger.html#test.test_step_logger.TestUtcFormatter.test_converter_returns_struct_time_for_given_timestamp"><code class="docutils literal notranslate"><span class="pre">TestUtcFormatter.test_converter_returns_struct_time_for_given_timestamp()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_logger.html#test.test_step_logger.test_get_logger"><code class="docutils literal notranslate"><span class="pre">test_get_logger()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_logger.html#test.test_step_logger.test_get_logger_default"><code class="docutils literal notranslate"><span class="pre">test_get_logger_default()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_logger.html#test.test_step_logger.test_get_logger_exception"><code class="docutils literal notranslate"><span class="pre">test_get_logger_exception()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_logger.html#test.test_step_logger.test_get_logger_unknown_handler"><code class="docutils literal notranslate"><span class="pre">test_get_logger_unknown_handler()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_logger.html#test.test_step_logger.test_namer_replaces_log_extension_with_bz2"><code class="docutils literal notranslate"><span class="pre">test_namer_replaces_log_extension_with_bz2()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_logger.html#test.test_step_logger.test_rotator_compresses_file_and_removes_source"><code class="docutils literal notranslate"><span class="pre">test_rotator_compresses_file_and_removes_source()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">STEP Adapter</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Architecture</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/architecture.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="architecture">
+<h1>Architecture<a class="headerlink" href="#architecture" title="Link to this heading"></a></h1>
+<p>This document describes the architecture of the STEP Producer, a Python package
+for managing Decentralized Environmental Notification (DEN) service.</p>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>The <strong>STEP Producer</strong> is a critical component of the STEP (Safer Transport for Europe Platform) ecosystem,
+specifically designed for processing and managing Decentralized Environmental Notification Messages (DENM)
+within Intelligent Transportation Systems (ITS) environments. This Redis-based microservice implements
+the DEN (Decentralized Environmental Notification) service for collision prediction and environmental
+hazard notifications.</p>
+</section>
+<section id="library">
+<h2>Library<a class="headerlink" href="#library" title="Link to this heading"></a></h2>
+<p>The STEP Producer leverages a carefully selected set of libraries and frameworks to implement
+robust, high-performance ITS message processing capabilities. The library architecture follows
+a layered approach with core Python libraries, specialized third-party packages, and custom STEP
+ecosystem components.</p>
+<section id="core-dependencies">
+<h3>Core Dependencies<a class="headerlink" href="#core-dependencies" title="Link to this heading"></a></h3>
+<dl>
+<dt><strong>Pydantic</strong></dt><dd><p>Advanced data validation and settings management library that provides the foundation for
+configuration management throughout the STEP Producer. Pydantic enables:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><strong>Type Safety</strong>: Strong typing with automatic validation for all configuration parameters</p></li>
+<li><p><strong>Schema Generation</strong>: Automated JSON schema creation for configuration documentation</p></li>
+<li><p><strong>Serialization</strong>: Robust JSON serialization/deserialization for configuration persistence</p></li>
+<li><p><strong>Model Validation</strong>: Runtime validation of configuration data with detailed error reporting</p></li>
+</ul>
+</div></blockquote>
+<p>Used extensively in <code class="docutils literal notranslate"><span class="pre">StepProducerConfig</span></code> and related configuration classes to ensure
+type-safe, validated configuration management across all producer components.</p>
+</dd>
+<dt><strong>SortedContainers</strong></dt><dd><p>High-performance pure-Python sorted container implementation that provides the data structure
+foundation for efficient DENM record management. Key capabilities include:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><strong>Sorted Lists</strong>: O(log n) insertion and deletion with maintained ordering</p></li>
+<li><p><strong>Memory Efficiency</strong>: Optimized memory layout for large collections</p></li>
+<li><p><strong>Performance</strong>: Fast search, insert, and delete operations for time-ordered records</p></li>
+</ul>
+</div></blockquote>
+<p>Critical for the <code class="docutils literal notranslate"><span class="pre">DenServiceDataManager</span></code> where chronologically ordered DENM records
+require efficient insertion, removal, and time-based queries for expiration management.</p>
+</dd>
+<dt><strong>step-cloud-schemas</strong></dt><dd><p>Custom STEP ecosystem library that defines standardized ITS message schemas and data structures.
+This library provides:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><strong>DENM Schemas</strong>: Complete <code class="docutils literal notranslate"><span class="pre">DenmDataV1</span></code> message structures compliant with ETSI standards</p></li>
+<li><p><strong>Cloud Events</strong>: Standardized cloud event wrappers for ITS message distribution</p></li>
+<li><p><strong>ITS Primitives</strong>: Core ITS data types including timestamps, positions, and identifiers</p></li>
+<li><p><strong>Collision Data</strong>: <code class="docutils literal notranslate"><span class="pre">StationCollisionArrayV1</span></code> structures for collision prediction integration</p></li>
+</ul>
+</div></blockquote>
+<p>Essential for maintaining compatibility across the STEP ecosystem and ensuring standard-compliant
+message generation and processing.</p>
+</dd>
+<dt><strong>step_redis</strong></dt><dd><p>STEP-specific Redis integration library that provides the messaging and stream processing
+foundation. Core functionality includes:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><strong>Connection Pooling</strong>: Efficient Redis connection management with automatic reconnection</p></li>
+<li><p><strong>Stream Processing</strong>: High-level abstractions for Redis streams with consumer group support</p></li>
+<li><p><strong>Message Serialization</strong>: Automatic conversion between Python objects and Redis stream data</p></li>
+<li><p><strong>Error Handling</strong>: Robust error handling and recovery mechanisms for Redis operations</p></li>
+</ul>
+</div></blockquote>
+<p>Provides the base classes <code class="docutils literal notranslate"><span class="pre">StepRedisPool</span></code> and <code class="docutils literal notranslate"><span class="pre">StepRedisStream</span></code> that are extended by
+<code class="docutils literal notranslate"><span class="pre">StepProducerRedisPool</span></code> and <code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream</span></code> for producer-specific functionality.</p>
+</dd>
+</dl>
+</section>
+<section id="architecture-integration">
+<h3>Architecture Integration<a class="headerlink" href="#architecture-integration" title="Link to this heading"></a></h3>
+<p>The library selection supports the STEP Producer’s architectural requirements:</p>
+<ul class="simple">
+<li><p><strong>High Performance</strong>: SortedContainers and asyncio enable efficient handling of high-frequency
+collision detection scenarios</p></li>
+<li><p><strong>Type Safety</strong>: Pydantic provides compile-time and runtime type validation throughout the system</p></li>
+<li><p><strong>Standards Compliance</strong>: step-cloud-schemas ensures ETSI ITS standard compliance for all messages</p></li>
+<li><p><strong>Scalability</strong>: step_redis abstractions support horizontal scaling through Redis stream
+distribution</p></li>
+<li><p><strong>Maintainability</strong>: Comprehensive development tooling ensures code quality and documentation
+standards</p></li>
+</ul>
+</section>
+</section>
+<section id="components">
+<h2>Components<a class="headerlink" href="#components" title="Link to this heading"></a></h2>
+<p>The architecture follows a modular design pattern that separates concerns between DEN service management,
+communication, Redis integration, and configuration management. This enables flexibility and maintainability
+in the system design.</p>
+<p>Main Components:</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li><p><strong>DenServiceDataManager/DenServiceManager</strong>: Class for managing the DEN service lifecycle,
+including message creation, processing, and termination.</p></li>
+<li><p><strong>StepProducerRedisPool/StepProducerRedisStream</strong>: Redis integration
+for message queuing</p></li>
+<li><p><strong>StepProducerConfig</strong>: Configuration management for the producer</p></li>
+<li><p><strong>StepLogger</strong>: Logging utilities specific to the STEP producer</p></li>
+<li><p><strong>StepInterruptException</strong>: Custom exceptions for error handling</p></li>
+</ol>
+</div></blockquote>
+<section id="denservicemanager">
+<h3>DenServiceManager<a class="headerlink" href="#denservicemanager" title="Link to this heading"></a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">DenServiceManager</span></code> class serves as the primary orchestrator for DEN (Decentralized Environmental
+Notification) services within the STEP Producer architecture. This component manages the
+complete lifecycle of collision risk notifications, from initial detection through message
+termination and cleanup.</p>
+<p><strong>Core Responsibilities:</strong></p>
+<blockquote>
+<div><ol class="arabic simple">
+<li><p><strong>Collision Event Processing</strong>: Receives and processes <code class="docutils literal notranslate"><span class="pre">StationCollisionArrayV1</span></code> objects, converting
+collision detection data into structured DENM messages for distribution throughout the ITS network.</p></li>
+<li><p><strong>Message Lifecycle Management</strong>: Orchestrates the entire DENM message lifecycle, including creation,
+publication, update handling, and automatic termination of expired notifications.</p></li>
+<li><p><strong>Termination Handling</strong>: Processes incoming DENM records with negation termination flags, ensuring
+proper cleanup of cancelled collision notifications.</p></li>
+<li><p><strong>Automatic Cleanup</strong>: Implements a sophisticated periodic cleanup mechanism that identifies expired
+DENM records and publishes cancellation messages to maintain system integrity.</p></li>
+<li><p><strong>Redis Stream Integration</strong>: Manages the publication of DENM messages and cancellations to Redis streams,
+enabling seamless integration with other STEP ecosystem components.</p></li>
+</ol>
+</div></blockquote>
+<p><strong>Key Methods:</strong></p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">process_station_collisions_received()</span></code>: Main entry point for processing collision arrays, delegating
+to the data manager for record creation and handling stream publication</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">process_denm_record_received()</span></code>: Handles incoming DENM records, specifically processing
+termination requests with negation flags</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">periodical_cleanup_run()</span></code>: Executes continuous cleanup operations, identifying expired records and
+publishing cancellation messages</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_denm_create_cancellation()</span></code>: Creates cancellation DENM messages by copying original message data
+while setting the termination flag</p></li>
+</ul>
+</div></blockquote>
+<p><strong>Architecture Integration:</strong></p>
+<p>The <code class="docutils literal notranslate"><span class="pre">DenServiceManager</span></code> operates as an asynchronous service that coordinates between the <code class="docutils literal notranslate"><span class="pre">DenServiceDataManager</span></code>
+for data persistence and the <code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream</span></code> for message distribution. It utilizes comprehensive logging
+for operational visibility and implements configurable timing parameters for adaptive behavior in different traffic
+scenarios.</p>
+<p><strong>Configuration Parameters:</strong></p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">station_id</span></code>: Unique identifier for the originating ITS station</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">time_after_collision</span></code>: Duration to continue broadcasting DENM after collision detection</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">denm_last_update_max_delay_ms</span></code>: Maximum allowed delay for DENM record updates</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">denm_check_last_update_max_interval</span></code>: Maximum interval between cleanup operations</p></li>
+</ul>
+</div></blockquote>
+</section>
+<section id="denservicedatamanager">
+<h3>DenServiceDataManager<a class="headerlink" href="#denservicedatamanager" title="Link to this heading"></a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">DenServiceDataManager</span></code> class provides comprehensive data management capabilities for DENM records,
+implementing efficient storage, indexing, and retrieval mechanisms optimized for high-frequency collision
+detection scenarios. This component serves as the persistent storage layer for the DEN service, maintaining
+multiple data structures for optimal performance.</p>
+<p><strong>Internal Architecture:</strong></p>
+<p>The module consists of two primary classes working in tandem:</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li><p><strong>DenmRecord</strong>: A lightweight data container that encapsulates individual DENM messages along with
+metadata including reference time, unique record keys, and action ID indices. This class implements
+comparison operators for chronological sorting and hash functionality for efficient dictionary storage.</p></li>
+<li><p><strong>DenServiceDataManager</strong>: The core service class that manages collections of DENM records through
+multiple specialized indices and provides comprehensive lifecycle management operations.</p></li>
+</ol>
+</div></blockquote>
+<p><strong>Data Storage Strategy:</strong></p>
+<p>The data manager employs a multi-index architecture for optimal performance:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">_denm_sorted_records</span></code>: A <code class="docutils literal notranslate"><span class="pre">SortedList</span></code> maintaining chronological ordering of records for efficient
+time-based operations O(log n).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_record_key_index</span></code>: Hash-based dictionary providing O(1) lookup by unique record keys composed
+of station and object IDs</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_action_id_index</span></code>: Hash-based dictionary enabling fast retrieval by action ID tuples (station
+ID, sequence number)</p></li>
+</ul>
+</div></blockquote>
+<p><strong>Key Functionality:</strong></p>
+<blockquote>
+<div><ol class="arabic simple">
+<li><p><strong>Collision Array Processing</strong>: The <code class="docutils literal notranslate"><span class="pre">insert_station_collision_array()</span></code> method converts station
+collision arrays into structured DENM records, implementing intelligent record key generation and
+sequence number management with automatic wrap-around at 65536.</p></li>
+<li><p><strong>Multi-Index Management</strong>: Maintains synchronized indices across all data structures, ensuring
+consistency during record creation, updates, and deletions while providing optimal access patterns
+for different query types.</p></li>
+<li><p><strong>Automatic Expiration</strong>: The <code class="docutils literal notranslate"><span class="pre">get_denm_records_clean_reference_expired()</span></code> method identifies
+expired records based on configurable delay thresholds, supporting automatic cleanup operations.</p></li>
+<li><p><strong>Sequence Number Generation</strong>: Handles automatic generation and management of unique sequence
+numbers for action IDs, implementing proper wrap-around logic to prevent conflicts.</p></li>
+<li><p><strong>Thread Safety</strong>: Implements comprehensive locking mechanisms to ensure data consistency in
+concurrent access scenarios.</p></li>
+</ol>
+</div></blockquote>
+<p><strong>Record Management:</strong></p>
+<p>Each DENM record is uniquely identified by a four-tuple record key
+<code class="docutils literal notranslate"><span class="pre">(reference_station_id,</span> <span class="pre">reference_object_id,</span> <span class="pre">target_station_id,</span> <span class="pre">target_object_id)</span></code>, enabling precise tracking of
+collision relationships between specific ITS entities. The system supports both new record creation and
+existing record updates, reusing action IDs where appropriate to maintain message continuity.</p>
+<p><strong>Performance Optimizations:</strong></p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Utilizes <code class="docutils literal notranslate"><span class="pre">__slots__</span></code> for memory efficiency in both <code class="docutils literal notranslate"><span class="pre">DenmRecord</span></code> and <code class="docutils literal notranslate"><span class="pre">DenServiceDataManager</span></code> classes</p></li>
+<li><p>Implements <code class="docutils literal notranslate"><span class="pre">SortedList</span></code> for maintaining chronological order without manual sorting overhead</p></li>
+<li><p>Provides multiple access patterns (chronological, key-based, action ID-based) for different operational requirements</p></li>
+<li><p>Includes comprehensive logging with configurable detail levels for operational monitoring and debugging</p></li>
+</ul>
+</div></blockquote>
+<p><strong>Expiration Management:</strong></p>
+<p>The component implements sophisticated expiration logic through <code class="docutils literal notranslate"><span class="pre">get_interval_oldest_update_ms()</span></code>, calculating
+appropriate cleanup intervals based on the oldest record’s reference time while respecting maximum interval
+constraints. This enables adaptive cleanup scheduling that responds to actual system load and message aging patterns.</p>
+</section>
+<section id="stepproducerconfig">
+<h3>StepProducerConfig<a class="headerlink" href="#stepproducerconfig" title="Link to this heading"></a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">StepProducerConfig</span></code> component provides comprehensive configuration management for the STEP Producer architecture,
+leveraging Pydantic for robust validation, serialization, and schema generation capabilities. This component serves as
+the central configuration hub that defines all operational parameters, connection settings, and behavioral configurations
+for the producer service.</p>
+<p><strong>Hierarchical Configuration Architecture:</strong></p>
+<p>The configuration system follows a well-structured hierarchical model with multiple specialized configuration classes:</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li><p><strong>StepProducerConfig</strong>: Top-level configuration class that orchestrates all producer settings</p></li>
+<li><p><strong>RedisClientConfig</strong>: Dedicated configuration for Redis connectivity and stream management</p></li>
+<li><p><strong>RedisConnection</strong>: Low-level Redis connection parameters including SSL, timeouts, and pooling</p></li>
+<li><p><strong>RedisStreams</strong>: Stream-specific configuration for input/output stream definitions</p></li>
+<li><p><strong>LogConfig</strong>: Comprehensive logging configuration with multiple handler types</p></li>
+</ol>
+</div></blockquote>
+<p><strong>Core Configuration Domains:</strong></p>
+<p><strong>Producer Instance Settings:</strong></p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">templateVersion</span></code>: Configuration schema version for compatibility management</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">instanceName</span></code>: Unique identifier for the producer instance within the ecosystem</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">stationId</span></code>: ITS station identifier (0-4294967295) for message origination</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">timeAfterCollision</span></code>: Duration in seconds to continue broadcasting DENM after collision detection (0-10)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">denmLastUpdateMaxDelay</span></code>: Maximum allowed delay in milliseconds for DENM record updates (1-10000)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">denmCheckLastUpdateMaxInterval</span></code>: Maximum interval in milliseconds for checking DENM updates (1000-60000)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">reconnectInterval</span></code>: Time interval in seconds for automatic reconnection attempts</p></li>
+</ul>
+</div></blockquote>
+<p><strong>Redis Integration Configuration:</strong></p>
+<p>The <code class="docutils literal notranslate"><span class="pre">RedisClientConfig</span></code> provides comprehensive Redis connectivity management:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><strong>Connection Management</strong>: Full Redis connection parameters including host, port, authentication,
+database selection, and SSL configuration</p></li>
+<li><p><strong>Socket Configuration</strong>: Advanced socket settings for timeout management, keepalive parameters,
+and connection health monitoring</p></li>
+<li><p><strong>Stream Configuration</strong>: Input and output stream definitions with stream IDs, consumer groups,
+maximum lengths, and wait timeouts</p></li>
+<li><p><strong>Security Settings</strong>: SSL/TLS configuration with client certificates, CA verification, and
+encrypted connections</p></li>
+</ul>
+</div></blockquote>
+<p><strong>Logging System Configuration:</strong></p>
+<p>The <code class="docutils literal notranslate"><span class="pre">LogConfig</span></code> component supports multiple logging strategies through a flexible handler system:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><strong>LogStreamHandler</strong>: Console-based logging for development and debugging</p></li>
+<li><p><strong>LogFileHandler</strong>: File-based logging with append/overwrite options</p></li>
+<li><p><strong>LogSizeFileRotateHandler</strong>: Size-based log rotation with configurable thresholds
+and backup counts</p></li>
+<li><p><strong>LogTimeFileRotateHandler</strong>: Time-based log rotation supporting various intervals
+(seconds, minutes, hours, days, weekdays)</p></li>
+<li><p><strong>LogNullHandler</strong>: Null logging for production environments requiring log suppression</p></li>
+</ul>
+</div></blockquote>
+<p><strong>Validation and Schema Features:</strong></p>
+<blockquote>
+<div><ol class="arabic simple">
+<li><p><strong>Strong Typing</strong>: Comprehensive type annotations with Pydantic field validation for
+all configuration parameters</p></li>
+<li><p><strong>Range Validation</strong>: Numeric fields include appropriate range constraints
+(e.g., port numbers 0-65535, station IDs 0-4294967295)</p></li>
+<li><p><strong>String Validation</strong>: Minimum length requirements and format validation for critical
+string fields</p></li>
+<li><p><strong>Immutable Configuration</strong>: Frozen model instances prevent accidental modification
+after initialization</p></li>
+<li><p><strong>Schema Generation</strong>: Automated JSON schema generation for configuration documentation
+and validation</p></li>
+<li><p><strong>Default Factory Methods</strong>: Each configuration class provides <code class="docutils literal notranslate"><span class="pre">get_default()</span></code> methods
+for rapid setup</p></li>
+</ol>
+</div></blockquote>
+<p><strong>Configuration Management Utilities:</strong></p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">print_config_schema()</span></code>: Generates JSON schema files for external configuration validation</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">print_config_example()</span></code>: Creates example configuration files with default values</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">model_validate()</span></code>: Validates configuration data against the defined schema</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">model_dump_json()</span></code>: Serializes configuration to JSON format for persistence</p></li>
+</ul>
+</div></blockquote>
+<p><strong>Security and Production Considerations:</strong></p>
+<p>The configuration system includes production-ready security features:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>SSL/TLS configuration for encrypted Redis connections</p></li>
+<li><p>Authentication parameters for secure Redis access</p></li>
+<li><p>Certificate-based authentication with client key and certificate file support</p></li>
+<li><p>Health check intervals for connection monitoring</p></li>
+<li><p>Configurable connection pooling for performance optimization</p></li>
+</ul>
+</div></blockquote>
+<p><strong>Integration with STEP Ecosystem:</strong></p>
+<p>The configuration integrates seamlessly with other STEP components by providing standardized
+configuration patterns, consistent validation rules, and compatible schema definitions that
+enable configuration sharing and validation across the entire STEP platform.</p>
+</section>
+<section id="stepproducerredispool-and-stepproducerredisstream">
+<h3>StepProducerRedisPool and StepProducerRedisStream<a class="headerlink" href="#stepproducerredispool-and-stepproducerredisstream" title="Link to this heading"></a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">StepProducerRedisPool</span></code> and <code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream</span></code> components provide the Redis
+integration layer for the STEP Producer architecture, enabling efficient message
+queuing and distribution between different system components.</p>
+<p><code class="docutils literal notranslate"><span class="pre">StepProducerRedisPool</span></code></p>
+<blockquote>
+<div><ol class="arabic simple">
+<li><p><strong>Connection Management</strong>: Extends the <code class="docutils literal notranslate"><span class="pre">StepRedisPool</span></code> base class to handle
+Redis connection pooling specifically for STEP Producer needs.</p></li>
+<li><p><strong>Resource Management</strong>: Provides asynchronous context management through
+<code class="docutils literal notranslate"><span class="pre">__aenter__</span></code> and <code class="docutils literal notranslate"><span class="pre">__aexit__</span></code> methods for safe connection handling.</p></li>
+<li><p><strong>Connection Configuration</strong>: Manages Redis connection parameters such
+as host, port, and authentication details.</p></li>
+<li><p><strong>Connection Pooling</strong>: Implements connection pooling to optimize performance
+and resource utilization when interacting with Redis.</p></li>
+</ol>
+</div></blockquote>
+<p><code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream</span></code></p>
+<blockquote>
+<div><ol class="arabic simple">
+<li><p><strong>Stream Management</strong>: Extends the <code class="docutils literal notranslate"><span class="pre">StepRedisStream</span></code> base class to implement
+specialized stream handling for ITS messages.</p></li>
+<li><p><strong>Input Stream Processing</strong>: Manages connections to input streams from:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">step_client</span></code> for receiving DENM (Decentralized Environmental Notification Messages)
+message.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">step_crash_prediction</span></code> for receiving collision prediction data with the actors
+involved</p></li>
+</ul>
+</li>
+<li><p><strong>Output Stream Management</strong>: Handles output streams with specific routing:</p>
+<ul class="simple">
+<li><p>Connects to <code class="docutils literal notranslate"><span class="pre">step_client</span></code> for sending DENM messages generated by the producer</p></li>
+</ul>
+</li>
+<li><p><strong>Stream Creation</strong>: Creates and configures input streams with appropriate consumer
+group IDs for message distribution.</p></li>
+<li><p><strong>Message Publishing</strong>: Provides methods to publish messages to the configured output streams.</p></li>
+<li><p><strong>Message Receiving</strong>: Offers functionality to receive and parse messages from input streams.</p></li>
+</ol>
+</div></blockquote>
+<p>Together, these components form the communication infrastructure that enables standardized
+message exchange between STEP Producer and other components in the STEP ecosystem through
+Redis streams.</p>
+</section>
+<section id="steplogger">
+<h3>StepLogger<a class="headerlink" href="#steplogger" title="Link to this heading"></a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">StepLogger</span></code> component provides specialized logging functionality for the STEP Client
+architecture, enabling comprehensive and configurable logging throughout the application.
+It serves as a wrapper around Python’s standard logging facilities with additional features
+tailored to STEP Client’s needs.</p>
+<p>Key features of <code class="docutils literal notranslate"><span class="pre">StepLogger</span></code> include:</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li><p><strong>Multi-destination Logging</strong>: Supports logging to different output formats and
+destinations, including:</p>
+<ul class="simple">
+<li><p>File-based logging for persistent records</p></li>
+<li><p>Standard output (console) for development and debugging</p></li>
+<li><p>Syslog integration for system monitoring</p></li>
+<li><p>Configurable log rotation based on size or time intervals</p></li>
+</ul>
+</li>
+<li><p><strong>Log Level Management</strong>: Provides fine-grained control over logging verbosity
+with standard log levels (DEBUG, INFO, WARNING, ERROR, CRITICAL).</p></li>
+<li><p><strong>Structured Formatting</strong>: Implements customizable log formats with timestamp,
+severity level, source component, and structured message content.</p></li>
+<li><p><strong>Context-aware Logging</strong>: Includes context information such as component IDs,
+transaction IDs, and operation details to facilitate troubleshooting.</p></li>
+<li><p><strong>Configuration Integration</strong>: Leverages the logging configuration section
+from <code class="docutils literal notranslate"><span class="pre">StepClientConfig</span></code> to enable consistent setup across components.</p></li>
+<li><p><strong>Utility Methods</strong>: Offers utility methods like <code class="docutils literal notranslate"><span class="pre">setup_logging()</span></code> for initial
+configuration and <code class="docutils literal notranslate"><span class="pre">get_logger()</span></code> for retrieving appropriately configured
+logger instances.</p></li>
+<li><p><strong>Error Handling</strong>: Includes robust error handling to prevent logging failures
+from impacting core application functionality.</p></li>
+</ol>
+</div></blockquote>
+<p>The <code class="docutils literal notranslate"><span class="pre">StepLogger</span></code> component ensures that the STEP Client maintains comprehensive
+logging capabilities to support monitoring, debugging, and operational insights
+across all system components.</p>
+</section>
+<section id="stepinterruptexception">
+<h3>StepInterruptException<a class="headerlink" href="#stepinterruptexception" title="Link to this heading"></a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">StepInterruptException</span></code> component provides a custom exception class for handling
+interruptions within the STEP Producer architecture. This exception is designed
+to be raised in situations where the normal flow of processing needs to be interrupted,
+such as when a critical error occurs or when an operation is canceled.</p>
+<p>Key features of <code class="docutils literal notranslate"><span class="pre">StepInterruptException</span></code> include:</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li><p><strong>Custom Exception Class</strong>: Inherits from Python’s built-in <code class="docutils literal notranslate"><span class="pre">Exception</span></code> class,
+allowing it to be raised and caught like any standard exception.</p></li>
+<li><p><strong>Error Context</strong>: Provides a mechanism to include additional context or
+information about the error when raising the exception.</p></li>
+<li><p><strong>Graceful Shutdown</strong>: Designed to be used in scenarios where the application
+needs to gracefully shut down or clean up resources before exiting.</p></li>
+<li><p><strong>Integration with Logging</strong>: Can be logged using the <code class="docutils literal notranslate"><span class="pre">StepLogger</span></code> component
+to capture detailed error information for debugging and operational monitoring.</p></li>
+</ol>
+</div></blockquote>
+</section>
+<section id="component-diagram">
+<h3>Component Diagram<a class="headerlink" href="#component-diagram" title="Link to this heading"></a></h3>
+<p>The following component diagram illustrates the high-level architecture of the STEP Producer
+and its interactions with external systems. It shows the relationships between the core
+components and how they interact with Redis streams and external data sources.</p>
+<figure class="align-center">
+<p class="plantuml">
+<object data="_images/plantuml-108098ce5d9c97f7d5b39bbb3e6a802cc46d29fe.svg" type="image/svg+xml" style="width:1253px;height:457px;background:#FFFFFF;">
+<img src="_images/plantuml-108098ce5d9c97f7d5b39bbb3e6a802cc46d29fe.png" alt="package &quot;STEP Producer&quot; {
+   package &quot;DenService&quot; {
+       [DenServiceManager] as DSM
+       [DenServiceDataManager] as DSDM
+       note left of DSM
+         Orchestrates DENM
+         lifecycle management
+       end note
+       note right of DSDM
+         Manages DENM records
+         with multi-index storage
+       end note
+   }
+   package &quot;Redis Proxy&quot; {
+       [StepProducerRedisPool] as ProducerRedisPool
+       [StepProducerRedisStream] as ProducerRedisStream
+       note bottom of ProducerRedisStream
+          Redis Streams for
+          message queuing
+       end note
+   }
+   [StepProducerConfig] as Config
+   [StepLogger] as Logger
+}
+DSM -- DSDM : delegates data operations
+DSM -- ProducerRedisStream : publishes DENM messages
+DSM -- Logger : logs operations
+DSM -- Config : get configuration
+DSDM -- Logger : logs data operations
+ProducerRedisStream -- ProducerRedisPool : channel management"/>
+
+</object></p>
+</figure>
+</section>
+</section>
+<section id="class-diagram">
+<h2>Class Diagram<a class="headerlink" href="#class-diagram" title="Link to this heading"></a></h2>
+<p>The class diagram below illustrates the structure and relationships between
+the key classes in the STEP Producer architecture. It shows the main methods
+and attributes of each class and how they interact with one another.</p>
+<figure class="align-center">
+<p class="plantuml">
+<object data="_images/plantuml-3847e98b68073a878deaad6d9e08078f39b4d06d.svg" type="image/svg+xml" style="width:1077px;height:1344px;background:#FFFFFF;">
+<img src="_images/plantuml-3847e98b68073a878deaad6d9e08078f39b4d06d.png" alt="!theme plain
+skinparam classAttributeIconSize 0
+
+class DenServiceManager {
+   -_denm_service_data
+   -_logger
+   +__init__
+   +async process_station_collisions_received
+   +async process_denm_record_received
+   +async periodical_cleanup_run
+   -denm_create_cancellation
+}
+
+class DenServiceDataManager {
+   -_denm_sorted_records
+   -_record_key_index
+   -_action_id_index
+   -_station_id
+   -_sequence_number
+   -_time_after_collision
+   -_denm_last_update_max_delay_ms
+   -_denm_check_last_update_max_interval
+   -_logger
+   -_lock
+   +__init__
+   +insert_station_collision_array
+   +get_denm_records_clean_reference_expired
+   +get_interval_oldest_update_ms
+   +remove_denm_record
+   -_station_order
+   -_create_denm
+}
+
+class DenmRecord {
+   -_denm
+   -_reference_time
+   -_record_key
+   -_action_id_index
+   +__init__
+   +denm: DenmDataV1 &lt;&lt;property&gt;&gt;
+   +reference_time: ItsTime &lt;&lt;property&gt;&gt;
+   +action_id_index: tuple[int, int] &lt;&lt;property&gt;&gt;
+   +record_key: tuple[int, int, int, int] &lt;&lt;property&gt;&gt;
+   +__eq__
+   +__ne__
+   +__lt__
+   +__le__
+   +__gt__
+   +__ge__
+   +__hash__
+   +__str__
+   +__repr__
+}
+
+class StepProducerConfig {
+   +templateVersion
+   +instanceName
+   +stationId
+   +timeAfterCollision
+   +denmLastUpdateMaxDelay
+   +denmCheckLastUpdateMaxInterval
+   +reconnectInterval
+   +redis
+   +log
+   +{static} get_default
+   +{static} print_config_schema
+   +{static} print_config_example
+}
+
+class StepProducerRedisPool {
+   +MAX_CONNECTIONS
+   +__init__
+   +async __aenter__
+   +async __aexit__
+}
+
+class StepProducerRedisStream {
+   -_consumer_name
+   -_config
+   -_stream_ttl
+   +__init__
+   +async __aenter__
+   +async create_client_input_stream
+   +async publish_its_message
+   +async receive_producer_message
+}
+
+class StepLogger {
+   +{static} setup_logging
+   +{static} get_logger
+}
+
+DenServiceManager --&gt; DenServiceDataManager : uses
+DenServiceManager --&gt; StepProducerRedisStream : publishes to
+DenServiceManager --&gt; StepLogger : logs with
+
+DenServiceDataManager --&gt; DenmRecord : manages
+DenServiceDataManager --&gt; StepLogger : logs with
+
+StepProducerRedisStream --&gt; StepProducerRedisPool : uses
+StepProducerRedisStream --&gt; StepProducerConfig : configured by
+
+StepProducerRedisPool --&gt; StepProducerConfig : configured by
+
+StepLogger --&gt; StepProducerConfig : configured by
+
+StepProducerRedisPool --|&gt; StepRedisPool : extends
+StepProducerRedisStream --|&gt; StepRedisStream : extends"/>
+
+</object></p>
+</figure>
+</section>
+<section id="sequence-diagrams">
+<h2>Sequence Diagrams<a class="headerlink" href="#sequence-diagrams" title="Link to this heading"></a></h2>
+<p>The sequence diagrams below illustrate the two primary message flows
+in the STEP Producer:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>DENM creation and publication</p></li>
+<li><p>DENM negation</p></li>
+</ul>
+</div></blockquote>
+<p>These diagrams show the sequence of interactions between components and the
+temporal flow of operations as messages move through the system.</p>
+<section id="denm-creation-and-publication">
+<h3>DENM creation and publication<a class="headerlink" href="#denm-creation-and-publication" title="Link to this heading"></a></h3>
+<p>The following sequence diagram depicts the process of DENM creation starting
+from the crash event message sent by STEP crash prediction. It demonstrates how the
+DenServiceManager component processes the incoming collision data, creates the
+DENM messages, and publishes them to Redis streams.</p>
+<figure class="align-center">
+<p class="plantuml">
+<object data="_images/plantuml-175230a6e99af825b347ddaf258bb908eca3a70e.svg" type="image/svg+xml" style="width:816px;height:392px;background:#FFFFFF;">
+<img src="_images/plantuml-175230a6e99af825b347ddaf258bb908eca3a70e.png" alt="participant &quot;STEP Crash Prediction&quot; as CrashPrediction
+participant &quot;STEP Client&quot; as Client
+participant &quot;StepProducerRedisStream&quot; as RedisStream
+participant &quot;DenServiceManager&quot; as DenManager
+participant &quot;DenServiceDataManager&quot; as DenDataManager
+
+CrashPrediction -&gt; RedisStream : Crash Event
+RedisStream -&gt; DenManager : Crash Event
+DenManager -&gt; DenDataManager : Crash Event
+note over DenDataManager
+   Check the if all DENMs related
+   to this foreseen is already
+   created.
+   Generate new or updated DENM
+end note
+DenDataManager -&gt; DenManager : List of DENM
+DenManager -&gt; RedisStream : List of DENM
+RedisStream -&gt; Client : DENM_1
+RedisStream -&gt; Client : DENM_n"/>
+
+</object></p>
+</figure>
+</section>
+<section id="denm-negation">
+<h3>DENM negation<a class="headerlink" href="#denm-negation" title="Link to this heading"></a></h3>
+<p>The sequence diagram below illustrates the process of negation of a DENM.</p>
+<figure class="align-center">
+<p class="plantuml">
+<object data="_images/plantuml-31dd354aba9c9872dd94c4091abd421018e72731.svg" type="image/svg+xml" style="width:629px;height:254px;background:#FFFFFF;">
+<img src="_images/plantuml-31dd354aba9c9872dd94c4091abd421018e72731.png" alt="participant &quot;STEP Client&quot; as Client
+participant &quot;StepProducerRedisStream&quot; as RedisStream
+participant &quot;DenServiceManager&quot; as DenManager
+participant &quot;DenServiceDataManager&quot; as DenDataManager
+
+Client -&gt; RedisStream : DENM Negation
+RedisStream -&gt; DenManager : DENM Negation
+DenManager -&gt; DenDataManager : Remove DENM
+note over DenDataManager
+   Remove the DENM
+   information related to
+   Action Id
+end note"/>
+
+</object></p>
+</figure>
+</section>
+</section>
+<section id="performance-considerations">
+<h2>Performance Considerations<a class="headerlink" href="#performance-considerations" title="Link to this heading"></a></h2>
+<p>The STEP Producer architecture is designed for high-performance processing of ITS messages with
+careful consideration of algorithmic complexity and data structure selection. The following analysis
+provides Big O complexity calculations for the two primary message processing scenarios.</p>
+<section id="data-structure-performance-characteristics">
+<h3>Data Structure Performance Characteristics<a class="headerlink" href="#data-structure-performance-characteristics" title="Link to this heading"></a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">DenServiceDataManager</span></code> employs a multi-index architecture optimized for different access patterns:</p>
+<ul class="simple">
+<li><p><strong>Sorted List (``_denm_sorted_records``)</strong>: Maintains chronological
+ordering with <span class="math notranslate nohighlight">\(O(log n)\)</span> insertion/deletion</p></li>
+<li><p><strong>Hash-based Indices (``_record_key_index``, ``_action_id_index``)</strong>: Provide <span class="math notranslate nohighlight">\(O(1)\)</span>
+constant time operation for accessing.</p></li>
+<li><p><strong>Record Key Insertion</strong>: <span class="math notranslate nohighlight">\(O(1)\)</span> constant time operation for unique key insertion.</p></li>
+</ul>
+<p>Where <strong>n</strong> represents the total number of active DENM records in the system.</p>
+</section>
+<section id="collision-message-processing-performance">
+<h3>Collision Message Processing Performance<a class="headerlink" href="#collision-message-processing-performance" title="Link to this heading"></a></h3>
+<p><strong>Scenario</strong>: Processing <code class="docutils literal notranslate"><span class="pre">StationCollisionArrayV1</span></code> from <code class="docutils literal notranslate"><span class="pre">step_crash_prediction</span></code></p>
+<p><strong>Algorithm Complexity Analysis:</strong></p>
+<p>For processing a collision array containing <span class="math notranslate nohighlight">\(k+1\)</span> vehicles which generates <span class="math notranslate nohighlight">\(k\)</span>
+DENM records:</p>
+<ol class="arabic simple">
+<li><p><strong>Record Key Generation</strong>: <span class="math notranslate nohighlight">\(O(k)\)</span> - Linear iteration through collision array</p></li>
+<li><p><strong>Existing Record Lookup</strong>: <span class="math notranslate nohighlight">\(O(k)\)</span> - Hash table lookup for each collision record</p></li>
+<li><p><strong>New Record Insertion (updating or creation)</strong>:</p>
+<ul class="simple">
+<li><p>Sorted list insertion: <span class="math notranslate nohighlight">\(O(k*log(n))\)</span> - Each new record requires binary search positioning</p></li>
+<li><p>Hash index updates: <span class="math notranslate nohighlight">\(O(k)\)</span> - Constant time insertion per index</p></li>
+</ul>
+</li>
+<li><p><strong>DENM Message Creation</strong>: <span class="math notranslate nohighlight">\(O(k)\)</span> - Linear with number of collision records</p></li>
+<li><p><strong>Redis Stream Publication</strong>: <span class="math notranslate nohighlight">\(O(k)\)</span> - Linear network operations</p></li>
+</ol>
+<p><strong>Overall Complexity</strong>: <span class="math notranslate nohighlight">\(O(k*log(n))\)</span></p>
+<p><strong>Performance Implications</strong>:</p>
+<ul class="simple">
+<li><p><strong>Best Case</strong>: All collision records already exist → <span class="math notranslate nohighlight">\(O(k)\)</span> for lookups only</p></li>
+<li><p><strong>Worst Case</strong>: All collision records are new → <span class="math notranslate nohighlight">\(O(k*log(n))\)</span> for full processing</p></li>
+<li><p><strong>Space Complexity</strong>: <span class="math notranslate nohighlight">\(O(n)\)</span> for maintaining active DENM records</p></li>
+</ul>
+<p><strong>Scalability Considerations:</strong></p>
+<ul class="simple">
+<li><p>With k=10 collision records and <span class="math notranslate nohighlight">\(n=10000\)</span> active DENMs in the system: ~130 operations</p></li>
+<li><p>System performance degrades logarithmically with active record count</p></li>
+<li><p>Memory usage scales linearly with concurrent collision scenarios</p></li>
+</ul>
+</section>
+<section id="denm-negation-processing-performance">
+<h3>DENM Negation Processing Performance<a class="headerlink" href="#denm-negation-processing-performance" title="Link to this heading"></a></h3>
+<p><strong>Scenario</strong>: Processing DENM negation messages from <code class="docutils literal notranslate"><span class="pre">step_client</span></code></p>
+<p><strong>Algorithm Complexity Analysis:</strong></p>
+<p>For processing a single DENM negation:</p>
+<ol class="arabic simple">
+<li><p><strong>Action ID Lookup</strong>: <span class="math notranslate nohighlight">\(O(1)\)</span> - Hash table lookup in <code class="docutils literal notranslate"><span class="pre">_action_id_index</span></code></p></li>
+<li><p><strong>Record Removal from Sorted List</strong>: <span class="math notranslate nohighlight">\(O(log(n))\)</span> - Binary search and removal</p></li>
+<li><p><strong>Hash Index Cleanup</strong>: <span class="math notranslate nohighlight">\(O(1)\)</span> - Constant time removal from both indices</p></li>
+<li><p><strong>Memory Deallocation</strong>: <span class="math notranslate nohighlight">\(O(1)\)</span> - Single record cleanup</p></li>
+</ol>
+<p><strong>Overall Complexity</strong>: <span class="math notranslate nohighlight">\(O(log(n))\)</span></p>
+<p><strong>Performance Implications:</strong></p>
+<ul class="simple">
+<li><p><strong>Consistent Performance</strong>: Negation processing time grows logarithmically with total records</p></li>
+<li><p><strong>Efficient Cleanup</strong>: Fast removal enables real-time termination handling</p></li>
+<li><p><strong>Memory Recovery</strong>: Immediate memory release prevents accumulation</p></li>
+</ul>
+</section>
+<section id="periodic-cleanup-performance">
+<h3>Periodic Cleanup Performance<a class="headerlink" href="#periodic-cleanup-performance" title="Link to this heading"></a></h3>
+<p><strong>Scenario</strong>: Automatic expiration cleanup in <code class="docutils literal notranslate"><span class="pre">periodical_cleanup_run()</span></code></p>
+<p><strong>Algorithm Complexity Analysis:</strong></p>
+<ol class="arabic simple">
+<li><p><strong>Batch Record Identification and Removal</strong>: <span class="math notranslate nohighlight">\(O(e*log(n))\)</span> where e is the number of expired records</p></li>
+<li><p><strong>Cancellation Message Generation</strong>: <span class="math notranslate nohighlight">\(O(e)\)</span> - Linear with expired count</p></li>
+<li><p><strong>Redis Stream Publication</strong>: <span class="math notranslate nohighlight">\(O(e)\)</span> - Linear network operations</p></li>
+</ol>
+<p><strong>Overall Complexity</strong>: <span class="math notranslate nohighlight">\(O(e*log(n))\)</span></p>
+<p><strong>Performance Optimization:</strong></p>
+<ul class="simple">
+<li><p><strong>Early Termination</strong>: Sorted list enables early exit when unexpired records are encountered</p></li>
+<li><p><strong>Batch Processing</strong>: Minimizes Redis stream overhead through batched publications</p></li>
+<li><p><strong>Adaptive Scheduling</strong>: Cleanup interval adapts based on system load</p></li>
+</ul>
+<p><strong>Memory Management Strategies:</strong></p>
+<ul class="simple">
+<li><p><strong>Automatic Expiration</strong>: Prevents unbounded memory growth</p></li>
+<li><p><strong>Efficient Data Structures</strong>: Minimal overhead through <code class="docutils literal notranslate"><span class="pre">__slots__</span></code> usage</p></li>
+<li><p><strong>Connection Pooling</strong>: Controlled resource allocation for Redis connections</p></li>
+</ul>
+</section>
+<section id="bottleneck-analysis">
+<h3>Bottleneck Analysis<a class="headerlink" href="#bottleneck-analysis" title="Link to this heading"></a></h3>
+<p>The STEP Producer architecture is designed to handle high-frequency collision detection scenarios,
+but certain bottlenecks may arise. The following analysis identifies
+potential bottlenecks and mitigation strategies:</p>
+<ul class="simple">
+<li><p><strong>Primary Bottleneck</strong>: Redis stream publication latency (network I/O bound)</p></li>
+<li><p><strong>Secondary Bottleneck</strong>: Sorted list maintenance for large record sets</p></li>
+<li><p><strong>Mitigation Strategy</strong>: Asynchronous processing and connection pooling</p></li>
+</ul>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="package_script.html" class="btn btn-neutral float-left" title="Package Script" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="schemas_rst/json_schemas.html" class="btn btn-neutral float-right" title="JSON Schemas" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Vodafone Automotive.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
