@@ -1,0 +1,313 @@
+STEP Crash Prediction Usage Guide
+=================================
+
+Introduction
+------------
+
+The **STEP Crash Prediction** is a critical component of the STEP (Safer Transport for Europe Platform) 
+ecosystem that analyzes vehicle position arrays to predict potential collision events. This Redis-based 
+microservice implements machine learning algorithms for real-time collision risk assessment and safety 
+intervention generation.
+
+**Core Functionality:**
+
+The crash prediction service operates as a comprehensive analysis pipeline that:
+
+  * **Collision Risk Assessment**: Analyzes vehicle position arrays using machine learning models 
+    to predict potential crash scenarios and collision probabilities
+  * **Real-time Position Array Processing**: Processes position array messages from Redis streams 
+    for continuous monitoring of vehicle trajectories and motion patterns
+  * **Safety Intervention Generation**: Generates collision event predictions and publishes them 
+    to STEP Producer streams for real-time safety interventions
+  * **Temporal and Spatial Analysis**: Performs sophisticated temporal and spatial collision 
+    prediction algorithms considering multiple vehicle interactions
+
+**Performance Characteristics:**
+
+The STEP Crash Prediction service is designed for real-time safety-critical processing:
+
+  * **Real-time Analysis**: Processes position arrays with minimal latency for immediate collision detection
+  * **Scalable Processing**: Supports multiple concurrent stream consumers for high-throughput scenarios
+  * **Reliable Messaging**: Uses Redis consumer groups for reliable message processing and fault tolerance
+  * **Graceful Recovery**: Implements automatic reconnection and error recovery mechanisms
+
+**Key Components:**
+
+  * **Machine Learning Pipeline**: Advanced collision prediction algorithms analyzing vehicle telemetry data
+  * **Redis Stream Integration**: Specialized Redis connection pooling optimized for crash prediction workflows
+  * **Configuration Management**: Hierarchical Pydantic-based configuration models with comprehensive validation
+  * **CloudEvents Messaging**: CloudEvents-compliant message streaming for input/output data processing
+  * **Monitoring and Logging**: Comprehensive logging system with performance monitoring and error tracking
+
+Prerequisites
+-------------
+
+Before using the STEP Crash Prediction service, make sure you have:
+
+    #. Python 3.11 or higher installed
+    #. Access to a Redis server for stream processing
+    #. Position array data from STEP Adapter or compatible sources
+    #. The step_crash_prediction package installed in your environment
+
+Installation
+------------
+
+You can install the STEP Crash Prediction package using pip:
+
+.. code-block:: bash
+
+    pip install step-crash-prediction
+
+Or if you're using a development version:
+
+.. code-block:: bash
+
+    pip install -e /path/to/step_crash_prediction
+
+Basic Concepts
+--------------
+
+STEP Crash Prediction operates as a real-time collision analysis pipeline,
+processing vehicle position arrays to predict potential crash scenarios. 
+Key concepts include:
+
+  * **Position Array Analysis**: Processes vehicle position arrays from Redis streams 
+    to analyze motion patterns and collision risks using machine learning algorithms
+  * **Collision Risk Assessment**: Uses advanced algorithms to evaluate collision 
+    probabilities based on vehicle trajectories, speeds, and spatial relationships
+  * **Safety Intervention Generation**: Creates collision event predictions and publishes 
+    them to STEP Producer streams for real-time safety interventions
+  * **Machine Learning Pipeline**: Implements temporal and spatial collision prediction 
+    algorithms considering multiple vehicle interactions and environmental factors
+  * **Real-time Stream Processing**: Asynchronous message consumption from Redis streams 
+    for continuous monitoring and analysis of vehicle position data
+  * **CloudEvents Messaging**: Uses CloudEvents-compliant message format for standardized 
+    input/output data processing and integration with STEP ecosystem
+  * **Consumer Group Management**: Implements Redis consumer groups for reliable message 
+    processing and load distribution across multiple service instances
+  * **Event-Driven Architecture**: Asynchronous task groups handling concurrent 
+    stream reception and collision analysis operations
+  * **Signal Handling**: Graceful shutdown capabilities with proper resource 
+    cleanup when interrupted by system signals
+  * **Automatic Reconnection**: Built-in retry mechanism with configurable 
+    intervals for handling Redis connection failures
+
+Configuration
+-------------
+
+STEP Crash Prediction requires configuration for Redis connections, 
+consumer group management, and collision prediction parameters. 
+The configuration is managed through a JSON file.
+
+Creating a Configuration File
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+To create a default configuration template:
+
+.. code-block:: bash
+
+    step_crash_prediction --conf_template my_config_template.json
+
+This generates a template that you can customize for your specific needs.
+
+Key Configuration Parameters
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  
+* **Base Configuration**:
+
+  * receiveClientNumber: Number of concurrent stream consumer instances
+  * reconnectInterval: Reconnection interval in seconds for Redis failures
+  * templateVersion: Configuration schema version
+
+* **Redis Configuration**:
+  
+  * connection: Redis server connection details including SSL/TLS settings
+  * streams: Configuration for Redis streams (inputs and outputs)
+  
+* **Stream Configuration**:
+
+  * input: Input stream configuration with groupId and waitTimeout
+  * outputs: Output stream configuration for Producer integration
+  
+* **Log Configuration**:
+
+  * handler: Logging handler configuration with rotation and streaming options
+  * level: Logging level (e.g., DEBUG, INFO, WARNING, ERROR)
+  * format: Log message format
+
+Example Configuration
+^^^^^^^^^^^^^^^^^^^^^
+
+The schema of the example below is: :ref:`STEP Crash Prediction Configuration Schema<step_crash_prediction_config_schema>`
+
+.. literalinclude:: ../examples/config_examples/config_redis.json
+  :language: JSON
+
+Running STEP Crash Prediction as a Service
+-------------------------------------------
+
+To run the STEP Crash Prediction service as a standalone application:
+
+.. code-block:: bash
+
+    step_crash_prediction --config /path/to/config.json --instance crash_prediction_instance
+
+This will start the service, which will:
+
+    #. Connect to Redis using the specified configuration
+    #. Create consumer groups for reliable message processing
+    #. Process position array messages from input streams
+    #. Generate collision event predictions
+    #. Publish safety interventions to output streams
+
+Command-Line Options
+--------------------
+
+The STEP Crash Prediction service supports several command-line options:
+
+  * ``--version``, ``-v``: Show version information
+  * ``--help``, ``-h``: Show help information
+  * ``--conf_schema``, ``-s``: Generate a JSON schema for the configuration
+  * ``--conf_template``, ``-t``: Generate a configuration template
+  * ``--config``, ``-c``: Path to configuration file (required for running the service)
+  * ``--instance``, ``-i``: Specify the instance name (required with --config)
+
+Programming Interface
+---------------------
+
+Using STEP Crash Prediction in Python Code
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+You can also use the STEP Crash Prediction components programmatically in your Python applications:
+
+.. code-block:: python
+
+    import asyncio
+    from step_crash_prediction import StepCrashPredictionConfig
+    from step_crash_prediction.step_crash_prediction_redis import (
+        StepCrashPredictionRedisPool,
+        StepCrashPredictionRedisStream
+    )
+
+    async def main():
+        # Load configuration
+        config = StepCrashPredictionConfig.model_validate_json(
+            Path("config.json").read_text()
+        )
+        
+        # Create Redis connection pool
+        pool = StepCrashPredictionRedisPool(
+            config=config.redis.connection,
+            logger=logger
+        )
+        
+        # Process messages from Redis stream
+        async with StepCrashPredictionRedisStream(
+            consumer_name="my_consumer",
+            config=config.redis.streams,
+            logger=logger,
+            pool=pool,
+        ) as redis_stream:
+            await redis_stream.create_client_input_stream()
+            while True:
+                message = await redis_stream.receive_crash_prediction_message()
+                # Process the position array message
+                print(f"Received: {message.root.data}")
+
+Configuration Schema Generation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Generate a JSON schema for configuration validation:
+
+.. code-block:: python
+
+    from step_crash_prediction import StepCrashPredictionConfig
+    
+    # Generate JSON schema
+    schema = StepCrashPredictionConfig.model_json_schema()
+    
+    # Save schema to file
+    with open("config_schema.json", "w") as f:
+        json.dump(schema, f, indent=2)
+
+Architecture and Components
+---------------------------
+
+Message Processing Flow
+^^^^^^^^^^^^^^^^^^^^^^^
+
+The STEP Crash Prediction service follows this processing flow:
+
+    #. **Stream Subscription**: Connects to Redis input streams and subscribes to position array messages
+    #. **Message Reception**: Receives CloudEvents-compliant position array messages from STEP Adapter
+    #. **Collision Analysis**: Analyzes vehicle position data using machine learning algorithms
+    #. **Risk Assessment**: Evaluates collision probabilities and potential crash scenarios
+    #. **Safety Intervention**: Generates collision event predictions for real-time safety interventions
+    #. **Message Publishing**: Publishes collision events to STEP Producer output streams
+
+Key Classes and Modules
+^^^^^^^^^^^^^^^^^^^^^^^
+
+* **StepCrashPredictionConfig**: Main configuration class with hierarchical validation
+* **StepCrashPredictionRedisPool**: Redis connection pool management for high-performance streaming
+* **StepCrashPredictionRedisStream**: Stream processing interface for message handling
+* **step_logger**: Comprehensive logging system with multiple handler types
+
+Error Handling and Recovery
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The service implements robust error handling:
+
+* **Automatic Reconnection**: Configurable reconnection intervals for Redis failures
+* **Consumer Group Recovery**: Automatic consumer group creation and recovery
+* **Signal Handling**: Graceful shutdown on system signals (SIGINT, SIGTERM)
+* **Exception Logging**: Comprehensive error logging with context information
+
+Monitoring and Debugging
+-------------------------
+
+Logging Configuration
+^^^^^^^^^^^^^^^^^^^^^
+
+The service supports multiple logging configurations:
+
+* **Console Logging**: Direct output to stdout/stderr
+* **File Logging**: Write logs to files with rotation support
+* **Time-based Rotation**: Rotate logs based on time intervals
+* **Size-based Rotation**: Rotate logs based on file size
+
+Performance Monitoring
+^^^^^^^^^^^^^^^^^^^^^^
+
+Monitor service performance through:
+
+* **Message Processing Rates**: Track messages processed per second
+* **Connection Health**: Monitor Redis connection status
+* **Memory Usage**: Track memory consumption and cleanup cycles
+* **Error Rates**: Monitor exception frequency and types
+
+Troubleshooting
+---------------
+
+Common Issues
+^^^^^^^^^^^^^
+
+**Connection Failures**
+  * Verify Redis server accessibility and credentials
+  * Check network connectivity and firewall settings
+  * Validate SSL/TLS configuration if enabled
+
+**Configuration Errors**
+  * Use ``--conf_schema`` to generate validation schema
+  * Validate JSON configuration against schema
+  * Check required fields and data types
+
+**Stream Processing Issues**
+  * Verify stream names and consumer group configuration
+  * Check message format compatibility with CloudEvents
+  * Monitor consumer lag and processing rates
+
+**Performance Problems**
+  * Adjust ``receiveClientNumber`` for concurrent processing
+  * Monitor Redis memory usage and connection limits
+  * Check logging level and handler configuration (required with --config)
