@@ -7,8 +7,8 @@ data structures used in cloud-based STEP (Standard for the Exchange of Product m
 implementations.
 The system is composed of three main components:
 
-    #.  **Step Broker**: The broker is responsible for routing messages to the clients subscribed.
-    #.  **Step Elaboration System**: The system is responsible for adapting the messages to be used 
+    #.  **STEP Broker**: The broker is responsible for routing messages to the clients subscribed.
+    #.  **STEP Elaboration System**: The system is responsible for adapting the messages to be used 
         by **Machine Learning** subsystem and for sending any warnings.
     #.  **Machine Learning**: The subsystem is responsible for processing the messages received and for finding 
         any possible future crashes.
@@ -126,26 +126,26 @@ The following component diagram shows the main flows of the system:
 
     interface "ASN.1 C-ITS" as messages
 
-    package "Step Communication System" {
-        [Step Broker] as step
+    package "STEP Communication System" {
+        [STEP Broker] as step
     }
 
-    package "Step Elaboration System" {
-        [Step Client] as client
-        [Step Adapter] as adapter
-        [Step Producer] as producer
+    package "STEP Elaboration System" {
+        [STEP Client] as client
+        [STEP Adapter] as adapter
+        [STEP Producer] as Producer
         package "Crash Prediction" {
             [Trajectory\nForecasting] as trajectory
             [Avoidance\nCollision] as collision
             [Data\nStorage] as data
         }
         client -left-> adapter: "3. CAM,CPM,VAM"
-        client -down-> producer: "7. DENM"
+        client -down-> Producer: "7. DENM"
         adapter -left-> trajectory: "4. Position points\narray"
         trajectory <-down-> data: "Query data"
         collision <-up-> data: "Query data"
-        collision -left-> producer: "5. Event forecasted"
-        producer -up-> client: "6. DENM"
+        collision -left-> Producer: "5. Event forecasted"
+        Producer -up-> client: "6. DENM"
     }
     step --right--( messages
     step --down--> client: "1. ASN.1 ITS\nCAN,DENM,CPM,VAM"
@@ -157,7 +157,7 @@ Flow Description
 
 In the previous diagram, the flows are numerated. The description of each flow is:
 
-    #.  **ANS.1 ITS from step broker to client**: The messages in the flow are:
+    #.  **ANS.1 ITS from STEP Broker to Client**: The messages in the flow are:
         
             * CAM 
             * DENM
@@ -165,14 +165,14 @@ In the previous diagram, the flows are numerated. The description of each flow i
             * VAM
 
         The messages received are based on the geo-hashing in the MQTT topic.
-    #.  **ANS.1 ITS from step client to step broker**: The messages in the flow are:
+    #.  **ANS.1 ITS from STEP Client to STEP Broker**: The messages in the flow are:
         
             * DENM
 
         The message sent contains a forecasting of a Crash. The message contains the 
         information of only 2 stations involved. So if the crash involves more than 2 stations,
         the messages generated will be the number of stations decreased by one. 
-    #.  **CAM,CPM,VAM from step client to adapter**: The messages received by Step Client
+    #.  **CAM,CPM,VAM from STEP Client to Adapter**: The messages received by STEP Client
         are encoded in CloudEvent compatible format. The data field contains:
         
             * CAM
@@ -180,7 +180,7 @@ In the previous diagram, the flows are numerated. The description of each flow i
             * VAM
 
         The message is validated by JSON schema :ref:`target_cloud_events_step_adapter_schema`.
-    #.  **Position points array from adapter to trajectory**: Step Adapter executes the 
+    #.  **Position points array from adapter to trajectory**: STEP Adapter executes the
         following tasks:
             
             * Collect the messages per station id or perceptive object id
@@ -191,10 +191,10 @@ In the previous diagram, the flows are numerated. The description of each flow i
             * Down or up sampling to have a constant rate (**sampling normalize**)
 
         The message is validated by JSON schema :ref:`target_cloud_events_step_crash_prediction_schema`.
-    #.  **Event forecasted from avoidance collision to producer**: The message contains the
+    #.  **Event forecasted from avoidance collision to Producer**: The message contains the
         position point of the station involved in the event. The message is validated by JSON schema
         :ref:`target_cloud_events_step_producer_schema`.
-    #.  **DENM from producer to client**: The message DENM contains the pre-crash container. The message
+    #.  **DENM from Producer to client**: The message DENM contains the pre-crash container. The message
         is validated by JSON schema :ref:`target_cloud_events_step_client_schema`.
-    #.  **DENM from client to producer**: The message DENM contains the environment notification generated 
+    #.  **DENM from client to Producer**: The message DENM contains the environment notification generated 
         by other stations. The message is validated by JSON schema :ref:`target_cloud_events_step_producer_schema`.
