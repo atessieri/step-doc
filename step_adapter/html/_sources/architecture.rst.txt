@@ -1,24 +1,25 @@
 Architecture
 ============
 
-This document describes the architecture of the STEP Producer, a Python package 
-for managing Decentralized Environmental Notification (DEN) service.
+This document describes the architecture of the STEP Adapter, a Python package 
+for processing real-time vehicle position data for crash prediction systems.
 
 Overview
 --------
 
-The **STEP Producer** is a critical component of the STEP (Safer Transport for Europe Platform) ecosystem, 
-specifically designed for processing and managing Decentralized Environmental Notification Messages (DENM) 
-within Intelligent Transportation Systems (ITS) environments. This Redis-based microservice implements 
-the DEN (Decentralized Environmental Notification) service for collision prediction and environmental 
-hazard notifications.
+The **STEP Adapter** is a critical component of the STEP (Safer Transport for Europe Platform) ecosystem, 
+specifically designed for processing raw GNSS tracking data and ITS communication messages into smooth, 
+regularly-sampled position arrays optimized for Crash Prediction algorithms. This Redis-based microservice 
+transforms irregular vehicle position data from CAM (Cooperative Awareness Messages), CPM (Collective 
+Perception Messages), and VAM (Vulnerable Road User Awareness Messages) into high-quality interpolated 
+trajectories suitable for real-time traffic analysis and collision prediction.
 
 Library
 -------
 
-The STEP Producer leverages a carefully selected set of libraries and frameworks to implement 
-robust, high-performance ITS message processing capabilities. The library architecture follows 
-a layered approach with core Python libraries, specialized third-party packages, and custom STEP 
+The STEP Adapter leverages a carefully selected set of libraries and frameworks to implement 
+robust, high-performance position data processing capabilities. The library architecture follows 
+a layered approach with core Python libraries, specialized scientific packages, and custom STEP 
 ecosystem components.
 
 Core Dependencies
@@ -26,38 +27,60 @@ Core Dependencies
 
 **Pydantic**
    Advanced data validation and settings management library that provides the foundation for 
-   configuration management throughout the STEP Producer. Pydantic enables:
+   configuration management throughout the STEP Adapter. Pydantic enables:
 
       * **Type Safety**: Strong typing with automatic validation for all configuration parameters
       * **Schema Generation**: Automated JSON schema creation for configuration documentation
       * **Serialization**: Robust JSON serialization/deserialization for configuration persistence
       * **Model Validation**: Runtime validation of configuration data with detailed error reporting
 
-   Used extensively in ``StepProducerConfig`` and related configuration classes to ensure 
-   type-safe, validated configuration management across all producer components.
+   Used extensively in ``StepAdapterConfig`` and related configuration classes to ensure 
+   type-safe, validated configuration management across all Adapter components.
+
+**SciPy**
+   Scientific computing library providing the mathematical foundation for position interpolation. 
+   Key capabilities include:
+
+      * **CubicSpline**: Advanced cubic spline interpolation for smooth trajectory generation
+      * **Numerical Stability**: Robust algorithms for handling irregular data distributions
+      * **Performance**: Optimized C implementations for high-frequency processing
+
+   Critical for the ``PointInterpolation`` system where position trajectories require smooth 
+   interpolation between irregular GNSS measurements for collision prediction accuracy.
+
+**NumPy**
+   Fundamental numerical computing library that provides efficient array operations and 
+   mathematical functions. Core functionality includes:
+
+      * **Array Operations**: Efficient multi-dimensional array processing for position data
+      * **Mathematical Functions**: Vectorized operations for motion parameter calculations
+      * **Memory Efficiency**: Optimized memory layout for large trajectory datasets
+
+   Essential for supporting SciPy operations and enabling efficient numerical processing 
+   throughout the interpolation pipeline.
 
 **SortedContainers**
    High-performance pure-Python sorted container implementation that provides the data structure 
-   foundation for efficient DENM record management. Key capabilities include:
+   foundation for efficient temporal ordering in multi-actor scenarios. Key capabilities include:
 
-      * **Sorted Lists**: O(log n) insertion and deletion with maintained ordering
-      * **Memory Efficiency**: Optimized memory layout for large collections
-      * **Performance**: Fast search, insert, and delete operations for time-ordered records
+      * **Sorted Lists**: O(log n) insertion and deletion with maintained chronological ordering
+      * **Memory Efficiency**: Optimized memory layout for large actor collections
+      * **Performance**: Fast search, insert, and delete operations for time-ordered datasets
 
-   Critical for the ``DenServiceDataManager`` where chronologically ordered DENM records 
-   require efficient insertion, removal, and time-based queries for expiration management.
+   Critical for the ``ActorDataset`` where chronologically ordered position data across multiple 
+   vehicles requires efficient temporal indexing and actor lifecycle management.
 
 **step-cloud-schemas**
    Custom STEP ecosystem library that defines standardized ITS message schemas and data structures. 
    This library provides:
 
-      * **DENM Schemas**: Complete ``DenmDataV1`` message structures compliant with ETSI standards
+      * **ITS Message Schemas**: Complete CAM, CPM, and VAM message structures compliant with ETSI standards
       * **Cloud Events**: Standardized cloud event wrappers for ITS message distribution
-      * **ITS Primitives**: Core ITS data types including timestamps, positions, and identifiers
-      * **Collision Data**: ``StationCollisionArrayV1`` structures for collision prediction integration
+      * **Position Primitives**: Core position data types including coordinates, timestamps, and motion parameters
+      * **Position Arrays**: ``PositionArrayV1`` structures for crash prediction integration
 
    Essential for maintaining compatibility across the STEP ecosystem and ensuring standard-compliant 
-   message generation and processing.
+   message processing and position data generation.
 
 **step_redis**
    STEP-specific Redis integration library that provides the messaging and stream processing 
@@ -69,15 +92,15 @@ Core Dependencies
       * **Error Handling**: Robust error handling and recovery mechanisms for Redis operations
 
    Provides the base classes ``StepRedisPool`` and ``StepRedisStream`` that are extended by 
-   ``StepProducerRedisPool`` and ``StepProducerRedisStream`` for producer-specific functionality.
+   ``StepAdapterRedisPool`` and ``StepAdapterRedisStream`` for Adapter-specific functionality.
 
 Architecture Integration
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-The library selection supports the STEP Producer's architectural requirements:
+The library selection supports the STEP Adapter's architectural requirements:
 
-* **High Performance**: SortedContainers and asyncio enable efficient handling of high-frequency 
-  collision detection scenarios
+* **High Performance**: SciPy and NumPy enable efficient interpolation of high-frequency 
+  position data streams
 * **Type Safety**: Pydantic provides compile-time and runtime type validation throughout the system
 * **Standards Compliance**: step-cloud-schemas ensures ETSI ITS standard compliance for all messages
 * **Scalability**: step_redis abstractions support horizontal scaling through Redis stream 
@@ -88,143 +111,165 @@ The library selection supports the STEP Producer's architectural requirements:
 Components
 ----------
 
-The architecture follows a modular design pattern that separates concerns between DEN service management, 
-communication, Redis integration, and configuration management. This enables flexibility and maintainability 
-in the system design.
+The architecture follows a modular design pattern that separates concerns between position data processing, 
+interpolation, actor management, Redis integration, and configuration management. This enables flexibility 
+and maintainability in the system design.
 
 Main Components:
 
-   #. **DenServiceDataManager/DenServiceManager**: Class for managing the DEN service lifecycle, 
-      including message creation, processing, and termination.
-   #. **StepProducerRedisPool/StepProducerRedisStream**: Redis integration 
-      for message queuing
-   #. **StepProducerConfig**: Configuration management for the producer
-   #. **StepLogger**: Logging utilities specific to the STEP producer
-   #. **StepInterruptException**: Custom exceptions for error handling
+   #. **ActorDataset/ActorDatasetConfig**: Multi-actor position dataset management 
+      with real-time interpolation and temporal indexing.
+   #. **PointDataset/PointDatasetConfig**: Position dataset management with cubic 
+      spline interpolation for individual actors.
+   #. **PointInterpolation/PointInterpolationConfig**: Core interpolation engine 
+      for trajectory smoothing and motion parameter calculation.
+   #. **StepAdapterRedisPool/StepAdapterRedisStream**: Redis integration 
+      for message streaming and crash prediction data distribution.
+   #. **StepAdapterConfig**: Configuration management for the Adapter
+   #. **StepLogger**: Logging utilities specific to the STEP Adapter
+   #. **StepCliException**: Custom exceptions for error handling
 
-DenServiceManager
-^^^^^^^^^^^^^^^^^
+ActorDataset
+^^^^^^^^^^^^
 
-The ``DenServiceManager`` class serves as the primary orchestrator for DEN (Decentralized Environmental 
-Notification) services within the STEP Producer architecture. This component manages the 
-complete lifecycle of collision risk notifications, from initial detection through message 
-termination and cleanup.
+The ``ActorDataset`` class serves as the primary coordinator for multi-actor position processing within 
+the STEP Adapter architecture. This component manages the complete lifecycle of vehicle position data 
+from multiple concurrent actors, providing thread-safe concurrent processing, automatic memory management, 
+and high-performance interpolation capabilities designed for V2X applications.
 
 **Core Responsibilities:**
 
-   #. **Collision Event Processing**: Receives and processes ``StationCollisionArrayV1`` objects, converting 
-      collision detection data into structured DENM messages for distribution throughout the ITS network.
-   #. **Message Lifecycle Management**: Orchestrates the entire DENM message lifecycle, including creation, 
-      publication, update handling, and automatic termination of expired notifications.
-   #. **Termination Handling**: Processes incoming DENM records with negation termination flags, ensuring 
-      proper cleanup of cancelled collision notifications.
-   #. **Automatic Cleanup**: Implements a sophisticated periodic cleanup mechanism that identifies expired 
-      DENM records and publishes cancellation messages to maintain system integrity.
-   #. **Redis Stream Integration**: Manages the publication of DENM messages and cancellations to Redis streams, 
-      enabling seamless integration with other STEP ecosystem components.
+   #. **Multi-Actor Coordination**: Manages position datasets across hundreds to thousands of vehicles 
+      simultaneously, providing logarithmic scaling performance and predictable memory usage.
+   #. **CAM Message Processing**: Receives and processes CAM, CPM, and VAM messages, converting ITS 
+      communication data into structured position trajectories for crash prediction analysis.
+   #. **Temporal Indexing**: Maintains sophisticated multi-index architecture with O(log m) scaling 
+      where m is the fleet size, enabling efficient actor lifecycle management.
+   #. **Automatic Cleanup**: Implements intelligent cleanup mechanisms that identify expired actors 
+      and remove outdated position data to maintain bounded memory usage.
+   #. **Thread-Safe Operations**: Provides concurrent access capabilities for high-frequency telemetry 
+      streams while maintaining data consistency.
 
 **Key Methods:**
 
-   * ``process_station_collisions_received()``: Main entry point for processing collision arrays, delegating 
-     to the data manager for record creation and handling stream publication
-   * ``process_denm_record_received()``: Handles incoming DENM records, specifically processing 
-     termination requests with negation flags
-   * ``periodical_cleanup_run()``: Executes continuous cleanup operations, identifying expired records and 
-     publishing cancellation messages
-   * ``_denm_create_cancellation()``: Creates cancellation DENM messages by copying original message data 
-     while setting the termination flag
+   * ``add_actor_position()``: Main entry point for processing position data from ITS messages, 
+     delegating to individual PointDataset instances for interpolation processing
+   * ``get_position_arrays()``: Retrieves interpolated position arrays from all active actors 
+     for crash prediction distribution
+   * ``cleanup_expired_actors()``: Executes periodic cleanup operations, removing expired actors 
+     and reclaiming memory resources
+   * ``get_active_actor_count()``: Returns current fleet size for monitoring and scaling decisions
 
 **Architecture Integration:**
 
-The ``DenServiceManager`` operates as an asynchronous service that coordinates between the ``DenServiceDataManager`` 
-for data persistence and the ``StepProducerRedisStream`` for message distribution. It utilizes comprehensive logging 
-for operational visibility and implements configurable timing parameters for adaptive behavior in different traffic 
-scenarios.
+The ``ActorDataset`` operates as the coordination hub between individual ``PointDataset`` instances 
+for actor-specific processing and the ``StepAdapterRedisStream`` for message distribution. It utilizes 
+comprehensive logging for operational visibility and implements configurable timing parameters 
+for adaptive behavior in different traffic scenarios.
 
 **Configuration Parameters:**
 
-   * ``station_id``: Unique identifier for the originating ITS station
-   * ``time_after_collision``: Duration to continue broadcasting DENM after collision detection
-   * ``denm_last_update_max_delay_ms``: Maximum allowed delay for DENM record updates
-   * ``denm_check_last_update_max_interval``: Maximum interval between cleanup operations
+   * ``path_length_seconds``: Duration of position history maintained per actor
+   * ``output_nominal_frequency``: Target interpolation rate for position arrays
+   * ``period_max_deviation_ms``: Maximum timing tolerance for interpolation points
+   * ``cleanup_interval_seconds``: Frequency of automatic actor cleanup operations
 
-DenServiceDataManager
-^^^^^^^^^^^^^^^^^^^^^
+PointDataset
+^^^^^^^^^^^^
 
-The ``DenServiceDataManager`` class provides comprehensive data management capabilities for DENM records, 
-implementing efficient storage, indexing, and retrieval mechanisms optimized for high-frequency collision 
-detection scenarios. This component serves as the persistent storage layer for the DEN service, maintaining 
-multiple data structures for optimal performance.
+The ``PointDataset`` class provides comprehensive position data management for individual actors 
+with advanced interpolation capabilities. This component serves as a high-level interface for 
+processing GNSS tracking data, performing temporal validation, and generating smooth position 
+trajectories using cubic spline interpolation techniques.
+
+**Core Functionality:**
+
+   #. **Position Validation**: The ``add_position()`` method validates incoming position data 
+      including station and object identifiers, temporal consistency, and coordinate validity 
+      before processing.
+   #. **Interpolation Management**: Coordinates with the underlying ``PointInterpolation`` system 
+      to generate smooth trajectories from irregular GNSS measurements with configurable output 
+      frequencies.
+   #. **Actor Metadata Tracking**: Maintains and updates vehicle dimensions alongside position 
+      data, ensuring complete actor information for crash prediction algorithms.
+   #. **Gap Detection**: Automatically handles large temporal gaps by clearing interpolation 
+      history to prevent unrealistic trajectory generation across data discontinuities.
+   #. **Resource Management**: Implements bounded memory usage through sliding window approaches 
+      that prevent unbounded accumulation during long-running operations.
+
+**Performance Characteristics:**
+
+The component exhibits the following complexity characteristics:
+
+   * **Point Addition**: O(n + k*log(n) + k) per point where n is input queue size and k is output points
+   * **Point Retrieval**: O(k) for interpolated position results
+   * **Memory Usage**: O(n + k) with both components bounded by configuration parameters
+
+**Thread Safety:**
+
+This component is not thread-safe and requires external synchronization for concurrent access 
+from multiple threads. Applications should implement appropriate locking strategies or use 
+thread-local storage patterns.
+
+PointInterpolation
+^^^^^^^^^^^^^^^^^^
+
+The ``PointInterpolation`` class provides the core mathematical engine for trajectory smoothing 
+and motion parameter calculation. This component implements cubic spline interpolation using 
+SciPy for generating smooth position trajectories from irregular GNSS measurements.
 
 **Internal Architecture:**
 
-The module consists of two primary classes working in tandem:
+The interpolation system consists of sophisticated mathematical processing:
 
-   #. **DenmRecord**: A lightweight data container that encapsulates individual DENM messages along with 
-      metadata including reference time, unique record keys, and action ID indices. This class implements 
-      comparison operators for chronological sorting and hash functionality for efficient dictionary storage.
-   #. **DenServiceDataManager**: The core service class that manages collections of DENM records through 
-      multiple specialized indices and provides comprehensive lifecycle management operations.
+   #. **Cubic Spline Processing**: Uses SciPy's CubicSpline implementation for smooth spatial 
+      interpolation across latitude, longitude, and altitude dimensions with numerical stability.
+   #. **Temporal Validation**: Enforces configurable minimum/maximum periods between points 
+      to maintain data quality and prevent unrealistic interpolations.
+   #. **Motion Parameter Calculation**: Automatically computes speed and heading from position 
+      changes when missing from input data, providing complete motion state information.
+   #. **Adaptive Output Generation**: Produces time-aligned sequences at configurable nominal 
+      periods with tolerance for timing variations.
 
-**Data Storage Strategy:**
+**Data Processing Strategy:**
 
-The data manager employs a multi-index architecture for optimal performance:
+The interpolator employs efficient queue-based processing:
 
-   * ``_denm_sorted_records``: A ``SortedList`` maintaining chronological ordering of records for efficient 
-     time-based operations O(log n).
-   * ``_record_key_index``: Hash-based dictionary providing O(1) lookup by unique record keys composed 
-     of station and object IDs
-   * ``_action_id_index``: Hash-based dictionary enabling fast retrieval by action ID tuples (station 
-     ID, sequence number)
+   * **Input Queue**: Deque-based sliding window maintaining raw position points within configured path length
+   * **Spline Coefficients**: Cached mathematical coefficients for efficient interpolation calculations
+   * **Output Generation**: Optimized point generation with configurable frequency and timing tolerance
 
 **Key Functionality:**
 
-   #. **Collision Array Processing**: The ``insert_station_collision_array()`` method converts station 
-      collision arrays into structured DENM records, implementing intelligent record key generation and 
-      sequence number management with automatic wrap-around at 65536.
-   #. **Multi-Index Management**: Maintains synchronized indices across all data structures, ensuring 
-      consistency during record creation, updates, and deletions while providing optimal access patterns 
-      for different query types.
-   #. **Automatic Expiration**: The ``get_denm_records_clean_reference_expired()`` method identifies 
-      expired records based on configurable delay thresholds, supporting automatic cleanup operations.
-   #. **Sequence Number Generation**: Handles automatic generation and management of unique sequence 
-      numbers for action IDs, implementing proper wrap-around logic to prevent conflicts.
-   #. **Thread Safety**: Implements comprehensive locking mechanisms to ensure data consistency in 
-      concurrent access scenarios.
-
-**Record Management:**
-
-Each DENM record is uniquely identified by a four-tuple record key 
-``(reference_station_id, reference_object_id, target_station_id, target_object_id)``, enabling precise tracking of 
-collision relationships between specific ITS entities. The system supports both new record creation and 
-existing record updates, reusing action IDs where appropriate to maintain message continuity.
+   #. **Point Addition**: The ``add_point()`` method processes incoming position data, updating 
+      spline coefficients and generating interpolated output points with comprehensive validation.
+   #. **Interpolation Processing**: Implements sophisticated algorithms for generating smooth 
+      trajectories while handling edge cases and temporal inconsistencies.
+   #. **Gap Recovery**: Automatically clears interpolation history when large temporal gaps 
+      exceed configured thresholds to prevent artifacts.
+   #. **Memory Efficiency**: Uses deque-based sliding windows for optimal memory usage during 
+      continuous data stream processing.
 
 **Performance Optimizations:**
 
-   * Utilizes ``__slots__`` for memory efficiency in both ``DenmRecord`` and ``DenServiceDataManager`` classes
-   * Implements ``SortedList`` for maintaining chronological order without manual sorting overhead
-   * Provides multiple access patterns (chronological, key-based, action ID-based) for different operational requirements
-   * Includes comprehensive logging with configurable detail levels for operational monitoring and debugging
+   * Utilizes ``__slots__`` for memory efficiency in core processing classes
+   * Implements efficient numerical algorithms through NumPy and SciPy integration
+   * Provides configurable parameters for balancing accuracy versus computational cost
+   * Includes comprehensive logging with configurable detail levels for debugging and monitoring
 
-**Expiration Management:**
+StepAdapterConfig
+^^^^^^^^^^^^^^^^^
 
-The component implements sophisticated expiration logic through ``get_interval_oldest_update_ms()``, calculating 
-appropriate cleanup intervals based on the oldest record's reference time while respecting maximum interval 
-constraints. This enables adaptive cleanup scheduling that responds to actual system load and message aging patterns.
-
-StepProducerConfig
-^^^^^^^^^^^^^^^^^^
-
-The ``StepProducerConfig`` component provides comprehensive configuration management for the STEP Producer architecture, 
+The ``StepAdapterConfig`` component provides comprehensive configuration management for the STEP Adapter architecture, 
 leveraging Pydantic for robust validation, serialization, and schema generation capabilities. This component serves as 
 the central configuration hub that defines all operational parameters, connection settings, and behavioral configurations
-for the producer service.
+for the Adapter service.
 
 **Hierarchical Configuration Architecture:**
 
 The configuration system follows a well-structured hierarchical model with multiple specialized configuration classes:
 
-   #. **StepProducerConfig**: Top-level configuration class that orchestrates all producer settings
+   #. **StepAdapterConfig**: Top-level configuration class that orchestrates all Adapter settings
    #. **RedisClientConfig**: Dedicated configuration for Redis connectivity and stream management
    #. **RedisConnection**: Low-level Redis connection parameters including SSL, timeouts, and pooling
    #. **RedisStreams**: Stream-specific configuration for input/output stream definitions
@@ -232,14 +277,10 @@ The configuration system follows a well-structured hierarchical model with multi
 
 **Core Configuration Domains:**
 
-**Producer Instance Settings:**
+**Adapter Instance Settings:**
 
    * ``templateVersion``: Configuration schema version for compatibility management
-   * ``instanceName``: Unique identifier for the producer instance within the ecosystem
-   * ``stationId``: ITS station identifier (0-4294967295) for message origination
-   * ``timeAfterCollision``: Duration in seconds to continue broadcasting DENM after collision detection (0-10)
-   * ``denmLastUpdateMaxDelay``: Maximum allowed delay in milliseconds for DENM record updates (1-10000)
-   * ``denmCheckLastUpdateMaxInterval``: Maximum interval in milliseconds for checking DENM updates (1000-60000)
+   * ``instanceName``: Unique identifier for the Adapter instance within the ecosystem
    * ``reconnectInterval``: Time interval in seconds for automatic reconnection attempts
 
 **Redis Integration Configuration:**
@@ -251,7 +292,7 @@ The ``RedisClientConfig`` provides comprehensive Redis connectivity management:
    * **Socket Configuration**: Advanced socket settings for timeout management, keepalive parameters, 
      and connection health monitoring
    * **Stream Configuration**: Input and output stream definitions with stream IDs, consumer groups, 
-     maximum lengths, and wait timeouts
+     maximum lengths, and wait timeouts for CAM, CPM, and VAM message processing
    * **Security Settings**: SSL/TLS configuration with client certificates, CA verification, and 
      encrypted connections
 
@@ -272,7 +313,7 @@ The ``LogConfig`` component supports multiple logging strategies through a flexi
    #. **Strong Typing**: Comprehensive type annotations with Pydantic field validation for 
       all configuration parameters
    #. **Range Validation**: Numeric fields include appropriate range constraints 
-      (e.g., port numbers 0-65535, station IDs 0-4294967295)
+      (e.g., port numbers 0-65535, timeout values)
    #. **String Validation**: Minimum length requirements and format validation for critical 
       string fields
    #. **Immutable Configuration**: Frozen model instances prevent accidental modification 
@@ -306,55 +347,56 @@ configuration patterns, consistent validation rules, and compatible schema defin
 enable configuration sharing and validation across the entire STEP platform.
 
 
-StepProducerRedisPool and StepProducerRedisStream
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+StepAdapterRedisPool and StepAdapterRedisStream
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The ``StepProducerRedisPool`` and ``StepProducerRedisStream`` components provide the Redis
-integration layer for the STEP Producer architecture, enabling efficient message
-queuing and distribution between different system components.
+The ``StepAdapterRedisPool`` and ``StepAdapterRedisStream`` components provide the Redis
+integration layer for the STEP Adapter architecture, enabling efficient message
+streaming and position data distribution for crash prediction systems.
 
-``StepProducerRedisPool``
+``StepAdapterRedisPool``
 
    #. **Connection Management**: Extends the ``StepRedisPool`` base class to handle 
-      Redis connection pooling specifically for STEP Producer needs.
+      Redis connection pooling specifically for STEP Adapter needs.
    #. **Resource Management**: Provides asynchronous context management through 
       ``__aenter__`` and ``__aexit__`` methods for safe connection handling.
    #. **Connection Configuration**: Manages Redis connection parameters such 
       as host, port, and authentication details.
    #. **Connection Pooling**: Implements connection pooling to optimize performance 
-      and resource utilization when interacting with Redis.
+      and resource utilization when interacting with Redis streams.
 
-``StepProducerRedisStream``
+``StepAdapterRedisStream``
 
    #. **Stream Management**: Extends the ``StepRedisStream`` base class to implement 
-      specialized stream handling for ITS messages.
-   #. **Input Stream Processing**: Manages connections to input streams from:
+      specialized stream handling for ITS position data and crash prediction workflows.
+   #. **Input Stream Processing**: Manages connections to input streams for receiving:
 
-      * ``step_client`` for receiving DENM (Decentralized Environmental Notification Messages) 
-        message.
-      * ``step_crash_prediction`` for receiving collision prediction data with the actors
-        involved
+      * CAM (Cooperative Awareness Messages) from ``step_client``
+      * CPM (Collective Perception Messages) from ``step_client`` 
+      * VAM (Vulnerable Road User Awareness Messages) from ``step_client``
 
    #. **Output Stream Management**: Handles output streams with specific routing:
       
-      * Connects to ``step_client`` for sending DENM messages generated by the producer
+      * Connects to ``step_crash_prediction`` for sending position array data
    
    #. **Stream Creation**: Creates and configures input streams with appropriate consumer 
-      group IDs for message distribution.
-   #. **Message Publishing**: Provides methods to publish messages to the configured output streams.
-   #. **Message Receiving**: Offers functionality to receive and parse messages from input streams.
+      group IDs for message distribution and load balancing.
+   #. **Message Publishing**: Provides methods to publish position arrays to crash prediction streams.
+   #. **Message Receiving**: Offers functionality to receive and parse ITS messages from input streams.
+   #. **CloudEvents Compliance**: Handles CloudEvents-compliant message formatting and validation 
+      for standardized message exchange across the STEP ecosystem.
 
 Together, these components form the communication infrastructure that enables standardized 
-message exchange between STEP Producer and other components in the STEP ecosystem through 
-Redis streams.
+message exchange between STEP Adapter and other components in the STEP ecosystem through 
+Redis streams, specifically facilitating the flow of position data to crash prediction systems.
 
 StepLogger
 ^^^^^^^^^^
 
-The ``StepLogger`` component provides specialized logging functionality for the STEP Client
+The ``StepLogger`` component provides specialized logging functionality for the STEP Adapter
 architecture, enabling comprehensive and configurable logging throughout the application. 
 It serves as a wrapper around Python's standard logging facilities with additional features 
-tailored to STEP Client's needs.
+tailored to STEP Adapter's needs.
 
 Key features of ``StepLogger`` include:
 
@@ -370,85 +412,91 @@ Key features of ``StepLogger`` include:
       with standard log levels (DEBUG, INFO, WARNING, ERROR, CRITICAL).
    #. **Structured Formatting**: Implements customizable log formats with timestamp, 
       severity level, source component, and structured message content.
-   #. **Context-aware Logging**: Includes context information such as component IDs, 
-      transaction IDs, and operation details to facilitate troubleshooting.
+   #. **Context-aware Logging**: Includes context information such as actor IDs, 
+      processing details, and interpolation status to facilitate troubleshooting.
    #. **Configuration Integration**: Leverages the logging configuration section 
-      from ``StepClientConfig`` to enable consistent setup across components.
+      from ``StepAdapterConfig`` to enable consistent setup across components.
    #. **Utility Methods**: Offers utility methods like ``setup_logging()`` for initial 
       configuration and ``get_logger()`` for retrieving appropriately configured 
       logger instances.
    #. **Error Handling**: Includes robust error handling to prevent logging failures 
-      from impacting core application functionality.
+      from impacting core position processing functionality.
 
-The ``StepLogger`` component ensures that the STEP Client maintains comprehensive 
+The ``StepLogger`` component ensures that the STEP Adapter maintains comprehensive 
 logging capabilities to support monitoring, debugging, and operational insights 
-across all system components.
+across all system components, particularly for tracking position processing performance 
+and interpolation quality.
 
-StepInterruptException
-^^^^^^^^^^^^^^^^^^^^^^
+StepCliException
+^^^^^^^^^^^^^^^^
 
-The ``StepInterruptException`` component provides a custom exception class for handling
-interruptions within the STEP Producer architecture. This exception is designed 
-to be raised in situations where the normal flow of processing needs to be interrupted, 
-such as when a critical error occurs or when an operation is canceled.
+The ``StepCliException`` component provides a custom exception class for handling
+command-line interface errors and application interruptions within the STEP Adapter architecture. 
+This exception is designed to be raised in situations where command-line processing 
+encounters errors or when normal operation flow needs to be interrupted.
 
-Key features of ``StepInterruptException`` include:
+Key features of ``StepCliException`` include:
 
    #. **Custom Exception Class**: Inherits from Python's built-in ``Exception`` class, 
       allowing it to be raised and caught like any standard exception.
-   #. **Error Context**: Provides a mechanism to include additional context or 
-      information about the error when raising the exception.
+   #. **CLI Error Context**: Provides a mechanism to include additional context or 
+      information about command-line processing errors when raising the exception.
    #. **Graceful Shutdown**: Designed to be used in scenarios where the application 
       needs to gracefully shut down or clean up resources before exiting.
    #. **Integration with Logging**: Can be logged using the ``StepLogger`` component 
       to capture detailed error information for debugging and operational monitoring.
+   #. **Exit Code Management**: Supports proper exit code handling for different 
+      error scenarios in command-line environments.
 
 Component Diagram
 ^^^^^^^^^^^^^^^^^
 
-The following component diagram illustrates the high-level architecture of the STEP Producer
+The following component diagram illustrates the high-level architecture of the STEP Adapter
 and its interactions with external systems. It shows the relationships between the core
 components and how they interact with Redis streams and external data sources.
 
 .. plantuml::
    :align: center
 
-   package "STEP Producer" {
-      package "DenService" {
-          [DenServiceManager] as DSM
-          [DenServiceDataManager] as DSDM
-          note left of DSM
-            Orchestrates DENM
-            lifecycle management
+   package "STEP Adapter" {
+      package "Position Processing" {
+          [ActorDataset] as AD
+          [PointDataset] as PD
+          [PointInterpolation] as PI
+          note left of AD
+            Multi-actor coordination with
+            temporal indexing
           end note
-          note right of DSDM
-            Manages DENM records
-            with multi-index storage
+          note right of PI
+            Cubic spline interpolation
+            for trajectory smoothing
           end note
       }
       package "Redis Proxy" {
-          [StepProducerRedisPool] as ProducerRedisPool
-          [StepProducerRedisStream] as ProducerRedisStream
-          note bottom of ProducerRedisStream
+          [StepAdapterRedisPool] as AdapterRedisPool
+          [StepAdapterRedisStream] as AdapterRedisStream
+          note bottom of AdapterRedisStream
              Redis Streams for
-             message queuing
+             ITS message processing
           end note
       }
-      [StepProducerConfig] as Config
+      [StepAdapterConfig] as Config
       [StepLogger] as Logger
    }
-   DSM -- DSDM : delegates data operations
-   DSM -- ProducerRedisStream : publishes DENM messages
-   DSM -- Logger : logs operations
-   DSM -- Config : get configuration 
-   DSDM -- Logger : logs data operations
-   ProducerRedisStream -- ProducerRedisPool : channel management 
+   AD -- PD : manages multiple
+   PD -- PI : delegates interpolation
+   AD -- AdapterRedisStream : publishes position arrays
+   AD -- Logger : logs operations
+   AD -- Config : get configuration 
+   PD -- Logger : logs processing
+   PI -- Logger : logs interpolation
+   AdapterRedisStream -- AdapterRedisPool : channel management 
 
 Class Diagram
 -------------
 
 The class diagram below illustrates the structure and relationships between 
-the key classes in the STEP Producer architecture. It shows the main methods 
+the key classes in the STEP Adapter architecture. It shows the main methods 
 and attributes of each class and how they interact with one another.
 
 .. plantuml::
@@ -457,64 +505,48 @@ and attributes of each class and how they interact with one another.
    !theme plain
    skinparam classAttributeIconSize 0
 
-   class DenServiceManager {
-      -_denm_service_data
-      -_logger
-      +__init__
-      +async process_station_collisions_received
-      +async process_denm_record_received
-      +async periodical_cleanup_run
-      -denm_create_cancellation
-   }
-
-   class DenServiceDataManager {
-      -_denm_sorted_records
-      -_record_key_index
-      -_action_id_index
-      -_station_id
-      -_sequence_number
-      -_time_after_collision
-      -_denm_last_update_max_delay_ms
-      -_denm_check_last_update_max_interval
+   class ActorDataset {
+      -_actors
+      -_temporal_index
+      -_config
       -_logger
       -_lock
       +__init__
-      +insert_station_collision_array
-      +get_denm_records_clean_reference_expired
-      +get_interval_oldest_update_ms
-      +remove_denm_record
-      -_station_order
-      -_create_denm
+      +add_actor_position
+      +get_position_arrays
+      +cleanup_expired_actors
+      +get_active_actor_count
    }
 
-   class DenmRecord {
-      -_denm
-      -_reference_time
-      -_record_key
-      -_action_id_index
+   class PointDataset {
+      -_interpolation
+      -_vehicle_length
+      -_reference_station_id
+      -_reference_object_id
+      -_config
+      -_logger
       +__init__
-      +denm: DenmDataV1 <<property>>
-      +reference_time: ItsTime <<property>>
-      +action_id_index: tuple[int, int] <<property>>
-      +record_key: tuple[int, int, int, int] <<property>>
-      +__eq__
-      +__ne__
-      +__lt__
-      +__le__
-      +__gt__
-      +__ge__
-      +__hash__
-      +__str__
-      +__repr__
+      +add_position
+      +get_interpolated_positions
+      +is_expired
    }
 
-   class StepProducerConfig {
+   class PointInterpolation {
+      -_input_queue
+      -_output_queue
+      -_config
+      -_logger
+      +__init__
+      +add_point
+      +get_interpolated_values
+      +clear_history
+      -_compute_spline_coefficients
+      -_generate_output_points
+   }
+
+   class StepAdapterConfig {
       +templateVersion
       +instanceName
-      +stationId
-      +timeAfterCollision
-      +denmLastUpdateMaxDelay
-      +denmCheckLastUpdateMaxInterval
       +reconnectInterval
       +redis
       +log
@@ -523,22 +555,22 @@ and attributes of each class and how they interact with one another.
       +{static} print_config_example
    }
 
-   class StepProducerRedisPool {
+   class StepAdapterRedisPool {
       +MAX_CONNECTIONS
       +__init__
       +async __aenter__
       +async __aexit__
    }
 
-   class StepProducerRedisStream {
+   class StepAdapterRedisStream {
       -_consumer_name
       -_config
       -_stream_ttl
       +__init__
       +async __aenter__
       +async create_client_input_stream
-      +async publish_its_message
-      +async receive_producer_message
+      +async publish_position_array
+      +async receive_adapter_message
    }
 
    class StepLogger {
@@ -546,195 +578,223 @@ and attributes of each class and how they interact with one another.
       +{static} get_logger
    }
 
-   DenServiceManager --> DenServiceDataManager : uses
-   DenServiceManager --> StepProducerRedisStream : publishes to
-   DenServiceManager --> StepLogger : logs with
+   ActorDataset --> PointDataset : manages
+   ActorDataset --> StepAdapterRedisStream : publishes to
+   ActorDataset --> StepLogger : logs with
     
-   DenServiceDataManager --> DenmRecord : manages
-   DenServiceDataManager --> StepLogger : logs with
+   PointDataset --> PointInterpolation : uses
+   PointDataset --> StepLogger : logs with
    
-   StepProducerRedisStream --> StepProducerRedisPool : uses
-   StepProducerRedisStream --> StepProducerConfig : configured by
+   StepAdapterRedisStream --> StepAdapterRedisPool : uses
+   StepAdapterRedisStream --> StepAdapterConfig : configured by
    
-   StepProducerRedisPool --> StepProducerConfig : configured by
+   StepAdapterRedisPool --> StepAdapterConfig : configured by
    
-   StepLogger --> StepProducerConfig : configured by
+   StepLogger --> StepAdapterConfig : configured by
 
-   StepProducerRedisPool --|> StepRedisPool : extends
-   StepProducerRedisStream --|> StepRedisStream : extends
+   StepAdapterRedisPool --|> StepRedisPool : extends
+   StepAdapterRedisStream --|> StepRedisStream : extends
 
 Sequence Diagrams
 -----------------
 
-The sequence diagrams below illustrate the two primary message flows 
-in the STEP Producer:
+The sequence diagrams below illustrate the primary message flows 
+in the STEP Adapter:
 
-   * DENM creation and publication 
-   * DENM negation 
+   * Position data processing and interpolation 
+   * Position array publishing to crash prediction
 
 These diagrams show the sequence of interactions between components and the 
-temporal flow of operations as messages move through the system.
+temporal flow of operations as position data moves through the system.
 
-DENM creation and publication
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Position Data Processing and Interpolation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The following sequence diagram depicts the process of DENM creation starting 
-from the crash event message sent by STEP crash prediction. It demonstrates how the 
-DenServiceManager component processes the incoming collision data, creates the 
-DENM messages, and publishes them to Redis streams. 
+The following sequence diagram depicts the process of position data processing starting 
+from ITS messages sent by STEP Client. It demonstrates how the ActorDataset component 
+processes incoming CAM/CPM/VAM messages, coordinates with PointDataset for actor-specific
+processing, and generates interpolated position arrays.
 
 .. plantuml::
    :align: center
 
-   participant "STEP Crash Prediction" as CrashPrediction
    participant "STEP Client" as Client
-   participant "StepProducerRedisStream" as RedisStream
-   participant "DenServiceManager" as DenManager
-   participant "DenServiceDataManager" as DenDataManager
+   participant "StepAdapterRedisStream" as RedisStream
+   participant "ActorDataset" as ActorDataset
+   participant "PointDataset" as PointDataset
+   participant "PointInterpolation" as PointInterpolation
 
-   CrashPrediction -> RedisStream : Crash Event
-   RedisStream -> DenManager : Crash Event
-   DenManager -> DenDataManager : Crash Event 
-   note over DenDataManager
-      Check the if all DENMs related
-      to this foreseen is already 
-      created.
-      Generate new or updated DENM
+   Client -> RedisStream : CAM/CPM/VAM Message
+   RedisStream -> ActorDataset : Position Data
+   ActorDataset -> PointDataset : add_position()
+   note over PointDataset
+      Validate position data
+      and actor metadata
    end note
-   DenDataManager -> DenManager : List of DENM
-   DenManager -> RedisStream : List of DENM
-   RedisStream -> Client : DENM_1
-   RedisStream -> Client : DENM_n
+   PointDataset -> PointInterpolation : add_point()
+   note over PointInterpolation
+      Apply cubic spline
+      interpolation and generate
+      smooth trajectory points
+   end note
+   PointInterpolation -> PointDataset : Interpolated Points
+   PointDataset -> ActorDataset : Position Results
+   ActorDataset -> RedisStream : Position Array
    
-DENM negation
-^^^^^^^^^^^^^
+Position Array Publishing to Crash Prediction
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The sequence diagram below illustrates the process of negation of a DENM.
+The sequence diagram below illustrates the process of publishing position arrays
+to the crash prediction system for analysis.
 
 .. plantuml::
    :align: center
 
-   participant "STEP Client" as Client
-   participant "StepProducerRedisStream" as RedisStream
-   participant "DenServiceManager" as DenManager
-   participant "DenServiceDataManager" as DenDataManager
+   participant "ActorDataset" as ActorDataset
+   participant "StepAdapterRedisStream" as RedisStream
+   participant "STEP Crash Prediction" as CrashPrediction
 
-   Client -> RedisStream : DENM Negation
-   RedisStream -> DenManager : DENM Negation
-   DenManager -> DenDataManager : Remove DENM
-   note over DenDataManager
-      Remove the DENM 
-      information related to
-      Action Id 
+   ActorDataset -> RedisStream : get_position_arrays()
+   note over ActorDataset
+      Collect interpolated position
+      arrays from all active actors
+   end note
+   RedisStream -> CrashPrediction : Position Array V1
+   note over CrashPrediction
+      Process position arrays for
+      collision risk analysis
    end note
 
 Performance Considerations
 --------------------------
 
-The STEP Producer architecture is designed for high-performance processing of ITS messages with 
+The STEP Adapter architecture is designed for high-performance processing of position data with 
 careful consideration of algorithmic complexity and data structure selection. The following analysis 
-provides Big O complexity calculations for the two primary message processing scenarios.
+provides Big O complexity calculations for the primary position processing scenarios.
 
 Data Structure Performance Characteristics
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The ``DenServiceDataManager`` employs a multi-index architecture optimized for different access patterns:
+The ``ActorDataset`` employs a multi-index architecture optimized for different access patterns:
 
-* **Sorted List (``_denm_sorted_records``)**: Maintains chronological 
-  ordering with :math:`O(log n)` insertion/deletion
-* **Hash-based Indices (``_record_key_index``, ``_action_id_index``)**: Provide :math:`O(1)` 
-  constant time operation for accessing.
-* **Record Key Insertion**: :math:`O(1)` constant time operation for unique key insertion.
+* **Sorted List (temporal indexing)**: Maintains chronological 
+  ordering with :math:`O(log(m))` insertion/deletion where m is fleet size
+* **Hash-based Actor Index**: Provides :math:`O(1)` 
+  constant time lookup for actor-specific datasets
+* **PointDataset per Actor**: :math:`O(1)` access to individual actor processing pipelines
+* **Interpolation Queues**: Bounded deque structures with :math:`O(1)` insertion/removal
 
-Where **n** represents the total number of active DENM records in the system.
+Where **n** represents the number of position points per actor and **m** represents the total number of active actors.
 
-Collision Message Processing Performance
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Position Message Processing Performance
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-**Scenario**: Processing ``StationCollisionArrayV1`` from ``step_crash_prediction``
+**Scenario**: Processing CAM/CPM/VAM messages from ``step_client``
 
 **Algorithm Complexity Analysis:**
 
-For processing a collision array containing :math:`k+1` vehicles which generates :math:`k` 
-DENM records:
+For processing a position message for a single actor:
 
-1. **Record Key Generation**: :math:`O(k)` - Linear iteration through collision array
-2. **Existing Record Lookup**: :math:`O(k)` - Hash table lookup for each collision record
-3. **New Record Insertion (updating or creation)**: 
+1. **Actor Resolution**: :math:`O(1)` - Hash table lookup for existing actor dataset
+2. **Position Validation**: :math:`O(1)` - Constant time validation of position data
+3. **Interpolation Processing**: :math:`O(n + k*log(n) + k)` where:
    
-   * Sorted list insertion: :math:`O(k*log(n))` - Each new record requires binary search positioning
-   * Hash index updates: :math:`O(k)` - Constant time insertion per index
+   * **Spline Coefficient Calculation**: :math:`O(n)` - Linear with input queue size
+   * **Output Point Generation**: :math:`O(k*log(n))` - Binary search for temporal positioning
+   * **Motion Parameter Calculation**: :math:`O(k)` - Linear with output points
    
-4. **DENM Message Creation**: :math:`O(k)` - Linear with number of collision records
-5. **Redis Stream Publication**: :math:`O(k)` - Linear network operations
+4. **Position Array Creation**: :math:`O(k)` - Linear with interpolated points
 
-**Overall Complexity**: :math:`O(k*log(n))`
+**Overall Complexity**: :math:`O(n + k*log(n) + k)` per position message
 
 **Performance Implications**:
 
-* **Best Case**: All collision records already exist → :math:`O(k)` for lookups only
-* **Worst Case**: All collision records are new → :math:`O(k*log(n))` for full processing
-* **Space Complexity**: :math:`O(n)` for maintaining active DENM records
+* **Best Case**: No interpolation needed → :math:`O(1)` for validation only
+* **Typical Case**: Regular processing → :math:`O(n + k*log(n) + k)` bounded by configuration
+* **Worst Case**: Complete spline recalculation → :math:`O(n + k*log(n) + k)` with maximum queue sizes
+* **Space Complexity**: :math:`O(n + k)` for input and output queues per actor
 
 **Scalability Considerations:**
 
-* With k=10 collision records and :math:`n=10000` active DENMs in the system: ~130 operations
-* System performance degrades logarithmically with active record count
-* Memory usage scales linearly with concurrent collision scenarios
+* With n=50 input points and k=10 output points: ~500 operations per message
+* System performance scales logarithmically with output point density
+* Memory usage scales linearly with actor count and path length configuration
 
-DENM Negation Processing Performance
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Multi-Actor Fleet Processing Performance
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-**Scenario**: Processing DENM negation messages from ``step_client``
+**Scenario**: Processing position data across entire vehicle fleet
 
 **Algorithm Complexity Analysis:**
 
-For processing a single DENM negation:
+For processing position updates across m active actors:
 
-1. **Action ID Lookup**: :math:`O(1)` - Hash table lookup in ``_action_id_index``
-2. **Record Removal from Sorted List**: :math:`O(log(n))` - Binary search and removal
-3. **Hash Index Cleanup**: :math:`O(1)` - Constant time removal from both indices
-4. **Memory Deallocation**: :math:`O(1)` - Single record cleanup
+1. **Actor Lookup**: :math:`O(1)` - Hash table access for actor identification
+2. **Temporal Index Update**: :math:`O(log(m))` - Sorted list maintenance for actor ordering
+3. **Per-Actor Processing**: :math:`O(n + k*log(n) + k)` - Individual actor interpolation
+4. **Position Array Generation**: :math:`O(m*k)` - Collecting results from all active actors
 
-**Overall Complexity**: :math:`O(log(n))`
+**Overall Complexity**: :math:`O(n + k*log(n) + log(m))` per message system-wide
 
 **Performance Implications:**
 
-* **Consistent Performance**: Negation processing time grows logarithmically with total records
-* **Efficient Cleanup**: Fast removal enables real-time termination handling
-* **Memory Recovery**: Immediate memory release prevents accumulation
+* **Fleet Scaling**: Processing time grows logarithmically with fleet size due to temporal indexing
+* **Interpolation Bound**: Individual actor processing limited by configuration parameters
+* **Memory Efficiency**: Total system memory = :math:`O(m*(n + k))` with bounded growth
+* **Concurrent Processing**: Architecture supports parallel processing of independent actors
 
-Periodic Cleanup Performance
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Actor Cleanup and Memory Management Performance
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-**Scenario**: Automatic expiration cleanup in ``periodical_cleanup_run()``
+**Scenario**: Automatic cleanup of expired actors and outdated position data
 
 **Algorithm Complexity Analysis:**
 
-#. **Batch Record Identification and Removal**: :math:`O(e*log(n))` where e is the number of expired records
-#. **Cancellation Message Generation**: :math:`O(e)` - Linear with expired count
-#. **Redis Stream Publication**: :math:`O(e)` - Linear network operations
+#. **Temporal Index Scan**: :math:`O(e*log(m))` where e is the number of expired actors
+#. **Actor Dataset Removal**: :math:`O(e)` - Hash table deletions for expired actors
+#. **Memory Reclamation**: :math:`O(e*(n + k))` - Cleanup of associated position data
 
-**Overall Complexity**: :math:`O(e*log(n))`
+**Overall Complexity**: :math:`O(e*log(m) + e*(n + k))`
 
 **Performance Optimization:**
 
-* **Early Termination**: Sorted list enables early exit when unexpired records are encountered
-* **Batch Processing**: Minimizes Redis stream overhead through batched publications
-* **Adaptive Scheduling**: Cleanup interval adapts based on system load
+* **Early Termination**: Temporal indexing enables efficient identification of expired actors
+* **Batch Processing**: Minimizes overhead through batched cleanup operations
+* **Adaptive Scheduling**: Cleanup frequency adapts based on fleet activity patterns
 
 **Memory Management Strategies:**
 
-* **Automatic Expiration**: Prevents unbounded memory growth
-* **Efficient Data Structures**: Minimal overhead through ``__slots__`` usage
-* **Connection Pooling**: Controlled resource allocation for Redis connections
+* **Bounded Queues**: Sliding window approach prevents unbounded memory growth
+* **Automatic Expiration**: Time-based cleanup prevents actor accumulation
+* **Efficient Data Structures**: Optimized containers minimize memory overhead
+
+Interpolation Algorithm Performance
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+**Scenario**: Cubic spline interpolation for trajectory smoothing
+
+**Algorithm Complexity Analysis:**
+
+For the core interpolation processing within ``PointInterpolation``:
+
+1. **Spline Coefficient Calculation**: :math:`O(n)` - SciPy CubicSpline computational complexity
+2. **Temporal Validation**: :math:`O(n)` - Linear scan for timing consistency
+3. **Output Point Generation**: :math:`O(k*log(n))` - Binary search for temporal positioning
+4. **Motion Parameter Calculation**: :math:`O(k)` - Speed and heading computation
+
+**Mathematical Optimization:**
+
+* **Numerical Stability**: SciPy provides robust algorithms for irregular data distributions
+* **Vectorized Operations**: NumPy enables efficient array processing for position coordinates
+* **Caching Strategy**: Spline coefficients cached between interpolation calls when possible
 
 Bottleneck Analysis
 ^^^^^^^^^^^^^^^^^^^
-The STEP Producer architecture is designed to handle high-frequency collision detection scenarios, 
+The STEP Adapter architecture is designed to handle high-frequency position processing, 
 but certain bottlenecks may arise. The following analysis identifies 
 potential bottlenecks and mitigation strategies:
 
-* **Primary Bottleneck**: Redis stream publication latency (network I/O bound)
-* **Secondary Bottleneck**: Sorted list maintenance for large record sets
+* **Primary Bottleneck**: Cubic spline coefficient calculation (CPU bound)
+* **Secondary Bottleneck**: Redis stream publication latency (network I/O bound)
 * **Mitigation Strategy**: Asynchronous processing and connection pooling
+* **Scaling Limits**: Performance degrades with very large fleet sizes (>1000 actors)

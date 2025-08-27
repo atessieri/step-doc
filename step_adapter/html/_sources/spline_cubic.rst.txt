@@ -1,0 +1,266 @@
+============================================
+Cubic Spline Interpolation for Trajectories
+============================================
+
+Overview
+========
+
+The cubic spline interpolation in the Step Adapter module provides a sophisticated solution for smoothing
+sparse GPS/GNSS trajectory data into continuous, time-aligned position sequences. This implementation
+uses SciPy's ``CubicSpline`` class to perform smooth spatial interpolation across three dimensions:
+latitude, longitude, and altitude.
+
+Mathematical Foundation
+=======================
+
+Cubic Spline Theory
+-------------------
+
+A cubic spline is a piecewise polynomial function that interpolates a set of data points with continuous
+first and second derivatives. For a set of data points :math:`(x_0, y_0), (x_1, y_1), ..., (x_n, y_n)`,
+the cubic spline :math:`S(x)` consists of cubic polynomials :math:`S_i(x)` for each interval :math:`[x_i, x_{i+1}]`:
+
+.. math::
+
+   S_i(x) = a_i + b_i(x - x_i) + c_i(x - x_i)^2 + d_i(x - x_i)^3
+
+where the coefficients :math:`a_i, b_i, c_i, d_i` are determined by the constraints:
+
+1. **Interpolation constraint**: :math:`S_i(x_i) = y_i` and :math:`S_i(x_{i+1}) = y_{i+1}`
+2. **Continuity constraint**: :math:`S_i(x_{i+1}) = S_{i+1}(x_{i+1})`
+3. **First derivative continuity**: :math:`S'_i(x_{i+1}) = S'_{i+1}(x_{i+1})`
+4. **Second derivative continuity**: :math:`S''_i(x_{i+1}) = S''_{i+1}(x_{i+1})`
+
+Multi-dimensional Interpolation
+-------------------------------
+
+For trajectory interpolation, three separate cubic splines are created:
+
+- **Latitude spline**: :math:`\text{Lat}(t) = \text{CubicSpline}(t, \text{latitude\_values})`
+- **Longitude spline**: :math:`\text{Lon}(t) = \text{CubicSpline}(t, \text{longitude\_values})`
+- **Altitude spline**: :math:`\text{Alt}(t) = \text{CubicSpline}(t, \text{altitude\_values})`
+
+where :math:`t` represents time in milliseconds since epoch.
+
+Implementation Details
+======================
+
+Core Algorithm
+--------------
+
+The interpolation process follows these steps:
+
+1. **Data Collection**: Accumulate GPS points in a sliding window (deque)
+2. **Array Preparation**: Extract time stamps and coordinates into NumPy arrays
+3. **Spline Creation**: Generate three independent cubic splines for each spatial dimension
+4. **Interpolation**: Evaluate splines at desired time points
+5. **Output Generation**: Create interpolated position objects with computed motion parameters
+
+Code Structure
+--------------
+
+.. code-block:: python
+
+   def _create_interpolators(self) -> tuple[CubicSpline, CubicSpline, CubicSpline]:
+       """Create cubic spline interpolators for latitude, longitude, and altitude."""
+       queue_len = len(self._input_points_queue)
+       
+       # Prepare arrays for vectorized operations
+       point_times_array = numpy.empty(queue_len, dtype=numpy.int64)
+       latitudes_array = numpy.empty(queue_len, dtype=numpy.float64)
+       longitudes_array = numpy.empty(queue_len, dtype=numpy.float64)
+       altitudes_array = numpy.empty(queue_len, dtype=numpy.int32)
+       
+       # Single pass through queue to populate arrays
+       for i, (time, position_info) in enumerate(self._input_points_queue):
+           point_times_array[i] = time
+           position = position_info.position
+           latitudes_array[i] = position.latitude
+           longitudes_array[i] = position.longitude
+           altitudes_array[i] = position.altitude.value if position.altitude else 0
+           
+       # Create three independent cubic splines
+       return (
+           CubicSpline(x=point_times_array, y=latitudes_array),
+           CubicSpline(x=point_times_array, y=longitudes_array),
+           CubicSpline(x=point_times_array, y=altitudes_array),
+       )
+
+Performance Analysis
+====================
+
+Time Complexity
+---------------
+
+The cubic spline interpolation has the following time complexity characteristics:
+
+**Spline Construction: O(n)**
+  - Array preparation: O(n) where n is the number of input points
+  - SciPy CubicSpline construction: O(n) due to the tridiagonal matrix solver
+  - Total spline creation: O(3n) = O(n) for three dimensions
+
+**Interpolation Evaluation: O(log(n))**
+  - Binary search for spline segment: O(log(n))
+  - Polynomial evaluation: O(1)
+  - **Per evaluation**: O(log(n))
+
+**Point Addition: O(n + k·log(n) + k)**
+  - Input validation: O(1)
+  - Queue management: O(1) amortized (deque operations)
+  - Spline reconstruction: O(n) when minimum points threshold is met
+  - Interpolation evaluation: O(k·log(n)) where k is output points and log(n) for spline evaluation
+  - Output generation: O(k) for creating position objects
+  - **Total**: O(n + k·log(n) + k)
+
+Space Complexity
+----------------
+
+**Memory Usage: O(n + k)**
+  - Input queue storage: O(n) for maintaining sliding window of points
+  - Spline coefficients: O(4n) for cubic polynomial coefficients (temporary array)
+  - Temporary arrays: O(3n) for time, latitude, longitude, altitude arrays
+  - Output queue: O(k) for interpolated results
+  - **Total**: O(n + k) steady-state with bounded queues
+
+**Memory Efficiency Features:**
+  - Sliding window prevents unbounded growth: O(n) where n is bounded by ``path_length_ms``
+  - Automatic cleanup of outdated points
+  - Deque-based queues for efficient insertion/deletion
+  - Pre-allocated arrays for vectorized operations
+
+.. note::
+   The algorithm maintains constant memory usage in steady-state operation due to the 
+   bounded sliding window approach, making it suitable for long-running real-time applications.
+
+Configuration Parameters
+========================
+
+The interpolation behavior is controlled by ``PointInterpolationConfig``:
+
+.. code-block:: python
+
+   @dataclass(frozen=True, kw_only=True, slots=True)
+   class PointInterpolationConfig:
+       path_length_ms: int              # Sliding window duration (ms)
+       output_nominal_period_ms: int    # Target output sampling rate (ms)
+       period_max_deviation_ms: int     # Timing tolerance (ms)
+
+**Parameter Constraints:**
+  - ``path_length_ms > 2 * output_nominal_period_ms`` (minimum window size)
+  - ``0 < output_nominal_period_ms ≤ 1000`` (reasonable output rates)
+  - ``0 ≤ period_max_deviation_ms < output_nominal_period_ms`` (timing tolerance)
+
+Examples
+========
+
+Basic Usage Example
+-------------------
+
+.. code-block:: python
+
+   from step_adapter.point_interpolation import PointInterpolation, PointInterpolationConfig
+   import logging
+   
+   # Configure interpolation parameters
+   config = PointInterpolationConfig(
+       path_length_ms=5000,              # 5-second sliding window
+       output_nominal_period_ms=100,     # 10 Hz output rate  
+       period_max_deviation_ms=20        # ±20ms tolerance
+   )
+   
+   # Create interpolator instance
+   logger = logging.getLogger(__name__)
+   interpolator = PointInterpolation(config, logger)
+   
+   # Process GPS points
+   for timestamp, position_info in gps_data_stream:
+       result = interpolator.add_point(timestamp, position_info)
+       if result == PointInterpolation.InsertPointResult.SUCCESS:
+           # Get interpolated trajectory points
+           interpolated_positions = interpolator.get_interpolated_values()
+           for pos in interpolated_positions:
+               print(f"Time: {pos.time}, Lat: {pos.position.latitude}, "
+                     f"Lon: {pos.position.longitude}")
+
+Trajectory Interpolation Visualization
+--------------------------------------
+
+The following example demonstrates trajectory interpolation with cubic splines:
+
+* Trajectory interpolation from 1 Hz to 10 Hz:
+
+    #. **Orange**: Original GPS points (1 Hz)
+    #. **Red**: Cubic spline interpolation (10 Hz)
+
+.. figure:: _static/images/downsampled_1.png
+   :width: 800px
+   :align: center
+   :alt: Cubic spline interpolation 1 Hz to 10 Hz
+
+   **Figure 1:** Cubic spline interpolation 1 Hz to 10 Hz.
+
+
+* Trajectory interpolation from 0.5 Hz to 10 Hz:
+
+    #. **Orange**: Original GPS points (1 Hz)
+    #. **Purple**: Noisy GPS points (0.5 Hz)
+    #. **Blue**: Cubic spline interpolation (10 Hz)
+
+.. figure:: _static/images/downsampled_2.png
+   :width: 800px
+   :align: center
+   :alt: Cubic spline interpolation 0.5 Hz to 10 Hz
+
+   **Figure 2:** Cubic spline interpolation 0.5 Hz to 10 Hz.
+
+* Trajectory interpolation from 0.33 Hz to 10 Hz:
+
+    #. **Orange**: Original GPS points (1 Hz)
+    #. **Bright Green**: Noisy GPS points (0.33 Hz)
+    #. **Yellow**: Cubic spline interpolation (10 Hz)
+
+.. figure:: _static/images/downsampled_3.png
+   :width: 800px
+   :align: center
+   :alt: Cubic spline interpolation 0.33 Hz to 10 Hz
+
+   **Figure 3:** Cubic spline interpolation 0.33 Hz to 10 Hz.
+
+* Trajectory interpolation from 0.25 Hz to 10 Hz:
+
+    #. **Orange**: Original GPS points (1 Hz)
+    #. **Green**: Noisy GPS points (0.25 Hz)
+    #. **Sky Blue**: Cubic spline interpolation (10 Hz)
+
+.. figure:: _static/images/downsampled_4.png
+   :width: 800px
+   :align: center
+   :alt: Cubic spline interpolation 0.25 Hz to 10 Hz
+
+   **Figure 4:** Cubic spline interpolation 0.25 Hz to 10 Hz.
+
+Algorithm Advantages
+====================
+
+**Smoothness**: Cubic splines provide C² continuity, ensuring smooth trajectories without sharp corners or discontinuities.
+
+**Locality**: Changes in one data point only affect nearby spline segments, providing numerical stability.
+
+**Minimum Curvature**: Among all twice-differentiable interpolating functions, cubic splines minimize the integral of the square of the second derivative, producing the "smoothest" possible curve.
+
+**Computational Efficiency**: O(n) construction time and O(log n) evaluation time make it suitable for real-time applications.
+
+**Memory Efficiency**: Bounded sliding window approach prevents memory growth during long-running operations.
+
+Limitations and Considerations
+==============================
+
+**Boundary Effects**: Spline behavior at boundaries depends on boundary conditions (natural, clamped, or not-a-knot).
+
+**Oscillation**: With noisy data or poor point distribution, cubic splines can exhibit unwanted oscillations between data points.
+
+**Temporal Gaps**: Large gaps in time can cause unrealistic interpolation; the implementation includes gap detection to prevent this.
+
+**Coordinate System**: Interpolation is performed in geographic coordinates (lat/lon), which may introduce distortions for large distances due to Earth's curvature.
+
+**Minimum Points**: Requires at least 4 points for stable cubic spline construction.
