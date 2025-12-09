@@ -1,0 +1,198 @@
+STEP Publisher Pickle Usage Guide
+=================================
+
+Introduction
+------------
+
+The **STEP Publisher Pickle** is a application for the Smart Transportation Ecosystem Platform (STEP) 
+that publishes vehicle position data from pickle (PKL) files to the STEP broker using ITS ETSI messages. 
+This MQTT-based tool simulates real-world Connected and Autonomous Vehicle (CAV) messaging by 
+reading trajectory data from pickle files and publishing them as Cooperative Awareness Messages (CAM).
+
+**Core Functionality:**
+
+The publisher operates as a scenario-based vehicle simulator that:
+
+  * **Scenario Loading**: Reads vehicle trajectory data from pickle files containing GNSS positions, 
+    speed, and heading information
+  * **CAM Message Publishing**: Converts trajectory data into Cooperative Awareness Messages (CAM) 
+    following ETSI TS 103 900 standards
+  * **Multi-Vehicle Simulation**: Supports concurrent publishing of multiple vehicle trajectories 
+    using asynchronous task groups
+  * **Real-time Timing**: Maintains realistic timing between position updates based on ItsTime 
+    calculations from scenario data
+  * **MQTT Integration**: Publishes messages to STEP broker with configurable QoS levels and 
+    SSL/TLS security
+
+**Performance Characteristics:**
+
+The STEP Publisher Pickle is designed for realistic vehicle simulation:
+
+  * **Concurrent Vehicles**: Handles multiple vehicles simultaneously with independent timing
+  * **Time Synchronization**: Converts scenario timestamps to real-time for synchronized playback
+  * **Message Timing**: Maintains precise timing intervals between position updates
+  * **Asynchronous Operation**: Non-blocking async/await patterns for efficient resource usage
+  * **Graceful Shutdown**: Proper cleanup on interruption with signal handling
+
+**Key Components:**
+
+  * **Scenario Management**: Loads and manages vehicle trajectory data from pickle files
+  * **STEP Broker Client**: MQTT-based communication with the STEP broker
+  * **Time Reference System**: Maps scenario time to real-time for synchronized playback
+  * **Configuration System**: Hierarchical Pydantic-based configuration models with comprehensive validation
+  * **Async Task Management**: Concurrent publisher tasks using asyncio.TaskGroup
+  * **Signal Handling**: Cross-platform support (Windows SIGBREAK, Unix SIGINT)
+
+Prerequisites
+-------------
+
+Before using the STEP Publisher Pickle, make sure you have:
+
+    #. Python 3.13 or higher installed
+    #. Access to a STEP MQTT broker with valid credentials
+    #. Vehicle trajectory data in pickle (PKL) format
+    #. The step_publisher_pkl package installed in your environment
+
+Installation
+------------
+
+You can install the STEP Publisher Pickle package using pip:
+
+.. code-block:: bash
+
+    pip install step-publisher-pkl
+
+Or install directly from the git repository:
+
+.. code-block:: bash
+
+    pip install git+https://gitlab.automotive.vodafone.com/vfa-init/pnrr/step_publisher_pkl.git@step_publisher_pkl_<version>#egg=step_publisher_pkl
+
+Or if you're using a development version:
+
+.. code-block:: bash
+
+    pip install -e /path/to/step_publisher_pkl
+
+Basic Concepts
+--------------
+
+STEP Publisher Pickle operates as a vehicle trajectory simulator,
+reading vehicle position data from pickle files and publishing them as CAM messages 
+to the STEP MQTT broker. Key concepts include:
+
+  * **Pickle Scenario Files**: Vehicle trajectory data stored in pickle format containing 
+    GNSS positions, speed, heading, and timestamp information
+  * **CAM Message Publishing**: Converts trajectory data into Cooperative Awareness Messages 
+    (CAM) following ETSI standards for V2X communication
+  * **MQTT Broker Connection**: Establishes secure connection to STEP broker with SSL/TLS 
+    support and certificate authentication
+  * **Time Reference System**: Maps scenario timestamps to real-time for synchronized 
+    playback of recorded vehicle movements
+  * **Multi-Vehicle Simulation**: Concurrent publishing of multiple vehicle trajectories 
+    using asyncio task groups
+  * **Station Position Management**: Sequential consumption of vehicle positions with 
+    automatic queue management
+  * **Event-Driven Architecture**: Asynchronous task execution for non-blocking 
+    concurrent vehicle simulation
+  * **Signal Handling**: Graceful shutdown capabilities with proper resource 
+    cleanup when interrupted by system signals (SIGINT, SIGBREAK)
+  * **Configurable QoS**: Quality of Service levels (0, 1, 2) for reliable message delivery
+  * **Topic Management**: Flexible topic configuration for publishing CAM messages 
+    with geohash precision support
+
+Configuration
+-------------
+
+STEP Publisher Pickle requires configuration for MQTT broker connections, 
+pickle folder path, and logging settings. 
+The configuration is managed through a JSON file.
+
+Creating a Configuration File
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+To create a default configuration template:
+
+.. code-block:: bash
+
+    step_publisher_pkl --conf_template my_config_template.json
+
+This generates a template that you can customize for your specific needs.
+
+Key Configuration Parameters
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  
+* **Base Configuration**:
+
+  * templateVersion: Configuration template version (currently "1")
+  * pklFolderPath: Path to the folder containing pickle files with vehicle trajectory data
+
+* **STEP Broker Configuration**:
+
+  * mqttClient: MQTT broker connection details (host, port, credentials, SSL settings)
+  * mqttProtocol: MQTT protocol parameters (QoS, topics, session settings)
+  * cacheDir: Directory for caching broker-related data
+  
+* **MQTT Client Configuration**:
+
+  * host: MQTT broker host address
+  * port: MQTT broker port (typically 8883 for SSL/TLS)
+  * username: Authentication username
+  * password: Authentication password
+  * sslEnable: Enable/disable SSL/TLS encryption
+  * sslClientKeyFile: Path to client private key file
+  * sslClientCertFile: Path to client certificate file
+  * sslCaCertsFile: Path to CA certificates file
+  
+* **MQTT Protocol Configuration**:
+
+  * sessionExpiry: Session expiry interval (seconds)
+  * timeout: Connection timeout (seconds)
+  * keepalive: Keepalive interval (seconds)
+  * maxQueuedIncomingMessages: Maximum incoming message queue size
+  * maxQueuedOutgoingMessages: Maximum outgoing message queue size
+  * cleanStart: Clean session start flag
+  * maxSubscriptionQos: Maximum QoS level for subscriptions
+  * publishTopics: List of topics for publishing CAM messages with QoS and geohash settings
+  
+* **Log Configuration**:
+
+  * handler: Log handler configuration (type, path, filename)
+  * level: Logging level (DEBUG, INFO, WARNING, ERROR)
+  * format: Log message format
+  * dateFormat: Date format for log timestamps
+
+Example Configuration
+^^^^^^^^^^^^^^^^^^^^^
+
+The schema of the example below is: :ref:`STEP Publisher Pickle Configuration Schema<step_publisher_pkl_config_schema>`
+
+.. literalinclude:: schemas_examples/step_publisher_pkl_config_v1_schema_template.json
+  :language: JSON
+
+Running STEP Publisher Pickle as a Service
+------------------------------------------
+
+To run the STEP Publisher Pickle as a standalone application:
+
+.. code-block:: bash
+
+    step_publisher_pkl --config /path/to/config.json --instance my_publisher
+
+This will start the publisher, which will:
+
+    #. Connect to the STEP MQTT broker
+    #. Load vehicle trajectories from pickle files
+    #. Publish CAM messages for each vehicle with realistic timing
+
+Command-Line Options
+--------------------
+
+The STEP Publisher Pickle supports several command-line options:
+
+  * ``--version``, ``-v``: Show version information
+  * ``--help``, ``-h``: Show help information
+  * ``--conf_schema``, ``-s``: Generate a JSON schema for the configuration
+  * ``--conf_template``, ``-t``: Generate a configuration template
+  * ``--config``, ``-c``: Path to configuration file (requires -i)
+  * ``--instance``, ``-i``: Specify the instance name (requires -c)

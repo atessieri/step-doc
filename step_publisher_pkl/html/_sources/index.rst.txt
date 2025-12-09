@@ -1,0 +1,331 @@
+STEP Publisher Pickle: Overview
+===============================
+
+|Python version| |Code Style| |UV| |Typing| |Documentation|
+|Tests| |Test coverage badge| |Docstring coverage badge|
+
+.. list-table::
+   :widths: 20 80
+   :stub-columns: 1
+
+   * - Version
+     - |release|
+   * - Release Date
+     - December 08, 2025
+
+.. toctree::
+   :maxdepth: -1
+   :hidden:
+   :caption: STEP Publisher Pickle:
+
+   installation
+   commands
+   usage
+   package_script
+   architecture
+   schemas_rst/json_schemas
+   step_publisher_pkl_rst/step_publisher_pkl
+   test_rst/test
+
+
+
+The **STEP Publisher Pickle** is a specialized component of the STEP (Safer Transport for Europe Platform) 
+ecosystem, designed to integrate CARLA simulator-generated vehicle trajectory data with real-world ITS 
+infrastructure. This MQTT-based publisher translates CARLA simulation scenarios stored in pickle files 
+into Cooperative Awareness Messages (CAM) for the STEP broker, enabling realistic vehicle trajectory 
+testing within the ITS ecosystem.
+
+Purpose
+-------
+
+The **STEP Publisher Pickle** serves as a bridge between CARLA simulator and the STEP platform, 
+publishing vehicle position data from CARLA-generated pickle files as ITS ETSI messages. It loads 
+vehicle trajectory data including GNSS positions, speed, heading, and timestamp information, then 
+publishes them as Cooperative Awareness Messages (CAM) to the STEP MQTT broker with realistic 
+timing and multi-vehicle support.
+
+Key Features
+------------
+
+CARLA Simulator Integration
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- **Pickle File Processing**: Loads vehicle trajectory data from CARLA-generated pickle files 
+  containing timestamped GNSS positions, speed, heading, and vehicle dynamics
+- **Time Reference Mapping**: Establishes mapping between CARLA simulation timestamps and real-world 
+  time for synchronized playback of recorded vehicle movements
+- **Multi-Vehicle Support**: Processes multiple vehicle trajectories from CARLA scenarios concurrently
+- **Station Position Management**: Manages vehicle position data as queues for efficient sequential 
+  access and consumption
+
+CAM Message Publishing
+~~~~~~~~~~~~~~~~~~~~~~
+
+- **ETSI TS 103 900 Compliance**: Publishes Cooperative Awareness Messages following ITS standards
+- **Message Encoding**: Converts CARLA trajectory data into structured CAM format with proper 
+  ITS message components (Identification, ItsTime, ReferencePosition, Speed, Heading)
+- **GeoNetwork Addressing**: Configures proper addressing with traffic participant type and MAC ID 
+  for ITS message routing
+- **Realistic Timing**: Maintains precise timing intervals between position updates using ItsTime 
+  calculations
+
+MQTT Communication
+~~~~~~~~~~~~~~~~~~
+
+- **Secure Connection**: TLS/SSL connections to STEP MQTT broker with certificate authentication
+- **Configurable QoS**: Supports Quality of Service levels (0, 1, 2) for reliable message delivery
+- **Asynchronous Publishing**: Non-blocking async/await patterns for high-throughput message publishing
+- **Topic Management**: Flexible topic configuration with geohash precision support
+
+Configuration and Monitoring
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- **Hierarchical Configuration**: Pydantic-based configuration models with MQTT client, protocol, 
+  broker, logging, and pickle folder path settings
+- **JSON Schema Support**: Configuration validation and template generation via command-line options
+- **Comprehensive Logging**: UTC-based timestamps with multiple handlers (stream, file, rotating) 
+  and automatic ZIP compression for rotated logs
+- **Signal Handling**: Cross-platform graceful shutdown (Windows SIGBREAK, Unix SIGINT)
+
+Core Components
+---------------
+
+Scenario Management
+~~~~~~~~~~~~~~~~~~~
+
+The ``Scenario`` class provides comprehensive management of CARLA-generated vehicle trajectory 
+data for publishing to the STEP broker. It serves as the main data loader and orchestrator 
+for multi-vehicle trajectory playback and handles:
+
+  - Loading vehicle trajectory data from CARLA-generated pickle files
+  - Establishing time reference mapping between CARLA simulation time and real-world time
+  - Managing vehicle position data as queues (using ``deque``) for efficient sequential access
+  - Converting raw trajectory data to structured CAM format with proper ITS components
+  - Providing vehicle IDs and position arrays through generator methods
+  - Maintaining separate position queues for each vehicle enabling concurrent publishing
+
+Key responsibilities:
+  - Managing vehicle data lifecycle from loading to consumption
+  - Coordinating time reference for realistic playback timing
+  - Providing ``pop_position_arrays()`` generator for sequential position consumption
+  - Calculating next position times for maintaining realistic timing intervals
+
+STEP Broker Client
+~~~~~~~~~~~~~~~~~~~
+
+The ``StepBroker`` class provides MQTT communication with the STEP broker for publishing 
+CAM messages. Extending ``AsyncComManager``, it implements:
+
+  - **Secure MQTT Connection**: TLS/SSL connections with certificate authentication
+  - **Message Publication**: Publishing CAM messages via ``client_publish_its_message()`` method
+  - **Message Encoding**: Converting ``CamMessageV1`` objects to ITS message format
+  - **GeoNetwork Configuration**: Setting up addressing with traffic participant type and MAC ID
+  - **Context Management**: Asynchronous resource handling through ``__aenter__`` and ``__aexit__``
+
+Main Application
+~~~~~~~~~~~~~~~~
+
+The main application (``__main__``) orchestrates the asynchronous publishing workflow:
+
+- **Command-Line Interface**: Provides CLI for version display, configuration schema/template 
+  generation, and publisher execution
+- **Task Orchestration**: Uses ``asyncio.TaskGroup`` for concurrent publisher tasks per vehicle
+- **Exit Code Management**: Defines standard exit codes (OK, USAGE, ERROR, ABORTED) via ``ExitCode`` enum
+- **Signal Handling**: Cross-platform signal handling (Windows SIGBREAK, Unix SIGINT)
+- **Publisher Coordination**: The ``_publisher_run()`` coroutine manages individual vehicle 
+  publishing with timing calculations and sleep intervals
+- **Event Loop Management**: Windows uses ``SelectorEventLoop`` for compatibility
+
+Configuration System
+~~~~~~~~~~~~~~~~~~~~
+
+The configuration system (``StepPublisherPklConfig``) offers:
+
+  - **Hierarchical Configuration**: Multi-level settings including MQTT client, protocol, 
+    broker, logging, and pickle folder path
+  - **Type Safety**: Strong typing and validation via Pydantic models
+  - **JSON Schema Generation**: Schema validation and template creation through CLI options
+  - **Immutable Design**: Frozen configuration ensuring consistency throughout execution
+  - **Default Configurations**: Pre-configured defaults via ``get_default()`` methods
+
+Logging Infrastructure
+~~~~~~~~~~~~~~~~~~~~~~
+
+The logging system (``StepLogger``) provides:
+
+  - **UTC Formatting**: ``UtcFormatter`` class using ``gmtime`` for consistent timestamps
+  - **Multiple Handlers**: Stream, file, rotating file (size/time-based), and null handlers
+  - **Log Compression**: Automatic ZIP compression via ``_rotator()`` function for rotated logs
+  - **Configurable Levels**: Adjustable logging verbosity (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+  - **Structured Logging**: Comprehensive operation logging with vehicle ID, timing, and position data
+
+Exception Handling
+~~~~~~~~~~~~~~~~~~
+
+The exception system provides:
+
+  - **Base Exception**: ``StepPublisherPklError`` for all publisher-related errors
+  - **CLI Exception**: ``StepCliError`` for command-line specific errors (argument parsing, 
+    configuration loading)
+  - **Logging Integration**: Proper exception logging with appropriate severity levels
+  - **Default Configurations**: Pre-configured default instances for quick setup and development
+  - **Actor Dataset Configuration**: Specialized configuration for timing parameters and 
+    trajectory management
+
+Logging Infrastructure
+~~~~~~~~~~~~~~~~~~~~~~
+
+The logging system (``StepLogger``) provides:
+
+  - **Multiple Handlers**: Stream, file, rotating file, and null handlers for flexible output options
+  - **UTC Formatting**: Standardized UTC timestamp formatting for consistent log entries
+  - **Configurable Levels**: Adjustable logging levels for different environments (development, production)
+  - **Structured Logging**: Comprehensive operation logging throughout the service lifecycle 
+    with detailed processing metrics
+
+Architecture
+------------
+
+Event-Driven Processing
+~~~~~~~~~~~~~~~~~~~~~~~
+
+The publisher follows an event-driven architecture pattern:
+
+  #. **Configuration Loading**: Loads configuration from JSON file via command-line arguments
+  #. **Scenario Loading**: Reads CARLA-generated vehicle trajectory data from pickle files
+  #. **Broker Connection**: Establishes secure MQTT connection to STEP broker with TLS/SSL
+  #. **Task Creation**: Creates concurrent publisher tasks using ``asyncio.TaskGroup`` for 
+     each vehicle in the scenario
+  #. **Position Publishing**: Publishes CAM messages with timing based on ItsTime calculations
+  #. **Timing Management**: Sleeps between position updates to maintain realistic intervals
+  #. **Graceful Shutdown**: Handles interruption signals and performs proper resource cleanup
+
+Asynchronous Operations
+~~~~~~~~~~~~~~~~~~~~~~~
+
+The architecture utilizes:
+
+  - **Async/await**: Non-blocking operations for concurrent multi-vehicle publishing
+  - **TaskGroup**: Concurrent execution of publisher tasks with automatic cancellation on error
+  - **Context Managers**: Asynchronous context management for MQTT connection lifecycle
+  - **Event Loop**: Windows uses ``SelectorEventLoop`` for optimal compatibility
+
+Message Flow
+~~~~~~~~~~~~
+
+#. **Pickle File Loading**: CARLA vehicle trajectories loaded from configured pickle folder
+#. **Time Reference Establishment**: Scenario time mapped to real-world time for synchronized playback
+#. **Vehicle Iteration**: For each vehicle, separate concurrent publisher task created
+#. **Position Consumption**: Positions consumed sequentially via ``pop_position_arrays()`` generator
+#. **CAM Conversion**: Trajectory data wrapped in ``CamMessageV1`` format
+#. **MQTT Publishing**: CAM messages published to STEP broker via ``client_publish_its_message()``
+#. **Timing Calculation**: Time differences calculated using ``ItsTime.time_difference()``
+#. **Realistic Delays**: Sleep intervals maintain original CARLA scenario timing
+
+Standards Compliance
+--------------------
+
+The STEP Publisher Pickle adheres to key ITS standards:
+
+- **ETSI TS 103 900**: Cooperative Awareness Messages (CAM) format and encoding
+
+Dependencies
+------------
+
+Core Dependencies
+~~~~~~~~~~~~~~~~~
+
+- **step_cloud_schemas**: ITS message schemas including CAM format, ItsTime for timing calculations, 
+  and CloudEvents structures
+- **step_lib**: Core library providing AsyncComManager, CamMessageV1, MQTT utilities (MqttQoS, 
+  PublishTopicParams), GPS location, and GeoNetwork addressing
+- **aiomqtt**: Asynchronous MQTT client library with TLS support for non-blocking publishing
+- **paho-mqtt**: MQTT protocol implementation with subscription options and QoS controls
+- **pydantic**: Configuration validation and schema generation with type safety
+- **asyncio**: Asynchronous processing capabilities for concurrent vehicle publishing
+
+Development Dependencies
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+- **pytest**: Testing framework for unit and integration tests
+- **ruff**: Code formatting and linting tools
+- **mypy**: Static type checking for Python code
+- **sphinx**: Documentation generation for code documentation
+
+Deployment
+----------
+
+The STEP Publisher Pickle can be deployed as:
+
+- **Command-Line Tool**: Direct execution via ``python -m step_publisher_pkl`` with configuration file
+- **Standalone Application**: Independent process for publishing CARLA simulation data
+- **Integration Component**: Part of larger CARLA-to-STEP testing infrastructure
+
+Configuration options support various deployment scenarios:
+
+- **Development**: Local testing with debug logging and simplified configuration
+- **Testing**: CARLA simulation replay with realistic timing for ITS infrastructure validation
+- **CI/CD Integration**: Automated testing scenarios with CARLA-generated test data
+
+Usage Patterns
+--------------
+
+The publisher supports multiple usage patterns:
+
+Publishing Mode
+~~~~~~~~~~~~~~~
+
+Run as a publisher for CARLA simulation data:
+
+.. code-block:: bash
+
+   step_publisher_pkl --instance step_publisher_pkl --config config.json
+
+Configuration Generation
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Generate configuration templates and schemas:
+
+.. code-block:: bash
+
+   step_publisher_pkl --conf_template config_template.json
+   step_publisher_pkl --conf_schema config_schema.json
+
+Version Information
+~~~~~~~~~~~~~~~~~~~
+
+Display version information for the package and dependencies:
+
+.. code-block:: bash
+
+   python -m step_publisher_pkl --version
+
+Testing
+-------
+
+The project includes comprehensive tests covering:
+
+- **Unit Tests**: Individual component functionality including scenario loading and time reference
+- **Configuration Tests**: Validation of configuration schemas and default values
+- **Integration Tests**: MQTT publishing and CAM message encoding workflows
+- **Timing Tests**: Verification of realistic timing interval calculations
+
+Getting Started
+---------------
+
+To begin using the STEP Publisher Pickle, refer to the :doc:`installation<installation>`
+section and the :doc:`usage<usage>` section for detailed guidance.
+
+.. |Python version| image:: https://img.shields.io/badge/python-3.13%2B-blue.svg
+   :target: https://www.python.org/downloads/
+.. |Code Style| image:: https://img.shields.io/badge/code%20style-ruff-261230.svg
+   :target: https://github.com/astral-sh/ruff
+.. |UV| image:: https://img.shields.io/badge/package%20manager-uv-DE5FE9.svg
+   :target: https://github.com/astral-sh/uv
+.. |Typing| image:: https://img.shields.io/badge/typing-mypy-blue.svg
+   :target:  https://mypy.readthedocs.io/en/stable/
+.. |Documentation| image:: https://img.shields.io/badge/docs-sphinx-blue.svg
+.. |Tests| image:: https://img.shields.io/badge/tests-pytest-orange.svg
+   :target:  https://docs.pytest.org/en/stable/
+.. |Test coverage badge| image:: ./badges/test_coverage.svg
+.. |Docstring coverage badge| image:: ./badges/docstr_coverage.svg
