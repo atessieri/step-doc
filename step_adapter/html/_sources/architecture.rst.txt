@@ -1,321 +1,464 @@
 Architecture
 ============
 
-This document describes the architecture of the STEP Client, a Python package 
-for communicating with the STEP (Safer Transport for Europe Platform) MQTT broker 
-to receive and send ITS (Intelligent Transport Systems) messages.
+This document describes the architecture of the STEP Adapter, a Python package 
+for processing real-time vehicle position data for crash prediction systems.
 
 Overview
 --------
 
-The STEP Client serves as an interface between the STEP MQTT broker and Redis 
-streams for message processing. It provides functionality for subscribing to MQTT topics, 
-publishing ITS messages, and managing message queuing.
+The **STEP Adapter** is a critical component of the STEP (Safer Transport for Europe Platform) ecosystem, 
+specifically designed for processing raw GNSS tracking data and ITS communication messages into smooth, 
+regularly-sampled position arrays optimized for Crash Prediction algorithms. This Redis-based microservice 
+transforms irregular vehicle position data from CAM (Cooperative Awareness Messages) and CPM (Collective 
+Perception Messages) into high-quality interpolated trajectories suitable for real-time traffic analysis 
+and collision prediction.
 
 Library
 -------
 
-The STEP Client project leverages several key libraries to provide robust ITS message 
-communication and Redis integration capabilities:
+The STEP Adapter leverages a carefully selected set of libraries and frameworks to implement 
+robust, high-performance position data processing capabilities. The library architecture follows 
+a layered approach with core Python libraries, specialized scientific packages, and custom STEP 
+ecosystem components.
 
-**Core Dependencies:**
+Core Dependencies
+^^^^^^^^^^^^^^^^^
 
-    #. **Pydantic**: Used extensively for configuration management and data 
-       validation throughout the system. The ``StepClientConfig`` class and its nested 
-       configuration models rely on Pydantic's ``BaseModel`` for type-safe configuration 
-       loading, validation, and JSON schema generation.
+**Pydantic**
+   Advanced data validation and settings management library that provides the foundation for 
+   configuration management throughout the STEP Adapter. Pydantic enables:
 
-    #. **step_cloud_schemas**: Provides standardized data schemas for ITS 
-       messages including CAM (Cooperative Awareness Messages), DENM (Decentralized 
-       Environmental Notification Messages), CPM, and VAM formats. Contains CloudEvents 
-       message structures used for message conversion between different system components.
+      * **Type Safety**: Strong typing with automatic validation for all configuration parameters
+      * **Schema Generation**: Automated JSON schema creation for configuration documentation
+      * **Serialization**: Robust JSON serialization/deserialization for configuration persistence
+      * **Model Validation**: Runtime validation of configuration data with detailed error reporting
 
-    #. **step_lib**: Core library providing fundamental components including:
-       
-        * ``AsyncComManager``: Base class for asynchronous communication management
-        * ``FacilityMessage``: ITS message handling and encoding/decoding functionality  
-        * MQTT utilities including ``MqttQoS`` enumerations and ``PublishTopicParams``
-        * GPS location and GeoNetwork addressing components
-        * TLS/SSL security parameter management
+   Used extensively in ``StepAdapterConfig`` and related configuration classes to ensure 
+   type-safe, validated configuration management across all Adapter components.
 
-    #. **step_redis**: Redis integration library providing:
-       
-        * ``StepRedisPool``: Connection pooling for Redis database connections
-        * ``StepRedisStream``: Stream handling for message queuing and distribution
-        * Redis stream parameter management and configuration
-    
-    #. **aiomqtt**: Asynchronous MQTT client library with TLS support
-    
-    #. **paho-mqtt**: MQTT protocol implementation providing subscription options and QoS controls
+**SciPy**
+   Scientific computing library providing the mathematical foundation for position interpolation. 
+   Key capabilities include:
 
-This library ecosystem enables the STEP Client to provide a comprehensive, type-safe, 
-and highly configurable solution for ITS message communication within the STEP platform.
+      * **CubicSpline**: Advanced cubic spline interpolation for smooth trajectory generation
+      * **Numerical Stability**: Robust algorithms for handling irregular data distributions
+      * **Performance**: Optimized C implementations for high-frequency processing
+
+   Critical for the ``PointDataset`` component where position trajectories require smooth 
+   interpolation between irregular GNSS measurements for collision prediction accuracy. The 
+   CubicSpline class is used directly within PointDataset for generating interpolated positions.
+
+**NumPy**
+   Fundamental numerical computing library that provides efficient array operations and 
+   mathematical functions. Core functionality includes:
+
+      * **Array Operations**: Efficient multi-dimensional array processing for position data
+      * **Mathematical Functions**: Vectorized operations for motion parameter calculations
+      * **Memory Efficiency**: Optimized memory layout for large trajectory datasets
+
+   Essential for supporting SciPy operations and enabling efficient numerical processing 
+   throughout the interpolation pipeline.
+
+**SortedContainers**
+   High-performance pure-Python sorted container implementation that provides the data structure 
+   foundation for efficient temporal ordering in multi-actor scenarios. Key capabilities include:
+
+      * **Sorted Lists**: O(log n) insertion and deletion with maintained chronological ordering
+      * **Memory Efficiency**: Optimized memory layout for large actor collections
+      * **Performance**: Fast search, insert, and delete operations for time-ordered datasets
+
+   Critical for the ``ActorDataset`` where chronologically ordered position data across multiple 
+   vehicles requires efficient temporal indexing and actor lifecycle management.
+
+**step_cloud_schemas**
+   Custom STEP ecosystem library that defines standardized ITS message schemas and data structures. 
+   This library provides:
+
+      * **ITS Message Schemas**: Complete CAM and CPM message structures compliant with ETSI standards
+      * **Cloud Events**: Standardized cloud event wrappers for ITS message distribution
+      * **Position Primitives**: Core position data types including coordinates, timestamps, and motion parameters
+      * **Position Arrays**: ``PositionArrayV1`` structures for crash prediction integration
+
+   Essential for maintaining compatibility across the STEP ecosystem and ensuring standard-compliant 
+   message processing and position data generation.
+
+**step_redis**
+   STEP-specific Redis integration library that provides the messaging and stream processing 
+   foundation. Core functionality includes:
+
+      * **Connection Pooling**: Efficient Redis connection management with automatic reconnection
+      * **Stream Processing**: High-level abstractions for Redis streams with consumer group support
+      * **Message Serialization**: Automatic conversion between Python objects and Redis stream data
+      * **Error Handling**: Robust error handling and recovery mechanisms for Redis operations
+
+   Provides the base classes ``StepRedisPool`` and ``StepRedisStream`` that are extended by 
+   ``StepAdapterRedisPool`` and ``StepAdapterRedisStream`` for Adapter-specific functionality.
+
+Architecture Integration
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+The library selection supports the STEP Adapter's architectural requirements:
+
+* **High Performance**: SciPy and NumPy enable efficient interpolation of high-frequency 
+  position data streams
+* **Type Safety**: Pydantic provides compile-time and runtime type validation throughout the system
+* **Standards Compliance**: step_cloud_schemas ensures ETSI ITS standard compliance for all messages
+* **Scalability**: step_redis abstractions support horizontal scaling through Redis stream 
+  distribution
+* **Maintainability**: Comprehensive development tooling ensures code quality and documentation 
+  standards
 
 Components
 ----------
 
-The architecture follows a modular design pattern that separates concerns between MQTT 
-communication, Redis integration, and configuration management. This enables flexibility 
+The architecture follows a modular design pattern that separates concerns between position data processing, 
+interpolation, actor management, Redis integration, and configuration management. This enables flexibility 
 and maintainability in the system design.
 
 Main Components:
 
-    #. **StepBroker**: Gateway class for MQTT communication with the STEP broker
-    #. **StepClientConfig**: Configuration management for the client
-    #. **StepClientRedisPool/StepClientRedisStream**: Redis integration 
-       for message queuing
-    #. **StepLogger**: Logging utilities specific to the STEP client
-    #. **StepException**: Custom exceptions for error handling
+   #. **ActorDataset/ActorDatasetConfig**: Multi-actor position dataset management 
+      with real-time interpolation and temporal indexing.
+   #. **PointDataset/PointDatasetConfig**: Position dataset management with cubic 
+      spline interpolation for individual actors, directly performing all interpolation 
+      tasks using SciPy.
+   #. **StepAdapterRedisPool/StepAdapterRedisStream**: Redis integration 
+      for message streaming and crash prediction data distribution.
+   #. **StepAdapterConfig**: Configuration management for the Adapter
+   #. **StepLogger**: Logging utilities specific to the STEP Adapter
+   #. **StepCliException**: Custom exceptions for error handling
 
-StepBroker
-^^^^^^^^^^
+ActorDataset
+^^^^^^^^^^^^
 
-The ``StepBroker`` (STEP Gateway) is a core component of the STEP Client architecture
-that manages MQTT communication with the STEP broker. Extending the ``AsyncComManager`` class, 
-it provides an asynchronous interface for secure, reliable message exchange between 
-client applications and the STEP ecosystem.
+The ``ActorDataset`` class serves as the primary coordinator for multi-actor position processing within 
+the STEP Adapter architecture. This component manages the complete lifecycle of vehicle position data 
+from multiple concurrent actors, providing thread-safe concurrent processing, automatic memory management, 
+and high-performance interpolation capabilities designed for V2X applications.
 
-Key responsibilities of ``StepBroker`` include:
+**Core Responsibilities:**
 
-    #. **MQTT Connection Management**: Establishes and maintains secure TLS/SSL connections 
-       to the MQTT broker, handling reconnection and error scenarios.
-    #. **Topic Subscription**: Manages subscriptions to MQTT topics with configurable 
-       Quality of Service (QoS) levels to receive ITS messages from the STEP broker.
-    #. **Message Publication**: Publishes ITS messages to the STEP broker with
-       appropriate topic selection and message encoding.
-    #. **Message Conversion**: Handles bidirectional conversion between raw 
-       messages and CloudEventsItsMessage format.
-    #. **Integration with Redis**: Coordinates with ``StepClientRedisStream`` to queue 
-       received messages in Redis streams and publish client-generated messages.
-    #. **Context Management**: Implements asynchronous context management through 
-       ``__aenter__`` and ``__aexit__`` methods for clean resource handling.
+   #. **Multi-Actor Coordination**: Manages position datasets across hundreds to thousands of vehicles 
+      simultaneously, providing logarithmic scaling performance and predictable memory usage.
+   #. **CAM Message Processing**: Receives and processes CAM and CPM messages, converting ITS 
+      communication data into structured position trajectories for crash prediction analysis.
+   #. **Temporal Indexing**: Maintains sophisticated multi-index architecture with O(log m) scaling 
+      where m is the fleet size, enabling efficient actor lifecycle management.
+   #. **Automatic Cleanup**: Implements intelligent cleanup mechanisms that identify expired actors 
+      and remove outdated position data to maintain bounded memory usage.
+   #. **Thread-Safe Operations**: Provides concurrent access capabilities for high-frequency telemetry 
+      streams while maintaining data consistency.
 
-The ``StepBroker`` class uses asynchronous patterns throughout to ensure non-blocking operations, 
-making it suitable for high-throughput messaging environments in ITS applications.
+**Key Methods:**
 
-StepClientConfig
-^^^^^^^^^^^^^^^^
+   * ``add_actor_position()``: Main entry point for processing position data from ITS messages, 
+     delegating to individual PointDataset instances for interpolation processing
+   * ``get_position_arrays()``: Retrieves interpolated position arrays from all active actors 
+     for crash prediction distribution
+   * ``cleanup_expired_actors()``: Executes periodic cleanup operations, removing expired actors 
+     and reclaiming memory resources
+   * ``get_active_actor_count()``: Returns current fleet size for monitoring and scaling decisions
 
-The ``StepClientConfig`` component is responsible for configuration management in the STEP Client architecture. 
-Built as a Pydantic ``BaseModel``, it provides a robust, type-safe mechanism for loading,
-validating, and accessing configuration settings throughout the application. 
+**Architecture Integration:**
 
-Key features of ``StepClientConfig`` include:
+The ``ActorDataset`` operates as the coordination hub between individual ``PointDataset`` instances 
+for actor-specific processing and the ``StepAdapterRedisStream`` for message distribution. It utilizes 
+comprehensive logging for operational visibility and implements configurable timing parameters 
+for adaptive behavior in different traffic scenarios.
 
-    #. **JSON Configuration Loading**: Loads configuration settings from a JSON file specified 
-       at startup, providing a centralized source of configuration for all components.
-    #. **Type Validation**: Leverages Pydantic's validation system to ensure all configuration 
-       values meet the expected types and constraints, preventing configuration errors at runtime.
-    #. **Hierarchical Structure**: Organizes configuration in a hierarchical manner, with nested 
-       models for different aspects of the system:
-       
-        * MQTT Client configuration (connection parameters, security settings)
-        * MQTT Protocol configuration (QoS, topic management)
-        * Redis Client configuration (for message broker integration)
-        * Logging configuration (handlers, levels, formatting)
-    
-    #. **Immutable Configuration**: Once loaded at startup, the configuration becomes immutable, 
-       ensuring consistency throughout the application's lifecycle.
-    #. **Configuration Sharing**: Acts as a central repository of configuration settings that 
-       is shared with other components, providing a single source of truth for system settings.
-    #. **Default Configuration**: Provides ``get_default()`` methods to generate sensible 
-       default configurations when specific values are not provided.
-    #. **JSON Schema Generation**: Supports generating JSON schemas for configuration 
-       validation through the ``StepConfigGenerateJsonSchema`` utility class.
+**Configuration Parameters:**
 
-The design of ``StepClientConfig`` emphasizes immutability and strong validation, helping prevent 
-configuration-related issues during runtime while providing a clear, structured 
-approach to configuration management.
+   * ``max_actor_history_length_sec``: Max length of position history maintained per actor
+   * ``output_nominal_sample_frequency``: Target interpolation rate for position arrays
+   * ``period_max_deviation_ms``: Maximum timing tolerance for interpolation points
+   * ``cleanup_interval_seconds``: Frequency of automatic actor cleanup operations
 
-StepClientRedisPool and StepClientRedisStream
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PointDataset
+^^^^^^^^^^^^
 
-The ``StepClientRedisPool`` and ``StepClientRedisStream`` components provide the Redis
-integration layer for the STEP Client architecture, enabling efficient message
-queuing and distribution between different system components.
+The ``PointDataset`` class provides comprehensive position data management for individual actors 
+with integrated cubic spline interpolation capabilities. This component serves as the complete 
+solution for processing GNSS tracking data, performing temporal validation, and generating smooth 
+position trajectories using SciPy's CubicSpline directly.
 
-``StepClientRedisPool``:
+**Core Functionality:**
 
-    #. **Connection Management**: Extends the ``StepRedisPool`` base class to handle 
-       Redis connection pooling specifically for STEP Client needs.
-    #. **Resource Management**: Provides asynchronous context management through 
-       ``__aenter__`` and ``__aexit__`` methods for safe connection handling.
-    #. **Connection Configuration**: Manages Redis connection parameters such 
-       as host, port, and authentication details.
-    #. **Connection Pooling**: Implements connection pooling to optimize performance 
-       and resource utilization when interacting with Redis.
+   #. **Position Validation**: The ``add_point()`` method validates incoming position data 
+      including station and object identifiers, temporal consistency, and coordinate validity 
+      before processing.
+   #. **Direct Interpolation Processing**: Performs cubic spline interpolation internally using 
+      SciPy's CubicSpline to generate smooth trajectories from irregular GNSS measurements with 
+      configurable output frequencies. When interpolation is needed, generates intermediate 
+      positions and appends the actual received position as the final point.
+   #. **Actor Metadata Tracking**: Maintains and updates vehicle dimensions alongside position 
+      data, ensuring complete actor information for crash prediction algorithms.
+   #. **Gap Detection**: Automatically handles large temporal gaps by clearing interpolation 
+      history to prevent unrealistic trajectory generation across data discontinuities.
+   #. **Resource Management**: Implements bounded memory usage through sliding window approaches 
+      with pre-allocated numpy arrays that prevent unbounded accumulation during long-running operations.
 
-``StepClientRedisStream``:
+**Performance Characteristics:**
 
-    #. **Stream Management**: Extends the ``StepRedisStream`` base class to implement 
-       specialized stream handling for ITS messages.
-    #. **Input Stream Processing**: Manages connections to input streams from ``step_producer`` 
-       components to receive DENM (Decentralized Environmental Notification Messages).
-    #. **Output Stream Management**: Handles output streams with specific routing:
-       
-       * Connects to ``step_producer`` for sending DENM messages
-       * Connects to ``step_adapter`` for sending various ITS message types, including:
+The component exhibits the following complexity characteristics:
 
-         - CAM (Cooperative Awareness Messages)
-         - CPM (Collective Perception Messages)
-         - VAM (Vulnerable Road User Awareness Messages)
-    
-    #. **Stream Creation**: Creates and configures input streams with appropriate consumer 
-       group IDs for message distribution.
-    #. **Message Publishing**: Provides methods to publish messages to the configured output streams.
-    #. **Message Receiving**: Offers functionality to receive and parse messages from input streams.
-    #. **Format Conversion**: Handles the conversion between CloudEvents format and STEP facility 
-       messages according to the CloudEvents specification.
+   * **Point Addition**: O(n + k*log(n) + k) per point where n is input queue size and k is output points
+   * **Point Retrieval**: O(k) for interpolated position results
+   * **Memory Usage**: O(n + k) with both components bounded by configuration parameters
+
+**Output Behavior:**
+
+When a new position is received:
+
+   * **Fast Path (high-frequency data)**: Returns single position list containing only the new position
+   * **Interpolation Path (temporal gap detected)**: Returns list of k interpolated positions followed 
+     by the actual received position as the final element, ensuring the last transmitted point is 
+     always the measured GNSS position
+
+**Thread Safety:**
+
+This component is not thread-safe and requires external synchronization for concurrent access 
+from multiple threads. Applications should implement appropriate locking strategies or use 
+thread-local storage patterns.
+
+StepAdapterConfig
+^^^^^^^^^^^^^^^^^
+
+The ``StepAdapterConfig`` component provides comprehensive configuration management for the STEP Adapter architecture, 
+leveraging Pydantic for robust validation, serialization, and schema generation capabilities. This component serves as 
+the central configuration hub that defines all operational parameters, connection settings, and behavioral configurations
+for the Adapter service.
+
+**Hierarchical Configuration Architecture:**
+
+The configuration system follows a well-structured hierarchical model with multiple specialized configuration classes:
+
+   #. **StepAdapterConfig**: Top-level configuration class that orchestrates all Adapter settings
+   #. **RedisClientConfig**: Dedicated configuration for Redis connectivity and stream management
+   #. **RedisConnection**: Low-level Redis connection parameters including SSL, timeouts, and pooling
+   #. **RedisStreams**: Stream-specific configuration for input/output stream definitions
+   #. **LogConfig**: Comprehensive logging configuration with multiple handler types
+
+**Core Configuration Domains:**
+
+**Adapter Instance Settings:**
+
+   * ``templateVersion``: Configuration schema version for compatibility management
+   * ``instanceName``: Unique identifier for the Adapter instance within the ecosystem
+   * ``reconnectInterval``: Time interval in seconds for automatic reconnection attempts
+
+**Redis Integration Configuration:**
+
+The ``RedisClientConfig`` provides comprehensive Redis connectivity management:
+
+   * **Connection Management**: Full Redis connection parameters including host, port, authentication, 
+     database selection, and SSL configuration
+   * **Socket Configuration**: Advanced socket settings for timeout management, keepalive parameters, 
+     and connection health monitoring
+   * **Stream Configuration**: Input and output stream definitions with stream IDs, consumer groups, 
+     maximum lengths, and wait timeouts for CAM and CPM message processing
+   * **Security Settings**: SSL/TLS configuration with client certificates, CA verification, and 
+     encrypted connections
+
+**Logging System Configuration:**
+
+The ``LogConfig`` component supports multiple logging strategies through a flexible handler system:
+
+   * **LogStreamHandler**: Console-based logging for development and debugging
+   * **LogFileHandler**: File-based logging with append/overwrite options
+   * **LogSizeFileRotateHandler**: Size-based log rotation with configurable thresholds 
+     and backup counts
+   * **LogTimeFileRotateHandler**: Time-based log rotation supporting various intervals 
+     (seconds, minutes, hours, days, weekdays)
+   * **LogNullHandler**: Null logging for production environments requiring log suppression
+
+**Validation and Schema Features:**
+
+   #. **Strong Typing**: Comprehensive type annotations with Pydantic field validation for 
+      all configuration parameters
+   #. **Range Validation**: Numeric fields include appropriate range constraints 
+      (e.g., port numbers 0-65535, timeout values)
+   #. **String Validation**: Minimum length requirements and format validation for critical 
+      string fields
+   #. **Immutable Configuration**: Frozen model instances prevent accidental modification 
+      after initialization
+   #. **Schema Generation**: Automated JSON schema generation for configuration documentation 
+      and validation
+   #. **Default Factory Methods**: Each configuration class provides ``get_default()`` methods 
+      for rapid setup
+
+**Configuration Management Utilities:**
+
+   * ``print_config_schema()``: Generates JSON schema files for external configuration validation
+   * ``print_config_example()``: Creates example configuration files with default values
+   * ``model_validate()``: Validates configuration data against the defined schema
+   * ``model_dump_json()``: Serializes configuration to JSON format for persistence
+
+**Security and Production Considerations:**
+
+The configuration system includes production-ready security features:
+
+   * SSL/TLS configuration for encrypted Redis connections
+   * Authentication parameters for secure Redis access
+   * Certificate-based authentication with client key and certificate file support
+   * Health check intervals for connection monitoring
+   * Configurable connection pooling for performance optimization
+
+**Integration with STEP Ecosystem:**
+
+The configuration integrates seamlessly with other STEP components by providing standardized 
+configuration patterns, consistent validation rules, and compatible schema definitions that 
+enable configuration sharing and validation across the entire STEP platform.
+
+
+StepAdapterRedisPool and StepAdapterRedisStream
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The ``StepAdapterRedisPool`` and ``StepAdapterRedisStream`` components provide the Redis
+integration layer for the STEP Adapter architecture, enabling efficient message
+streaming and position data distribution for crash prediction systems.
+
+``StepAdapterRedisPool``
+
+   #. **Connection Management**: Extends the ``StepRedisPool`` base class to handle 
+      Redis connection pooling specifically for STEP Adapter needs.
+   #. **Resource Management**: Provides asynchronous context management through 
+      ``__aenter__`` and ``__aexit__`` methods for safe connection handling.
+   #. **Connection Configuration**: Manages Redis connection parameters such 
+      as host, port, and authentication details.
+   #. **Connection Pooling**: Implements connection pooling to optimize performance 
+      and resource utilization when interacting with Redis streams.
+
+``StepAdapterRedisStream``
+
+   #. **Stream Management**: Extends the ``StepRedisStream`` base class to implement 
+      specialized stream handling for ITS position data and crash prediction workflows.
+   #. **Input Stream Processing**: Manages connections to input streams for receiving:
+
+      * CAM (Cooperative Awareness Messages) from ``step_client``
+      * CPM (Collective Perception Messages) from ``step_client``
+
+   #. **Output Stream Management**: Handles output streams with specific routing:
+      
+      * Connects to ``step_crash_prediction`` for sending position array data
+   
+   #. **Stream Creation**: Creates and configures input streams with appropriate consumer 
+      group IDs for message distribution and load balancing.
+   #. **Message Publishing**: Provides methods to publish position arrays to crash prediction streams.
+   #. **Message Receiving**: Offers functionality to receive and parse ITS messages from input streams.
+   #. **CloudEvents Compliance**: Handles CloudEvents-compliant message formatting and validation 
+      for standardized message exchange across the STEP ecosystem.
 
 Together, these components form the communication infrastructure that enables standardized 
-message exchange between STEP Client and other components in the STEP ecosystem through 
-Redis streams.
+message exchange between STEP Adapter and other components in the STEP ecosystem through 
+Redis streams, specifically facilitating the flow of position data to crash prediction systems.
 
 StepLogger
 ^^^^^^^^^^
 
-The ``StepLogger`` component provides specialized logging functionality for the STEP Client
+The ``StepLogger`` component provides specialized logging functionality for the STEP Adapter
 architecture, enabling comprehensive and configurable logging throughout the application. 
 It serves as a wrapper around Python's standard logging facilities with additional features 
-tailored to STEP Client's needs.
+tailored to STEP Adapter's needs.
 
 Key features of ``StepLogger`` include:
 
-    #. **Multi-destination Logging**: Supports logging to different output formats and 
-       destinations, including:
-       
-        * File-based logging for persistent records
-        * Standard output (console) for development and debugging
-        * Syslog integration for system monitoring
-        * Configurable log rotation based on size or time intervals
-    
-    #. **Log Level Management**: Provides fine-grained control over logging verbosity 
-       with standard log levels (DEBUG, INFO, WARNING, ERROR, CRITICAL).
-    #. **Structured Formatting**: Implements customizable log formats with timestamp, 
-       severity level, source component, and structured message content.
-    #. **Context-aware Logging**: Includes context information such as component IDs, 
-       transaction IDs, and operation details to facilitate troubleshooting.
-    #. **Configuration Integration**: Leverages the logging configuration section 
-       from ``StepClientConfig`` to enable consistent setup across components.
-    #. **Utility Methods**: Offers utility methods like ``setup_logging()`` for initial 
-       configuration and ``get_logger()`` for retrieving appropriately configured 
-       logger instances.
-    #. **Error Handling**: Includes robust error handling to prevent logging failures 
-       from impacting core application functionality.
+   #. **Multi-destination Logging**: Supports logging to different output formats and 
+      destinations, including:
+      
+      * File-based logging for persistent records
+      * Standard output (console) for development and debugging
+      * Syslog integration for system monitoring
+      * Configurable log rotation based on size or time intervals
+   
+   #. **Log Level Management**: Provides fine-grained control over logging verbosity 
+      with standard log levels (DEBUG, INFO, WARNING, ERROR, CRITICAL).
+   #. **Structured Formatting**: Implements customizable log formats with timestamp, 
+      severity level, source component, and structured message content.
+   #. **Context-aware Logging**: Includes context information such as actor IDs, 
+      processing details, and interpolation status to facilitate troubleshooting.
+   #. **Configuration Integration**: Leverages the logging configuration section 
+      from ``StepAdapterConfig`` to enable consistent setup across components.
+   #. **Utility Methods**: Offers utility methods like ``setup_logging()`` for initial 
+      configuration and ``get_logger()`` for retrieving appropriately configured 
+      logger instances.
+   #. **Error Handling**: Includes robust error handling to prevent logging failures 
+      from impacting core position processing functionality.
 
-The ``StepLogger`` component ensures that the STEP Client maintains comprehensive 
+The ``StepLogger`` component ensures that the STEP Adapter maintains comprehensive 
 logging capabilities to support monitoring, debugging, and operational insights 
-across all system components.
+across all system components, particularly for tracking position processing performance 
+and interpolation quality.
 
-StepException
-^^^^^^^^^^^^^
+StepCliException
+^^^^^^^^^^^^^^^^
 
-The ``StepException`` component provides a structured exception handling mechanism 
-for the STEP Client architecture. It defines a hierarchy of custom exceptions tailored 
-to the specific error conditions that can occur during STEP Client operations.
+The ``StepCliException`` component provides a custom exception class for handling
+command-line interface errors and application interruptions within the STEP Adapter architecture. 
+This exception is designed to be raised in situations where command-line processing 
+encounters errors or when normal operation flow needs to be interrupted.
 
-Key aspects of ``StepException`` include:
+Key features of ``StepCliException`` include:
 
-    #. **Exception Hierarchy**: Establishes a well-organized hierarchy of exception 
-       types that extend from a base ``StepException`` class, allowing for specific 
-       error handling based on exception types.
-    #. **Contextual Information**: Captures and preserves contextual information about 
-       errors, including:
-       
-        * Operation being performed when the error occurred
-        * Component that raised the exception
-        * Underlying system errors or exceptions
-        * Relevant configuration or state data
-    
-    #. **Error Classification**: Categorizes errors into distinct types such as:
-       
-        * Connection errors (MQTT broker or Redis connection failures)
-        * Configuration errors (missing or invalid configuration parameters)
-        * Protocol errors (malformed messages or protocol violations)
-        * Authentication errors (security or credential issues)
-        * Resource errors (unavailable streams or queues)
-    
-    #. **Error Reporting**: Provides formatted error messages with detailed diagnostics
-       to assist in troubleshooting.
-    #. **Recovery Hints**: Includes information about possible recovery strategies or 
-       corrective actions when appropriate.
-    #. **Integration with Logging**: Collaborates with the ``StepLogger`` component to 
-       ensure that exceptions are properly logged with appropriate severity levels.
-
-The ``StepException`` component enables robust error handling throughout the STEP Client, 
-allowing application code to catch and handle specific types of exceptions appropriately 
-while providing meaningful information for debugging and system monitoring.
+   #. **Custom Exception Class**: Inherits from Python's built-in ``Exception`` class, 
+      allowing it to be raised and caught like any standard exception.
+   #. **CLI Error Context**: Provides a mechanism to include additional context or 
+      information about command-line processing errors when raising the exception.
+   #. **Graceful Shutdown**: Designed to be used in scenarios where the application 
+      needs to gracefully shut down or clean up resources before exiting.
+   #. **Integration with Logging**: Can be logged using the ``StepLogger`` component 
+      to capture detailed error information for debugging and operational monitoring.
+   #. **Exit Code Management**: Supports proper exit code handling for different 
+      error scenarios in command-line environments.
 
 Component Diagram
 ^^^^^^^^^^^^^^^^^
 
-The following component diagram illustrates the high-level architecture of the STEP Client 
-and its interactions with external systems. It shows the relationships between the core 
-components (StepBroker, StepClientConfig, StepClientRedisPool, StepClientRedisStream, StepLogger, 
-and StepException) and how they interact with the MQTT Broker and Redis database. The 
-diagram highlights the separation of concerns in the architecture, with StepBroker handling 
-MQTT communication and StepClientRedisStream managing Redis message queuing, while both 
-rely on configuration provided by StepClientConfig and logging services from StepLogger.
+The following component diagram illustrates the high-level architecture of the STEP Adapter
+and its interactions with external systems. It shows the relationships between the core
+components and how they interact with Redis streams and external data sources.
 
 .. plantuml::
    :align: center
-    
-   package "STEP Client" {
-      [StepBroker] as GW
-      [StepClientConfig] as Config
-      [StepClientRedisPool] as RedisPool
-      [StepClientRedisStream] as RedisStream
+
+   package "STEP Adapter" {
+      package "Position Processing" {
+          [ActorDataset] as AD
+          [PointDataset] as PD
+          note left of AD
+            Multi-actor coordination with
+            temporal indexing
+          end note
+          note right of PD
+            Integrated cubic spline interpolation
+            using SciPy for trajectory smoothing
+          end note
+      }
+      package "Redis Proxy" {
+          [StepAdapterRedisPool] as AdapterRedisPool
+          [StepAdapterRedisStream] as AdapterRedisStream
+          note bottom of AdapterRedisStream
+             Redis Streams for
+             ITS message processing
+          end note
+      }
+      [StepAdapterConfig] as Config
       [StepLogger] as Logger
-      [StepException] as Exception
-      note left of GW
-        Gateway for MQTT 
-        communication
-        with the STEP broker
-      end note
    }
-    
-   cloud "MQTT Broker" as MQTT
-   database "Redis" as Redis
-    
-   GW -up-> Config : uses
-   GW -down-> RedisStream : uses
-   RedisStream -down-> RedisPool : uses
-   GW <-right-> MQTT : connects to
-   RedisStream <-left-> Redis : connects to
-   GW -up-> Logger : uses
-   GW -down-> Exception : throws
-
-   note bottom of MQTT
-      Subscribe and
-      Publish
-   end note
-
-   note bottom of Redis
-      Input and
-      Output stream
-   end note
-
-   note top of Config
-      Configuration management
-      for the client
-   end note
-
-   note top of RedisStream
-      Redis integration for
-      message processing
-   end note
+   AD -- PD : manages multiple
+   AD -- AdapterRedisStream : publishes position arrays
+   AD -- Logger : logs operations
+   AD -- Config : get configuration 
+   PD -- Logger : logs processing
+   PI -- Logger : logs interpolation
+   AdapterRedisStream -- AdapterRedisPool : channel management 
 
 Class Diagram
 -------------
 
 The class diagram below illustrates the structure and relationships between 
-the key classes in the STEP Client architecture. It shows the main methods 
-and attributes of each class and how they interact with one another. The 
-diagram highlights the dependency relationships, where ``StepBroker`` relies on 
-multiple components like StepClientConfig, StepClientRedisStream, and StepLogger, 
-while StepClientRedisStream depends on StepClientRedisPool for Redis connection 
-management. This object-oriented design allows for clear separation of 
-responsibilities and modular development.
+the key classes in the STEP Adapter architecture. It shows the main methods 
+and attributes of each class and how they interact with one another.
 
 .. plantuml::
    :align: center
@@ -323,116 +466,290 @@ responsibilities and modular development.
    !theme plain
    skinparam classAttributeIconSize 0
 
-    class StepBroker {
-      +async __aenter__()
-      +async __aexit__()
-      +async aclose()
-      +connect()
-      +disconnect()
-      +subscribe()
-      +unsubscribe()
-      +publish()
-    }
+   class ActorDataset {
+      -_actors
+      -_temporal_index
+      -_config
+      -_logger
+      -_lock
+      +__init__
+      +add_actor_position
+      +get_position_arrays
+      +cleanup_expired_actors
+      +get_active_actor_count
+   }
 
-    class StepClientConfig {
-      +mqtt_client
-      +mqtt_protocol
-      +redis_client
-      +logging
-      +get_default()
-      +model_validate()
-    }
+   class PointDataset {
+      -_input_points_queue
+      -_np_input_points_timestamp_ms
+      -_np_input_points_latitude
+      -_np_input_points_longitude
+      -_np_input_points_altitude
+      -_vehicle_length
+      -_vehicle_width
+      -_actor
+      -_config
+      -_logger
+      +__init__
+      +add_point
+      +actor
+      +vehicle_length
+      +vehicle_width
+      +last_record_time
+      -_create_interpolated_arrays
+      -_create_interpolated_position
+      -_create_positions_list
+      -_check_position_coherence
+      -_clear_history
+   }
+
+   class StepAdapterConfig {
+      +templateVersion
+      +instanceName
+      +reconnectInterval
+      +redis
+      +log
+      +{static} get_default
+      +{static} print_config_schema
+      +{static} print_config_example
+   }
+
+   class StepAdapterRedisPool {
+      +MAX_CONNECTIONS
+      +__init__
+      +async __aenter__
+      +async __aexit__
+   }
+
+   class StepAdapterRedisStream {
+      -_consumer_name
+      -_config
+      -_stream_ttl
+      +__init__
+      +async __aenter__
+      +async create_client_input_stream
+      +async publish_position_array
+      +async receive_adapter_message
+   }
+
+   class StepLogger {
+      +{static} setup_logging
+      +{static} get_logger
+   }
+
+   ActorDataset --> PointDataset : manages
+   ActorDataset --> StepAdapterRedisStream : publishes to
+   ActorDataset --> StepLogger : logs with
     
-    class StepClientRedisPool {
-      +async __aenter__()
-      +async __aexit__()
-      +get_connection()
-    }
-    
-    class StepClientRedisStream {
-      +async __aenter__()
-      +async __aexit__()
-      +publish()
-      +receive()
-      +create_input_stream()
-    }
-    
-    class StepLogger {
-      +setup_logging()
-      +get_logger()
-    }
-    
-    class StepException {
-    }
-    
-    StepBroker --> StepClientConfig : uses
-    StepBroker --> StepClientRedisStream : uses
-    StepBroker --> StepLogger : uses
-    StepBroker --> StepException : throws
-    StepClientRedisStream --> StepClientRedisPool : uses
-  
+   PointDataset --> StepLogger : logs with
+   
+   StepAdapterRedisStream --> StepAdapterRedisPool : uses
+   StepAdapterRedisStream --> StepAdapterConfig : configured by
+   
+   StepAdapterRedisPool --> StepAdapterConfig : configured by
+   
+   StepLogger --> StepAdapterConfig : configured by
+
+   StepAdapterRedisPool --|> StepRedisPool : extends
+   StepAdapterRedisStream --|> StepRedisStream : extends
 
 Sequence Diagrams
 -----------------
 
-The sequence diagrams below illustrate the two primary message flows 
-in the STEP Client: message publication and message subscription. These 
-diagrams show the sequence of interactions between components and the 
-temporal flow of operations as messages move through the system.
+The sequence diagrams below illustrate the primary message flows 
+in the STEP Adapter:
 
-Sequence Diagram - Message Publication
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   * Position data processing and interpolation 
+   * Position array publishing to crash prediction
 
-The following sequence diagram depicts the process of publishing a message 
-from a STEP Producer on Redis Stream to publish to STEP MQTT broker. 
-It demonstrates how the ``StepBroker`` component handles message ITS encoding, 
-publication to the MQTT broker, and synchronization with Redis streams, 
-providing a comprehensive view of the outbound message flow.
+These diagrams show the sequence of interactions between components and the 
+temporal flow of operations as position data moves through the system.
+
+Position Data Processing and Interpolation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The following sequence diagram depicts the process of position data processing starting 
+from ITS messages sent by STEP Client. It demonstrates how the ActorDataset component 
+processes incoming CAM/CPM messages, coordinates with PointDataset for actor-specific
+processing, and generates interpolated position arrays.
 
 .. plantuml::
    :align: center
 
-   participant "STEP Producer" as Producer
-   participant "StepClientRedisStream" as Redis
-   participant "StepBroker" as Gateway
-   participant "STEP MQTT Broker" as MQTT
+   participant "STEP Client" as Client
+   participant "StepAdapterRedisStream" as RedisStream
+   participant "ActorDataset" as ActorDataset
+   participant "PointDataset" as PointDataset
 
-   Producer -> Redis : redis_stream(JSON_message)
-   Redis -> Gateway: JSON_message
-   note over Gateway
-      Convert message
-      from JSON cloud events
-      to ITS format
+   Client -> RedisStream : CAM/CPM Message
+   RedisStream -> ActorDataset : Position Data
+   ActorDataset -> PointDataset : add_point()
+   note over PointDataset
+      Validate position data,
+      update actor metadata,
+      apply cubic spline interpolation
+      using SciPy's CubicSpline,
+      generate smooth trajectory points,
+      append received position as last point
    end note
-   Gateway -> Gateway : encode_ITS(JSON_message)
-   Gateway -> MQTT : mqtt_publish(ITS_message)
-   MQTT --> Gateway : publish_success
+   PointDataset -> ActorDataset : Interpolated Points + Received Position
+   ActorDataset -> RedisStream : Position Array
    
-Sequence Diagram - Message Subscription
+Position Array Publishing to Crash Prediction
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The sequence diagram below illustrates the process of publishing position arrays
+to the crash prediction system for analysis.
+
+.. plantuml::
+   :align: center
+
+   participant "ActorDataset" as ActorDataset
+   participant "StepAdapterRedisStream" as RedisStream
+   participant "STEP Crash Prediction" as CrashPrediction
+
+   ActorDataset -> RedisStream : get_position_arrays()
+   note over ActorDataset
+      Collect interpolated position
+      arrays from all active actors
+   end note
+   RedisStream -> CrashPrediction : Position Array V1
+   note over CrashPrediction
+      Process position arrays for
+      collision risk analysis
+   end note
+
+Performance Considerations
+--------------------------
+
+The STEP Adapter architecture is designed for high-performance processing of position data with 
+careful consideration of algorithmic complexity and data structure selection. The following analysis 
+provides Big O complexity calculations for the primary position processing scenarios.
+
+Data Structure Performance Characteristics
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The ``ActorDataset`` employs a multi-index architecture optimized for different access patterns:
+
+* **Sorted List (temporal indexing)**: Maintains chronological 
+  ordering with :math:`O(log(m))` insertion/deletion where m is fleet size
+* **Hash-based Actor Index**: Provides :math:`O(1)` 
+  constant time lookup for actor-specific datasets
+* **PointDataset per Actor**: :math:`O(1)` access to individual actor processing pipelines
+* **Interpolation Queues**: Bounded deque structures with :math:`O(1)` insertion/removal
+
+Where **n** represents the number of position points per actor and **m** represents the total number of active actors.
+
+Position Message Processing Performance
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The sequence diagram below illustrates the process of subscribing to 
-topics and receiving messages from the MQTT broker. It shows how the 
-StepBroker component handles subscription requests, receives messages from 
-the broker, decodes them, and routes them to Redis streams, providing 
-a complete view of the inbound message flow.
+**Scenario**: Processing CAM/CPM messages from ``step_client``
 
-.. plantuml::
-   :align: center
+**Algorithm Complexity Analysis:**
 
-   participant "STEP MQTT Broker" as MQTT
-   participant "StepBroker" as Gateway
-   participant "StepClientRedisStream" as Redis
-   participant "STEP Adapter" as Adapter
-    
-   Gateway -> MQTT : mqtt_subscribe(topic)
-   Gateway <- MQTT : success
-   MQTT -> Gateway: on_message(ITS_message)
-   note over Gateway
-      Convert message
-      from ITS format
-      to JSON cloud events
-   end note
-   Gateway -> Gateway: ITS_decode(ITS_message)
-   Gateway -> Redis: JSON_message    
-   Redis -> Adapter: redis_stream(JSON_message)
+For processing a position message for a single actor:
+
+1. **Actor Resolution**: :math:`O(1)` - Hash table lookup for existing actor dataset
+2. **Position Validation**: :math:`O(1)` - Constant time validation of position data
+3. **Interpolation Processing**: :math:`O(n + k*log(n) + k)` where:
+   
+   * **Spline Coefficient Calculation**: :math:`O(n)` - Linear with input queue size
+   * **Output Point Generation**: :math:`O(k*log(n))` - Binary search for temporal positioning
+   * **Motion Parameter Calculation**: :math:`O(k)` - Linear with output points
+   
+4. **Position Array Creation**: :math:`O(k)` - Linear with interpolated points
+
+**Overall Complexity**: :math:`O(n + k*log(n) + k)` per position message
+
+**Performance Implications**:
+
+* **Best Case**: No interpolation needed → :math:`O(1)` for validation only
+* **Typical Case**: Regular processing → :math:`O(n + k*log(n) + k)` bounded by configuration
+* **Worst Case**: Complete spline recalculation → :math:`O(n + k*log(n) + k)` with maximum queue sizes
+* **Space Complexity**: :math:`O(n + k)` for input and output queues per actor
+
+**Scalability Considerations:**
+
+* With n=50 input points and k=10 output points: ~500 operations per message
+* System performance scales logarithmically with output point density
+* Memory usage scales linearly with actor count and path length configuration
+
+Multi-Actor Fleet Processing Performance
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+**Scenario**: Processing position data across entire vehicle fleet
+
+**Algorithm Complexity Analysis:**
+
+For processing position updates across m active actors:
+
+1. **Actor Lookup**: :math:`O(1)` - Hash table access for actor identification
+2. **Temporal Index Update**: :math:`O(log(m))` - Sorted list maintenance for actor ordering
+3. **Per-Actor Processing**: :math:`O(n + k*log(n) + k)` - Individual actor interpolation
+4. **Position Array Generation**: :math:`O(m*k)` - Collecting results from all active actors
+
+**Overall Complexity**: :math:`O(n + k*log(n) + log(m))` per message system-wide
+
+**Performance Implications:**
+
+* **Fleet Scaling**: Processing time grows logarithmically with fleet size due to temporal indexing
+* **Interpolation Bound**: Individual actor processing limited by configuration parameters
+* **Memory Efficiency**: Total system memory = :math:`O(m*(n + k))` with bounded growth
+* **Concurrent Processing**: Architecture supports parallel processing of independent actors
+
+Actor Cleanup and Memory Management Performance
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+**Scenario**: Automatic cleanup of expired actors and outdated position data
+
+**Algorithm Complexity Analysis:**
+
+#. **Temporal Index Scan**: :math:`O(e*log(m))` where e is the number of expired actors
+#. **Actor Dataset Removal**: :math:`O(e)` - Hash table deletions for expired actors
+#. **Memory Reclamation**: :math:`O(e*(n + k))` - Cleanup of associated position data
+
+**Overall Complexity**: :math:`O(e*log(m) + e*(n + k))`
+
+**Performance Optimization:**
+
+* **Early Termination**: Temporal indexing enables efficient identification of expired actors
+* **Batch Processing**: Minimizes overhead through batched cleanup operations
+* **Adaptive Scheduling**: Cleanup frequency adapts based on fleet activity patterns
+
+**Memory Management Strategies:**
+
+* **Bounded Queues**: Sliding window approach prevents unbounded memory growth
+* **Automatic Expiration**: Time-based cleanup prevents actor accumulation
+* **Efficient Data Structures**: Optimized containers minimize memory overhead
+
+Interpolation Algorithm Performance
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+**Scenario**: Cubic spline interpolation for trajectory smoothing
+
+**Algorithm Complexity Analysis:**
+
+For the core interpolation processing within ``PointDataset``:
+
+1. **Spline Coefficient Calculation**: :math:`O(n)` - SciPy CubicSpline computational complexity for 3 dimensions
+2. **Temporal Validation**: :math:`O(1)` - Constant time checks for timing consistency
+3. **Output Point Generation**: :math:`O(k*log(n))` - Spline evaluation for k interpolated points
+4. **Motion Parameter Calculation**: :math:`O(k)` - Speed and heading computation for interpolated points
+5. **Received Position Append**: :math:`O(1)` - Final position appended to output list
+
+**Mathematical Optimization:**
+
+* **Numerical Stability**: SciPy provides robust algorithms for irregular data distributions
+* **Vectorized Operations**: NumPy enables efficient array processing with pre-allocated arrays
+* **Direct Processing**: Eliminates delegation overhead by performing interpolation in-place
+
+Bottleneck Analysis
+^^^^^^^^^^^^^^^^^^^
+The STEP Adapter architecture is designed to handle high-frequency position processing, 
+but certain bottlenecks may arise. The following analysis identifies 
+potential bottlenecks and mitigation strategies:
+
+* **Primary Bottleneck**: Cubic spline coefficient calculation (CPU bound)
+* **Secondary Bottleneck**: Redis stream publication latency (network I/O bound)
+* **Mitigation Strategy**: Asynchronous processing and connection pooling
+* **Scaling Limits**: Performance degrades with very large fleet sizes (>1000 actors)

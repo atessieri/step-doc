@@ -1,0 +1,364 @@
+.. _find_optimal_period:
+
+Finding the Optimal Interpolation Period
+=========================================
+
+Overview
+--------
+
+The ``_find_optimal_period()`` method computes the best possible output period (in milliseconds) 
+and number of intervals between two timestamps to achieve evenly-spaced interpolated points. 
+The algorithm attempts to match the configured nominal output period while respecting allowed 
+deviation constraints.
+
+Problem Statement
+-----------------
+
+Given:
+    - ``time_last_ms``: Timestamp of the last recorded position (in milliseconds)
+    - ``time_new_ms``: Timestamp of the new incoming position (in milliseconds)
+    - ``output_nominal_period_ms``: Target period between interpolated points
+    - ``output_max_period_deviation_ms``: Maximum allowed deviation from nominal period
+
+Find:
+    - ``period_optimal``: The chosen output period in milliseconds
+    - ``interval_number_optimal``: The number of intervals between points
+    - ``period_ideal``: Boolean indicating if an exact solution was found
+
+Mathematical Formulation
+------------------------
+
+The problem is to find an integer :math:`n` (number of intervals) such that the period 
+:math:`p = \frac{d}{n}` is as close as possible to the target period :math:`P_{nominal}` 
+while staying within the range :math:`[P_{nominal} - \Delta_{max}, P_{nominal} + \Delta_{max}]`.
+
+Constraint Equation
+~~~~~~~~~~~~~~~~~~~
+
+We need to satisfy:
+
+.. math::
+
+   P_{nominal} - \Delta_{max} \leq \frac{d}{n} \leq P_{nominal} + \Delta_{max}
+
+Rearranging for :math:`n`:
+
+.. math::
+
+   \frac{d}{P_{nominal} + \Delta_{max}} \leq n \leq \frac{d}{P_{nominal} - \Delta_{max}}
+
+Valid Interval Range
+~~~~~~~~~~~~~~~~~~~~
+
+.. math::
+
+   n_{min} = \lceil \frac{d}{P_{nominal} + \Delta_{max}} \rceil
+
+   n_{max} = \lfloor \frac{d}{P_{nominal} - \Delta_{max}} \rfloor
+
+Algorithm Description
+---------------------
+
+The algorithm follows these steps:
+
+1. **Define Valid Period Range**
+
+   .. math::
+
+      P_{min} = P_{nominal} - \Delta_{max}
+
+      P_{max} = P_{nominal} + \Delta_{max}
+
+   where:
+      - :math:`P_{nominal}` is ``output_nominal_period_ms``
+      - :math:`\Delta_{max}` is ``output_max_period_deviation_ms``
+
+2. **Calculate Time Difference**
+
+   .. math::
+
+      d = t_{new} - t_{last}
+
+3. **Determine Valid Interval Range**
+
+   The number of intervals :math:`n` must satisfy:
+
+   .. math::
+
+      n_{min} = \lceil \frac{d}{P_{max}} \rceil \leq n \leq \lfloor \frac{d}{P_{min}} \rfloor = n_{max}
+
+   This ensures that the calculated period falls within the allowed range.
+
+4. **Calculate Ideal Interval Count**
+
+   .. math::
+
+      n_{ideal} = \frac{d}{P_{nominal}}
+
+5. **Decision Logic**
+
+   **Case A: Exact Solution Exists** (:math:`n_{min} \leq n_{max}`)
+   
+   When a valid solution exists with the exact time difference:
+
+   - Clamp the ideal interval count to the valid range:
+
+     .. math::
+
+        n_{optimal} = \max(n_{min}, \min(n_{max}, \text{round}(n_{ideal})))
+
+   - Calculate the period using integer division:
+
+     .. math::
+
+        P_{optimal} = \lfloor \frac{d}{n_{optimal}} \rfloor
+
+   - Set ``period_ideal = True``
+
+   **Case B: No Exact Solution** (:math:`n_{min} > n_{max}`)
+   
+   When no valid solution exists within the constraints, choose the boundary 
+   interval count closest to ideal:
+
+   - Select the closest boundary value:
+
+     .. math::
+
+        n_{optimal} = \begin{cases}
+        n_{max} & \text{if } |n_{max} - n_{ideal}| \leq |n_{min} - n_{ideal}| \\
+        n_{min} & \text{otherwise}
+        \end{cases}
+
+   - Calculate the period using integer division:
+
+     .. math::
+
+        P_{optimal} = \lfloor \frac{d}{n_{optimal}} \rfloor
+
+   - Set ``period_ideal = False``
+
+   Note: In this case, the calculated period will fall outside the strict 
+   deviation constraints, but it represents the best possible approximation.
+
+Guarantees
+----------
+
+The algorithm guarantees that:
+
+1. All generated timestamps fall within :math:`[t_{last}, t_{new}]`
+2. The spacing between consecutive points respects the configured deviation when possible
+3. The total number of intervals optimally balances the nominal period target
+4. Period calculation uses integer division to ensure whole millisecond values
+5. The solution is mathematically optimal (O(1) complexity)
+
+Complexity Analysis
+-------------------
+
+Time Complexity
+~~~~~~~~~~~~~~~
+
+**O(1)** - All operations are constant time arithmetic:
+    - Range calculations: O(1)
+    - Ceiling/floor operations: O(1)
+    - Comparison and selection: O(1)
+    - Integer division: O(1)
+
+No loops or iterations are required, making this algorithm highly efficient.
+
+Space Complexity
+~~~~~~~~~~~~~~~~
+
+**O(1)** - Uses only a fixed number of local variables regardless of input size.
+
+Example Scenarios
+-----------------
+
+Example 1: Exact Solution
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Configuration:
+    - ``output_nominal_period_ms = 1000`` ms
+    - ``output_max_period_deviation_ms = 50`` ms
+    - Valid period range: [950 ms, 1050 ms]
+
+Input:
+    - ``time_last_ms = 1609459200000``
+    - ``time_new_ms = 1609459203000``
+    - ``diff_time = 3000`` ms
+
+Calculation:
+    - ``interval_number_ideal = 3000 / 1000 = 3``
+    - ``interval_number_min = ceil(3000 / 1050) = ceil(2.857) = 3``
+    - ``interval_number_max = floor(3000 / 950) = floor(3.158) = 3``
+    - Solution exists: :math:`3 \leq 3`
+    - ``interval_number_optimal = 3``
+    - ``period_optimal = 3000 // 3 = 1000`` ms
+
+Result:
+    - Returns ``(1000, 3, True)`` - exact solution found
+    - Period exactly matches nominal target
+
+Example 2: Approximation Needed
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Configuration:
+    - ``output_nominal_period_ms = 1000`` ms
+    - ``output_max_period_deviation_ms = 50`` ms
+    - Valid period range: [950 ms, 1050 ms]
+
+Input:
+    - ``time_last_ms = 1609459200000``
+    - ``time_new_ms = 1609459202800``
+    - ``diff_time = 2800`` ms
+
+Calculation:
+    - ``interval_number_ideal = 2800 / 1000 = 2.8``
+    - ``interval_number_min = ceil(2800 / 1050) = ceil(2.667) = 3``
+    - ``interval_number_max = floor(2800 / 950) = floor(2.947) = 2``
+    - No exact solution: :math:`3 > 2`
+    - Distance to max: :math:`|2 - 2.8| = 0.8`
+    - Distance to min: :math:`|3 - 2.8| = 0.2`
+    - Choose min (closer to ideal): ``interval_number_optimal = 3``
+    - ``period_optimal = 2800 // 3 = 933`` ms
+
+Result:
+    - Returns ``(933, 3, False)`` - approximation at boundary
+    - Period is outside the strict [950, 1050] range
+    - Represents the best possible compromise
+
+Example 3: Large Time Gap
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Configuration:
+    - ``output_nominal_period_ms = 100`` ms
+    - ``output_max_period_deviation_ms = 10`` ms
+    - Valid period range: [90 ms, 110 ms]
+
+Input:
+    - ``diff_time = 1205`` ms
+
+Calculation:
+    - ``interval_number_ideal = 1205 / 100 = 12.05``
+    - ``interval_number_min = ceil(1205 / 110) = 11``
+    - ``interval_number_max = floor(1205 / 90) = 13``
+    - Solution exists: :math:`11 \leq 13`
+    - ``interval_number_optimal = round(12.05) = 12``
+    - ``period_optimal = 1205 // 12 = 100`` ms (with remainder)
+
+Result:
+    - Returns ``(100, 12, True)`` - exact solution
+    - Period matches nominal target perfectly
+
+Example 4: Tight Constraint
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Configuration:
+    - ``output_nominal_period_ms = 100`` ms
+    - ``output_max_period_deviation_ms = 2`` ms
+    - Valid period range: [98 ms, 102 ms]
+
+Input:
+    - ``diff_time = 999`` ms
+
+Calculation:
+    - ``interval_number_ideal = 999 / 100 = 9.99``
+    - ``interval_number_min = ceil(999 / 102) = 10``
+    - ``interval_number_max = floor(999 / 98) = 10``
+    - Solution exists: :math:`10 \leq 10`
+    - ``interval_number_optimal = 10``
+    - ``period_optimal = 999 // 10 = 99`` ms
+
+Result:
+    - Returns ``(99, 10, True)`` - exact solution within tight constraints
+    - Period is within [98, 102] range
+
+Implementation Notes
+--------------------
+
+Integer Division Behavior
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The algorithm uses Python's integer division (``//``) which:
+    - Always returns a whole number (floor division)
+    - Ensures all timestamps are whole milliseconds
+    - May result in slight timing variations when ``d`` is not evenly divisible by ``n``
+
+Debug Logging
+~~~~~~~~~~~~~
+
+When debug logging is enabled, the method outputs:
+    - Whether the solution is ideal or optimal (approximation)
+    - Calculated period in milliseconds
+    - Number of intervals
+    - Time difference and range
+    - Error from nominal period
+
+Example log output:
+
+.. code-block:: text
+
+   ActorId(1234): period ideal: period=1000 ms, intervals=3 
+   for time diff time=3000 ms => range 1609459200000 - 1609459203000 ms, 
+   error=0 ms
+
+Warning Conditions
+~~~~~~~~~~~~~~~~~~
+
+Non-ideal solutions trigger warnings in calling methods because:
+    - The period falls outside the configured deviation range
+    - This may indicate configuration issues or unusual timing conditions
+    - Users should review if this occurs frequently
+
+Optimization Considerations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The algorithm prioritizes:
+    1. **Constraint satisfaction**: Staying within period bounds when possible
+    2. **Minimal deviation**: Choosing intervals closest to ideal
+    3. **Computational efficiency**: O(1) time with no loops
+
+Mathematical Proof of Optimality
+---------------------------------
+
+Theorem
+~~~~~~~
+
+Given valid range :math:`n \in [n_{min}, n_{max}]`, the algorithm selects the 
+:math:`n_{optimal}` that minimizes :math:`|p - P_{nominal}|` where :math:`p = \frac{d}{n}`.
+
+Proof
+~~~~~
+
+1. Since :math:`p = \frac{d}{n}`, as :math:`n` increases, :math:`p` decreases monotonically.
+
+2. The ideal continuous solution is :math:`n_{ideal} = \frac{d}{P_{nominal}}`, 
+   which gives :math:`p = P_{nominal}`.
+
+3. For integer :math:`n`:
+
+   - If :math:`n_{ideal} \in [n_{min}, n_{max}]`, then :math:`\text{round}(n_{ideal})` 
+     gives the closest integer, minimizing :math:`|p - P_{nominal}|`.
+   
+   - If :math:`n_{ideal} < n_{min}`, then :math:`n_{min}` is the closest valid value.
+   
+   - If :math:`n_{ideal} > n_{max}`, then :math:`n_{max}` is the closest valid value.
+
+4. The clamping operation :math:`\max(n_{min}, \min(n_{max}, \text{round}(n_{ideal})))` 
+   implements exactly this logic. ∎
+
+When No Valid Solution Exists
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If :math:`n_{min} > n_{max}`, the constraint cannot be satisfied with exact :math:`d`. 
+The algorithm chooses the boundary value closest to :math:`n_{ideal}`:
+
+- This minimizes the deviation from the target period
+- Provides the best possible approximation
+- Signals the caller via ``period_ideal = False``
+
+See Also
+--------
+
+- ``_create_interpolated_timestamp_array()`` - Uses this method to generate timestamp arrays
+- ``PointDatasetConfig`` - Configuration parameters that control period constraints
+- ``add_position()`` - Main entry point that triggers period calculation and interpolation

@@ -5,23 +5,22 @@ Command Line Interface
 Overview
 ========
 
-The step_client command line interface (CLI) provides a way to interact with the STEP 
-(Standardized Transport and Environment Protocol) broker and ITS ETSI messages. It facilitates 
-the exchange of messages between the STEP gateway and Redis streams.
+The step_adapter command line interface (CLI) provides a way to interact 
+with the STEP Adapter.
 
 The CLI allows users to:
 
 * View the program version
 * Generate JSON schema documentation for configuration
 * Create configuration templates
-* Load and run the client with a specific configuration
+* Load and run the module with a specific configuration
 
 Basic Usage
 ===========
 
 .. code-block:: bash
 
-    step_client [options]
+    step_adapter [options]
 
 If no options are provided, the program will display the help message.
 
@@ -43,7 +42,14 @@ The following command line options are available:
     Write a configuration template to the specified file.
 
 ``-c, --config <config file>``
-    Load the configuration from the specified file and run the client.
+    Load the configuration from the specified file and run the module.
+
+``-i, --instance <instance name>``
+    Specify the instance name.
+
+.. note::
+    When the module uses the `-c` or `--config` option, also the -i or --instance option 
+    must be specified to set the instance name
 
 Detailed Command Description
 ============================
@@ -55,7 +61,7 @@ To display help information:
 
 .. code-block:: bash
 
-    step_client --help
+    step_adapter --help
 
 This will output usage instructions and a list of available options.
 
@@ -66,9 +72,9 @@ To display the program version:
 
 .. code-block:: bash
 
-    step_client --version
+    step_adapter --version
 
-This will output the current version of the step_client.
+This will output the current version of the step_adapter.
 
 Configuration Schema Generation
 -------------------------------
@@ -77,7 +83,7 @@ To generate a JSON schema file documenting all configuration options:
 
 .. code-block:: bash
 
-    step_client --conf_schema /path/to/schema_file.json
+    step_adapter --conf_schema /path/to/schema_file.json
 
 This command creates a JSON schema file at the specified path. The file describes
 all available configuration options, their types, defaults, and constraints. 
@@ -90,7 +96,7 @@ To generate a configuration template file with default values:
 
 .. code-block:: bash
 
-    step_client --conf_template /path/to/template_file.json
+    step_adapter --conf_template /path/to/template_file.json
 
 This command creates a JSON configuration file with default values 
 for all settings. Users can modify this file as needed to customize their configuration.
@@ -98,34 +104,33 @@ for all settings. Users can modify this file as needed to customize their config
 Running with Configuration
 --------------------------
 
-To run the client with a specific configuration:
+To run the module with a specific configuration:
 
 .. code-block:: bash
 
-    step_client --config /path/to/config_file.json
+    step_adapter --instance test --config /path/to/config_file.json
 
-This loads the configuration from the specified file and starts the step_client.
-The client will connect to the STEP gateway and Redis streams as specified in the configuration.
+This loads the configuration from the specified file and starts the step_adapter.
+The module will connect to the Redis streams as specified in the configuration.
 
 Configuration File Structure
 ============================
 
-The configuration file is a JSON document that defines the behavior of the step_client. It includes settings for:
+The configuration file is a JSON document that defines the behavior of the step_adapter. 
+It includes settings for:
 
-* MQTT client connection
-* MQTT protocol options
+* Module basic settings
 * Redis client connection
 * Redis streams
 * Logging configuration
-* Client instance name
-* Reconnection interval
 
 Here's an example of the configuration structure:
 
-.. literalinclude:: schemas_examples/step_client_config_v1_schema_template.json
+.. literalinclude:: schemas_examples/step_adapter_config_v1_schema_template.json
   :language: JSON
 
-For the :ref:`STEP Client Configuration Schema<step_client_config_schema>` with all configuration options, generate a schema file using the ``--conf_schema`` option.
+For the :ref:`STEP Adapter Configuration Schema<step_adapter_config_schema>` with all configuration 
+options, generate a schema file using the ``--conf_schema`` option.
 
 Exit Codes
 ==========
@@ -144,43 +149,52 @@ Generate a configuration schema:
 
 .. code-block:: bash
 
-    step_client --conf_schema ./schema.json
+    step_adapter --conf_schema ./schema.json
 
 Create a configuration template:
 
 .. code-block:: bash
 
-    step_client --conf_template ./template.json
+    step_adapter --conf_template ./template.json
 
 Run with specific configuration:
 
 .. code-block:: bash
 
-    step_client --config ./my_config.json
+    step_adapter --instance test --config ./my_config.json
 
 Generate both schema and template:
 
 .. code-block:: bash
 
-    step_client --conf_schema ./schema.json --conf_template ./template.json
+    step_adapter --conf_schema ./schema.json --conf_template ./template.json
 
 Program Operation
 =================
 
-When running with a configuration file, the step_client performs the following operations:
+When running with a configuration file, the step_adapter
+performs the following operations:
 
    #. Connects to the Redis server using the provided connection settings
-   #. Connects to the STEP gateway using MQTT settings
-   #. Subscribes to the specified MQTT topics
-   #. Starts two asynchronous tasks:
-    
-      - One task listens for MQTT ITS ETSI messages from the STEP gateway and publishes them to Redis streams
-      - Another task listens for messages from Redis streams and publishes them to the STEP gateway
+   #. Initializes an ActorDataset for managing position trajectories with temporal data management
+   #. Starts multiple asynchronous tasks based on configuration:
+
+      - **Stream Message Reception**: Multiple concurrent Redis stream consumer instances (based on ``receiveClientNumber`` config) 
+        continuously listen to Redis input streams for incoming CAM (Cooperative Awareness Messages) and CPM (Collective 
+        Perception Messages)
+      - **Vehicle Position Processing**: Processes each received CAM message by converting it to position information, 
+        inserting it into the actor dataset with cubic spline interpolation, and generating smooth position arrays
+      - **Position Array Publishing**: When sufficient data is available, publishes interpolated position arrays 
+        to Redis output streams for Crash Prediction and traffic monitoring systems
+      - **Periodic Dataset Cleanup**: Automatically removes expired trajectory data at configurable intervals 
+        (``cleanerInterval``) to prevent memory buildup and maintain optimal performance
    
    #. Automatically handles reconnection if connections are lost (using the specified reconnect interval)
-   #. Manages graceful shutdown when interrupted
+   #. Manages graceful shutdown when interrupted with proper resource cleanup
 
-The client will continue running until manually interrupted (e.g., with Ctrl+C) or until a system signal is received.
+The module operates as a real-time position processing pipeline, transforming raw GNSS measurements 
+into smooth, regularly-sampled position trajectories optimized for Crash Prediction algorithms. It will continue 
+running until manually interrupted (e.g., with Ctrl+C) or until a system signal is received.
 
 Advanced Usage
 ==============
@@ -188,13 +202,14 @@ Advanced Usage
 Signal Handling
 ---------------
 
-The step_client properly handles system signals for graceful shutdown. When a signal is received, 
+The step_adapter properly handles system signals for graceful shutdown. When a signal is received, 
 it cleans up resources and terminates with the appropriate exit code.
 
 Logging
 -------
 
-The step_client includes detailed logging capabilities. Log settings can be configured in the configuration file, including:
+The step_adapter includes detailed logging capabilities. Log settings can be configured 
+in the configuration file, including:
 
 * Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
 * Console logging
