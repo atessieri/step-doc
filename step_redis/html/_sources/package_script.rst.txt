@@ -65,6 +65,34 @@ The commands available are:
 
             $make clean
 
+   #. Format the code of the package:
+
+      .. tab:: Windows
+
+         .. code-block:: console
+
+            $.\make.bat format 
+
+      .. tab:: Linux
+
+         .. code-block:: bash
+
+            $make format
+
+   #. Execute the linter on the code of the package:
+
+      .. tab:: Windows
+
+         .. code-block:: console
+
+            $.\make.bat lint 
+
+      .. tab:: Linux
+
+         .. code-block:: bash
+
+            $make lint
+
    #. Execute the tests of the package:
 
       .. tab:: Windows
@@ -149,6 +177,58 @@ The commands available are:
          .. code-block:: bash
 
             $make help
+
+------------------
+Automatic checking
+------------------
+
+The project uses **tox** for automated testing across multiple Python versions. Tox creates isolated 
+virtual environments for each Python version and runs the test suite to ensure compatibility. 
+The configuration is defined in the ``tox.ini`` file at the project root.
+
+The ``tox.ini`` is configured to test against Python versions 3.13, and 3.14 using the 
+``tox-uv`` plugin. This plugin leverages **uv** to automatically download and install the required 
+Python versions if they're not already present on the system, eliminating the need for manual Python installation. 
+The configuration sets ``UV_PYTHON_PREFERENCE = only-managed`` to ensure only managed Python versions are used, and 
+includes various test environments:
+
+- **Default environments** (py313, py314): Run the full test suite via ``make test``
+- **docs**: Build the documentation using ``make html``
+- **lint**: Execute linting checks with ``make lint``
+- **format**: Format the code using ``make format``
+- **clean**: Remove build artifacts with ``make clean``
+- **upload**: Upload the package to the registry
+- **cleanenv**: Remove all tox environments to free up space
+
+To run tox, use the following commands:
+
+.. tab:: Parallel (fastest)
+
+   .. code-block:: console
+
+      $ uv run tox -p auto
+
+.. tab:: Sequential
+
+   .. code-block:: console
+
+      $ uv run tox
+
+.. tab:: Specific version
+
+   .. code-block:: console
+
+      $ uv run tox -e py311
+      $ uv run tox -e py312
+      $ uv run tox -e py313
+
+.. tab:: Specific environment
+
+   .. code-block:: console
+
+      $ uv run tox -e lint
+      $ uv run tox -e docs
+      $ uv run tox -e clean
 
 --------------
 PDF conversion

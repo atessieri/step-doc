@@ -1,0 +1,668 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>test.test_step_crash_prediction_redis_stream &mdash; STEP Redis 1.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=4c969af8" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/custom.css?v=ca5f51dc" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/sphinx_prompt_css.css?v=351d85e3" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=fc837d61"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../_static/tabs.js?v=3ee01567"></script>
+      <script src="../../_static/js/expand_tabs.js?v=1e151f68"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            STEP Redis
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">STEP Redis:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../installation.html#installing-from-git-repository">Installing from git repository</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../usage.html">Redis Usage Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../usage.html#introduction">Introduction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../usage.html#key-components">Key Components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../usage.html#basic-usage">Basic Usage</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../usage.html#general-pattern">General Pattern</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../usage.html#advanced-usage-stream-demo-example">Advanced Usage: Stream Demo Example</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../usage.html#stream-demo-components">Stream Demo Components</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../usage.html#running-the-demo-application">Running the Demo Application</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../usage.html#best-practices">Best Practices</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../package_script.html">Package Script</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../package_script.html#create-environment">Create environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../package_script.html#make">Make</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../package_script.html#automatic-checking">Automatic checking</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../package_script.html#pdf-conversion">PDF conversion</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture.html">Architecture</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../architecture.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../architecture.html#library">Library</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../architecture.html#key-components">Key Components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../architecture.html#component-details">Component Details</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../architecture.html#stepredispool">StepRedisPool</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../architecture.html#stepredisstreamparams">StepRedisStreamParams</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../architecture.html#stepredisstream">StepRedisStream</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../architecture.html#package-integration">Package Integration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../architecture.html#usage-patterns">Usage Patterns</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../architecture.html#example-usage">Example Usage</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../architecture.html#base-stream-usage">Base Stream Usage</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../architecture.html#specialized-stream-usage">Specialized Stream Usage</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../architecture.html#error-handling">Error Handling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../architecture.html#design-considerations">Design Considerations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../architecture.html#cloudevents-integration">CloudEvents Integration</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../step_redis_rst/step_redis.html">step_redis package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../step_redis_rst/step_redis.html#submodules">Submodules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../step_redis_rst/step_redis.step_adapter_redis_stream.html">step_redis.step_adapter_redis_stream module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../step_redis_rst/step_redis.step_adapter_redis_stream.html#step_redis.step_adapter_redis_stream.StepAdapterRedisStream"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_adapter_redis_stream.html#step_redis.step_adapter_redis_stream.StepAdapterRedisStream.pool"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream.pool</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_adapter_redis_stream.html#step_redis.step_adapter_redis_stream.StepAdapterRedisStream.config"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream.config</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_adapter_redis_stream.html#step_redis.step_adapter_redis_stream.StepAdapterRedisStream.logger"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream.logger</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_adapter_redis_stream.html#step_redis.step_adapter_redis_stream.StepAdapterRedisStream.__aenter__"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream.__aenter__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_adapter_redis_stream.html#step_redis.step_adapter_redis_stream.StepAdapterRedisStream.publish_cam_message"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream.publish_cam_message()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_adapter_redis_stream.html#step_redis.step_adapter_redis_stream.StepAdapterRedisStream.receive_adapter_message"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream.receive_adapter_message()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../step_redis_rst/step_redis.step_client_redis_stream.html">step_redis.step_client_redis_stream module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../step_redis_rst/step_redis.step_client_redis_stream.html#step_redis.step_client_redis_stream.StepClientRedisStream"><code class="docutils literal notranslate"><span class="pre">StepClientRedisStream</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_client_redis_stream.html#step_redis.step_client_redis_stream.StepClientRedisStream.pool"><code class="docutils literal notranslate"><span class="pre">StepClientRedisStream.pool</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_client_redis_stream.html#step_redis.step_client_redis_stream.StepClientRedisStream.config"><code class="docutils literal notranslate"><span class="pre">StepClientRedisStream.config</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_client_redis_stream.html#step_redis.step_client_redis_stream.StepClientRedisStream.logger"><code class="docutils literal notranslate"><span class="pre">StepClientRedisStream.logger</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_client_redis_stream.html#step_redis.step_client_redis_stream.StepClientRedisStream.__aenter__"><code class="docutils literal notranslate"><span class="pre">StepClientRedisStream.__aenter__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_client_redis_stream.html#step_redis.step_client_redis_stream.StepClientRedisStream.publish_denm_message"><code class="docutils literal notranslate"><span class="pre">StepClientRedisStream.publish_denm_message()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_client_redis_stream.html#step_redis.step_client_redis_stream.StepClientRedisStream.receive_client_message"><code class="docutils literal notranslate"><span class="pre">StepClientRedisStream.receive_client_message()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../step_redis_rst/step_redis.step_crash_prediction_redis_stream.html">step_redis.step_crash_prediction_redis_stream module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../step_redis_rst/step_redis.step_crash_prediction_redis_stream.html#step_redis.step_crash_prediction_redis_stream.StepCrashPredictionRedisStream"><code class="docutils literal notranslate"><span class="pre">StepCrashPredictionRedisStream</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_crash_prediction_redis_stream.html#step_redis.step_crash_prediction_redis_stream.StepCrashPredictionRedisStream.pool"><code class="docutils literal notranslate"><span class="pre">StepCrashPredictionRedisStream.pool</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_crash_prediction_redis_stream.html#step_redis.step_crash_prediction_redis_stream.StepCrashPredictionRedisStream.config"><code class="docutils literal notranslate"><span class="pre">StepCrashPredictionRedisStream.config</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_crash_prediction_redis_stream.html#step_redis.step_crash_prediction_redis_stream.StepCrashPredictionRedisStream.logger"><code class="docutils literal notranslate"><span class="pre">StepCrashPredictionRedisStream.logger</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_crash_prediction_redis_stream.html#step_redis.step_crash_prediction_redis_stream.StepCrashPredictionRedisStream.__aenter__"><code class="docutils literal notranslate"><span class="pre">StepCrashPredictionRedisStream.__aenter__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_crash_prediction_redis_stream.html#step_redis.step_crash_prediction_redis_stream.StepCrashPredictionRedisStream.publish_position_array"><code class="docutils literal notranslate"><span class="pre">StepCrashPredictionRedisStream.publish_position_array()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_crash_prediction_redis_stream.html#step_redis.step_crash_prediction_redis_stream.StepCrashPredictionRedisStream.receive_crash_prediction_message"><code class="docutils literal notranslate"><span class="pre">StepCrashPredictionRedisStream.receive_crash_prediction_message()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../step_redis_rst/step_redis.step_producer_redis_stream.html">step_redis.step_producer_redis_stream module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../step_redis_rst/step_redis.step_producer_redis_stream.html#step_redis.step_producer_redis_stream.StepProducerRedisStream"><code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_producer_redis_stream.html#step_redis.step_producer_redis_stream.StepProducerRedisStream.pool"><code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream.pool</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_producer_redis_stream.html#step_redis.step_producer_redis_stream.StepProducerRedisStream.config"><code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream.config</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_producer_redis_stream.html#step_redis.step_producer_redis_stream.StepProducerRedisStream.logger"><code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream.logger</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_producer_redis_stream.html#step_redis.step_producer_redis_stream.StepProducerRedisStream.__aenter__"><code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream.__aenter__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_producer_redis_stream.html#step_redis.step_producer_redis_stream.StepProducerRedisStream.publish_denm_message"><code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream.publish_denm_message()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_producer_redis_stream.html#step_redis.step_producer_redis_stream.StepProducerRedisStream.publish_station_collision_array"><code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream.publish_station_collision_array()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_producer_redis_stream.html#step_redis.step_producer_redis_stream.StepProducerRedisStream.receive_producer_message"><code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream.receive_producer_message()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../step_redis_rst/step_redis.step_redis_pool.html">step_redis.step_redis_pool module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPool"><code class="docutils literal notranslate"><span class="pre">StepRedisPool</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPool.params"><code class="docutils literal notranslate"><span class="pre">StepRedisPool.params</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPool.logger"><code class="docutils literal notranslate"><span class="pre">StepRedisPool.logger</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPool.__aenter__"><code class="docutils literal notranslate"><span class="pre">StepRedisPool.__aenter__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPool.__aexit__"><code class="docutils literal notranslate"><span class="pre">StepRedisPool.__aexit__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.host"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.host</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.port"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.port</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.username"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.username</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.password"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.password</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.db"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.db</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.socket_timeout"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.socket_timeout</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.socket_connect_timeout"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.socket_connect_timeout</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.socket_keep_idle"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.socket_keep_idle</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.socket_keep_alive"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.socket_keep_alive</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.socket_keep_cnt"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.socket_keep_cnt</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.ssl_enable"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.ssl_enable</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.ssl_client_key_file"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.ssl_client_key_file</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.ssl_client_key_file_password"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.ssl_client_key_file_password</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.ssl_client_cert_file"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.ssl_client_cert_file</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.ssl_cert_requested"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.ssl_cert_requested</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.ssl_ca_certs_file"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.ssl_ca_certs_file</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.health_check_interval"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.health_check_interval</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.max_connections"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.max_connections</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.connection_available_timeout"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.connection_available_timeout</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.protocol"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.protocol</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../step_redis_rst/step_redis.step_redis_stream.html">step_redis.step_redis_stream module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream"><code class="docutils literal notranslate"><span class="pre">StepRedisStream</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream.pool"><code class="docutils literal notranslate"><span class="pre">StepRedisStream.pool</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream.config"><code class="docutils literal notranslate"><span class="pre">StepRedisStream.config</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream.logger"><code class="docutils literal notranslate"><span class="pre">StepRedisStream.logger</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream.__aenter__"><code class="docutils literal notranslate"><span class="pre">StepRedisStream.__aenter__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream.__aexit__"><code class="docutils literal notranslate"><span class="pre">StepRedisStream.__aexit__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream.create_input_stream"><code class="docutils literal notranslate"><span class="pre">StepRedisStream.create_input_stream()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream.get_stream_ttl"><code class="docutils literal notranslate"><span class="pre">StepRedisStream.get_stream_ttl()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream.ping"><code class="docutils literal notranslate"><span class="pre">StepRedisStream.ping()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream.publish_message"><code class="docutils literal notranslate"><span class="pre">StepRedisStream.publish_message()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream.receive_message"><code class="docutils literal notranslate"><span class="pre">StepRedisStream.receive_message()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream.update_stream_ttl"><code class="docutils literal notranslate"><span class="pre">StepRedisStream.update_stream_ttl()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStreamParams"><code class="docutils literal notranslate"><span class="pre">StepRedisStreamParams</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStreamParams.stream_id"><code class="docutils literal notranslate"><span class="pre">StepRedisStreamParams.stream_id</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStreamParams.group_id"><code class="docutils literal notranslate"><span class="pre">StepRedisStreamParams.group_id</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStreamParams.wait_timeout_ms"><code class="docutils literal notranslate"><span class="pre">StepRedisStreamParams.wait_timeout_ms</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStreamParams.max_length"><code class="docutils literal notranslate"><span class="pre">StepRedisStreamParams.max_length</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStreamParams.consumer_name"><code class="docutils literal notranslate"><span class="pre">StepRedisStreamParams.consumer_name</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStreamParams.ttl_seconds"><code class="docutils literal notranslate"><span class="pre">StepRedisStreamParams.ttl_seconds</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStreamParams.__post_init__"><code class="docutils literal notranslate"><span class="pre">StepRedisStreamParams.__post_init__()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../test_rst/test.html">Unit Test package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../test_rst/test.html#submodules">Submodules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../test_rst/test.test___init__.html">test.test___init__ module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../test_rst/test.test___init__.html#test.test___init__.test_package_exports"><code class="docutils literal notranslate"><span class="pre">test_package_exports()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../test_rst/test.test___init__.html#test.test___init__.test_release_date"><code class="docutils literal notranslate"><span class="pre">test_release_date()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../test_rst/test.test___init__.html#test.test___init__.test_version"><code class="docutils literal notranslate"><span class="pre">test_version()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../test_rst/test.test_step_adapter_redis_stream.html">test.test_step_adapter_redis_stream module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../test_rst/test.test_step_adapter_redis_stream.html#test.test_step_adapter_redis_stream.TestStepAdapterRedisStream"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterRedisStream</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_step_adapter_redis_stream.html#test.test_step_adapter_redis_stream.TestStepAdapterRedisStream.test___aenter__"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterRedisStream.test___aenter__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_step_adapter_redis_stream.html#test.test_step_adapter_redis_stream.TestStepAdapterRedisStream.test___init__"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterRedisStream.test___init__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_step_adapter_redis_stream.html#test.test_step_adapter_redis_stream.TestStepAdapterRedisStream.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterRedisStream.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_step_adapter_redis_stream.html#test.test_step_adapter_redis_stream.TestStepAdapterRedisStream.test_publish_cam_message"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterRedisStream.test_publish_cam_message()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_step_adapter_redis_stream.html#test.test_step_adapter_redis_stream.TestStepAdapterRedisStream.test_receive_adapter_message"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterRedisStream.test_receive_adapter_message()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../test_rst/test.test_step_client_redis_stream.html">test.test_step_client_redis_stream module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../test_rst/test.test_step_client_redis_stream.html#test.test_step_client_redis_stream.TestStepClientRedisStream"><code class="docutils literal notranslate"><span class="pre">TestStepClientRedisStream</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_step_client_redis_stream.html#test.test_step_client_redis_stream.TestStepClientRedisStream.test___aenter__"><code class="docutils literal notranslate"><span class="pre">TestStepClientRedisStream.test___aenter__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_step_client_redis_stream.html#test.test_step_client_redis_stream.TestStepClientRedisStream.test___init__"><code class="docutils literal notranslate"><span class="pre">TestStepClientRedisStream.test___init__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_step_client_redis_stream.html#test.test_step_client_redis_stream.TestStepClientRedisStream.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestStepClientRedisStream.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_step_client_redis_stream.html#test.test_step_client_redis_stream.TestStepClientRedisStream.test_publish_denm_message"><code class="docutils literal notranslate"><span class="pre">TestStepClientRedisStream.test_publish_denm_message()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_step_client_redis_stream.html#test.test_step_client_redis_stream.TestStepClientRedisStream.test_receive_client_message"><code class="docutils literal notranslate"><span class="pre">TestStepClientRedisStream.test_receive_client_message()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../test_rst/test.test_step_crash_prediction_redis_stream.html">test.test_step_crash_prediction_redis_stream module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../test_rst/test.test_step_crash_prediction_redis_stream.html#test.test_step_crash_prediction_redis_stream.TestStepCrashPredictionRedisStream"><code class="docutils literal notranslate"><span class="pre">TestStepCrashPredictionRedisStream</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_step_crash_prediction_redis_stream.html#test.test_step_crash_prediction_redis_stream.TestStepCrashPredictionRedisStream.test___aenter__"><code class="docutils literal notranslate"><span class="pre">TestStepCrashPredictionRedisStream.test___aenter__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_step_crash_prediction_redis_stream.html#test.test_step_crash_prediction_redis_stream.TestStepCrashPredictionRedisStream.test___init__"><code class="docutils literal notranslate"><span class="pre">TestStepCrashPredictionRedisStream.test___init__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_step_crash_prediction_redis_stream.html#test.test_step_crash_prediction_redis_stream.TestStepCrashPredictionRedisStream.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestStepCrashPredictionRedisStream.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_step_crash_prediction_redis_stream.html#test.test_step_crash_prediction_redis_stream.TestStepCrashPredictionRedisStream.test_publish_position_array"><code class="docutils literal notranslate"><span class="pre">TestStepCrashPredictionRedisStream.test_publish_position_array()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_step_crash_prediction_redis_stream.html#test.test_step_crash_prediction_redis_stream.TestStepCrashPredictionRedisStream.test_receive_crash_prediction_message"><code class="docutils literal notranslate"><span class="pre">TestStepCrashPredictionRedisStream.test_receive_crash_prediction_message()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../test_rst/test.test_step_producer_redis_stream.html">test.test_step_producer_redis_stream module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../test_rst/test.test_step_producer_redis_stream.html#test.test_step_producer_redis_stream.TestStepProducerRedisStream"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisStream</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_step_producer_redis_stream.html#test.test_step_producer_redis_stream.TestStepProducerRedisStream.test___aenter__"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisStream.test___aenter__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_step_producer_redis_stream.html#test.test_step_producer_redis_stream.TestStepProducerRedisStream.test___init__"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisStream.test___init__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_step_producer_redis_stream.html#test.test_step_producer_redis_stream.TestStepProducerRedisStream.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisStream.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_step_producer_redis_stream.html#test.test_step_producer_redis_stream.TestStepProducerRedisStream.test_publish_denm_message"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisStream.test_publish_denm_message()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_step_producer_redis_stream.html#test.test_step_producer_redis_stream.TestStepProducerRedisStream.test_publish_station_collision_array"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisStream.test_publish_station_collision_array()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_step_producer_redis_stream.html#test.test_step_producer_redis_stream.TestStepProducerRedisStream.test_receive_producer_message"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisStream.test_receive_producer_message()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../test_rst/test.test_step_redis_pool.html">test.test_step_redis_pool module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../test_rst/test.test_step_redis_pool.html#test.test_step_redis_pool.TestStepRedisPool"><code class="docutils literal notranslate"><span class="pre">TestStepRedisPool</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_step_redis_pool.html#test.test_step_redis_pool.TestStepRedisPool.redis_params_no_ssl"><code class="docutils literal notranslate"><span class="pre">TestStepRedisPool.redis_params_no_ssl()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_step_redis_pool.html#test.test_step_redis_pool.TestStepRedisPool.redis_params_ssl"><code class="docutils literal notranslate"><span class="pre">TestStepRedisPool.redis_params_ssl()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_step_redis_pool.html#test.test_step_redis_pool.TestStepRedisPool.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestStepRedisPool.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_step_redis_pool.html#test.test_step_redis_pool.TestStepRedisPool.test_async_context_manager"><code class="docutils literal notranslate"><span class="pre">TestStepRedisPool.test_async_context_manager()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_step_redis_pool.html#test.test_step_redis_pool.TestStepRedisPool.test_init_with_ssl"><code class="docutils literal notranslate"><span class="pre">TestStepRedisPool.test_init_with_ssl()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_step_redis_pool.html#test.test_step_redis_pool.TestStepRedisPool.test_init_without_ssl"><code class="docutils literal notranslate"><span class="pre">TestStepRedisPool.test_init_without_ssl()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../../test_rst/test.test_step_redis_pool.html#test.test_step_redis_pool.TestStepRedisPoolParams"><code class="docutils literal notranslate"><span class="pre">TestStepRedisPoolParams</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_step_redis_pool.html#test.test_step_redis_pool.TestStepRedisPoolParams.redis_params_no_ssl"><code class="docutils literal notranslate"><span class="pre">TestStepRedisPoolParams.redis_params_no_ssl()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_step_redis_pool.html#test.test_step_redis_pool.TestStepRedisPoolParams.redis_params_ssl"><code class="docutils literal notranslate"><span class="pre">TestStepRedisPoolParams.redis_params_ssl()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_step_redis_pool.html#test.test_step_redis_pool.TestStepRedisPoolParams.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestStepRedisPoolParams.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_step_redis_pool.html#test.test_step_redis_pool.TestStepRedisPoolParams.test_redis_pool_params_init_no_ssl"><code class="docutils literal notranslate"><span class="pre">TestStepRedisPoolParams.test_redis_pool_params_init_no_ssl()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_step_redis_pool.html#test.test_step_redis_pool.TestStepRedisPoolParams.test_redis_pool_params_init_ssl"><code class="docutils literal notranslate"><span class="pre">TestStepRedisPoolParams.test_redis_pool_params_init_ssl()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../test_rst/test.test_step_redis_stream.html">test.test_step_redis_stream module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStream"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStream.mock_pool"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.mock_pool()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStream.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStream.test_context"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_context()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStream.test_create_input_stream"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_create_input_stream()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStream.test_create_input_stream_redis_already_exists"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_create_input_stream_redis_already_exists()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStream.test_create_input_stream_redis_error"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_create_input_stream_redis_error()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStream.test_get_stream_ttl"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_get_stream_ttl()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStream.test_init"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_init()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStream.test_ping"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_ping()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStream.test_publish_message_success"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_publish_message_success()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStream.test_receive_message"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_receive_message()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStream.test_update_stream_ttl"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_update_stream_ttl()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStream.test_update_stream_ttl_error"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_update_stream_ttl_error()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStreamParams"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStreamParams</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStreamParams.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStreamParams.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStreamParams.test_params_boundary_values"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStreamParams.test_params_boundary_values()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStreamParams.test_params_invalid_values"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStreamParams.test_params_invalid_values()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">STEP Redis</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">test.test_step_crash_prediction_redis_stream</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for test.test_step_crash_prediction_redis_stream</h1><div class="highlight"><pre>
+<span></span><span class="linenos">  1</span><span class="sd">&quot;&quot;&quot;Unit tests for the StepCrashPredictionRedisStream class.</span>
+<span class="linenos">  2</span>
+<span class="linenos">  3</span><span class="sd">This module provides comprehensive test coverage for the ``StepCrashPredictionRedisStream``</span>
+<span class="linenos">  4</span><span class="sd">class, which extends ``StepRedisStream`` to provide specialized functionality for</span>
+<span class="linenos">  5</span><span class="sd">publishing and receiving crash prediction messages in CloudEvents format via Redis Streams.</span>
+<span class="linenos">  6</span>
+<span class="linenos">  7</span><span class="sd">The test suite validates:</span>
+<span class="linenos">  8</span><span class="sd">    - Class initialization and configuration with Redis pool and stream parameters</span>
+<span class="linenos">  9</span><span class="sd">    - Asynchronous context manager protocol (``__aenter__``)</span>
+<span class="linenos"> 10</span><span class="sd">    - Publishing PositionArray data wrapped in CloudEvents format</span>
+<span class="linenos"> 11</span><span class="sd">    - Receiving and deserializing crash prediction messages from Redis Streams</span>
+<span class="linenos"> 12</span><span class="sd">    - Proper interaction with parent class methods and external dependencies</span>
+<span class="linenos"> 13</span>
+<span class="linenos"> 14</span><span class="sd">All tests utilize mocking to isolate the unit under test from external dependencies</span>
+<span class="linenos"> 15</span><span class="sd">such as Redis connections, parent class implementations, and CloudEvents schemas.</span>
+<span class="linenos"> 16</span>
+<span class="linenos"> 17</span><span class="sd">Test Class:</span>
+<span class="linenos"> 18</span><span class="sd">    TestStepCrashPredictionRedisStream: Contains all unit tests for StepCrashPredictionRedisStream.</span>
+<span class="linenos"> 19</span>
+<span class="linenos"> 20</span><span class="sd">Dependencies:</span>
+<span class="linenos"> 21</span><span class="sd">    - pytest: Testing framework</span>
+<span class="linenos"> 22</span><span class="sd">    - pytest-mock: Mocking utilities for pytest</span>
+<span class="linenos"> 23</span><span class="sd">    - step_cloud_schemas: CloudEvents schema definitions</span>
+<span class="linenos"> 24</span><span class="sd">    - step_redis: Redis Stream components and StepCrashPredictionRedisStream implementation</span>
+<span class="linenos"> 25</span>
+<span class="linenos"> 26</span><span class="sd">See Also:</span>
+<span class="linenos"> 27</span><span class="sd">    - ``step_redis.StepCrashPredictionRedisStream``: The class being tested</span>
+<span class="linenos"> 28</span><span class="sd">    - ``step_redis.StepRedisStream``: Parent class providing base Redis Stream functionality</span>
+<span class="linenos"> 29</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="linenos"> 30</span>
+<span class="linenos"> 31</span><span class="c1"># ruff: noqa: S101, SLF001</span>
+<span class="linenos"> 32</span>
+<span class="linenos"> 33</span><span class="c1"># Standard Library Imports</span>
+<span class="linenos"> 34</span><span class="kn">from</span><span class="w"> </span><span class="nn">logging</span><span class="w"> </span><span class="kn">import</span> <span class="n">Logger</span>
+<span class="linenos"> 35</span><span class="kn">from</span><span class="w"> </span><span class="nn">unittest.mock</span><span class="w"> </span><span class="kn">import</span> <span class="n">MagicMock</span>
+<span class="linenos"> 36</span>
+<span class="linenos"> 37</span><span class="c1"># Third Party Imports</span>
+<span class="linenos"> 38</span><span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
+<span class="linenos"> 39</span><span class="kn">from</span><span class="w"> </span><span class="nn">pytest_mock</span><span class="w"> </span><span class="kn">import</span> <span class="n">MockerFixture</span>
+<span class="linenos"> 40</span><span class="kn">from</span><span class="w"> </span><span class="nn">step_cloud_schemas</span><span class="w"> </span><span class="kn">import</span> <span class="n">CrashPredictionCloudEventsJsonRoot</span><span class="p">,</span> <span class="n">PositionArrayV1</span>
+<span class="linenos"> 41</span>
+<span class="linenos"> 42</span><span class="c1"># step_redis Package Imports</span>
+<span class="linenos"> 43</span><span class="kn">from</span><span class="w"> </span><span class="nn">step_redis</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+<span class="linenos"> 44</span>    <span class="n">StepCrashPredictionRedisStream</span><span class="p">,</span>
+<span class="linenos"> 45</span>    <span class="n">StepRedisPool</span><span class="p">,</span>
+<span class="linenos"> 46</span>    <span class="n">StepRedisStream</span><span class="p">,</span>
+<span class="linenos"> 47</span>    <span class="n">StepRedisStreamParams</span><span class="p">,</span>
+<span class="linenos"> 48</span><span class="p">)</span>
+<span class="linenos"> 49</span>
+<span class="linenos"> 50</span>
+<div class="viewcode-block" id="TestStepCrashPredictionRedisStream">
+<a class="viewcode-back" href="../../test_rst/test.test_step_crash_prediction_redis_stream.html#test.test_step_crash_prediction_redis_stream.TestStepCrashPredictionRedisStream">[docs]</a>
+<span class="linenos"> 51</span><span class="k">class</span><span class="w"> </span><span class="nc">TestStepCrashPredictionRedisStream</span><span class="p">:</span>
+<span class="linenos"> 52</span><span class="w">    </span><span class="sd">&quot;&quot;&quot;Test suite for the StepCrashPredictionRedisStream class.</span>
+<span class="linenos"> 53</span>
+<span class="linenos"> 54</span><span class="sd">    This class contains unit tests to verify the correct behavior of the</span>
+<span class="linenos"> 55</span><span class="sd">    StepCrashPredictionRedisStream, including its initialization, context management,</span>
+<span class="linenos"> 56</span><span class="sd">    message publishing, and message receiving functionalities. The tests utilize mocking</span>
+<span class="linenos"> 57</span><span class="sd">    to isolate dependencies and ensure that the class interacts correctly with its</span>
+<span class="linenos"> 58</span><span class="sd">    parent class and related components.</span>
+<span class="linenos"> 59</span><span class="sd">    &quot;&quot;&quot;</span>
+<span class="linenos"> 60</span>
+<div class="viewcode-block" id="TestStepCrashPredictionRedisStream.test___slots__">
+<a class="viewcode-back" href="../../test_rst/test.test_step_crash_prediction_redis_stream.html#test.test_step_crash_prediction_redis_stream.TestStepCrashPredictionRedisStream.test___slots__">[docs]</a>
+<span class="linenos"> 61</span>    <span class="k">def</span><span class="w"> </span><span class="nf">test___slots__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos"> 62</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Test that the StepCrashPredictionRedisStream class defines an empty</span>
+<span class="linenos"> 63</span><span class="sd">        ``__slots__`` attribute.</span>
+<span class="linenos"> 64</span>
+<span class="linenos"> 65</span><span class="sd">        Returns:</span>
+<span class="linenos"> 66</span><span class="sd">            None</span>
+<span class="linenos"> 67</span><span class="sd">        &quot;&quot;&quot;</span>
+<span class="linenos"> 68</span>        <span class="k">assert</span> <span class="n">StepCrashPredictionRedisStream</span><span class="o">.</span><span class="vm">__slots__</span> <span class="o">==</span> <span class="p">()</span></div>
+
+<span class="linenos"> 69</span>
+<div class="viewcode-block" id="TestStepCrashPredictionRedisStream.test___init__">
+<a class="viewcode-back" href="../../test_rst/test.test_step_crash_prediction_redis_stream.html#test.test_step_crash_prediction_redis_stream.TestStepCrashPredictionRedisStream.test___init__">[docs]</a>
+<span class="linenos"> 70</span>    <span class="k">def</span><span class="w"> </span><span class="nf">test___init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mocker</span><span class="p">:</span> <span class="n">MockerFixture</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos"> 71</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Test the __init__ method.</span>
+<span class="linenos"> 72</span>
+<span class="linenos"> 73</span><span class="sd">        Test the __init__ method of StepCrashPredictionRedisStream to ensure it correctly calls the parent</span>
+<span class="linenos"> 74</span><span class="sd">        StepRedisStream&#39;s ``__init__`` method with the provided pool, config, and logger arguments.</span>
+<span class="linenos"> 75</span>
+<span class="linenos"> 76</span><span class="sd">        Args:</span>
+<span class="linenos"> 77</span><span class="sd">            mocker (MockerFixture): The pytest-mock fixture used to create mock objects.</span>
+<span class="linenos"> 78</span>
+<span class="linenos"> 79</span><span class="sd">        Returns:</span>
+<span class="linenos"> 80</span><span class="sd">            None</span>
+<span class="linenos"> 81</span><span class="sd">        &quot;&quot;&quot;</span>
+<span class="linenos"> 82</span>        <span class="c1"># Arrange</span>
+<span class="linenos"> 83</span>        <span class="n">mock_pool</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">(</span><span class="n">spec</span><span class="o">=</span><span class="n">StepRedisPool</span><span class="p">)</span>
+<span class="linenos"> 84</span>        <span class="n">config</span> <span class="o">=</span> <span class="n">StepRedisStreamParams</span><span class="p">(</span>
+<span class="linenos"> 85</span>            <span class="n">stream_id</span><span class="o">=</span><span class="s2">&quot;test_stream&quot;</span><span class="p">,</span>
+<span class="linenos"> 86</span>            <span class="n">group_id</span><span class="o">=</span><span class="s2">&quot;test_group&quot;</span><span class="p">,</span>
+<span class="linenos"> 87</span>            <span class="n">wait_timeout_ms</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+<span class="linenos"> 88</span>            <span class="n">max_length</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+<span class="linenos"> 89</span>            <span class="n">consumer_name</span><span class="o">=</span><span class="s2">&quot;test_consumer&quot;</span><span class="p">,</span>
+<span class="linenos"> 90</span>            <span class="n">ttl_seconds</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+<span class="linenos"> 91</span>        <span class="p">)</span>
+<span class="linenos"> 92</span>        <span class="n">mock_logger</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">(</span><span class="n">spec</span><span class="o">=</span><span class="n">Logger</span><span class="p">)</span>
+<span class="linenos"> 93</span>        <span class="c1"># Patch the parent&#39;s __init__ method instead of the class</span>
+<span class="linenos"> 94</span>        <span class="n">mock_super_init</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">patch</span><span class="o">.</span><span class="n">object</span><span class="p">(</span>
+<span class="linenos"> 95</span>            <span class="n">target</span><span class="o">=</span><span class="n">StepRedisStream</span><span class="p">,</span> <span class="n">attribute</span><span class="o">=</span><span class="s2">&quot;__init__&quot;</span>
+<span class="linenos"> 96</span>        <span class="p">)</span>
+<span class="linenos"> 97</span>        <span class="c1"># Act</span>
+<span class="linenos"> 98</span>        <span class="n">StepCrashPredictionRedisStream</span><span class="p">(</span>
+<span class="linenos"> 99</span>            <span class="n">pool</span><span class="o">=</span><span class="n">mock_pool</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">mock_logger</span>
+<span class="linenos">100</span>        <span class="p">)</span>
+<span class="linenos">101</span>        <span class="c1"># Assert</span>
+<span class="linenos">102</span>        <span class="n">mock_super_init</span><span class="o">.</span><span class="n">assert_called_once_with</span><span class="p">(</span>
+<span class="linenos">103</span>            <span class="n">pool</span><span class="o">=</span><span class="n">mock_pool</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">mock_logger</span>
+<span class="linenos">104</span>        <span class="p">)</span></div>
+
+<span class="linenos">105</span>
+<div class="viewcode-block" id="TestStepCrashPredictionRedisStream.test___aenter__">
+<a class="viewcode-back" href="../../test_rst/test.test_step_crash_prediction_redis_stream.html#test.test_step_crash_prediction_redis_stream.TestStepCrashPredictionRedisStream.test___aenter__">[docs]</a>
+<span class="linenos">106</span>    <span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">asyncio</span>
+<span class="linenos">107</span>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">test___aenter__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mocker</span><span class="p">:</span> <span class="n">MockerFixture</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">108</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Test the asynchronous context manager entry method (``__aenter__``) of</span>
+<span class="linenos">109</span><span class="sd">        StepCrashPredictionRedisStream. Ensures that the parent&#39;s ``__aenter__`` method</span>
+<span class="linenos">110</span><span class="sd">        is called exactly once and that the method returns the crash_prediction_stream</span>
+<span class="linenos">111</span><span class="sd">        instance itself.</span>
+<span class="linenos">112</span>
+<span class="linenos">113</span><span class="sd">        Args:</span>
+<span class="linenos">114</span><span class="sd">            mocker (MockerFixture): The pytest-mock fixture used to mock objects and methods.</span>
+<span class="linenos">115</span>
+<span class="linenos">116</span><span class="sd">        Returns:</span>
+<span class="linenos">117</span><span class="sd">            None</span>
+<span class="linenos">118</span><span class="sd">        &quot;&quot;&quot;</span>
+<span class="linenos">119</span>        <span class="c1"># Arrange</span>
+<span class="linenos">120</span>        <span class="n">mock_pool</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">(</span><span class="n">spec</span><span class="o">=</span><span class="n">StepRedisPool</span><span class="p">)</span>
+<span class="linenos">121</span>        <span class="n">config</span> <span class="o">=</span> <span class="n">StepRedisStreamParams</span><span class="p">(</span>
+<span class="linenos">122</span>            <span class="n">stream_id</span><span class="o">=</span><span class="s2">&quot;test_stream&quot;</span><span class="p">,</span>
+<span class="linenos">123</span>            <span class="n">group_id</span><span class="o">=</span><span class="s2">&quot;test_group&quot;</span><span class="p">,</span>
+<span class="linenos">124</span>            <span class="n">wait_timeout_ms</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+<span class="linenos">125</span>            <span class="n">max_length</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+<span class="linenos">126</span>            <span class="n">consumer_name</span><span class="o">=</span><span class="s2">&quot;test_consumer&quot;</span><span class="p">,</span>
+<span class="linenos">127</span>            <span class="n">ttl_seconds</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+<span class="linenos">128</span>        <span class="p">)</span>
+<span class="linenos">129</span>        <span class="n">mock_logger</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">(</span><span class="n">spec</span><span class="o">=</span><span class="n">Logger</span><span class="p">)</span>
+<span class="linenos">130</span>        <span class="c1"># Patch the parent&#39;s __init__ method to avoid initialization issues</span>
+<span class="linenos">131</span>        <span class="n">mocker</span><span class="o">.</span><span class="n">patch</span><span class="o">.</span><span class="n">object</span><span class="p">(</span>
+<span class="linenos">132</span>            <span class="n">target</span><span class="o">=</span><span class="n">StepRedisStream</span><span class="p">,</span> <span class="n">attribute</span><span class="o">=</span><span class="s2">&quot;__init__&quot;</span><span class="p">,</span> <span class="n">return_value</span><span class="o">=</span><span class="kc">None</span>
+<span class="linenos">133</span>        <span class="p">)</span>
+<span class="linenos">134</span>        <span class="c1"># Patch the parent&#39;s __aenter__ method to return an awaitable</span>
+<span class="linenos">135</span>        <span class="n">mock_super_aenter</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">patch</span><span class="o">.</span><span class="n">object</span><span class="p">(</span>
+<span class="linenos">136</span>            <span class="n">target</span><span class="o">=</span><span class="n">StepRedisStream</span><span class="p">,</span>
+<span class="linenos">137</span>            <span class="n">attribute</span><span class="o">=</span><span class="s2">&quot;__aenter__&quot;</span><span class="p">,</span>
+<span class="linenos">138</span>            <span class="n">new_callable</span><span class="o">=</span><span class="n">mocker</span><span class="o">.</span><span class="n">AsyncMock</span><span class="p">,</span>
+<span class="linenos">139</span>        <span class="p">)</span>
+<span class="linenos">140</span>        <span class="n">crash_prediction_stream</span> <span class="o">=</span> <span class="n">StepCrashPredictionRedisStream</span><span class="p">(</span>
+<span class="linenos">141</span>            <span class="n">pool</span><span class="o">=</span><span class="n">mock_pool</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">mock_logger</span>
+<span class="linenos">142</span>        <span class="p">)</span>
+<span class="linenos">143</span>        <span class="c1"># Act</span>
+<span class="linenos">144</span>        <span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">crash_prediction_stream</span><span class="o">.</span><span class="fm">__aenter__</span><span class="p">()</span>
+<span class="linenos">145</span>        <span class="c1"># Assert</span>
+<span class="linenos">146</span>        <span class="n">mock_super_aenter</span><span class="o">.</span><span class="n">assert_called_once</span><span class="p">()</span>
+<span class="linenos">147</span>        <span class="k">assert</span> <span class="n">result</span> <span class="o">==</span> <span class="n">crash_prediction_stream</span></div>
+
+<span class="linenos">148</span>
+<div class="viewcode-block" id="TestStepCrashPredictionRedisStream.test_publish_position_array">
+<a class="viewcode-back" href="../../test_rst/test.test_step_crash_prediction_redis_stream.html#test.test_step_crash_prediction_redis_stream.TestStepCrashPredictionRedisStream.test_publish_position_array">[docs]</a>
+<span class="linenos">149</span>    <span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">asyncio</span>
+<span class="linenos">150</span>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">test_publish_position_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mocker</span><span class="p">:</span> <span class="n">MockerFixture</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">151</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Test the publish_position_array method.</span>
+<span class="linenos">152</span>
+<span class="linenos">153</span><span class="sd">        Verifies that publish_position_array correctly wraps a PositionArrayV1 message in a</span>
+<span class="linenos">154</span><span class="sd">        CloudEvents format using ClientCloudEventsPositionArrayV1 and ClientCloudEventsJsonRoot,</span>
+<span class="linenos">155</span><span class="sd">        then calls the parent&#39;s publish_message method with the serialized JSON.</span>
+<span class="linenos">156</span>
+<span class="linenos">157</span><span class="sd">        Args:</span>
+<span class="linenos">158</span><span class="sd">            mocker (MockerFixture): The pytest-mock fixture used to create mock objects.</span>
+<span class="linenos">159</span>
+<span class="linenos">160</span><span class="sd">        Returns:</span>
+<span class="linenos">161</span><span class="sd">            None</span>
+<span class="linenos">162</span><span class="sd">        &quot;&quot;&quot;</span>
+<span class="linenos">163</span>        <span class="c1"># Arrange</span>
+<span class="linenos">164</span>        <span class="n">mock_pool</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">(</span><span class="n">spec</span><span class="o">=</span><span class="n">StepRedisPool</span><span class="p">)</span>
+<span class="linenos">165</span>        <span class="n">config</span> <span class="o">=</span> <span class="n">StepRedisStreamParams</span><span class="p">(</span>
+<span class="linenos">166</span>            <span class="n">stream_id</span><span class="o">=</span><span class="s2">&quot;test_stream&quot;</span><span class="p">,</span>
+<span class="linenos">167</span>            <span class="n">group_id</span><span class="o">=</span><span class="s2">&quot;test_group&quot;</span><span class="p">,</span>
+<span class="linenos">168</span>            <span class="n">wait_timeout_ms</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+<span class="linenos">169</span>            <span class="n">max_length</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+<span class="linenos">170</span>            <span class="n">consumer_name</span><span class="o">=</span><span class="s2">&quot;test_consumer&quot;</span><span class="p">,</span>
+<span class="linenos">171</span>            <span class="n">ttl_seconds</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+<span class="linenos">172</span>        <span class="p">)</span>
+<span class="linenos">173</span>        <span class="n">mock_logger</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">(</span><span class="n">spec</span><span class="o">=</span><span class="n">Logger</span><span class="p">)</span>
+<span class="linenos">174</span>        <span class="c1"># Patch the parent&#39;s __init__ method to avoid initialization issues</span>
+<span class="linenos">175</span>        <span class="n">mocker</span><span class="o">.</span><span class="n">patch</span><span class="o">.</span><span class="n">object</span><span class="p">(</span>
+<span class="linenos">176</span>            <span class="n">target</span><span class="o">=</span><span class="n">StepRedisStream</span><span class="p">,</span> <span class="n">attribute</span><span class="o">=</span><span class="s2">&quot;__init__&quot;</span><span class="p">,</span> <span class="n">return_value</span><span class="o">=</span><span class="kc">None</span>
+<span class="linenos">177</span>        <span class="p">)</span>
+<span class="linenos">178</span>        <span class="n">mock_publish_message</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">patch</span><span class="o">.</span><span class="n">object</span><span class="p">(</span>
+<span class="linenos">179</span>            <span class="n">target</span><span class="o">=</span><span class="n">StepRedisStream</span><span class="p">,</span>
+<span class="linenos">180</span>            <span class="n">attribute</span><span class="o">=</span><span class="s2">&quot;publish_message&quot;</span><span class="p">,</span>
+<span class="linenos">181</span>            <span class="n">new_callable</span><span class="o">=</span><span class="n">mocker</span><span class="o">.</span><span class="n">AsyncMock</span><span class="p">,</span>
+<span class="linenos">182</span>        <span class="p">)</span>
+<span class="linenos">183</span>        <span class="c1"># Mock the CloudEvents wrapper classes</span>
+<span class="linenos">184</span>        <span class="n">mock_crash_prediction_cloud_events_position_array</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">()</span>
+<span class="linenos">185</span>        <span class="n">mocker</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span>
+<span class="linenos">186</span>            <span class="s2">&quot;step_redis.step_crash_prediction_redis_stream.CrashPredictionCloudEventsPositionArrayV1&quot;</span><span class="p">,</span>
+<span class="linenos">187</span>            <span class="n">return_value</span><span class="o">=</span><span class="n">mock_crash_prediction_cloud_events_position_array</span><span class="p">,</span>
+<span class="linenos">188</span>        <span class="p">)</span>
+<span class="linenos">189</span>        <span class="n">mock_crash_prediction_cloud_events_json_root_object</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">(</span>
+<span class="linenos">190</span>            <span class="n">spec</span><span class="o">=</span><span class="n">CrashPredictionCloudEventsJsonRoot</span>
+<span class="linenos">191</span>        <span class="p">)</span>
+<span class="linenos">192</span>        <span class="n">mock_model_dump_json</span> <span class="o">=</span> <span class="s2">&quot;serialized_json_message&quot;</span>
+<span class="linenos">193</span>        <span class="n">mock_crash_prediction_cloud_events_json_root_object</span><span class="o">.</span><span class="n">model_dump_json</span><span class="o">.</span><span class="n">return_value</span> <span class="o">=</span> <span class="n">mock_model_dump_json</span>
+<span class="linenos">194</span>        <span class="n">mocker</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span>
+<span class="linenos">195</span>            <span class="s2">&quot;step_redis.step_crash_prediction_redis_stream.CrashPredictionCloudEventsJsonRoot&quot;</span><span class="p">,</span>
+<span class="linenos">196</span>            <span class="n">return_value</span><span class="o">=</span><span class="n">mock_crash_prediction_cloud_events_json_root_object</span><span class="p">,</span>
+<span class="linenos">197</span>        <span class="p">)</span>
+<span class="linenos">198</span>        <span class="n">crash_prediction_stream</span> <span class="o">=</span> <span class="n">StepCrashPredictionRedisStream</span><span class="p">(</span>
+<span class="linenos">199</span>            <span class="n">pool</span><span class="o">=</span><span class="n">mock_pool</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">mock_logger</span>
+<span class="linenos">200</span>        <span class="p">)</span>
+<span class="linenos">201</span>        <span class="c1"># Manually set the required attributes since __init__ is patched</span>
+<span class="linenos">202</span>        <span class="n">crash_prediction_stream</span><span class="o">.</span><span class="n">_config</span> <span class="o">=</span> <span class="n">config</span>
+<span class="linenos">203</span>        <span class="n">crash_prediction_stream</span><span class="o">.</span><span class="n">_logger</span> <span class="o">=</span> <span class="n">mock_logger</span>
+<span class="linenos">204</span>        <span class="n">mock_position_array_message</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">(</span><span class="n">spec</span><span class="o">=</span><span class="n">PositionArrayV1</span><span class="p">)</span>
+<span class="linenos">205</span>        <span class="c1"># Act</span>
+<span class="linenos">206</span>        <span class="k">await</span> <span class="n">crash_prediction_stream</span><span class="o">.</span><span class="n">publish_position_array</span><span class="p">(</span>
+<span class="linenos">207</span>            <span class="n">position_array</span><span class="o">=</span><span class="n">mock_position_array_message</span>
+<span class="linenos">208</span>        <span class="p">)</span>
+<span class="linenos">209</span>        <span class="c1"># Assert</span>
+<span class="linenos">210</span>        <span class="n">mock_publish_message</span><span class="o">.</span><span class="n">assert_awaited_once_with</span><span class="p">(</span><span class="n">message</span><span class="o">=</span><span class="n">mock_model_dump_json</span><span class="p">)</span></div>
+
+<span class="linenos">211</span>
+<div class="viewcode-block" id="TestStepCrashPredictionRedisStream.test_receive_crash_prediction_message">
+<a class="viewcode-back" href="../../test_rst/test.test_step_crash_prediction_redis_stream.html#test.test_step_crash_prediction_redis_stream.TestStepCrashPredictionRedisStream.test_receive_crash_prediction_message">[docs]</a>
+<span class="linenos">212</span>    <span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">asyncio</span>
+<span class="linenos">213</span>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">test_receive_crash_prediction_message</span><span class="p">(</span>
+<span class="linenos">214</span>        <span class="bp">self</span><span class="p">,</span> <span class="n">mocker</span><span class="p">:</span> <span class="n">MockerFixture</span>
+<span class="linenos">215</span>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">216</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Test the `receive_crash_prediction_message` method of</span>
+<span class="linenos">217</span><span class="sd">        `StepCrashPredictionRedisStream`.</span>
+<span class="linenos">218</span>
+<span class="linenos">219</span><span class="sd">        This test verifies that:</span>
+<span class="linenos">220</span><span class="sd">            - The ``receive_message`` method of the parent ``StepRedisStream`` is</span>
+<span class="linenos">221</span><span class="sd">              awaited with the correct block timeout.</span>
+<span class="linenos">222</span><span class="sd">            - The ``model_validate_json`` method of ``ClientCloudEventsJsonRoot`` is</span>
+<span class="linenos">223</span><span class="sd">              called with the message and strict mode enabled.</span>
+<span class="linenos">224</span><span class="sd">            - The result returned by ``receive_crash_prediction_message`` matches the</span>
+<span class="linenos">225</span><span class="sd">              validated model.</span>
+<span class="linenos">226</span>
+<span class="linenos">227</span><span class="sd">        Mocks are used for the Redis pool, logger, and relevant methods to isolate the test from external dependencies.</span>
+<span class="linenos">228</span>
+<span class="linenos">229</span><span class="sd">        Args:</span>
+<span class="linenos">230</span><span class="sd">            mocker (MockerFixture): The pytest-mock fixture used to create mock objects.</span>
+<span class="linenos">231</span>
+<span class="linenos">232</span><span class="sd">        Returns:</span>
+<span class="linenos">233</span><span class="sd">            None</span>
+<span class="linenos">234</span><span class="sd">        &quot;&quot;&quot;</span>
+<span class="linenos">235</span>        <span class="n">mock_pool</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">(</span><span class="n">spec</span><span class="o">=</span><span class="n">StepRedisPool</span><span class="p">)</span>
+<span class="linenos">236</span>        <span class="n">config</span> <span class="o">=</span> <span class="n">StepRedisStreamParams</span><span class="p">(</span>
+<span class="linenos">237</span>            <span class="n">stream_id</span><span class="o">=</span><span class="s2">&quot;test_stream&quot;</span><span class="p">,</span>
+<span class="linenos">238</span>            <span class="n">group_id</span><span class="o">=</span><span class="s2">&quot;test_group&quot;</span><span class="p">,</span>
+<span class="linenos">239</span>            <span class="n">wait_timeout_ms</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+<span class="linenos">240</span>            <span class="n">max_length</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+<span class="linenos">241</span>            <span class="n">consumer_name</span><span class="o">=</span><span class="s2">&quot;test_consumer&quot;</span><span class="p">,</span>
+<span class="linenos">242</span>            <span class="n">ttl_seconds</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+<span class="linenos">243</span>        <span class="p">)</span>
+<span class="linenos">244</span>        <span class="n">mock_logger</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">(</span><span class="n">spec</span><span class="o">=</span><span class="n">Logger</span><span class="p">)</span>
+<span class="linenos">245</span>        <span class="c1"># Patch the parent&#39;s __init__ method to avoid initialization issues</span>
+<span class="linenos">246</span>        <span class="n">mocker</span><span class="o">.</span><span class="n">patch</span><span class="o">.</span><span class="n">object</span><span class="p">(</span>
+<span class="linenos">247</span>            <span class="n">target</span><span class="o">=</span><span class="n">StepRedisStream</span><span class="p">,</span> <span class="n">attribute</span><span class="o">=</span><span class="s2">&quot;__init__&quot;</span><span class="p">,</span> <span class="n">return_value</span><span class="o">=</span><span class="kc">None</span>
+<span class="linenos">248</span>        <span class="p">)</span>
+<span class="linenos">249</span>        <span class="n">mock_receive_message_return</span> <span class="o">=</span> <span class="s2">&quot;mock_json_string&quot;</span>
+<span class="linenos">250</span>        <span class="n">mock_receive_message</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">patch</span><span class="o">.</span><span class="n">object</span><span class="p">(</span>
+<span class="linenos">251</span>            <span class="n">target</span><span class="o">=</span><span class="n">StepRedisStream</span><span class="p">,</span>
+<span class="linenos">252</span>            <span class="n">attribute</span><span class="o">=</span><span class="s2">&quot;receive_message&quot;</span><span class="p">,</span>
+<span class="linenos">253</span>            <span class="n">return_value</span><span class="o">=</span><span class="n">mock_receive_message_return</span><span class="p">,</span>
+<span class="linenos">254</span>        <span class="p">)</span>
+<span class="linenos">255</span>        <span class="n">mock_model_validate_json_return</span> <span class="o">=</span> <span class="n">MagicMock</span><span class="p">(</span>
+<span class="linenos">256</span>            <span class="n">spec</span><span class="o">=</span><span class="n">CrashPredictionCloudEventsJsonRoot</span>
+<span class="linenos">257</span>        <span class="p">)</span>
+<span class="linenos">258</span>        <span class="n">mock_model_validate_json</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">patch</span><span class="o">.</span><span class="n">object</span><span class="p">(</span>
+<span class="linenos">259</span>            <span class="n">target</span><span class="o">=</span><span class="n">CrashPredictionCloudEventsJsonRoot</span><span class="p">,</span>
+<span class="linenos">260</span>            <span class="n">attribute</span><span class="o">=</span><span class="s2">&quot;model_validate_json&quot;</span><span class="p">,</span>
+<span class="linenos">261</span>            <span class="n">return_value</span><span class="o">=</span><span class="n">mock_model_validate_json_return</span><span class="p">,</span>
+<span class="linenos">262</span>        <span class="p">)</span>
+<span class="linenos">263</span>        <span class="n">crash_prediction_stream</span> <span class="o">=</span> <span class="n">StepCrashPredictionRedisStream</span><span class="p">(</span>
+<span class="linenos">264</span>            <span class="n">pool</span><span class="o">=</span><span class="n">mock_pool</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">mock_logger</span>
+<span class="linenos">265</span>        <span class="p">)</span>
+<span class="linenos">266</span>        <span class="c1"># Manually set the required attributes since __init__ is patched</span>
+<span class="linenos">267</span>        <span class="n">crash_prediction_stream</span><span class="o">.</span><span class="n">_config</span> <span class="o">=</span> <span class="n">config</span>
+<span class="linenos">268</span>        <span class="n">crash_prediction_stream</span><span class="o">.</span><span class="n">_logger</span> <span class="o">=</span> <span class="n">mock_logger</span>
+<span class="linenos">269</span>        <span class="c1"># Act</span>
+<span class="linenos">270</span>        <span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">crash_prediction_stream</span><span class="o">.</span><span class="n">receive_crash_prediction_message</span><span class="p">()</span>
+<span class="linenos">271</span>        <span class="c1"># Assert</span>
+<span class="linenos">272</span>        <span class="n">mock_receive_message</span><span class="o">.</span><span class="n">assert_awaited_once_with</span><span class="p">(</span>
+<span class="linenos">273</span>            <span class="n">block_timeout</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">wait_timeout_ms</span>
+<span class="linenos">274</span>        <span class="p">)</span>
+<span class="linenos">275</span>        <span class="n">mock_model_validate_json</span><span class="o">.</span><span class="n">assert_called_once_with</span><span class="p">(</span>
+<span class="linenos">276</span>            <span class="n">json_data</span><span class="o">=</span><span class="n">mock_receive_message_return</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">True</span>
+<span class="linenos">277</span>        <span class="p">)</span>
+<span class="linenos">278</span>        <span class="k">assert</span> <span class="n">result</span> <span class="o">==</span> <span class="n">mock_model_validate_json_return</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Vodafone Automotive.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

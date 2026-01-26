@@ -38,10 +38,14 @@ for stream processing, connection management, and reliable message handling.
 Key Components
 --------------
 
-The package consists of two main components:
+The package consists of the following main components:
 
 1. **StepRedisPool**: An extended Redis connection pool with asyncio support
-2. **StepRedisStream**: A comprehensive interface for Redis Streams operations
+2. **StepRedisStream**: A base comprehensive interface for Redis Streams operations
+3. **StepAdapterRedisStream**: Specialized stream handler for STEP Adapter messages (CAM data)
+4. **StepClientRedisStream**: Specialized stream handler for STEP Client messages (DENM data)
+5. **StepProducerRedisStream**: Specialized stream handler for STEP Producer messages (DENM and collision arrays)
+6. **StepCrashPredictionRedisStream**: Specialized stream handler for Crash Prediction messages (position arrays)
 
 Component Details
 -----------------
@@ -53,46 +57,48 @@ StepRedisPool
 features for asyncio applications. It manages Redis connections with configurable parameters 
 and supports both SSL and non-SSL connections.
 
-.. plantuml::
-   :align: center
+.. container:: scrollable-diagram
 
-   !theme plain
-   skinparam classAttributeIconSize 0
-   
-   class StepRedisPoolParams {
-      +host: str
-      +port: int
-      +username: Optional[str]
-      +password: str
-      +db: int
-      +socket_timeout: int
-      +socket_connect_timeout: int
-      +socket_keep_idle: int
-      +socket_keep_alive: bool
-      +socket_keep_cnt: int
-      +ssl_enable: bool
-      +ssl_client_key_file: Optional[str]
-      +ssl_client_key_file_password: Optional[str]
-      +ssl_client_cert_file: Optional[str]
-      +ssl_cert_requested: bool
-      +ssl_ca_certs_file: Optional[str]
-      +health_check_interval: int
-      +max_connections: int
-      +connection_available_timeout: Optional[int]
-      +protocol: int
-   }
-   
-   class StepRedisPool {
-      -_params: StepRedisPoolParams
-      -_logger: Optional[Logger]
-      -_pool: BlockingConnectionPool
-      +__init__(params: StepRedisPoolParams, logger: Optional[Logger])
-      +__aenter__(): StepRedisPool
-      +__aexit__(exc_type, exc_val, exc_tb): None
-      +get_pool(): BlockingConnectionPool
-   }
-   
-   StepRedisPool o-- StepRedisPoolParams
+   .. plantuml::
+      :align: center
+
+      !theme plain
+      skinparam classAttributeIconSize 0
+      
+      class StepRedisPoolParams {
+         +host: str
+         +port: int
+         +username: Optional[str]
+         +password: str
+         +db: int
+         +socket_timeout: int
+         +socket_connect_timeout: int
+         +socket_keep_idle: int
+         +socket_keep_alive: bool
+         +socket_keep_cnt: int
+         +ssl_enable: bool
+         +ssl_client_key_file: Optional[str]
+         +ssl_client_key_file_password: Optional[str]
+         +ssl_client_cert_file: Optional[str]
+         +ssl_cert_requested: bool
+         +ssl_ca_certs_file: Optional[str]
+         +health_check_interval: int
+         +max_connections: int
+         +connection_available_timeout: Optional[int]
+         +protocol: int
+      }
+      
+      class StepRedisPool {
+         -_params: StepRedisPoolParams
+         -_logger: Optional[Logger]
+         -_pool: BlockingConnectionPool
+         +__init__(params: StepRedisPoolParams, logger: Optional[Logger])
+         +__aenter__(): StepRedisPool
+         +__aexit__(exc_type, exc_val, exc_tb): None
+         +get_pool(): BlockingConnectionPool
+      }
+      
+      StepRedisPool o-- StepRedisPoolParams
 
 **Key Features**:
 
@@ -102,45 +108,113 @@ and supports both SSL and non-SSL connections.
 * Proper resource management through async context managers
 * Integrated logging support
 
+StepRedisStreamParams
+~~~~~~~~~~~~~~~~~~~~~
+
+``StepRedisStreamParams`` is a frozen dataclass that encapsulates all configuration parameters 
+for Redis stream operations. It enforces validation on all fields to ensure correct usage.
+
+**Key Attributes**:
+
+* ``stream_id``: The identifier for the Redis stream (minimum 1 character)
+* ``group_id``: The identifier for the Redis consumer group (minimum 1 character)
+* ``wait_timeout_ms``: Timeout in milliseconds for waiting to receive a message (non-negative)
+* ``max_length``: Maximum length of the stream for automatic trimming (positive integer)
+* ``consumer_name``: The name of the consumer (minimum 1 character)
+* ``ttl_seconds``: Optional time-to-live in seconds for the stream (positive integer if provided)
+
 StepRedisStream
 ~~~~~~~~~~~~~~~
 
-``StepRedisStream`` provides a comprehensive interface for Redis Streams that enables creating, 
-managing, and utilizing Redis streams with consumer groups for reliable message processing.
+``StepRedisStream`` provides a comprehensive base interface for Redis Streams that enables creating, 
+managing, and utilizing Redis streams with consumer groups for reliable message processing. This class 
+is designed to be extended by specialized stream handlers for different STEP components.
 
-.. plantuml::
-   :align: center
+.. container:: scrollable-diagram
+   
+   .. plantuml::
+      :align: center
 
-   !theme plain
-   skinparam classAttributeIconSize 0
-   
-   class StepRedisStream {
-      -_pool: Any
-      -_logger: Logger
-      -_redis: Redis
-      +__init__(pool: Any, logger: Logger)
-      +__aenter__(): StepRedisStream
-      +__aexit__(exc_type, exc_val, exc_tb): None
-      +create_input_stream(stream_name: str, group_name: str, ttl_seconds: Optional[int]): Awaitable[bool]
-      +publish_message(stream_name: str, message: Dict[str, Any], max_len: Optional[int]): Awaitable[str]
-      +receive_message(stream_name: str, group_name: str, consumer_name: str, wait_ms: int, count: int, ttl_seconds: Optional[int]): Awaitable[List[Dict[str, Any]]]
-      +acknowledge_message(stream_name: str, group_name: str, message_id: str): Awaitable[int]
-      +ping(): Awaitable[bool]
-      +set_ttl(key: str, ttl_seconds: int): Awaitable[bool]
-   }
-   
-   class StepRedisPool {
-   }
-   
-   StepRedisStream o-- StepRedisPool : uses
+      !theme plain
+      skinparam classAttributeIconSize 0
+      
+      class StepRedisStreamParams {
+         +stream_id: str
+         +group_id: str
+         +wait_timeout_ms: int
+         +max_length: int
+         +consumer_name: str
+         +ttl_seconds: Optional[int]
+         +__post_init__(): None
+      }
+      
+      class StepRedisStream {
+         -_config: StepRedisStreamParams
+         -_logger: Logger
+         -_redis_pool: Redis
+         +__init__(pool: StepRedisPool, config: StepRedisStreamParams, logger: Logger)
+         +__aenter__(): StepRedisStream
+         +__aexit__(exc_type, exc_val, exc_tb): None
+         +create_input_stream(): Awaitable[None]
+         +publish_message(message: str): Awaitable[None]
+         +receive_message(block_timeout: int): Awaitable[str]
+         +update_stream_ttl(ttl_seconds: int): Awaitable[bool]
+         +get_stream_ttl(): Awaitable[int]
+         +ping(): Awaitable[None]
+      }
+      
+      class StepAdapterRedisStream {
+         +publish_cam_message(message: CamDataV1): Awaitable[None]
+      }
+      
+      class StepClientRedisStream {
+         +publish_denm_message(message: DenmDataV1): Awaitable[None]
+      }
+      
+      class StepProducerRedisStream {
+         +publish_denm_message(message: DenmDataV1): Awaitable[None]
+         +publish_station_collision_array(array: StationCollisionArrayV1): Awaitable[None]
+      }
+      
+      class StepCrashPredictionRedisStream {
+         +publish_position_array(array: PositionArrayV1): Awaitable[None]
+      }
+      
+      class StepRedisPool {
+      }
+      
+      StepRedisStream o-- StepRedisPool : uses
+      StepRedisStream o-- StepRedisStreamParams : configured by
+      StepAdapterRedisStream --|> StepRedisStream
+      StepClientRedisStream --|> StepRedisStream
+      StepProducerRedisStream --|> StepRedisStream
+      StepCrashPredictionRedisStream --|> StepRedisStream
 
 **Key Features**:
 
 * Creating and managing streams with consumer groups
 * Publishing messages with configurable maximum length
-* Consuming messages with proper acknowledgment handling
+* Consuming messages with automatic acknowledgment (noack=True)
 * Setting and managing Time-To-Live (TTL) for streams
-* Connection health monitoring
+* Connection health monitoring via ping
+* Extensible design for specialized message types
+
+**Specialized Stream Classes**:
+
+The package provides four specialized stream implementations that extend ``StepRedisStream``:
+
+* **StepAdapterRedisStream**: Handles STEP Adapter messages, specifically for publishing and consuming 
+  Cooperative Awareness Messages (CAM) wrapped in CloudEvents format. Manages CAM data with automatic 
+  TTL management.
+
+* **StepClientRedisStream**: Manages STEP Client ITS messages, focusing on Decentralized Environmental 
+  Notification Messages (DENM). Publishes CloudEvents-compliant DENM messages to configured streams.
+
+* **StepProducerRedisStream**: Handles STEP Producer services, supporting both DENM messages and 
+  station collision array data. Publishes both message types in CloudEvents format.
+
+* **StepCrashPredictionRedisStream**: Specializes in Crash Prediction data processing, publishing 
+  position array data as CloudEvents to Crash Prediction streams for real-time analysis.
 
 Package Integration
 -------------------
@@ -148,32 +222,56 @@ Package Integration
 The diagram below illustrates how the components of the ``step_redis`` package interact 
 with each other and with the Redis server:
 
-.. plantuml::
-   :align: center
+.. container:: scrollable-diagram
 
-   !theme plain
-   
-   package "Client Application" {
-      [Client Code]
-   }
-   
-   package "step_redis" {
-      [StepRedisPool] as Pool
-      [StepRedisStream] as Stream
-      [StepRedisPoolParams] as Params
-   }
-   
-   database "Redis Server" {
-      [Redis Streams] as RedisStreams
-      [Redis Connection] as RedisConnection
-   }
-   
-   [Client Code] --> Stream : uses
-   [Client Code] --> Pool : creates
-   Pool ..> Params : configured by
-   Stream --> Pool : uses
-   Pool --> RedisConnection : manages
-   Stream --> RedisStreams : interacts with
+   .. plantuml::
+      :align: center
+
+      !theme plain
+      
+      package "STEP Applications" {
+         [step_adapter]
+         [step_client]
+         [step_producer]
+         [step_crash_prediction]
+      }
+      
+      package "step_redis" {
+         [StepRedisPool] as Pool
+         [StepRedisPoolParams] as PoolParams
+         [StepRedisStream] as BaseStream
+         [StepRedisStreamParams] as StreamParams
+         [StepAdapterRedisStream] as AdapterStream
+         [StepClientRedisStream] as ClientStream
+         [StepProducerRedisStream] as ProducerStream
+         [StepCrashPredictionRedisStream] as CrashStream
+      }
+      
+      database "Redis Server" {
+         [Redis Streams] as RedisStreams
+         [Redis Connection] as RedisConnection
+      }
+      
+      [step_adapter] --> AdapterStream : uses
+      [step_client] --> ClientStream : uses
+      [step_producer] --> ProducerStream : uses
+      [step_crash_prediction] --> CrashStream : uses
+      
+      Pool ..> PoolParams : configured by
+      BaseStream ..> StreamParams : configured by
+      
+      AdapterStream --|> BaseStream : extends
+      ClientStream --|> BaseStream : extends
+      ProducerStream --|> BaseStream : extends
+      CrashStream --|> BaseStream : extends
+      
+      AdapterStream --> Pool : uses
+      ClientStream --> Pool : uses
+      ProducerStream --> Pool : uses
+      CrashStream --> Pool : uses
+      
+      Pool --> RedisConnection : manages
+      BaseStream --> RedisStreams : interacts with
 
 Usage Patterns
 --------------
@@ -190,12 +288,15 @@ manager patterns for proper resource management. Here's a typical usage flow:
 Example Usage
 ~~~~~~~~~~~~~
 
+Base Stream Usage
+^^^^^^^^^^^^^^^^^
+
 .. code-block:: python
 
    import asyncio
    import logging
    from step_redis.step_redis_pool import StepRedisPoolParams, StepRedisPool
-   from step_redis.step_redis_stream import StepRedisStream
+   from step_redis.step_redis_stream import StepRedisStream, StepRedisStreamParams
 
    async def main():
        # Setup logging
@@ -203,38 +304,98 @@ Example Usage
        logger = logging.getLogger("redis_example")
 
        # Configure Redis connection parameters
-       params = StepRedisPoolParams(
+       pool_params = StepRedisPoolParams(
            host="redis.example.com",
            port=6379,
            username="user",
            password="password",
            db=0,
            ssl_enable=True,
-           # Other configuration parameters
+           socket_timeout=30,
+           socket_connect_timeout=10,
+           socket_keep_idle=60,
+           socket_keep_alive=10,
+           socket_keep_cnt=3,
+           ssl_client_key_file=None,
+           ssl_client_key_file_password=None,
+           ssl_client_cert_file=None,
+           ssl_cert_requested=False,
+           ssl_ca_certs_file=None,
+           health_check_interval=30,
+           max_connections=50,
+           connection_available_timeout=None,
+           protocol=3,
        )
 
-       # Create a Redis pool
-       async with StepRedisPool(params=params, logger=logger) as pool:
-           # Use the stream as a context manager
-           async with StepRedisStream(pool, logger) as stream:
-               # Create a stream with a consumer group
-               await stream.create_input_stream("my_stream", "my_group", ttl_seconds=3600)
+       # Configure Redis stream parameters
+       stream_params = StepRedisStreamParams(
+           stream_id="my_stream",
+           group_id="my_group",
+           wait_timeout_ms=5000,
+           max_length=1000,
+           consumer_name="consumer1",
+           ttl_seconds=3600,
+       )
+
+       # Create a Redis pool and stream
+       async with StepRedisPool(params=pool_params, logger=logger) as pool:
+           async with StepRedisStream(pool, stream_params, logger) as stream:
+               # Create the input stream and consumer group
+               await stream.create_input_stream()
 
                # Publish a message
-               await stream.publish_message("my_stream", {"data": "Hello, Redis!"}, 1000)
+               await stream.publish_message("Hello, Redis!")
 
                # Consume a message
-               messages = await stream.receive_message(
-                   "my_stream", "my_group", "consumer1", 5000, 1, ttl_seconds=3600
-               )
+               message = await stream.receive_message(block_timeout=5000)
+               print(f"Received: {message}")
+
+   asyncio.run(main())
+
+Specialized Stream Usage
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: python
+
+   import asyncio
+   import logging
+   from step_redis.step_redis_pool import StepRedisPoolParams, StepRedisPool
+   from step_redis.step_adapter_redis_stream import (
+       StepAdapterRedisStream,
+       StepRedisStreamParams,
+   )
+   from step_cloud_schemas import CamDataV1
+
+   async def main():
+       logger = logging.getLogger("adapter_example")
+       
+       # Configure pool and stream
+       pool_params = StepRedisPoolParams(
+           host="localhost",
+           port=6379,
+           password="password",
+           db=0,
+           # ... other parameters
+       )
+       
+       stream_params = StepRedisStreamParams(
+           stream_id="adapter_stream",
+           group_id="adapter_group",
+           wait_timeout_ms=5000,
+           max_length=1000,
+           consumer_name="adapter_consumer",
+           ttl_seconds=3600,
+       )
+       
+       # Use specialized adapter stream
+       async with StepRedisPool(params=pool_params, logger=logger) as pool:
+           async with StepAdapterRedisStream(pool, stream_params, logger) as stream:
+               # Create the stream
+               await stream.create_input_stream()
                
-               if messages:
-                   print(f"Received: {messages}")
-                   
-                   # Acknowledge the message
-                   for msg in messages:
-                       message_id = msg['id']
-                       await stream.acknowledge_message("my_stream", "my_group", message_id)
+               # Publish a CAM message
+               cam_message = CamDataV1(...)  # Create CAM message
+               await stream.publish_cam_message(cam_message)
 
    asyncio.run(main())
 
@@ -256,11 +417,30 @@ Design Considerations
 
 The ``step_redis`` package was designed with the following considerations:
 
-   * **Reliability**: Ensuring reliable message delivery and processing with proper acknowledgments
+   * **Reliability**: Ensuring reliable message delivery and processing with automatic acknowledgments (noack=True)
    * **Performance**: Minimizing overhead and maximizing throughput for high-performance applications
-   * **Resource Management**: Proper handling of connections and resources to prevent leaks
-   * **Security**: Support for SSL/TLS connections and authentication
-   * **Configurability**: Extensive configuration options to adapt to various deployment scenarios
+   * **Resource Management**: Proper handling of connections and resources through async context managers
+   * **Security**: Support for SSL/TLS connections with TLSv1.2+ and client certificate authentication
+   * **Configurability**: Extensive configuration options via immutable dataclasses (frozen=True) with validation
+   * **Extensibility**: Base stream class designed for specialization by STEP components
+   * **CloudEvents Integration**: Native support for CloudEvents-compliant message formats
+   * **Type Safety**: Leveraging dataclasses with slots for memory efficiency and type validation
+
+CloudEvents Integration
+-----------------------
+
+All specialized stream classes (``StepAdapterRedisStream``, ``StepClientRedisStream``, 
+``StepProducerRedisStream``, and ``StepCrashPredictionRedisStream``) integrate with the 
+``step_cloud_schemas`` package to provide CloudEvents-compliant message formatting. This ensures:
+
+   * **Standardized Message Format**: All messages follow the CloudEvents specification
+   * **Schema Validation**: Messages are validated against defined schemas
+   * **Metadata Enrichment**: Automatic inclusion of message IDs, timestamps, source information
+   * **Interoperability**: Messages can be consumed by any CloudEvents-compliant system
+
+Each specialized stream class wraps domain-specific data (CAM, DENM, collision arrays, position arrays) 
+in CloudEvents envelopes before publishing to Redis streams, ensuring consistent message structure 
+across all STEP components.
 
 This architectural design ensures that the package can handle the demands of distributed 
 systems while providing a clean and intuitive API for developers.

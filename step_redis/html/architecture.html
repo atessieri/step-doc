@@ -6,19 +6,19 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Architecture &mdash; STEP Redis 1.0.8 documentation</title>
+  <title>Architecture &mdash; STEP Redis 1.1.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="_static/tabs.css?v=4c969af8" />
-      <link rel="stylesheet" type="text/css" href="_static/css/custom.css?v=ca6f9a36" />
+      <link rel="stylesheet" type="text/css" href="_static/css/custom.css?v=ca5f51dc" />
       <link rel="stylesheet" type="text/css" href="_static/css/sphinx_prompt_css.css?v=351d85e3" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=aec50437"></script>
-      <script src="_static/doctools.js?v=9bcbadda"></script>
-      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/documentation_options.js?v=fc837d61"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="_static/tabs.js?v=3ee01567"></script>
       <script src="_static/js/expand_tabs.js?v=1e151f68"></script>
     <script src="_static/js/theme.js"></script>
@@ -71,6 +71,7 @@
 <li class="toctree-l1"><a class="reference internal" href="package_script.html">Package Script</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="package_script.html#create-environment">Create environment</a></li>
 <li class="toctree-l2"><a class="reference internal" href="package_script.html#make">Make</a></li>
+<li class="toctree-l2"><a class="reference internal" href="package_script.html#automatic-checking">Automatic checking</a></li>
 <li class="toctree-l2"><a class="reference internal" href="package_script.html#pdf-conversion">PDF conversion</a></li>
 </ul>
 </li>
@@ -80,20 +81,75 @@
 <li class="toctree-l2"><a class="reference internal" href="#key-components">Key Components</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#component-details">Component Details</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#stepredispool">StepRedisPool</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#stepredisstreamparams">StepRedisStreamParams</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#stepredisstream">StepRedisStream</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#package-integration">Package Integration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#usage-patterns">Usage Patterns</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#example-usage">Example Usage</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#example-usage">Example Usage</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#base-stream-usage">Base Stream Usage</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#specialized-stream-usage">Specialized Stream Usage</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#error-handling">Error Handling</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#design-considerations">Design Considerations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#cloudevents-integration">CloudEvents Integration</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="step_redis_rst/step_redis.html">step_redis package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="step_redis_rst/step_redis.html#submodules">Submodules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="step_redis_rst/step_redis.step_adapter_redis_stream.html">step_redis.step_adapter_redis_stream module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="step_redis_rst/step_redis.step_adapter_redis_stream.html#step_redis.step_adapter_redis_stream.StepAdapterRedisStream"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="step_redis_rst/step_redis.step_adapter_redis_stream.html#step_redis.step_adapter_redis_stream.StepAdapterRedisStream.pool"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream.pool</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis_rst/step_redis.step_adapter_redis_stream.html#step_redis.step_adapter_redis_stream.StepAdapterRedisStream.config"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream.config</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis_rst/step_redis.step_adapter_redis_stream.html#step_redis.step_adapter_redis_stream.StepAdapterRedisStream.logger"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream.logger</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis_rst/step_redis.step_adapter_redis_stream.html#step_redis.step_adapter_redis_stream.StepAdapterRedisStream.__aenter__"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream.__aenter__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis_rst/step_redis.step_adapter_redis_stream.html#step_redis.step_adapter_redis_stream.StepAdapterRedisStream.publish_cam_message"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream.publish_cam_message()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis_rst/step_redis.step_adapter_redis_stream.html#step_redis.step_adapter_redis_stream.StepAdapterRedisStream.receive_adapter_message"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream.receive_adapter_message()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="step_redis_rst/step_redis.step_client_redis_stream.html">step_redis.step_client_redis_stream module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="step_redis_rst/step_redis.step_client_redis_stream.html#step_redis.step_client_redis_stream.StepClientRedisStream"><code class="docutils literal notranslate"><span class="pre">StepClientRedisStream</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="step_redis_rst/step_redis.step_client_redis_stream.html#step_redis.step_client_redis_stream.StepClientRedisStream.pool"><code class="docutils literal notranslate"><span class="pre">StepClientRedisStream.pool</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis_rst/step_redis.step_client_redis_stream.html#step_redis.step_client_redis_stream.StepClientRedisStream.config"><code class="docutils literal notranslate"><span class="pre">StepClientRedisStream.config</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis_rst/step_redis.step_client_redis_stream.html#step_redis.step_client_redis_stream.StepClientRedisStream.logger"><code class="docutils literal notranslate"><span class="pre">StepClientRedisStream.logger</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis_rst/step_redis.step_client_redis_stream.html#step_redis.step_client_redis_stream.StepClientRedisStream.__aenter__"><code class="docutils literal notranslate"><span class="pre">StepClientRedisStream.__aenter__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis_rst/step_redis.step_client_redis_stream.html#step_redis.step_client_redis_stream.StepClientRedisStream.publish_denm_message"><code class="docutils literal notranslate"><span class="pre">StepClientRedisStream.publish_denm_message()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis_rst/step_redis.step_client_redis_stream.html#step_redis.step_client_redis_stream.StepClientRedisStream.receive_client_message"><code class="docutils literal notranslate"><span class="pre">StepClientRedisStream.receive_client_message()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="step_redis_rst/step_redis.step_crash_prediction_redis_stream.html">step_redis.step_crash_prediction_redis_stream module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="step_redis_rst/step_redis.step_crash_prediction_redis_stream.html#step_redis.step_crash_prediction_redis_stream.StepCrashPredictionRedisStream"><code class="docutils literal notranslate"><span class="pre">StepCrashPredictionRedisStream</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="step_redis_rst/step_redis.step_crash_prediction_redis_stream.html#step_redis.step_crash_prediction_redis_stream.StepCrashPredictionRedisStream.pool"><code class="docutils literal notranslate"><span class="pre">StepCrashPredictionRedisStream.pool</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis_rst/step_redis.step_crash_prediction_redis_stream.html#step_redis.step_crash_prediction_redis_stream.StepCrashPredictionRedisStream.config"><code class="docutils literal notranslate"><span class="pre">StepCrashPredictionRedisStream.config</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis_rst/step_redis.step_crash_prediction_redis_stream.html#step_redis.step_crash_prediction_redis_stream.StepCrashPredictionRedisStream.logger"><code class="docutils literal notranslate"><span class="pre">StepCrashPredictionRedisStream.logger</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis_rst/step_redis.step_crash_prediction_redis_stream.html#step_redis.step_crash_prediction_redis_stream.StepCrashPredictionRedisStream.__aenter__"><code class="docutils literal notranslate"><span class="pre">StepCrashPredictionRedisStream.__aenter__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis_rst/step_redis.step_crash_prediction_redis_stream.html#step_redis.step_crash_prediction_redis_stream.StepCrashPredictionRedisStream.publish_position_array"><code class="docutils literal notranslate"><span class="pre">StepCrashPredictionRedisStream.publish_position_array()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis_rst/step_redis.step_crash_prediction_redis_stream.html#step_redis.step_crash_prediction_redis_stream.StepCrashPredictionRedisStream.receive_crash_prediction_message"><code class="docutils literal notranslate"><span class="pre">StepCrashPredictionRedisStream.receive_crash_prediction_message()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="step_redis_rst/step_redis.step_producer_redis_stream.html">step_redis.step_producer_redis_stream module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="step_redis_rst/step_redis.step_producer_redis_stream.html#step_redis.step_producer_redis_stream.StepProducerRedisStream"><code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="step_redis_rst/step_redis.step_producer_redis_stream.html#step_redis.step_producer_redis_stream.StepProducerRedisStream.pool"><code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream.pool</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis_rst/step_redis.step_producer_redis_stream.html#step_redis.step_producer_redis_stream.StepProducerRedisStream.config"><code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream.config</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis_rst/step_redis.step_producer_redis_stream.html#step_redis.step_producer_redis_stream.StepProducerRedisStream.logger"><code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream.logger</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis_rst/step_redis.step_producer_redis_stream.html#step_redis.step_producer_redis_stream.StepProducerRedisStream.__aenter__"><code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream.__aenter__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis_rst/step_redis.step_producer_redis_stream.html#step_redis.step_producer_redis_stream.StepProducerRedisStream.publish_denm_message"><code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream.publish_denm_message()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis_rst/step_redis.step_producer_redis_stream.html#step_redis.step_producer_redis_stream.StepProducerRedisStream.publish_station_collision_array"><code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream.publish_station_collision_array()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis_rst/step_redis.step_producer_redis_stream.html#step_redis.step_producer_redis_stream.StepProducerRedisStream.receive_producer_message"><code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream.receive_producer_message()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="step_redis_rst/step_redis.step_redis_pool.html">step_redis.step_redis_pool module</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPool"><code class="docutils literal notranslate"><span class="pre">StepRedisPool</span></code></a><ul>
 <li class="toctree-l5"><a class="reference internal" href="step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPool.params"><code class="docutils literal notranslate"><span class="pre">StepRedisPool.params</span></code></a></li>
@@ -129,8 +185,9 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="step_redis_rst/step_redis.step_redis_stream.html">step_redis.step_redis_stream module</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream"><code class="docutils literal notranslate"><span class="pre">StepRedisStream</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream.pool"><code class="docutils literal notranslate"><span class="pre">StepRedisStream.pool</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream.config"><code class="docutils literal notranslate"><span class="pre">StepRedisStream.config</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream.logger"><code class="docutils literal notranslate"><span class="pre">StepRedisStream.logger</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream.redis"><code class="docutils literal notranslate"><span class="pre">StepRedisStream.redis</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream.__aenter__"><code class="docutils literal notranslate"><span class="pre">StepRedisStream.__aenter__()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream.__aexit__"><code class="docutils literal notranslate"><span class="pre">StepRedisStream.__aexit__()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream.create_input_stream"><code class="docutils literal notranslate"><span class="pre">StepRedisStream.create_input_stream()</span></code></a></li>
@@ -139,6 +196,16 @@
 <li class="toctree-l5"><a class="reference internal" href="step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream.publish_message"><code class="docutils literal notranslate"><span class="pre">StepRedisStream.publish_message()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream.receive_message"><code class="docutils literal notranslate"><span class="pre">StepRedisStream.receive_message()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream.update_stream_ttl"><code class="docutils literal notranslate"><span class="pre">StepRedisStream.update_stream_ttl()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStreamParams"><code class="docutils literal notranslate"><span class="pre">StepRedisStreamParams</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStreamParams.stream_id"><code class="docutils literal notranslate"><span class="pre">StepRedisStreamParams.stream_id</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStreamParams.group_id"><code class="docutils literal notranslate"><span class="pre">StepRedisStreamParams.group_id</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStreamParams.wait_timeout_ms"><code class="docutils literal notranslate"><span class="pre">StepRedisStreamParams.wait_timeout_ms</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStreamParams.max_length"><code class="docutils literal notranslate"><span class="pre">StepRedisStreamParams.max_length</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStreamParams.consumer_name"><code class="docutils literal notranslate"><span class="pre">StepRedisStreamParams.consumer_name</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStreamParams.ttl_seconds"><code class="docutils literal notranslate"><span class="pre">StepRedisStreamParams.ttl_seconds</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStreamParams.__post_init__"><code class="docutils literal notranslate"><span class="pre">StepRedisStreamParams.__post_init__()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -153,6 +220,51 @@
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___init__.html#test.test___init__.test_package_exports"><code class="docutils literal notranslate"><span class="pre">test_package_exports()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___init__.html#test.test___init__.test_release_date"><code class="docutils literal notranslate"><span class="pre">test_release_date()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___init__.html#test.test___init__.test_version"><code class="docutils literal notranslate"><span class="pre">test_version()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="test_rst/test.test_step_adapter_redis_stream.html">test.test_step_adapter_redis_stream module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_adapter_redis_stream.html#test.test_step_adapter_redis_stream.TestStepAdapterRedisStream"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterRedisStream</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_adapter_redis_stream.html#test.test_step_adapter_redis_stream.TestStepAdapterRedisStream.test___aenter__"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterRedisStream.test___aenter__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_adapter_redis_stream.html#test.test_step_adapter_redis_stream.TestStepAdapterRedisStream.test___init__"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterRedisStream.test___init__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_adapter_redis_stream.html#test.test_step_adapter_redis_stream.TestStepAdapterRedisStream.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterRedisStream.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_adapter_redis_stream.html#test.test_step_adapter_redis_stream.TestStepAdapterRedisStream.test_publish_cam_message"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterRedisStream.test_publish_cam_message()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_adapter_redis_stream.html#test.test_step_adapter_redis_stream.TestStepAdapterRedisStream.test_receive_adapter_message"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterRedisStream.test_receive_adapter_message()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="test_rst/test.test_step_client_redis_stream.html">test.test_step_client_redis_stream module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_client_redis_stream.html#test.test_step_client_redis_stream.TestStepClientRedisStream"><code class="docutils literal notranslate"><span class="pre">TestStepClientRedisStream</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_client_redis_stream.html#test.test_step_client_redis_stream.TestStepClientRedisStream.test___aenter__"><code class="docutils literal notranslate"><span class="pre">TestStepClientRedisStream.test___aenter__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_client_redis_stream.html#test.test_step_client_redis_stream.TestStepClientRedisStream.test___init__"><code class="docutils literal notranslate"><span class="pre">TestStepClientRedisStream.test___init__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_client_redis_stream.html#test.test_step_client_redis_stream.TestStepClientRedisStream.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestStepClientRedisStream.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_client_redis_stream.html#test.test_step_client_redis_stream.TestStepClientRedisStream.test_publish_denm_message"><code class="docutils literal notranslate"><span class="pre">TestStepClientRedisStream.test_publish_denm_message()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_client_redis_stream.html#test.test_step_client_redis_stream.TestStepClientRedisStream.test_receive_client_message"><code class="docutils literal notranslate"><span class="pre">TestStepClientRedisStream.test_receive_client_message()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="test_rst/test.test_step_crash_prediction_redis_stream.html">test.test_step_crash_prediction_redis_stream module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_crash_prediction_redis_stream.html#test.test_step_crash_prediction_redis_stream.TestStepCrashPredictionRedisStream"><code class="docutils literal notranslate"><span class="pre">TestStepCrashPredictionRedisStream</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_crash_prediction_redis_stream.html#test.test_step_crash_prediction_redis_stream.TestStepCrashPredictionRedisStream.test___aenter__"><code class="docutils literal notranslate"><span class="pre">TestStepCrashPredictionRedisStream.test___aenter__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_crash_prediction_redis_stream.html#test.test_step_crash_prediction_redis_stream.TestStepCrashPredictionRedisStream.test___init__"><code class="docutils literal notranslate"><span class="pre">TestStepCrashPredictionRedisStream.test___init__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_crash_prediction_redis_stream.html#test.test_step_crash_prediction_redis_stream.TestStepCrashPredictionRedisStream.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestStepCrashPredictionRedisStream.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_crash_prediction_redis_stream.html#test.test_step_crash_prediction_redis_stream.TestStepCrashPredictionRedisStream.test_publish_position_array"><code class="docutils literal notranslate"><span class="pre">TestStepCrashPredictionRedisStream.test_publish_position_array()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_crash_prediction_redis_stream.html#test.test_step_crash_prediction_redis_stream.TestStepCrashPredictionRedisStream.test_receive_crash_prediction_message"><code class="docutils literal notranslate"><span class="pre">TestStepCrashPredictionRedisStream.test_receive_crash_prediction_message()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="test_rst/test.test_step_producer_redis_stream.html">test.test_step_producer_redis_stream module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_producer_redis_stream.html#test.test_step_producer_redis_stream.TestStepProducerRedisStream"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisStream</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_producer_redis_stream.html#test.test_step_producer_redis_stream.TestStepProducerRedisStream.test___aenter__"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisStream.test___aenter__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_producer_redis_stream.html#test.test_step_producer_redis_stream.TestStepProducerRedisStream.test___init__"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisStream.test___init__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_producer_redis_stream.html#test.test_step_producer_redis_stream.TestStepProducerRedisStream.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisStream.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_producer_redis_stream.html#test.test_step_producer_redis_stream.TestStepProducerRedisStream.test_publish_denm_message"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisStream.test_publish_denm_message()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_producer_redis_stream.html#test.test_step_producer_redis_stream.TestStepProducerRedisStream.test_publish_station_collision_array"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisStream.test_publish_station_collision_array()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_producer_redis_stream.html#test.test_step_producer_redis_stream.TestStepProducerRedisStream.test_receive_producer_message"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisStream.test_receive_producer_message()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="test_rst/test.test_step_redis_pool.html">test.test_step_redis_pool module</a><ul>
@@ -190,6 +302,12 @@
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStream.test_receive_message"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_receive_message()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStream.test_update_stream_ttl"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_update_stream_ttl()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStream.test_update_stream_ttl_error"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_update_stream_ttl_error()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStreamParams"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStreamParams</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStreamParams.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStreamParams.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStreamParams.test_params_boundary_values"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStreamParams.test_params_boundary_values()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStreamParams.test_params_invalid_values"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStreamParams.test_params_invalid_values()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -260,10 +378,14 @@ for stream processing, connection management, and reliable message handling.</p>
 </section>
 <section id="key-components">
 <h2>Key Components<a class="headerlink" href="#key-components" title="Link to this heading"></a></h2>
-<p>The package consists of two main components:</p>
+<p>The package consists of the following main components:</p>
 <ol class="arabic simple">
 <li><p><strong>StepRedisPool</strong>: An extended Redis connection pool with asyncio support</p></li>
-<li><p><strong>StepRedisStream</strong>: A comprehensive interface for Redis Streams operations</p></li>
+<li><p><strong>StepRedisStream</strong>: A base comprehensive interface for Redis Streams operations</p></li>
+<li><p><strong>StepAdapterRedisStream</strong>: Specialized stream handler for STEP Adapter messages (CAM data)</p></li>
+<li><p><strong>StepClientRedisStream</strong>: Specialized stream handler for STEP Client messages (DENM data)</p></li>
+<li><p><strong>StepProducerRedisStream</strong>: Specialized stream handler for STEP Producer messages (DENM and collision arrays)</p></li>
+<li><p><strong>StepCrashPredictionRedisStream</strong>: Specialized stream handler for Crash Prediction messages (position arrays)</p></li>
 </ol>
 </section>
 <section id="component-details">
@@ -273,9 +395,10 @@ for stream processing, connection management, and reliable message handling.</p>
 <p><code class="docutils literal notranslate"><span class="pre">StepRedisPool</span></code> extends the <code class="docutils literal notranslate"><span class="pre">BlockingConnectionPool</span></code> from redis-py to provide enhanced
 features for asyncio applications. It manages Redis connections with configurable parameters
 and supports both SSL and non-SSL connections.</p>
+<div class="scrollable-diagram docutils container">
 <figure class="align-center">
 <p class="plantuml">
-<object data="_images/plantuml-ecc7014af26dfeb9ddff8fbacdfa7bb94d0193d0.svg" type="image/svg+xml" style="width:509px;height:626px;background:#FFFFFF;">
+<object data="_images/plantuml-ecc7014af26dfeb9ddff8fbacdfa7bb94d0193d0.svg" type="image/svg+xml" style="width:512px;height:626px;background:#FFFFFF;">
 <img src="_images/plantuml-ecc7014af26dfeb9ddff8fbacdfa7bb94d0193d0.png" alt="!theme plain
 skinparam classAttributeIconSize 0
 
@@ -316,6 +439,7 @@ StepRedisPool o-- StepRedisPoolParams"/>
 
 </object></p>
 </figure>
+</div>
 <p><strong>Key Features</strong>:</p>
 <ul class="simple">
 <li><p>SSL/TLS secure connections</p></li>
@@ -325,45 +449,108 @@ StepRedisPool o-- StepRedisPoolParams"/>
 <li><p>Integrated logging support</p></li>
 </ul>
 </section>
+<section id="stepredisstreamparams">
+<h3>StepRedisStreamParams<a class="headerlink" href="#stepredisstreamparams" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">StepRedisStreamParams</span></code> is a frozen dataclass that encapsulates all configuration parameters
+for Redis stream operations. It enforces validation on all fields to ensure correct usage.</p>
+<p><strong>Key Attributes</strong>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">stream_id</span></code>: The identifier for the Redis stream (minimum 1 character)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">group_id</span></code>: The identifier for the Redis consumer group (minimum 1 character)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">wait_timeout_ms</span></code>: Timeout in milliseconds for waiting to receive a message (non-negative)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">max_length</span></code>: Maximum length of the stream for automatic trimming (positive integer)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">consumer_name</span></code>: The name of the consumer (minimum 1 character)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ttl_seconds</span></code>: Optional time-to-live in seconds for the stream (positive integer if provided)</p></li>
+</ul>
+</section>
 <section id="stepredisstream">
 <h3>StepRedisStream<a class="headerlink" href="#stepredisstream" title="Link to this heading"></a></h3>
-<p><code class="docutils literal notranslate"><span class="pre">StepRedisStream</span></code> provides a comprehensive interface for Redis Streams that enables creating,
-managing, and utilizing Redis streams with consumer groups for reliable message processing.</p>
+<p><code class="docutils literal notranslate"><span class="pre">StepRedisStream</span></code> provides a comprehensive base interface for Redis Streams that enables creating,
+managing, and utilizing Redis streams with consumer groups for reliable message processing. This class
+is designed to be extended by specialized stream handlers for different STEP components.</p>
+<div class="scrollable-diagram docutils container">
 <figure class="align-center">
 <p class="plantuml">
-<object data="_images/plantuml-01b6c71206934d51818ff84eaae365e4c2808c13.svg" type="image/svg+xml" style="width:1176px;height:388px;background:#FFFFFF;">
-<img src="_images/plantuml-01b6c71206934d51818ff84eaae365e4c2808c13.png" alt="!theme plain
+<object data="_images/plantuml-ebabbb860cec1fe7cdac5473d2fad23a5222bd12.svg" type="image/svg+xml" style="width:2184px;height:646px;background:#FFFFFF;">
+<img src="_images/plantuml-ebabbb860cec1fe7cdac5473d2fad23a5222bd12.png" alt="!theme plain
 skinparam classAttributeIconSize 0
 
+class StepRedisStreamParams {
+   +stream_id: str
+   +group_id: str
+   +wait_timeout_ms: int
+   +max_length: int
+   +consumer_name: str
+   +ttl_seconds: Optional[int]
+   +__post_init__(): None
+}
+
 class StepRedisStream {
-   -_pool: Any
+   -_config: StepRedisStreamParams
    -_logger: Logger
-   -_redis: Redis
-   +__init__(pool: Any, logger: Logger)
+   -_redis_pool: Redis
+   +__init__(pool: StepRedisPool, config: StepRedisStreamParams, logger: Logger)
    +__aenter__(): StepRedisStream
    +__aexit__(exc_type, exc_val, exc_tb): None
-   +create_input_stream(stream_name: str, group_name: str, ttl_seconds: Optional[int]): Awaitable[bool]
-   +publish_message(stream_name: str, message: Dict[str, Any], max_len: Optional[int]): Awaitable[str]
-   +receive_message(stream_name: str, group_name: str, consumer_name: str, wait_ms: int, count: int, ttl_seconds: Optional[int]): Awaitable[List[Dict[str, Any]]]
-   +acknowledge_message(stream_name: str, group_name: str, message_id: str): Awaitable[int]
-   +ping(): Awaitable[bool]
-   +set_ttl(key: str, ttl_seconds: int): Awaitable[bool]
+   +create_input_stream(): Awaitable[None]
+   +publish_message(message: str): Awaitable[None]
+   +receive_message(block_timeout: int): Awaitable[str]
+   +update_stream_ttl(ttl_seconds: int): Awaitable[bool]
+   +get_stream_ttl(): Awaitable[int]
+   +ping(): Awaitable[None]
+}
+
+class StepAdapterRedisStream {
+   +publish_cam_message(message: CamDataV1): Awaitable[None]
+}
+
+class StepClientRedisStream {
+   +publish_denm_message(message: DenmDataV1): Awaitable[None]
+}
+
+class StepProducerRedisStream {
+   +publish_denm_message(message: DenmDataV1): Awaitable[None]
+   +publish_station_collision_array(array: StationCollisionArrayV1): Awaitable[None]
+}
+
+class StepCrashPredictionRedisStream {
+   +publish_position_array(array: PositionArrayV1): Awaitable[None]
 }
 
 class StepRedisPool {
 }
 
-StepRedisStream o-- StepRedisPool : uses"/>
+StepRedisStream o-- StepRedisPool : uses
+StepRedisStream o-- StepRedisStreamParams : configured by
+StepAdapterRedisStream --|&gt; StepRedisStream
+StepClientRedisStream --|&gt; StepRedisStream
+StepProducerRedisStream --|&gt; StepRedisStream
+StepCrashPredictionRedisStream --|&gt; StepRedisStream"/>
 
 </object></p>
 </figure>
+</div>
 <p><strong>Key Features</strong>:</p>
 <ul class="simple">
 <li><p>Creating and managing streams with consumer groups</p></li>
 <li><p>Publishing messages with configurable maximum length</p></li>
-<li><p>Consuming messages with proper acknowledgment handling</p></li>
+<li><p>Consuming messages with automatic acknowledgment (noack=True)</p></li>
 <li><p>Setting and managing Time-To-Live (TTL) for streams</p></li>
-<li><p>Connection health monitoring</p></li>
+<li><p>Connection health monitoring via ping</p></li>
+<li><p>Extensible design for specialized message types</p></li>
+</ul>
+<p><strong>Specialized Stream Classes</strong>:</p>
+<p>The package provides four specialized stream implementations that extend <code class="docutils literal notranslate"><span class="pre">StepRedisStream</span></code>:</p>
+<ul class="simple">
+<li><p><strong>StepAdapterRedisStream</strong>: Handles STEP Adapter messages, specifically for publishing and consuming
+Cooperative Awareness Messages (CAM) wrapped in CloudEvents format. Manages CAM data with automatic
+TTL management.</p></li>
+<li><p><strong>StepClientRedisStream</strong>: Manages STEP Client ITS messages, focusing on Decentralized Environmental
+Notification Messages (DENM). Publishes CloudEvents-compliant DENM messages to configured streams.</p></li>
+<li><p><strong>StepProducerRedisStream</strong>: Handles STEP Producer services, supporting both DENM messages and
+station collision array data. Publishes both message types in CloudEvents format.</p></li>
+<li><p><strong>StepCrashPredictionRedisStream</strong>: Specializes in Crash Prediction data processing, publishing
+position array data as CloudEvents to Crash Prediction streams for real-time analysis.</p></li>
 </ul>
 </section>
 </section>
@@ -371,19 +558,28 @@ StepRedisStream o-- StepRedisPool : uses"/>
 <h2>Package Integration<a class="headerlink" href="#package-integration" title="Link to this heading"></a></h2>
 <p>The diagram below illustrates how the components of the <code class="docutils literal notranslate"><span class="pre">step_redis</span></code> package interact
 with each other and with the Redis server:</p>
+<div class="scrollable-diagram docutils container">
 <figure class="align-center">
 <p class="plantuml">
-<object data="_images/plantuml-782573e0404c7e67a5c0d458d4ecb4e9a32ce6fe.svg" type="image/svg+xml" style="width:698px;height:560px;background:#FFFFFF;">
-<img src="_images/plantuml-782573e0404c7e67a5c0d458d4ecb4e9a32ce6fe.png" alt="!theme plain
+<object data="_images/plantuml-d17b8656b1095e6d3f6fc7d2a524884c0631fb28.svg" type="image/svg+xml" style="width:1476px;height:560px;background:#FFFFFF;">
+<img src="_images/plantuml-d17b8656b1095e6d3f6fc7d2a524884c0631fb28.png" alt="!theme plain
 
-package &quot;Client Application&quot; {
-   [Client Code]
+package &quot;STEP Applications&quot; {
+   [step_adapter]
+   [step_client]
+   [step_producer]
+   [step_crash_prediction]
 }
 
 package &quot;step_redis&quot; {
    [StepRedisPool] as Pool
-   [StepRedisStream] as Stream
-   [StepRedisPoolParams] as Params
+   [StepRedisPoolParams] as PoolParams
+   [StepRedisStream] as BaseStream
+   [StepRedisStreamParams] as StreamParams
+   [StepAdapterRedisStream] as AdapterStream
+   [StepClientRedisStream] as ClientStream
+   [StepProducerRedisStream] as ProducerStream
+   [StepCrashPredictionRedisStream] as CrashStream
 }
 
 database &quot;Redis Server&quot; {
@@ -391,15 +587,30 @@ database &quot;Redis Server&quot; {
    [Redis Connection] as RedisConnection
 }
 
-[Client Code] --&gt; Stream : uses
-[Client Code] --&gt; Pool : creates
-Pool ..&gt; Params : configured by
-Stream --&gt; Pool : uses
+[step_adapter] --&gt; AdapterStream : uses
+[step_client] --&gt; ClientStream : uses
+[step_producer] --&gt; ProducerStream : uses
+[step_crash_prediction] --&gt; CrashStream : uses
+
+Pool ..&gt; PoolParams : configured by
+BaseStream ..&gt; StreamParams : configured by
+
+AdapterStream --|&gt; BaseStream : extends
+ClientStream --|&gt; BaseStream : extends
+ProducerStream --|&gt; BaseStream : extends
+CrashStream --|&gt; BaseStream : extends
+
+AdapterStream --&gt; Pool : uses
+ClientStream --&gt; Pool : uses
+ProducerStream --&gt; Pool : uses
+CrashStream --&gt; Pool : uses
+
 Pool --&gt; RedisConnection : manages
-Stream --&gt; RedisStreams : interacts with"/>
+BaseStream --&gt; RedisStreams : interacts with"/>
 
 </object></p>
 </figure>
+</div>
 </section>
 <section id="usage-patterns">
 <h2>Usage Patterns<a class="headerlink" href="#usage-patterns" title="Link to this heading"></a></h2>
@@ -416,10 +627,12 @@ manager patterns for proper resource management. Here’s a typical usage flow:<
 </div></blockquote>
 <section id="example-usage">
 <h3>Example Usage<a class="headerlink" href="#example-usage" title="Link to this heading"></a></h3>
+<section id="base-stream-usage">
+<h4>Base Stream Usage<a class="headerlink" href="#base-stream-usage" title="Link to this heading"></a></h4>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">step_redis.step_redis_pool</span><span class="w"> </span><span class="kn">import</span> <span class="n">StepRedisPoolParams</span><span class="p">,</span> <span class="n">StepRedisPool</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">step_redis.step_redis_stream</span><span class="w"> </span><span class="kn">import</span> <span class="n">StepRedisStream</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">step_redis.step_redis_stream</span><span class="w"> </span><span class="kn">import</span> <span class="n">StepRedisStream</span><span class="p">,</span> <span class="n">StepRedisStreamParams</span>
 
 <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
     <span class="c1"># Setup logging</span>
@@ -427,42 +640,102 @@ manager patterns for proper resource management. Here’s a typical usage flow:<
     <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;redis_example&quot;</span><span class="p">)</span>
 
     <span class="c1"># Configure Redis connection parameters</span>
-    <span class="n">params</span> <span class="o">=</span> <span class="n">StepRedisPoolParams</span><span class="p">(</span>
+    <span class="n">pool_params</span> <span class="o">=</span> <span class="n">StepRedisPoolParams</span><span class="p">(</span>
         <span class="n">host</span><span class="o">=</span><span class="s2">&quot;redis.example.com&quot;</span><span class="p">,</span>
         <span class="n">port</span><span class="o">=</span><span class="mi">6379</span><span class="p">,</span>
         <span class="n">username</span><span class="o">=</span><span class="s2">&quot;user&quot;</span><span class="p">,</span>
         <span class="n">password</span><span class="o">=</span><span class="s2">&quot;password&quot;</span><span class="p">,</span>
         <span class="n">db</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
         <span class="n">ssl_enable</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="c1"># Other configuration parameters</span>
+        <span class="n">socket_timeout</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span>
+        <span class="n">socket_connect_timeout</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+        <span class="n">socket_keep_idle</span><span class="o">=</span><span class="mi">60</span><span class="p">,</span>
+        <span class="n">socket_keep_alive</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+        <span class="n">socket_keep_cnt</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+        <span class="n">ssl_client_key_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">ssl_client_key_file_password</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">ssl_client_cert_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">ssl_cert_requested</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">ssl_ca_certs_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">health_check_interval</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span>
+        <span class="n">max_connections</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+        <span class="n">connection_available_timeout</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">protocol</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
     <span class="p">)</span>
 
-    <span class="c1"># Create a Redis pool</span>
-    <span class="k">async</span> <span class="k">with</span> <span class="n">StepRedisPool</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span> <span class="k">as</span> <span class="n">pool</span><span class="p">:</span>
-        <span class="c1"># Use the stream as a context manager</span>
-        <span class="k">async</span> <span class="k">with</span> <span class="n">StepRedisStream</span><span class="p">(</span><span class="n">pool</span><span class="p">,</span> <span class="n">logger</span><span class="p">)</span> <span class="k">as</span> <span class="n">stream</span><span class="p">:</span>
-            <span class="c1"># Create a stream with a consumer group</span>
-            <span class="k">await</span> <span class="n">stream</span><span class="o">.</span><span class="n">create_input_stream</span><span class="p">(</span><span class="s2">&quot;my_stream&quot;</span><span class="p">,</span> <span class="s2">&quot;my_group&quot;</span><span class="p">,</span> <span class="n">ttl_seconds</span><span class="o">=</span><span class="mi">3600</span><span class="p">)</span>
+    <span class="c1"># Configure Redis stream parameters</span>
+    <span class="n">stream_params</span> <span class="o">=</span> <span class="n">StepRedisStreamParams</span><span class="p">(</span>
+        <span class="n">stream_id</span><span class="o">=</span><span class="s2">&quot;my_stream&quot;</span><span class="p">,</span>
+        <span class="n">group_id</span><span class="o">=</span><span class="s2">&quot;my_group&quot;</span><span class="p">,</span>
+        <span class="n">wait_timeout_ms</span><span class="o">=</span><span class="mi">5000</span><span class="p">,</span>
+        <span class="n">max_length</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+        <span class="n">consumer_name</span><span class="o">=</span><span class="s2">&quot;consumer1&quot;</span><span class="p">,</span>
+        <span class="n">ttl_seconds</span><span class="o">=</span><span class="mi">3600</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Create a Redis pool and stream</span>
+    <span class="k">async</span> <span class="k">with</span> <span class="n">StepRedisPool</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="n">pool_params</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span> <span class="k">as</span> <span class="n">pool</span><span class="p">:</span>
+        <span class="k">async</span> <span class="k">with</span> <span class="n">StepRedisStream</span><span class="p">(</span><span class="n">pool</span><span class="p">,</span> <span class="n">stream_params</span><span class="p">,</span> <span class="n">logger</span><span class="p">)</span> <span class="k">as</span> <span class="n">stream</span><span class="p">:</span>
+            <span class="c1"># Create the input stream and consumer group</span>
+            <span class="k">await</span> <span class="n">stream</span><span class="o">.</span><span class="n">create_input_stream</span><span class="p">()</span>
 
             <span class="c1"># Publish a message</span>
-            <span class="k">await</span> <span class="n">stream</span><span class="o">.</span><span class="n">publish_message</span><span class="p">(</span><span class="s2">&quot;my_stream&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;data&quot;</span><span class="p">:</span> <span class="s2">&quot;Hello, Redis!&quot;</span><span class="p">},</span> <span class="mi">1000</span><span class="p">)</span>
+            <span class="k">await</span> <span class="n">stream</span><span class="o">.</span><span class="n">publish_message</span><span class="p">(</span><span class="s2">&quot;Hello, Redis!&quot;</span><span class="p">)</span>
 
             <span class="c1"># Consume a message</span>
-            <span class="n">messages</span> <span class="o">=</span> <span class="k">await</span> <span class="n">stream</span><span class="o">.</span><span class="n">receive_message</span><span class="p">(</span>
-                <span class="s2">&quot;my_stream&quot;</span><span class="p">,</span> <span class="s2">&quot;my_group&quot;</span><span class="p">,</span> <span class="s2">&quot;consumer1&quot;</span><span class="p">,</span> <span class="mi">5000</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ttl_seconds</span><span class="o">=</span><span class="mi">3600</span>
-            <span class="p">)</span>
-
-            <span class="k">if</span> <span class="n">messages</span><span class="p">:</span>
-                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Received: </span><span class="si">{</span><span class="n">messages</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-
-                <span class="c1"># Acknowledge the message</span>
-                <span class="k">for</span> <span class="n">msg</span> <span class="ow">in</span> <span class="n">messages</span><span class="p">:</span>
-                    <span class="n">message_id</span> <span class="o">=</span> <span class="n">msg</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span>
-                    <span class="k">await</span> <span class="n">stream</span><span class="o">.</span><span class="n">acknowledge_message</span><span class="p">(</span><span class="s2">&quot;my_stream&quot;</span><span class="p">,</span> <span class="s2">&quot;my_group&quot;</span><span class="p">,</span> <span class="n">message_id</span><span class="p">)</span>
+            <span class="n">message</span> <span class="o">=</span> <span class="k">await</span> <span class="n">stream</span><span class="o">.</span><span class="n">receive_message</span><span class="p">(</span><span class="n">block_timeout</span><span class="o">=</span><span class="mi">5000</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Received: </span><span class="si">{</span><span class="n">message</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
 <span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
 </pre></div>
 </div>
+</section>
+<section id="specialized-stream-usage">
+<h4>Specialized Stream Usage<a class="headerlink" href="#specialized-stream-usage" title="Link to this heading"></a></h4>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">step_redis.step_redis_pool</span><span class="w"> </span><span class="kn">import</span> <span class="n">StepRedisPoolParams</span><span class="p">,</span> <span class="n">StepRedisPool</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">step_redis.step_adapter_redis_stream</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">StepAdapterRedisStream</span><span class="p">,</span>
+    <span class="n">StepRedisStreamParams</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">step_cloud_schemas</span><span class="w"> </span><span class="kn">import</span> <span class="n">CamDataV1</span>
+
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
+    <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;adapter_example&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Configure pool and stream</span>
+    <span class="n">pool_params</span> <span class="o">=</span> <span class="n">StepRedisPoolParams</span><span class="p">(</span>
+        <span class="n">host</span><span class="o">=</span><span class="s2">&quot;localhost&quot;</span><span class="p">,</span>
+        <span class="n">port</span><span class="o">=</span><span class="mi">6379</span><span class="p">,</span>
+        <span class="n">password</span><span class="o">=</span><span class="s2">&quot;password&quot;</span><span class="p">,</span>
+        <span class="n">db</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="c1"># ... other parameters</span>
+    <span class="p">)</span>
+
+    <span class="n">stream_params</span> <span class="o">=</span> <span class="n">StepRedisStreamParams</span><span class="p">(</span>
+        <span class="n">stream_id</span><span class="o">=</span><span class="s2">&quot;adapter_stream&quot;</span><span class="p">,</span>
+        <span class="n">group_id</span><span class="o">=</span><span class="s2">&quot;adapter_group&quot;</span><span class="p">,</span>
+        <span class="n">wait_timeout_ms</span><span class="o">=</span><span class="mi">5000</span><span class="p">,</span>
+        <span class="n">max_length</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+        <span class="n">consumer_name</span><span class="o">=</span><span class="s2">&quot;adapter_consumer&quot;</span><span class="p">,</span>
+        <span class="n">ttl_seconds</span><span class="o">=</span><span class="mi">3600</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Use specialized adapter stream</span>
+    <span class="k">async</span> <span class="k">with</span> <span class="n">StepRedisPool</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="n">pool_params</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span> <span class="k">as</span> <span class="n">pool</span><span class="p">:</span>
+        <span class="k">async</span> <span class="k">with</span> <span class="n">StepAdapterRedisStream</span><span class="p">(</span><span class="n">pool</span><span class="p">,</span> <span class="n">stream_params</span><span class="p">,</span> <span class="n">logger</span><span class="p">)</span> <span class="k">as</span> <span class="n">stream</span><span class="p">:</span>
+            <span class="c1"># Create the stream</span>
+            <span class="k">await</span> <span class="n">stream</span><span class="o">.</span><span class="n">create_input_stream</span><span class="p">()</span>
+
+            <span class="c1"># Publish a CAM message</span>
+            <span class="n">cam_message</span> <span class="o">=</span> <span class="n">CamDataV1</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>  <span class="c1"># Create CAM message</span>
+            <span class="k">await</span> <span class="n">stream</span><span class="o">.</span><span class="n">publish_cam_message</span><span class="p">(</span><span class="n">cam_message</span><span class="p">)</span>
+
+<span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
+</pre></div>
+</div>
+</section>
 </section>
 </section>
 <section id="error-handling">
@@ -484,13 +757,33 @@ that can be caught and handled by the client application.</p>
 <p>The <code class="docutils literal notranslate"><span class="pre">step_redis</span></code> package was designed with the following considerations:</p>
 <blockquote>
 <div><ul class="simple">
-<li><p><strong>Reliability</strong>: Ensuring reliable message delivery and processing with proper acknowledgments</p></li>
+<li><p><strong>Reliability</strong>: Ensuring reliable message delivery and processing with automatic acknowledgments (noack=True)</p></li>
 <li><p><strong>Performance</strong>: Minimizing overhead and maximizing throughput for high-performance applications</p></li>
-<li><p><strong>Resource Management</strong>: Proper handling of connections and resources to prevent leaks</p></li>
-<li><p><strong>Security</strong>: Support for SSL/TLS connections and authentication</p></li>
-<li><p><strong>Configurability</strong>: Extensive configuration options to adapt to various deployment scenarios</p></li>
+<li><p><strong>Resource Management</strong>: Proper handling of connections and resources through async context managers</p></li>
+<li><p><strong>Security</strong>: Support for SSL/TLS connections with TLSv1.2+ and client certificate authentication</p></li>
+<li><p><strong>Configurability</strong>: Extensive configuration options via immutable dataclasses (frozen=True) with validation</p></li>
+<li><p><strong>Extensibility</strong>: Base stream class designed for specialization by STEP components</p></li>
+<li><p><strong>CloudEvents Integration</strong>: Native support for CloudEvents-compliant message formats</p></li>
+<li><p><strong>Type Safety</strong>: Leveraging dataclasses with slots for memory efficiency and type validation</p></li>
 </ul>
 </div></blockquote>
+</section>
+<section id="cloudevents-integration">
+<h2>CloudEvents Integration<a class="headerlink" href="#cloudevents-integration" title="Link to this heading"></a></h2>
+<p>All specialized stream classes (<code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream</span></code>, <code class="docutils literal notranslate"><span class="pre">StepClientRedisStream</span></code>,
+<code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream</span></code>, and <code class="docutils literal notranslate"><span class="pre">StepCrashPredictionRedisStream</span></code>) integrate with the
+<code class="docutils literal notranslate"><span class="pre">step_cloud_schemas</span></code> package to provide CloudEvents-compliant message formatting. This ensures:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><strong>Standardized Message Format</strong>: All messages follow the CloudEvents specification</p></li>
+<li><p><strong>Schema Validation</strong>: Messages are validated against defined schemas</p></li>
+<li><p><strong>Metadata Enrichment</strong>: Automatic inclusion of message IDs, timestamps, source information</p></li>
+<li><p><strong>Interoperability</strong>: Messages can be consumed by any CloudEvents-compliant system</p></li>
+</ul>
+</div></blockquote>
+<p>Each specialized stream class wraps domain-specific data (CAM, DENM, collision arrays, position arrays)
+in CloudEvents envelopes before publishing to Redis streams, ensuring consistent message structure
+across all STEP components.</p>
 <p>This architectural design ensures that the package can handle the demands of distributed
 systems while providing a clean and intuitive API for developers.</p>
 </section>
