@@ -2,8 +2,8 @@
 Package Script
 ==============
 
-This section describes how to use the script inside the project.
-The script is different for Windows and Linux.
+This section describes how to use the development automation tools in the project.
+The project uses **tox** for automated testing, code quality, and documentation generation.
 
 .. note::
    The scripts use **uv** program. If it is not installed,
@@ -44,191 +44,105 @@ The activation is done with the command:
 
       $source .venv\bin\activate
 
-----
-Make
-----
+--------------------
+Development with Tox
+--------------------
 
-The script can be used on windows or linux with *make* installed.
-The commands available are:
+The project uses **tox** for comprehensive automation of development tasks. All commands can be executed 
+with UV for optimal performance and automatic Python version management.
 
-   #. Clean all temporary folder like build, schemas, rts_generated, etc:
+Available Environments
+~~~~~~~~~~~~~~~~~~~~~~
+
+List all available tox environments:
+
+.. code-block:: bash
+
+   # List all tox environments
+   uv run tox list
+
+Testing Environments
+~~~~~~~~~~~~~~~~~~~~~
+
+Run tests across multiple Python versions:
+
+.. code-block:: bash
+
+   # Run all test environments in parallel (recommended)
+   uv run tox -p auto
    
-      .. tab:: Windows
+   # Run tests for specific Python versions
+   uv run tox -e py311
+   uv run tox -e py312
+   uv run tox -e py313
+   uv run tox -e py314
 
-         .. code-block:: console
+Generate coverage reports and badges:
 
-            $.\make.bat clean
+.. code-block:: bash
 
-      .. tab:: Linux
+   # Combine coverage data and generate reports
+   uv run tox -e report
 
-         .. code-block:: bash
+Code Quality Commands
+~~~~~~~~~~~~~~~~~~~~~
 
-            $make clean
+Format code according to project standards:
 
-   #. Format the code of the package:
+.. code-block:: bash
 
-      .. tab:: Windows
+   # Auto-format code using multiple formatters
+   uv run tox -e format
 
-         .. code-block:: console
+Run linting and static analysis:
 
-            $.\make.bat format 
+.. code-block:: bash
 
-      .. tab:: Linux
+   # Run all linting checks (ruff, mypy, pylint)
+   uv run tox -e lint
 
-         .. code-block:: bash
+Documentation Commands
+~~~~~~~~~~~~~~~~~~~~~~
 
-            $make format
+Generate API documentation:
 
-   #. Execute the linter on the code of the package:
+.. code-block:: bash
 
-      .. tab:: Windows
+   # Generate sphinx API documentation
+   uv run tox -e apidoc
 
-         .. code-block:: console
+Build project documentation:
 
-            $.\make.bat lint 
+.. code-block:: bash
 
-      .. tab:: Linux
-
-         .. code-block:: bash
-
-            $make lint
-
-   #. Execute the tests of the package:
-
-      .. tab:: Windows
-
-         .. code-block:: console
-
-            $.\make.bat test
-
-      .. tab:: Linux
-
-         .. code-block:: bash
-
-            $make test
-
-   #. Check if all links in the documentation are valid:
+   # Build HTML documentation
+   uv run tox -e docs-html
    
-      .. tab:: Windows
+   # Build LaTeX documentation  
+   uv run tox -e docs-latex
 
-         .. code-block:: console
+Package Management
+~~~~~~~~~~~~~~~~~~
 
-            $.\make.bat checklink
+Upload package to registry:
 
-      .. tab:: Linux
+.. code-block:: bash
 
-         .. code-block:: bash
+   # Build and upload package
+   uv run tox -e upload
 
-            $make checklink
+Cleanup Commands
+~~~~~~~~~~~~~~~~
 
-   #. Create the documentation in html format:
+Clean build artifacts:
 
-      .. tab:: Windows
+.. code-block:: bash
 
-         .. code-block:: console
-
-            $.\make.bat html
-
-      .. tab:: Linux
-
-         .. code-block:: bash
-
-            $make html
-
-
-   #. Create the documentation in latex format:
-
-      .. tab:: Windows
-         
-         .. code-block:: console
-
-            $.\make.bat latex
-      
-      .. tab:: Linux
-         
-         .. code-block:: bash
-
-            $make latex
-
-   #. Upload the package to the registry:
-
-      .. tab:: Windows
-         
-         .. code-block:: console
-
-            $.\make.bat upload
-      
-      .. tab:: Linux
-         
-         .. code-block:: bash
-
-            $make upload
-
-   #. List of all commands available:
-
-      .. tab:: Windows
-         
-         .. code-block:: console
-
-            $.\make.bat help
-      
-      .. tab:: Linux
-         
-         .. code-block:: bash
-
-            $make help
-
-------------------
-Automatic checking
-------------------
-
-The project uses **tox** for automated testing across multiple Python versions. Tox creates isolated 
-virtual environments for each Python version and runs the test suite to ensure compatibility. 
-The configuration is defined in the ``tox.ini`` file at the project root.
-
-The ``tox.ini`` is configured to test against Python versions 3.13, and 3.14 using the 
-``tox-uv`` plugin. This plugin leverages **uv** to automatically download and install the required 
-Python versions if they're not already present on the system, eliminating the need for manual Python installation. 
-The configuration sets ``UV_PYTHON_PREFERENCE = only-managed`` to ensure only managed Python versions are used, and 
-includes various test environments:
-
-- **Default environments** (py313, py314): Run the full test suite via ``make test``
-- **docs**: Build the documentation using ``make html``
-- **lint**: Execute linting checks with ``make lint``
-- **format**: Format the code using ``make format``
-- **clean**: Remove build artifacts with ``make clean``
-- **upload**: Upload the package to the registry
-- **cleanenv**: Remove all tox environments to free up space
-
-To run tox, use the following commands:
-
-.. tab:: Parallel (fastest)
-
-   .. code-block:: console
-
-      $ uv run tox -p auto
-
-.. tab:: Sequential
-
-   .. code-block:: console
-
-      $ uv run tox
-
-.. tab:: Specific version
-
-   .. code-block:: console
-
-      $ uv run tox -e py311
-      $ uv run tox -e py312
-      $ uv run tox -e py313
-
-.. tab:: Specific environment
-
-   .. code-block:: console
-
-      $ uv run tox -e lint
-      $ uv run tox -e docs
-      $ uv run tox -e clean
+   # Remove build artifacts and generated files
+   uv run tox -e clean
+   
+   # Clean all tox environments
+   uv run tox -e cleanenv
 
 --------------
 PDF conversion
