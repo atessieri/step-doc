@@ -127,48 +127,261 @@ The design of ``StepClientConfig`` emphasizes immutability and strong validation
 configuration-related issues during runtime while providing a clear, structured 
 approach to configuration management.
 
-StepClientRedisPool and StepClientRedisStream
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+StepRedis
+^^^^^^^^^
 
-The ``StepClientRedisPool`` and ``StepClientRedisStream`` components provide the Redis
-integration layer for the STEP Client architecture, enabling efficient message
-queuing and distribution between different system components.
+The step_redis library provides the foundational Redis integration layer for the STEP 
+ecosystem, enabling asynchronous Redis connectivity and stream-based message processing. 
+This library implements a reusable framework for Redis Streams communication that is 
+extended by multiple STEP components including ``step_client``, ``step_adapter``, 
+``step_producer``, and ``step_crash_prediction``.
 
-``StepClientRedisPool``:
+**Library Architecture**
 
-    #. **Connection Management**: Extends the ``StepRedisPool`` base class to handle 
-       Redis connection pooling specifically for STEP Client needs.
-    #. **Resource Management**: Provides asynchronous context management through 
-       ``__aenter__`` and ``__aexit__`` methods for safe connection handling.
-    #. **Connection Configuration**: Manages Redis connection parameters such 
-       as host, port, and authentication details.
-    #. **Connection Pooling**: Implements connection pooling to optimize performance 
-       and resource utilization when interacting with Redis.
+The step_redis library is organized around two core base classes and four specialized 
+implementations:
 
-``StepClientRedisStream``:
+**Base Classes:**
 
-    #. **Stream Management**: Extends the ``StepRedisStream`` base class to implement 
-       specialized stream handling for ITS messages.
-    #. **Input Stream Processing**: Manages connections to input streams from ``step_producer`` 
-       components to receive DENM (Decentralized Environmental Notification Messages).
-    #. **Output Stream Management**: Handles output streams with specific routing:
-       
-       * Connects to ``step_producer`` for sending DENM messages
-       * Connects to ``step_adapter`` for sending various ITS message types, including:
-
-         - CAM (Cooperative Awareness Messages)
-         - CPM (Collective Perception Messages)
+    #. **StepRedisPool**: Extends redis-py's ``BlockingConnectionPool`` to provide 
+       asynchronous connection pooling with SSL/TLS support, TCP keepalive configuration, 
+       and async context manager protocol.
     
-    #. **Stream Creation**: Creates and configures input streams with appropriate consumer 
-       group IDs for message distribution.
-    #. **Message Publishing**: Provides methods to publish messages to the configured output streams.
-    #. **Message Receiving**: Offers functionality to receive and parse messages from input streams.
-    #. **Format Conversion**: Handles the conversion between CloudEvents format and STEP facility 
-       messages according to the CloudEvents specification.
+    #. **StepRedisStream**: Abstract base implementation for Redis Streams operations, 
+       providing message publishing, consumer group management, stream creation, and 
+       asynchronous message consumption.
 
-Together, these components form the communication infrastructure that enables standardized 
-message exchange between STEP Client and other components in the STEP ecosystem through 
-Redis streams.
+**Specialized Implementations:**
+
+    #. **StepClientRedisStream**: Handles DENM (Decentralized Environmental Notification 
+       Messages) for the STEP Client
+    
+    #. **StepAdapterRedisStream**: Manages CAM (Cooperative Awareness Messages) and CPM 
+       (Collective Perception Messages) for the STEP Adapter
+    
+    #. **StepProducerRedisStream**: Processes DENM and station collision arrays for the 
+       STEP Producer
+    
+    #. **StepCrashPredictionRedisStream**: Handles crash prediction data streams
+
+**StepRedisPool - Connection Management**
+
+``StepRedisPool`` provides comprehensive connection pooling capabilities:
+
+**Configuration Parameters:**
+
+The pool is configured through ``StepRedisPoolParams``, a frozen dataclass containing:
+
+    * **Connection Settings**: host, port, database index, username, password
+    * **Socket Configuration**: connection timeout, keepalive settings (idle time, 
+      interval, probe count)
+    * **SSL/TLS Support**: optional SSL with client certificates, CA certificates, 
+      and certificate verification
+    * **Pool Behavior**: maximum connections, connection timeout, health check interval
+    * **Protocol Settings**: Redis protocol version (default: 3)
+
+**SSL/TLS Implementation:**
+
+When SSL is enabled (``ssl_enable=True``), the pool uses ``SSLConnection`` with:
+
+    * TLS version 1.2 as minimum (``ssl_min_version=PROTOCOL_TLSv1_2``)
+    * Optional client certificate authentication (``ssl_keyfile``, ``ssl_certfile``)
+    * CA certificate validation (``ssl_ca_certs``)
+    * Hostname verification when certificates are required
+    * Optional client key password protection
+
+**TCP Keepalive:**
+
+All connections (SSL and non-SSL) configure TCP keepalive using:
+
+    * ``TCP_KEEPIDLE``: Seconds before sending keepalive probes
+    * ``TCP_KEEPINTVL``: Interval between keepalive probes
+    * ``TCP_KEEPCNT``: Maximum number of keepalive probes
+
+**Resource Management:**
+
+The pool implements the async context manager protocol:
+
+    * ``__aenter__``: Returns the pool instance and logs entry
+    * ``__aexit__``: Calls ``aclose()`` to properly disconnect all connections and 
+      release resources
+
+**StepRedisStream - Stream Operations**
+
+``StepRedisStream`` provides the core Redis Streams functionality:
+
+**Configuration:**
+
+Configured through ``StepRedisStreamParams``, a frozen dataclass with validation:
+
+    * ``stream_id``: Stream identifier (minimum 1 character)
+    * ``group_id``: Consumer group identifier (optional, required for consumption)
+    * ``wait_timeout_ms``: Blocking read timeout in milliseconds (optional, required 
+      for consumption)
+    * ``max_length``: Maximum stream length for XADD approximate trimming (optional, 
+      required for publishing)
+    * ``consumer_name``: Unique consumer identifier (minimum 1 character)
+    * ``ttl_seconds``: Time-to-live for stream key expiration (optional, positive integer)
+
+**Stream Creation:**
+
+The ``create_input_stream()`` method:
+
+    #. Creates a Redis stream if it doesn't exist (``mkstream=True``)
+    #. Creates a consumer group using ``XGROUP CREATE``
+    #. Handles ``BUSYGROUP`` error if the group already exists
+    #. Updates stream TTL if ``ttl_seconds`` is configured
+
+**Message Publishing:**
+
+The ``publish_message(message: str)`` method:
+
+    #. Validates that ``max_length`` is configured
+    #. Uses ``XADD`` to append the message to the stream
+    #. Stores message as ``{"payload": message}`` field
+    #. Applies approximate trimming with ``maxlen`` to maintain stream size
+    #. Returns the message ID assigned by Redis
+
+**Message Consumption:**
+
+The ``receive_message()`` async generator:
+
+    #. Validates that ``group_id`` and ``wait_timeout_ms`` are configured
+    #. Uses ``XREADGROUP`` with blocking reads to consume messages
+    #. Reads from consumer group position ``">"`` (only new messages)
+    #. Sets ``noack=True`` for automatic message acknowledgment
+    #. Processes one message at a time (``count=1``)
+    #. Yields message payload as string
+    #. Updates stream TTL after each read attempt if configured
+    #. Handles ``RedisTimeoutError`` when no messages arrive within timeout
+
+**TTL Management:**
+
+The stream provides methods for Time-To-Live management:
+
+    * ``update_stream_ttl(ttl_seconds)``: Sets stream expiration using ``EXPIRE`` command
+    * ``get_stream_ttl()``: Returns remaining TTL using ``TTL`` command (returns -2 
+      if stream doesn't exist, -1 if no expiration set)
+
+**Health Checking:**
+
+The ``ping()`` method sends a ``PING`` command to verify Redis connectivity.
+
+**StepClientRedisStream - STEP Client Integration**
+
+The STEP Client uses ``StepClientRedisStream`` from the step_redis package, which 
+extends ``StepRedisStream`` for DENM message handling:
+
+**DENM Message Publishing:**
+
+The ``publish_denm_message(message: DenmDataV1)`` method:
+
+    #. Wraps the DENM in a CloudEvents envelope (``ClientCloudEventsDenmDataV1``)
+    #. Assigns a unique UUID identifier
+    #. Sets the source to the consumer name
+    #. Uses CloudEvents spec version 1.0
+    #. Sets message type to ``ClientMessageType.DENM``
+    #. Adds schema reference (``ClientDataSchemaType.DENM_DATA_V1_SCHEMA``)
+    #. Sets content type to ``application/json``
+    #. Adds ITS timestamp
+    #. Serializes to JSON using Pydantic's ``model_dump_json()``
+    #. Publishes to the configured stream
+
+**DENM Message Reception:**
+
+The ``receive_client_message()`` async generator:
+
+    #. Calls the parent ``receive_message()`` method
+    #. Validates received JSON using ``ClientCloudEventsJsonRoot.model_validate_json()``
+    #. Enforces strict validation (``strict=True``)
+    #. Yields validated CloudEvents message objects
+
+**Usage in STEP Client Application**
+
+The STEP Client application (__main__.py) demonstrates the integration pattern:
+
+**Outbound Flow (Redis → MQTT):**
+
+In ``_stream_receive_run()``:
+
+    #. Creates ``StepClientRedisStream`` with configuration from ``RedisStreams.input``
+    #. Calculates TTL as 2× the wait timeout
+    #. Creates the input stream with consumer group
+    #. Continuously receives messages using ``receive_client_message()``
+    #. Extracts DENM data from CloudEvents envelope
+    #. Publishes to MQTT broker via ``step_broker.client_publish_its_message()``
+
+**Inbound Flow (MQTT → Redis):**
+
+In ``_step_receive_run()``:
+
+    #. Creates ``StepAdapterRedisStream`` for CAM messages
+    #. Creates ``StepProducerRedisStream`` for DENM messages
+    #. Receives ITS messages from ``step_broker.its_messages`` async generator
+    #. Pattern matches message type (CAM or DENM)
+    #. Publishes to appropriate stream using ``publish_cam_message()`` or 
+       ``publish_denm_message()``
+
+**Redis Connection Pool Setup:**
+
+The application creates ``StepRedisPool`` by:
+
+    #. Converting ``RedisConnection`` config to ``StepRedisPoolParams``
+    #. Including all SSL/TLS settings from configuration
+    #. Setting up TCP keepalive parameters
+    #. Specifying maximum connections and timeouts
+    #. Using async context manager for proper resource cleanup
+
+**Consumer Group Strategy:**
+
+The STEP Client implements the following consumer group pattern:
+
+    * **Consumer Name**: Uses the instance name as the unique consumer identifier
+    * **Group ID**: Configured in ``RedisStreams.input.groupId``
+    * **Stream Position**: Reads from ``">"`` to receive only new messages
+    * **Acknowledgment**: Uses ``noack=True`` for automatic acknowledgment
+    * **Horizontal Scaling**: Multiple instances with the same group ID share message 
+      load
+    * **Independent Processing**: Different group IDs can consume the same stream 
+      independently
+
+**Configuration Integration:**
+
+Redis configuration is managed through ``StepClientConfig``:
+
+    * **RedisConnection**: Host, port, credentials, SSL settings, socket parameters
+    * **RedisStreams**: Input and output stream configurations
+    * **RedisStreamInput**: Stream ID, group ID, wait timeout for incoming messages
+    * **RedisStreamOutputs**: Separate configurations for adapter and producer streams
+    * **RedisStreamOutput**: Stream ID and max length for each output stream
+
+**Performance Characteristics:**
+
+The Redis integration in STEP Client provides:
+
+    * **Asynchronous I/O**: Non-blocking operations using redis-py's asyncio support
+    * **Connection Reuse**: Persistent connections maintained through the pool
+    * **Approximate Trimming**: XADD with ``approximate=True`` for efficient stream 
+      size management
+    * **Blocking Reads**: XREADGROUP blocks until messages arrive or timeout expires, 
+      avoiding polling overhead
+    * **Automatic Decoding**: ``decode_responses=True`` eliminates manual byte-to-string 
+      conversion
+    * **Health Checks**: Periodic connection health verification at configured intervals
+    * **Resource Cleanup**: Proper connection disposal through async context managers
+
+**Error Handling:**
+
+The implementation handles Redis-specific errors:
+
+    * **RedisResponseError**: Catches ``BUSYGROUP`` when consumer group already exists
+    * **RedisTimeoutError**: Logged when no messages arrive within timeout period
+    * **KeyError**: Handles missing keys in stream response with warnings
+    * **ValueError**: Raises when required configuration parameters are missing
+
+Together, the step_redis library and StepClientRedisStream provide a robust, production-ready 
+framework for Redis Streams integration in ITS applications, supporting high-throughput 
+message processing, reliable delivery, and horizontal scalability through consumer groups.
 
 StepLogger
 ^^^^^^^^^^
@@ -249,60 +462,70 @@ Component Diagram
 ^^^^^^^^^^^^^^^^^
 
 The following component diagram illustrates the high-level architecture of the STEP Client 
-and its interactions with external systems. It shows the relationships between the core 
-components (StepBroker, StepClientConfig, StepClientRedisPool, StepClientRedisStream, StepLogger, 
-and StepException) and how they interact with the MQTT Broker and Redis database. The 
-diagram highlights the separation of concerns in the architecture, with StepBroker handling 
-MQTT communication and StepClientRedisStream managing Redis message queuing, while both 
-rely on configuration provided by StepClientConfig and logging services from StepLogger.
+and its interactions with external systems and the step_redis library. It shows the relationships 
+between the core components (StepBroker, StepClientConfig, StepLogger, and StepException) and how 
+they integrate with the step_redis library for Redis communication. The diagram highlights the 
+separation of concerns, with StepBroker handling MQTT communication, step_redis managing Redis 
+integration, and both relying on configuration provided by StepClientConfig and logging services 
+from StepLogger.
 
-.. plantuml::
-   :align: center
-    
-   package "STEP Client" {
-      [StepBroker] as GW
-      [StepClientConfig] as Config
-      [StepClientRedisPool] as RedisPool
-      [StepClientRedisStream] as RedisStream
-      [StepLogger] as Logger
-      [StepException] as Exception
-      note left of GW
-        Gateway for MQTT 
-        communication
-        with the STEP broker
+.. container:: scrollable-diagram
+
+   .. plantuml::
+      :align: center
+      
+      @startuml
+      
+      rectangle "step_redis" as StepRedis #LightGray {
+         note as N1
+         step_redis Library
+         ----
+         Redis Streams Integration
+         Connection Pooling
+         Consumer Groups
+         end note
+      }
+      
+      package "STEP Client" {
+         [StepBroker] as GW
+         [StepClientConfig] as Config
+         [StepLogger] as Logger
+         [StepException] as Exception
+         note left of GW
+         Gateway for MQTT 
+         communication
+         with the STEP broker
+         end note
+      }
+      
+      cloud "MQTT Broker" as MQTT
+      database "Redis" as Redis
+      
+      GW -up-> Config : uses
+      GW -down-> StepRedis : uses
+      StepRedis <-left-> Redis : connects to
+      GW <-right-> MQTT : connects to
+      GW -up-> Logger : uses
+      StepRedis -up-> Logger : uses
+      GW -down-> Exception : throws
+
+      note bottom of MQTT
+         Subscribe and Publish
+         ITS messages
       end note
-   }
-    
-   cloud "MQTT Broker" as MQTT
-   database "Redis" as Redis
-    
-   GW -up-> Config : uses
-   GW -down-> RedisStream : uses
-   RedisStream -down-> RedisPool : uses
-   GW <-right-> MQTT : connects to
-   RedisStream <-left-> Redis : connects to
-   GW -up-> Logger : uses
-   GW -down-> Exception : throws
 
-   note bottom of MQTT
-      Subscribe and
-      Publish
-   end note
+      note left of Redis
+         Input stream: DENM from producer
+         Output streams: CAM to adapter,
+         DENM to producer
+      end note
 
-   note bottom of Redis
-      Input and
-      Output stream
-   end note
-
-   note top of Config
-      Configuration management
-      for the client
-   end note
-
-   note top of RedisStream
-      Redis integration for
-      message processing
-   end note
+      note top of Config
+         Configuration for MQTT,
+         Redis, and logging
+      end note
+      
+      @enduml
 
 Class Diagram
 -------------
@@ -311,65 +534,72 @@ The class diagram below illustrates the structure and relationships between
 the key classes in the STEP Client architecture. It shows the main methods 
 and attributes of each class and how they interact with one another. The 
 diagram highlights the dependency relationships, where ``StepBroker`` relies on 
-multiple components like StepClientConfig, StepClientRedisStream, and StepLogger, 
-while StepClientRedisStream depends on StepClientRedisPool for Redis connection 
-management. This object-oriented design allows for clear separation of 
-responsibilities and modular development.
+multiple components including the step_redis library for Redis integration. The 
+step_redis library is shown as a black box, providing Redis Streams functionality 
+to the STEP Client.
 
-.. plantuml::
-   :align: center
-   
-   !theme plain
-   skinparam classAttributeIconSize 0
+.. container:: scrollable-diagram
 
-    class StepBroker {
-      +async __aenter__()
-      +async __aexit__()
-      +async aclose()
-      +connect()
-      +disconnect()
-      +subscribe()
-      +unsubscribe()
-      +publish()
-    }
+   .. plantuml::
+      :align: center
+      
+      @startuml
+      
+      !theme plain
+      skinparam classAttributeIconSize 0
 
-    class StepClientConfig {
-      +mqtt_client
-      +mqtt_protocol
-      +redis_client
-      +logging
-      +get_default()
-      +model_validate()
-    }
-    
-    class StepClientRedisPool {
-      +async __aenter__()
-      +async __aexit__()
-      +get_connection()
-    }
-    
-    class StepClientRedisStream {
-      +async __aenter__()
-      +async __aexit__()
-      +publish()
-      +receive()
-      +create_input_stream()
-    }
-    
-    class StepLogger {
-      +setup_logging()
-      +get_logger()
-    }
-    
-    class StepException {
-    }
-    
-    StepBroker --> StepClientConfig : uses
-    StepBroker --> StepClientRedisStream : uses
-    StepBroker --> StepLogger : uses
-    StepBroker --> StepException : throws
-    StepClientRedisStream --> StepClientRedisPool : uses
-  
+      package "step_client" {
+         class StepBroker {
+            +async __aenter__()
+            +async __aexit__()
+            +async aclose()
+            +connect()
+            +disconnect()
+            +subscribe()
+            +unsubscribe()
+            +client_publish_its_message()
+            +its_messages: AsyncGenerator
+         }
+
+         class StepClientConfig {
+            +mqtt_client: MqttClientConfig
+            +mqtt_protocol: MqttProtocolConfig
+            +redis_client: RedisClientConfig
+            +logging: LoggingConfig
+            +get_default()
+            +model_validate()
+            +model_validate_json()
+         }
+         
+         class StepLogger {
+            +setup_logging()
+            +get_logger()
+         }
+         
+         class StepException {
+            +message: str
+         }
+      }
+      
+      rectangle "step_redis" as StepRedis #LightGray {
+         note as N1
+         step_redis Library
+         ----
+         StepRedisPool
+         StepRedisStream
+         StepClientRedisStream
+         StepAdapterRedisStream
+         StepProducerRedisStream
+         end note
+      }
+      
+      StepBroker --> StepClientConfig : uses
+      StepBroker --> StepRedis : uses
+      StepBroker --> StepLogger : uses
+      StepBroker --> StepException : throws
+      StepRedis --> StepLogger : logs to
+      
+      @enduml
 
 Sequence Diagrams
 -----------------
@@ -382,56 +612,114 @@ temporal flow of operations as messages move through the system.
 Sequence Diagram - Message Publication
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The following sequence diagram depicts the process of publishing a message 
-from a STEP Producer on Redis Stream to publish to STEP MQTT broker. 
-It demonstrates how the ``StepBroker`` component handles message ITS encoding, 
-publication to the MQTT broker, and synchronization with Redis streams, 
-providing a comprehensive view of the outbound message flow.
+The following sequence diagram depicts the process of publishing a DENM message 
+from a STEP Producer through Redis Stream to the STEP MQTT broker. It demonstrates 
+the actual implementation flow from ``_stream_receive_run()`` in __main__.py, showing 
+how ``StepClientRedisStream`` receives messages from Redis, validates them as CloudEvents, 
+and passes them to ``StepBroker`` for ITS encoding and MQTT publication.
 
-.. plantuml::
-   :align: center
+.. container:: scrollable-diagram
 
-   participant "STEP Producer" as Producer
-   participant "StepClientRedisStream" as Redis
-   participant "StepBroker" as Gateway
-   participant "STEP MQTT Broker" as MQTT
+   .. plantuml::
+      :align: center
 
-   Producer -> Redis : redis_stream(JSON_message)
-   Redis -> Gateway: JSON_message
-   note over Gateway
-      Convert message
-      from JSON cloud events
-      to ITS format
-   end note
-   Gateway -> Gateway : encode_ITS(JSON_message)
-   Gateway -> MQTT : mqtt_publish(ITS_message)
-   MQTT --> Gateway : publish_success
+      @startuml
+
+      participant "STEP Producer" as Producer
+      participant "Redis Stream" as RedisDB
+      participant "StepClientRedisStream" as ClientStream
+      participant "StepBroker" as Gateway
+      participant "STEP MQTT Broker" as MQTT
+
+      Producer -> RedisDB : XADD stream_id {payload: JSON}
+      note over RedisDB
+         CloudEvents DENM
+         in JSON format
+      end note
+      
+      ClientStream -> RedisDB : XREADGROUP (blocking read)
+      RedisDB --> ClientStream : {payload: CloudEvents JSON}
+      
+      ClientStream -> ClientStream : model_validate_json()
+      note over ClientStream
+         Validate CloudEvents
+         structure with Pydantic
+      end note
+      
+      ClientStream -> ClientStream : Extract DENM data
+      ClientStream -> Gateway : client_publish_its_message(DenmMessageV1)
+      
+      Gateway -> Gateway : Encode to ITS ASN.1 format
+      note over Gateway
+         Use step_lib.FacilityMessage
+         for encoding
+      end note
+      
+      Gateway -> MQTT : MQTT PUBLISH (topic, ITS_bytes, QoS)
+      MQTT --> Gateway : PUBACK
+      Gateway --> ClientStream : Success
+      
+      @enduml
    
 Sequence Diagram - Message Subscription
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The sequence diagram below illustrates the process of subscribing to 
-topics and receiving messages from the MQTT broker. It shows how the 
-StepBroker component handles subscription requests, receives messages from 
-the broker, decodes them, and routes them to Redis streams, providing 
-a complete view of the inbound message flow.
+The sequence diagram below illustrates the process of subscribing to MQTT topics 
+and receiving ITS messages from the broker. It shows the actual implementation flow 
+from ``_step_receive_run()`` in __main__.py, demonstrating how ``StepBroker`` receives 
+and decodes messages, then routes them to appropriate Redis streams based on message 
+type (CAM messages to StepAdapterRedisStream, DENM messages to StepProducerRedisStream).
 
-.. plantuml::
-   :align: center
+.. container:: scrollable-diagram
 
-   participant "STEP MQTT Broker" as MQTT
-   participant "StepBroker" as Gateway
-   participant "StepClientRedisStream" as Redis
-   participant "STEP Adapter" as Adapter
-    
-   Gateway -> MQTT : mqtt_subscribe(topic)
-   Gateway <- MQTT : success
-   MQTT -> Gateway: on_message(ITS_message)
-   note over Gateway
-      Convert message
-      from ITS format
-      to JSON cloud events
-   end note
-   Gateway -> Gateway: ITS_decode(ITS_message)
-   Gateway -> Redis: JSON_message    
-   Redis -> Adapter: redis_stream(JSON_message)
+   .. plantuml::
+      :align: center
+
+      @startuml
+
+      participant "STEP MQTT Broker" as MQTT
+      participant "StepBroker" as Gateway
+      participant "StepAdapterRedisStream" as AdapterStream
+      participant "StepProducerRedisStream" as ProducerStream
+      participant "Redis Database" as RedisDB
+      participant "STEP Adapter" as Adapter
+      participant "STEP Producer" as Producer
+      
+      Gateway -> MQTT : SUBSCRIBE (topics, QoS)
+      MQTT --> Gateway : SUBACK
+      
+      MQTT -> Gateway : PUBLISH (topic, ITS_bytes, QoS)
+      
+      Gateway -> Gateway : Decode ITS ASN.1 to FacilityMessage
+      note over Gateway
+         Use step_lib.FacilityMessage
+         for decoding
+      end note
+      
+      alt CAM Message
+         Gateway -> Gateway : Extract CamDataV1
+         Gateway -> AdapterStream : publish_cam_message(CamDataV1)
+         AdapterStream -> AdapterStream : Wrap in CloudEvents envelope
+         note over AdapterStream
+            AdapterCloudEventsCamDataV1
+            with UUID, timestamp, schema
+         end note
+         AdapterStream -> RedisDB : XADD adapter_stream {payload: JSON}
+         RedisDB --> AdapterStream : message_id
+         
+         RedisDB -> Adapter : Consumer reads from stream
+      else DENM Message
+         Gateway -> Gateway : Extract DenmDataV1
+         Gateway -> ProducerStream : publish_denm_message(DenmDataV1)
+         ProducerStream -> ProducerStream : Wrap in CloudEvents envelope
+         note over ProducerStream
+            ProducerCloudEventsDenmDataV1
+            with UUID, timestamp, schema
+         end note
+         ProducerStream -> RedisDB : XADD producer_stream {payload: JSON}
+         RedisDB --> ProducerStream : message_id
+         
+         RedisDB -> Producer : Consumer reads from stream
+      end
+      
+      @enduml
