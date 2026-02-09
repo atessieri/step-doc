@@ -121,35 +121,37 @@ Component Diagram of the System
 
 The following component diagram shows the main flows of the system:
 
-.. plantuml::
-    :align: center
+.. container:: scrollable-diagram
 
-    interface "ASN.1 C-ITS" as messages
+    .. plantuml::
+        :align: center
 
-    package "STEP Communication System" {
-        [STEP Broker] as step
-    }
+        interface "ASN.1 C-ITS" as messages
 
-    package "STEP Elaboration System" {
-        [STEP Client] as client
-        [STEP Adapter] as adapter
-        [STEP Producer] as Producer
-        package "Crash Prediction" {
-            [Trajectory\nForecasting] as trajectory
-            [Avoidance\nCollision] as collision
-            [Data\nStorage] as data
+        package "STEP Communication System" {
+            [STEP Broker] as step
         }
-        client -left-> adapter: "3. CAM,CPM"
-        client -down-> Producer: "7. DENM"
-        adapter -left-> trajectory: "4. Position points\narray"
-        trajectory <-down-> data: "Query data"
-        collision <-up-> data: "Query data"
-        collision -left-> Producer: "5. Event forecasted"
-        Producer -up-> client: "6. DENM"
-    }
-    step --right--( messages
-    step --down--> client: "1. ASN.1 ITS\nCAN,DENM,CPM"
-    client --up--> step: "2. ASN.1 ITS\nDENM"
+
+        package "STEP Elaboration System" {
+            [STEP Client] as client
+            [STEP Adapter] as adapter
+            [STEP Producer] as Producer
+            package "Crash Prediction" {
+                [Trajectory\nForecasting] as trajectory
+                [Avoidance\nCollision] as collision
+                [Data\nStorage] as data
+            }
+            client -left-> adapter: "3. CAM,CPM"
+            client -down-> Producer: "7. DENM"
+            adapter -left-> trajectory: "4. Position points\narray"
+            trajectory <-down-> data: "Query data"
+            collision <-up-> data: "Query data"
+            collision -left-> Producer: "5. Event forecasted"
+            Producer -up-> client: "6. DENM"
+        }
+        step --right--( messages
+        step --down--> client: "1. ASN.1 ITS\nCAN,DENM,CPM"
+        client --up--> step: "2. ASN.1 ITS\nDENM"
 
 ----------------
 Flow Description
