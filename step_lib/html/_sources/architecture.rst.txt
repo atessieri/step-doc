@@ -1,3 +1,1143 @@
-============
 Architecture
 ============
+
+Overview
+--------
+
+The **step_lib** package is a Python library designed for handling STEP (Safer Transport for Europe Platform) 
+communications in Intelligent Transportation Systems (ITS). It provides a comprehensive solution for MQTT-based 
+V2X (Vehicle-to-Everything) communication, supporting ITS message types including CAM (Cooperative Awareness Message), 
+DENM (Decentralized Environmental Notification Message), and CPM (Collective Perception Message).
+
+Key Features
+~~~~~~~~~~~~
+
+- **Asynchronous and Synchronous Communication**: Supports both async/await patterns and traditional synchronous communication
+- **ITS Message Handling**: Complete serialization/deserialization of ITS messages following ETSI standards
+- **GeoNetworking Protocol**: Full implementation of GeoNetworking layers (Basic, Common, Extended headers)
+- **BTP Protocol**: Basic Transport Protocol for ITS message routing
+- **MQTT Integration**: Built-in MQTT client with QoS support and automatic reconnection
+- **ASN.1 Support**: Complete ASN.1 encoding/decoding for ITS messages
+
+Library Dependencies
+--------------------
+
+Core Dependencies
+~~~~~~~~~~~~~~~~~
+
+The step_lib package relies on the following third-party libraries:
+
+**Communication & Messaging**
+
+- **aiomqtt** (>=2.5.0, <3.0): Asynchronous MQTT client implementation
+  
+  - Provides async MQTT v5 protocol support
+  - Used by AsyncComManager for non-blocking communication
+  - Handles message queuing and topic subscriptions
+
+**Data Encoding & Serialization**
+
+- **asn1tools** (>=0.167.0, <1.0): ASN.1 compiler and encoder/decoder
+  
+  - Compiles ASN.1 schema files from ETSI ITS standards
+  - Encodes/decodes CAM, DENM, and CPM messages using UPER (Unaligned Packed Encoding Rules)
+  - Used by FacilitySerializer for message transformation
+
+- **bitstring** (>=4.3.1, <5.0): Binary data manipulation library
+  
+  - Handles bit-level operations for protocol headers
+  - Used in GeoNetworkAddress and PositionVector for precise binary field packing
+  - Enables compact representation of protocol flags and identifiers
+
+**Geospatial & Caching**
+
+- **pygeohash** (>=3.2.2, <4.0): Geohash encoding for geographic locations
+  
+  - Converts GPS coordinates to geohashes for topic organization
+  - Enables geographic-based MQTT topic routing
+  - Used in AsyncComManager for location-aware message distribution
+
+- **diskcache** (>=5.6.3): Persistent disk-based caching
+  
+  - Caches compiled ASN.1 schemas for performance optimization
+  - Reduces startup time by avoiding repeated schema compilation
+  - Used by FacilitySerializer when cache_dir is specified
+
+**Schema Validation**
+
+- **step_cloud_schemas** (>=1.2.29, <2.0): STEP project schema definitions
+  
+  - Provides Pydantic models for ITS message validation
+  - Contains JSON schemas for CAM, DENM, and CPM messages
+  - Defines common data types (ItsTime, ReferencePosition, TrafficParticipantType)
+  - Enables bidirectional conversion between ASN.1 and JSON formats
+
+Standard Library Usage
+~~~~~~~~~~~~~~~~~~~~~~
+
+The package also extensively uses Python's standard library:
+
+- **asyncio**: Event loop management, tasks, and queues for async operations
+- **threading**: Thread management for SyncComManager background operations
+- **queue**: Synchronous queue for message passing between threads
+- **dataclasses**: Immutable data structures for protocol messages
+- **logging**: Comprehensive logging throughout the library
+- **ssl**: TLS/SSL support for secure MQTT connections
+- **io.BytesIO**: Efficient binary stream operations for serialization
+- **enum**: Type-safe enumerations for protocol constants
+
+Class Diagram
+-------------
+
+The following PlantUML diagram illustrates the main classes and their relationships:
+
+.. container:: scrollable-diagram
+    
+    .. plantuml::
+        :align: center
+
+        ' Core Communication Managers
+        package "Communication Layer" {
+            class AsyncComManager {
+                - _message_serializer: ItsMessageSerializer
+                - _params: AsyncComManagerParams
+                + __init__(params: AsyncComManagerParams)
+                + connect() : AsyncContextManager
+                + publish_its_message(message, address, position, is_mobile)
+                + subscribe(topics, qos, no_local)
+                + {property} its_messages : ItsMessagesIterator
+            }
+            
+            class SyncComManager {
+                - _async_loop: AbstractEventLoop
+                - _async_thread: Thread
+                - _incoming_queue: AsyncioQueue
+                - _outgoing_queue: SyncQueue
+                - _params: SyncComManagerParams
+                - _connection_status: ConnectionStatus
+                + __init__(params: SyncComManagerParams)
+                + start() : void
+                + stop() : void
+                + subscribe(topics, qos, no_local)
+                + publish_its_message(message, address, position, is_mobile)
+                + get_its_message_received() : Optional[FacilityMessage]
+                - _run() : void
+                - _message_receive_thread(client)
+                - _message_send_thread(client)
+            }
+            
+            class ItsMessagesIterator {
+                - _message_iterator: MessagesIterator
+                - _message_serializer: ItsMessageSerializer
+                - _logger: Logger
+                + __aiter__() : ItsMessagesIterator
+                + __anext__() : ItsMessage
+            }
+            
+            class ItsMessage {
+                - _its_payload: FacilityMessage
+                + {property} its_payload : FacilityMessage
+            }
+        }
+        
+        ' Configuration Classes
+        package "Configuration" {
+            class AsyncComManagerParams {
+                + instance_name: str
+                + host: str
+                + port: int
+                + username: str
+                + password: str
+                + station_id: Optional[int]
+                + timeout: int
+                + keepalive: int
+                + publish_topics_params: Optional[list[PublishTopicParams]]
+                + cache_dir: Optional[str]
+                + logger: Logger
+            }
+            
+            class SyncComManagerParams {
+                + reconnect_interval: int
+                + max_incoming_queue_rooms: int
+                + max_outgoing_queue_rooms: int
+            }
+            
+            class PublishTopicParams {
+                + message_type: StepMessageType
+                + header_topic: str
+                + geohash_precision: int
+                + qos: MqttQoS
+            }
+        }
+        
+        ' Serialization Layer
+        package "Serialization Layer" {
+            class ItsMessageSerializer {
+                - _its_facility_serializer: FacilitySerializer
+                - _logger: Logger
+                + serialize(facility_message, address, position, is_mobile) : bytes
+                + deserialize(message) : tuple[GeonetMessage, BtpMessage, dict]
+                + convert_to_facility_message(raw_message, type) : FacilityMessage
+                - _create_geonet_message(...) : GeonetMessage
+                - _create_common_extended_single_hop(...) : tuple
+                - _create_common_extended_anycast_broadcast(...) : tuple
+            }
+            
+            class FacilitySerializer {
+                - _message_ctx: Any
+                - _logger: Logger
+                - _station_id: Optional[int]
+                + serialize(message: FacilityMessage) : bytes
+                + deserialize(message: bytes, type: MessageId) : dict
+                + covert_to_facility_message(raw, type) : FacilityMessage
+                - _init_asn_context(cache_dir) : Any
+            }
+        }
+        
+        ' Facility Messages
+        package "Facility Layer" {
+            abstract class FacilityMessage {
+                # _its_time: ItsTime
+                + {abstract} {property} message_type : MessageId
+                + {abstract} {property} data_schema : str
+                + {abstract} {property} station_id : Optional[int]
+                + {abstract} {property} reference_position : ReferencePosition
+                + {property} its_time : ItsTime
+                + {abstract} is_message_present() : bool
+                + {abstract} from_asn(data) : FacilityMessage
+                + {abstract} from_dict(data) : FacilityMessage
+                + {abstract} from_json(data) : FacilityMessage
+                + {abstract} to_asn() : dict
+                + {abstract} to_dict() : dict
+                + {abstract} to_json(indent) : str
+                + {abstract} change_station_id(id) : FacilityMessage
+            }
+            
+            class CamMessageV1 {
+                - _message: Optional[CamDataV1]
+                + {property} message : Optional[CamDataV1]
+                + from_orm(data: CamDataV1) : CamMessageV1
+            }
+            
+            class DenmMessageV1 {
+                - _message: Optional[DenmDataV1]
+                + {property} message : Optional[DenmDataV1]
+                + from_orm(data: DenmDataV1) : DenmMessageV1
+            }
+        }
+        
+        ' GeoNetworking Protocol
+        package "GeoNetworking Layer" {
+            class GeonetMessage {
+                + basic_header: BasicHeader
+                + common_header: CommonHeader
+                + extended_header: ExtendedHeader
+                + {property} creation_time : ItsTime
+                + {static} from_byte_stream(stream) : GeonetMessage
+                + to_bytes() : bytes
+            }
+            
+            class BasicHeader {
+                + version: GeonetVersion
+                + next_header: NextHeader
+                + life_time: LifeTime
+                + remaining_hop_limit: int
+                + {static} from_byte_stream(stream) : BasicHeader
+                + to_bytes() : bytes
+            }
+            
+            class CommonHeader {
+                + next_header: NextHeader
+                + header_type_subtype: HeaderTypeSubtype
+                + traffic_class: TrafficClass
+                + flags: Flags
+                + payload_length_after_geonet: int
+                + maximum_hop_limit: int
+                + {static} from_byte_stream(stream) : CommonHeader
+                + to_bytes() : bytes
+            }
+            
+            class ExtendedHeader {
+                + packet_data: Union[SingleHopBroadcast, GeoAnycastBroadcast, ...]
+                + {property} creation_time : ItsTime
+                + {static} from_byte_stream(stream, type) : ExtendedHeader
+                + to_bytes(type) : bytes
+            }
+            
+            class PositionVector {
+                + address: GeoNetworkAddress
+                + time: ItsTime
+                + latitude: float
+                + longitude: float
+                + is_accurate: bool
+                + speed: Optional[int]
+                + heading: Optional[int]
+                + {static} from_bytes_stream(stream, type) : PositionVector
+                + to_bytes(type) : bytes
+            }
+            
+            class GeoNetworkAddress {
+                + is_manual_configured: bool
+                + traffic_participant_type: TrafficParticipantType
+                + mac_id: int
+                + {static} from_bytes_stream(stream) : GeoNetworkAddress
+                + to_bytes() : bytes
+            }
+        }
+        
+        ' BTP Layer
+        package "BTP Layer" {
+            class BtpMessage {
+                + source_port: Optional[int]
+                + destination_port: int
+                + destination_port_info: Optional[int]
+                + {static} from_bytes_stream(stream, type) : BtpMessage
+                + to_bytes() : bytes
+                + get_btp_type() : BtpMessageType
+            }
+        }
+        
+        ' GPS Location
+        package "Location" {
+            class GpsLocation {
+                + time: ItsTime
+                + latitude: float
+                + longitude: float
+                + accuracy: Optional[int]
+                + speed: Optional[int]
+                + heading: Optional[int]
+            }
+        }
+        
+        ' Enumerations
+        package "Enumerations" {
+            enum MqttQoS {
+                QOS_0
+                QOS_1
+                QOS_2
+            }
+            
+            enum ConnectionStatus {
+                DISCONNECTED
+                CONNECTED
+                RECONNECTING
+            }
+            
+            enum BtpMessageType {
+                BTP_A
+                BTP_B
+            }
+            
+            enum BtpWellKnownPort {
+                CAM_PORT = 2001
+                DENM_PORT = 2002
+                CPM_PORT = 2009
+            }
+        }
+        
+        ' Exceptions
+        package "Exceptions" {
+            class StepLibError
+            class StepLibUnsupportedMessageError
+            class StepLibEchoMessageError
+            class StepCliError
+            
+            StepLibError <|-- StepLibUnsupportedMessageError
+            StepLibError <|-- StepLibEchoMessageError
+            StepLibError <|-- StepCliError
+        }
+        
+        ' Relationships - Communication Layer
+        AsyncComManager *-- ItsMessageSerializer
+        AsyncComManager *-- AsyncComManagerParams
+        AsyncComManager ..> ItsMessagesIterator : creates
+        ItsMessagesIterator ..> ItsMessage : yields
+        ItsMessage *-- FacilityMessage
+        
+        SyncComManager *-- AsyncComManagerParams
+        SyncComManager ..> AsyncComManager : uses internally
+        SyncComManager *-- SyncComManagerParams
+        SyncComManagerParams --|> AsyncComManagerParams
+        
+        AsyncComManagerParams *-- PublishTopicParams
+        
+        ' Relationships - Serialization
+        ItsMessageSerializer *-- FacilitySerializer
+        ItsMessageSerializer ..> GeonetMessage : creates/parses
+        ItsMessageSerializer ..> BtpMessage : creates/parses
+        ItsMessageSerializer ..> GpsLocation : uses
+        ItsMessageSerializer ..> GeoNetworkAddress : uses
+        
+        FacilitySerializer ..> CamMessageV1 : creates
+        FacilitySerializer ..> DenmMessageV1 : creates
+        
+        ' Relationships - Facility Layer
+        FacilityMessage <|-- CamMessageV1
+        FacilityMessage <|-- DenmMessageV1
+        
+        ' Relationships - GeoNetworking
+        GeonetMessage *-- BasicHeader
+        GeonetMessage *-- CommonHeader
+        GeonetMessage *-- ExtendedHeader
+        ExtendedHeader *-- PositionVector
+        PositionVector *-- GeoNetworkAddress
+        PositionVector *-- ItsTime
+        
+        ' Relationships - BTP
+        ItsMessageSerializer ..> BtpMessage : creates/parses
+   
+
+Component Architecture
+----------------------
+
+The step_lib package is organized into several layers, each with specific responsibilities:
+
+1. **Communication Layer**
+   
+   - Handles MQTT broker connections (async and sync)
+   - Manages message publishing and subscription
+   - Implements automatic reconnection logic
+   - Provides thread-safe message queuing
+
+2. **Serialization Layer**
+   
+   - Converts between ITS messages and binary formats
+   - Manages protocol stack (GeoNetworking + BTP + Facility)
+   - Handles ASN.1 encoding/decoding
+   - Caches compiled ASN.1 schemas
+
+3. **Facility Layer**
+   
+   - Implements ITS message types (CAM, DENM, CPM)
+   - Provides format conversions (ASN.1, JSON, dict)
+   - Validates message structures
+   - Manages message metadata (time, position, station ID)
+
+4. **GeoNetworking Layer**
+   
+   - Implements geographic addressing
+   - Manages packet headers (Basic, Common, Extended)
+   - Handles position vectors and location data
+   - Supports various routing modes (single-hop, anycast, broadcast)
+
+5. **BTP Layer**
+   
+   - Implements Basic Transport Protocol
+   - Maps message types to well-known ports
+   - Supports BTP-A and BTP-B message types
+
+Sequence Diagrams
+-----------------
+
+Publishing an ITS Message (Asynchronous)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. container:: scrollable-diagram
+
+    .. plantuml::
+        :align: center
+   
+        actor "Application" as App
+        participant "AsyncComManager" as ACM
+        participant "ItsMessageSerializer" as Serializer
+        participant "FacilitySerializer" as FacSer
+        participant "GeonetMessage" as Geonet
+        participant "BtpMessage" as BTP
+        participant "FacilityMessage" as Facility
+        participant "MQTT Broker" as Broker
+        
+        App -> ACM: publish_its_message(message, address, position, is_mobile)
+        activate ACM
+        
+        ACM -> Serializer: serialize(message, address, position, is_mobile)
+        activate Serializer
+        
+        Serializer -> Serializer: _create_geonet_message(...)
+        activate Serializer
+        Serializer -> Geonet: create with headers
+        activate Geonet
+        Geonet --> Serializer: geonet_message
+        deactivate Geonet
+        deactivate Serializer
+        
+        Serializer -> Serializer: _facility_message_id_to_btp_port(type)
+        Serializer -> BTP: create BtpMessage
+        activate BTP
+        BTP --> Serializer: btp_message
+        deactivate BTP
+        
+        Serializer -> FacSer: serialize(message)
+        activate FacSer
+        FacSer -> Facility: to_asn()
+        activate Facility
+        Facility --> FacSer: asn_dict
+        deactivate Facility
+        FacSer -> FacSer: ASN.1 encode(asn_dict)
+        FacSer --> Serializer: facility_bytes
+        deactivate FacSer
+        
+        Serializer -> Geonet: to_bytes()
+        activate Geonet
+        Geonet --> Serializer: geonet_bytes
+        deactivate Geonet
+        
+        Serializer -> BTP: to_bytes()
+        activate BTP
+        BTP --> Serializer: btp_bytes
+        deactivate BTP
+        
+        Serializer --> ACM: complete_message_bytes
+        deactivate Serializer
+        
+        ACM -> ACM: generate topic with geohash
+        ACM -> Broker: publish(topic, message_bytes, qos)
+        activate Broker
+        Broker --> ACM: published
+        deactivate Broker
+        
+        ACM --> App: success
+        deactivate ACM
+        
+        @enduml
+
+        Receiving an ITS Message (Asynchronous)
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+        .. container:: scrollable-diagram
+        .. uml::
+
+        @startuml
+        
+        actor "Application" as App
+        participant "AsyncComManager" as ACM
+        participant "ItsMessagesIterator" as Iterator
+        participant "ItsMessageSerializer" as Serializer
+        participant "FacilitySerializer" as FacSer
+        participant "MQTT Broker" as Broker
+        database "Message Queue" as Queue
+        
+        App -> ACM: subscribe(topics, qos)
+        activate ACM
+        ACM -> Broker: subscribe(topics, qos)
+        activate Broker
+        Broker --> ACM: subscribed
+        deactivate Broker
+        ACM --> App: success
+        deactivate ACM
+        
+        ... Messages arrive from broker ...
+        
+        Broker -> Queue: incoming message
+        activate Queue
+        
+        App -> ACM: async for message in its_messages
+        activate ACM
+        ACM -> Iterator: __anext__()
+        activate Iterator
+        
+        Iterator -> Queue: get next message
+        Queue --> Iterator: mqtt_message
+        deactivate Queue
+        
+        Iterator -> Serializer: deserialize(message_bytes)
+        activate Serializer
+        
+        Serializer -> Serializer: parse BasicHeader
+        activate Serializer
+        Serializer -> Serializer: parse CommonHeader
+        Serializer -> Serializer: parse ExtendedHeader
+        deactivate Serializer
+        Serializer --> Iterator: (geonet_msg, btp_msg, facility_dict)
+        
+        Iterator -> Serializer: btp_port_to_facility_message_id(port)
+        Serializer --> Iterator: message_type
+        
+        Iterator -> Serializer: convert_to_facility_message(dict, type)
+        Serializer -> FacSer: covert_to_facility_message(dict, type)
+        activate FacSer
+        
+        alt message_type == CAM_PDU
+            FacSer -> FacSer: CamMessageV1().from_asn(dict)
+        else message_type == DENM_PDU
+            FacSer -> FacSer: DenmMessageV1().from_asn(dict)
+        else unsupported
+            FacSer -> FacSer: raise StepLibUnsupportedMessageError
+        end
+        
+        FacSer --> Serializer: facility_message
+        deactivate FacSer
+        Serializer --> Iterator: facility_message
+        deactivate Serializer
+        
+        Iterator -> Iterator: create ItsMessage(mqtt_msg, facility_message)
+        Iterator --> ACM: its_message
+        deactivate Iterator
+        
+        ACM --> App: its_message
+        deactivate ACM
+        
+        App -> App: process its_message.its_payload
+
+
+Synchronous Communication Flow
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. container:: scrollable-diagram
+    
+    .. plantuml::
+        :align: center
+   
+        actor "Application\n(Main Thread)" as App
+        participant "SyncComManager" as SCM
+        participant "Async Thread" as AsyncThread
+        participant "AsyncComManager" as ACM
+        participant "Incoming Queue\n(AsyncioQueue)" as InQueue
+        participant "Outgoing Queue\n(SyncQueue)" as OutQueue
+        participant "MQTT Broker" as Broker
+        
+        App -> SCM: start()
+        activate SCM
+        SCM -> AsyncThread: create and start thread
+        activate AsyncThread
+        SCM --> App: started
+        deactivate SCM
+        
+        AsyncThread -> AsyncThread: setup event loop
+        AsyncThread -> ACM: create client
+        activate ACM
+        AsyncThread -> ACM: connect()
+        ACM -> Broker: connect
+        activate Broker
+        Broker --> ACM: connected
+        deactivate Broker
+        deactivate ACM
+        
+        ... Application publishes message ...
+        
+        App -> SCM: publish_its_message(message, ...)
+        activate SCM
+        SCM -> InQueue: put(PublishMessageCommand)
+        activate InQueue
+        InQueue --> SCM: queued
+        deactivate InQueue
+        SCM --> App: queued
+        deactivate SCM
+        
+        AsyncThread -> InQueue: get command
+        activate InQueue
+        InQueue --> AsyncThread: PublishMessageCommand
+        deactivate InQueue
+        
+        AsyncThread -> ACM: publish_its_message(...)
+        activate ACM
+        ACM -> Broker: publish
+        activate Broker
+        Broker --> ACM: published
+        deactivate Broker
+        ACM --> AsyncThread: success
+        deactivate ACM
+        
+        ... Broker sends message ...
+        
+        Broker -> ACM: incoming message
+        activate ACM
+        ACM -> AsyncThread: message received
+        deactivate ACM
+        
+        AsyncThread -> OutQueue: put(facility_message)
+        activate OutQueue
+        OutQueue --> AsyncThread: queued
+        deactivate OutQueue
+        
+        App -> SCM: get_its_message_received()
+        activate SCM
+        SCM -> OutQueue: get(timeout)
+        activate OutQueue
+        OutQueue --> SCM: facility_message
+        deactivate OutQueue
+        SCM --> App: facility_message
+        deactivate SCM
+        
+        ... Application stops ...
+        
+        App -> SCM: stop()
+        activate SCM
+        SCM -> InQueue: put(ExitThreadsCommand)
+        activate InQueue
+        InQueue --> SCM: queued
+        deactivate InQueue
+        
+        AsyncThread -> InQueue: get command
+        activate InQueue
+        InQueue --> AsyncThread: ExitThreadsCommand
+        deactivate InQueue
+        
+        AsyncThread -> ACM: disconnect
+        activate ACM
+        ACM -> Broker: disconnect
+        activate Broker
+        Broker --> ACM: disconnected
+        deactivate Broker
+        ACM --> AsyncThread: disconnected
+        deactivate ACM
+        
+        AsyncThread -> AsyncThread: exit thread
+        deactivate AsyncThread
+        
+        SCM --> App: stopped
+        deactivate SCM
+        
+
+Message Serialization Process
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. container:: scrollable-diagram
+
+    .. plantuml::
+        :align: center
+        
+        participant "ItsMessageSerializer" as Serializer
+        participant "FacilityMessage\n(CAM/DENM)" as Facility
+        participant "FacilitySerializer" as FacSer
+        participant "ASN.1 Encoder" as ASN1
+        participant "GeonetMessage" as Geonet
+        participant "BtpMessage" as BTP
+        
+        -> Serializer: serialize(facility_msg, address, position)
+        activate Serializer
+        
+        == Facility Layer Encoding ==
+        
+        Serializer -> FacSer: serialize(facility_msg)
+        activate FacSer
+        
+        FacSer -> Facility: to_asn()
+        activate Facility
+        note right
+            Convert Pydantic model
+            to ASN.1 dictionary
+        end note
+        Facility --> FacSer: asn_dict
+        deactivate Facility
+        
+        FacSer -> ASN1: encode(message_type, asn_dict)
+        activate ASN1
+        note right
+            UPER encoding
+            (Unaligned Packed Encoding Rules)
+        end note
+        ASN1 --> FacSer: facility_bytes
+        deactivate ASN1
+        
+        FacSer --> Serializer: facility_bytes
+        deactivate FacSer
+        
+        == BTP Layer Encoding ==
+        
+        Serializer -> Serializer: map message_type -> BTP port
+        note right
+            CAM -> 2001
+            DENM -> 2002
+            CPM -> 2009
+        end note
+        
+        Serializer -> BTP: create(dest_port, src_port)
+        activate BTP
+        BTP --> Serializer: btp_message
+        deactivate BTP
+        
+        Serializer -> BTP: to_bytes()
+        activate BTP
+        note right
+            4 bytes for BTP-A
+            (src_port + dest_port)
+            4 bytes for BTP-B
+            (dest_port + port_info)
+        end note
+        BTP --> Serializer: btp_bytes
+        deactivate BTP
+        
+        == GeoNetworking Layer Encoding ==
+        
+        Serializer -> Serializer: create BasicHeader
+        note right
+            Version: 1
+            Next Header: COMMON_HEADER
+            Lifetime: 950ms
+            Hop Limit: 1
+        end note
+        
+        Serializer -> Serializer: create CommonHeader + ExtendedHeader
+        note right
+            Depends on message type:
+            - CAM: SingleHopBroadcast
+            - DENM: GeoAnycastBroadcast
+            
+            Includes PositionVector with:
+            - GeoNetworkAddress
+            - GPS coordinates
+            - Speed, Heading
+            - Timestamp
+        end note
+        
+        Serializer -> Geonet: create(basic, common, extended)
+        activate Geonet
+        Geonet --> Serializer: geonet_message
+        deactivate Geonet
+        
+        Serializer -> Geonet: to_bytes()
+        activate Geonet
+        note right
+            Serialize all headers:
+            - BasicHeader (4 bytes)
+            - CommonHeader (8 bytes)
+            - ExtendedHeader (variable)
+        end note
+        Geonet --> Serializer: geonet_bytes
+        deactivate Geonet
+        
+        == Complete ITS Message ==
+        
+        Serializer -> Serializer: concatenate bytes
+        note right
+            Final structure:
+            [GeoNetworking][BTP][Facility]
+        end note
+        
+        Serializer --> : complete_its_message_bytes
+        deactivate Serializer
+
+
+Data Flow Layers
+----------------
+
+The ITS message processing follows a layered architecture similar to the OSI model:
+
+Message Structure
+~~~~~~~~~~~~~~~~~
+
+An ITS message transmitted over MQTT consists of three protocol layers:
+
+.. container:: scrollable-diagram
+
+    .. code-block:: text
+
+        ┌──────────────────────────────────────────────────────────────┐
+        │                      MQTT Message                            │
+        ├──────────────────────────────────────────────────────────────┤
+        │ Topic: /v2x/cam/u33dbw7g (with geohash)                      │
+        │ Payload:                                                     │
+        │  ┌────────────────────────────────────────────────────────┐  │
+        │  │ GeoNetworking Layer (12-40+ bytes)                     │  │
+        │  │  ├─ Basic Header (4 bytes)                             │  │
+        │  │  │  - Version, Next Header, Lifetime, Hop Limit        │  │
+        │  │  ├─ Common Header (8 bytes)                            │  │
+        │  │  │  - Header Type, Traffic Class, Payload Length       │  │
+        │  │  └─ Extended Header (variable)                         │  │
+        │  │     - Position Vector (Source location, speed, etc.)   │  │
+        │  │     - Destination area (for geo-broadcast)             │  │
+        │  ├────────────────────────────────────────────────────────┤  │
+        │  │ BTP Layer (4 bytes)                                    │  │
+        │  │  - Source Port / Destination Port (BTP-A)              │  │
+        │  │  - OR Destination Port / Port Info (BTP-B)             │  │
+        │  │  - Port mapping: CAM=2001, DENM=2002, CPM=2009         │  │
+        │  ├────────────────────────────────────────────────────────┤  │
+        │  │ Facility Layer (variable, typically 100-500 bytes)     │  │
+        │  │  - ASN.1 UPER encoded ITS message                      │  │
+        │  │  - CAM: Vehicle state, position, speed, heading        │  │
+        │  │  - DENM: Event notification, hazard information        │  │
+        │  │  - CPM: Perceived objects, sensor data                 │  │
+        │  └────────────────────────────────────────────────────────┘  │
+        └──────────────────────────────────────────────────────────────┘
+
+Protocol Layer Details
+~~~~~~~~~~~~~~~~~~~~~~
+
+**GeoNetworking Layer Responsibilities:**
+
+- Geographic addressing and routing
+- Packet lifetime management
+- Hop limit control
+- Traffic class prioritization
+- Source position vector (GPS, speed, heading)
+- Destination area specification (for broadcasts)
+
+**BTP Layer Responsibilities:**
+
+- Port-based message type identification
+- Interactive (BTP-A) vs non-interactive (BTP-B) transport
+- Well-known port mapping for ITS message types
+- Minimal overhead (4 bytes)
+
+**Facility Layer Responsibilities:**
+
+- Application-specific message content
+- Vehicle/infrastructure status information
+- Event descriptions and metadata
+- ASN.1 encoding for interoperability
+- Validation against ETSI schemas
+
+Usage Patterns
+--------------
+
+Asynchronous Pattern (Recommended for I/O-bound applications)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. container:: scrollable-diagram
+
+    .. code-block:: python
+
+        from step_lib import AsyncComManager, AsyncComManagerParams, CamMessageV1
+        from logging import getLogger
+        
+        async def main():
+            # Configure connection
+            params = AsyncComManagerParams(
+                instance_name="vehicle_001",
+                host="mqtt.example.com",
+                port=8883,
+                username="vehicle",
+                password="secret",
+                station_id=12345,
+                logger=getLogger(__name__)
+            )
+            
+            # Create and connect
+            async with AsyncComManager(params) as client:
+                # Subscribe to topics
+                await client.subscribe(
+                    topics=["v2x/cam/#", "v2x/denm/#"],
+                    qos=MqttQoS.QOS_1
+                )
+                
+                # Publish a message
+                cam_message = CamMessageV1(...)  # Your CAM data
+                await client.publish_its_message(
+                    message=cam_message,
+                    is_station_mobile=True
+                )
+                
+                # Receive messages
+                async for its_message in client.its_messages:
+                    facility_msg = its_message.its_payload
+                    print(f"Received {facility_msg.message_type}")
+                    print(f"Position: {facility_msg.reference_position}")
+
+Synchronous Pattern (Easier integration with legacy code)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. container:: scrollable-diagram
+    
+    .. code-block:: python
+
+        from step_lib import SyncComManager, SyncComManagerParams, DenmMessageV1
+        from logging import getLogger
+        
+        # Configure connection
+        params = SyncComManagerParams(
+            instance_name="roadside_unit_001",
+            host="mqtt.example.com",
+            port=8883,
+            username="rsu",
+            password="secret",
+            station_id=54321,
+            reconnect_interval=2,
+            logger=getLogger(__name__)
+        )
+        
+        # Use as context manager
+        with SyncComManager(params) as manager:
+            # Subscribe to topics
+            manager.subscribe(
+                topics=["v2x/denm/#"],
+                qos=MqttQoS.QOS_2
+            )
+            
+            # Publish a hazard notification
+            denm_message = DenmMessageV1(...)  # Your DENM data
+            manager.publish_its_message(
+                message=denm_message,
+                is_station_mobile=False
+            )
+            
+            # Receive messages with timeout
+            while True:
+                facility_msg = manager.get_its_message_received(timeout=1.0)
+                if facility_msg:
+                    print(f"Received {facility_msg.message_type}")
+                    # Process message
+                else:
+                    # No message received, continue or break
+
+Design Principles
+-----------------
+
+Immutability
+~~~~~~~~~~~~
+
+Protocol messages use frozen dataclasses to ensure thread safety and prevent accidental modifications:
+
+- All GeoNetworking structures (BasicHeader, CommonHeader, ExtendedHeader)
+- BTP messages
+- Position vectors and addresses
+- Configuration parameters
+
+Thread Safety
+~~~~~~~~~~~~~
+
+- **AsyncComManager**: Uses asyncio for single-thread async operations
+- **SyncComManager**: Uses explicit locking (RLock) for connection status
+- Message queues are thread-safe by design (asyncio.Queue, queue.Queue)
+- Event loop runs in dedicated background thread
+
+Type Safety
+~~~~~~~~~~~
+
+- Extensive use of type hints for IDE support and validation
+- Enumerations for protocol constants (no magic numbers)
+- Dataclasses with slots for memory efficiency
+- Pydantic models for schema validation
+
+Error Handling
+~~~~~~~~~~~~~~
+
+Custom exception hierarchy for specific error scenarios:
+
+- **StepLibError**: Base exception
+- **StepLibUnsupportedMessageError**: Unknown message type
+- **StepLibEchoMessageError**: Own message received (filtered by station_id)
+- **StepCliError**: CLI-specific errors
+
+Performance Optimizations
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+1. **ASN.1 Schema Caching**: Compiled schemas stored on disk to avoid recompilation
+2. **Lazy Initialization**: Resources allocated only when needed
+3. **Binary Operations**: Direct byte manipulation for protocol headers
+4. **Message Queuing**: Bounded queues prevent memory overflow
+5. **Efficient Serialization**: Zero-copy operations where possible
+
+Extension Points
+----------------
+
+Adding New Message Types
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To add support for a new ITS message type (e.g., VAM - Vulnerable Road User Awareness Message):
+
+1. Create message class inheriting from ``FacilityMessage``
+2. Add ASN.1 schema file to ``asn1_files/`` directory
+3. Update ``BtpWellKnownPort`` enumeration
+4. Add mapping in ``ItsMessageSerializer``
+5. Update ``FacilitySerializer.covert_to_facility_message()``
+
+Custom Transport Layer
+~~~~~~~~~~~~~~~~~~~~~~
+
+The serialization layer is independent of MQTT, allowing alternative transports:
+
+- Replace ``AsyncComManager`` with custom transport
+- Keep ``ItsMessageSerializer`` for message encoding/decoding
+- Implement your own publish/subscribe mechanism
+
+Testing Strategy
+----------------
+
+The package should include:
+
+- **Unit Tests**: Individual component testing (serializers, messages, headers)
+- **Integration Tests**: End-to-end message flow testing
+- **Protocol Compliance Tests**: Validation against ETSI test vectors
+- **Performance Tests**: Throughput and latency measurements
+- **Thread Safety Tests**: Concurrent access scenarios
+
+Deployment Considerations
+--------------------------
+
+Production Checklist
+~~~~~~~~~~~~~~~~~~~~
+
+1. **Security**:
+
+   - Use TLS/SSL for MQTT connections (configure ``tls_context`` or ``tls_params``)
+   - Secure credential management (avoid hardcoded passwords)
+   - Validate certificates in production
+
+2. **Logging**:
+
+   - Configure appropriate log levels (DEBUG for development, INFO/WARNING for production)
+   - Use structured logging for better analysis
+   - Monitor exception rates
+
+3. **Resource Limits**:
+
+   - Set reasonable queue sizes (``max_queued_incoming_messages``, ``max_queued_outgoing_messages``)
+   - Configure keepalive and timeout based on network conditions
+   - Monitor memory usage with many subscriptions
+
+4. **High Availability**:
+
+   - Use MQTT broker clustering
+   - Configure automatic reconnection (``reconnect_interval``)
+   - Implement message persistence for critical events
+   - Handle QoS appropriately (QoS 1 or 2 for important messages)
+
+5. **Monitoring**:
+
+   - Track message rates (publish/subscribe)
+   - Monitor connection status changes
+   - Alert on persistent disconnections
+   - Measure end-to-end message latency
+
+Scalability
+~~~~~~~~~~~
+
+- **Horizontal Scaling**: Multiple instances can share MQTT topics
+- **Station ID Filtering**: Prevents processing own messages in shared topics
+- **Geohash-based Topics**: Reduces subscription scope for geographic filtering
+- **Message Batching**: Consider batching for high-frequency messages
+
+Standards Compliance
+--------------------
+
+The step_lib package implements the following ETSI standards:
+
+- **ETSI TS 103 836-4-1**: GeoNetworking protocol (Basic, Common, Extended headers)
+- **ETSI TS 103 836-5-1**: Basic Transport Protocol (BTP-A and BTP-B)
+- **ETSI EN 302 637-2**: CAM (Cooperative Awareness Message) specification
+- **ETSI EN 302 637-3**: DENM (Decentralized Environmental Notification Message) specification
+- **ETSI TS 103 324**: CPM (Collective Perception Message) specification
+
+ASN.1 Schema Files
+~~~~~~~~~~~~~~~~~~
+
+The package includes compiled ASN.1 schemas from ETSI:
+
+- CAM-PDU-Descriptions.asn
+- DENM-PDU-Descriptions.asn
+- CPM-PDU-Descriptions.asn (with sub-containers)
+- ETSI-ITS-CDD.asn (Common Data Dictionary)
+- VAM-PDU-Descriptions.asn
+
+Summary
+-------
+
+The **step_lib** package provides a complete, production-ready solution for ITS communications:
+
+**Key Strengths:**
+
+- Complete protocol stack implementation (GeoNetworking + BTP + Facility)
+- Both async and sync interfaces for flexibility
+- Standards-compliant with ETSI specifications
+- Type-safe and well-documented
+- Thread-safe with proper resource management
+- Performance-optimized with caching and efficient serialization
+- Extensible architecture for new message types
+
+**Typical Use Cases:**
+
+- Connected vehicles (OBU - On-Board Unit)
+- Roadside infrastructure (RSU - Road Side Unit)
+- Traffic management centers
+- Fleet management systems
+- V2X research and simulation platforms
