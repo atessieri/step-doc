@@ -46,6 +46,7 @@ The package consists of the following main components:
 4. **StepClientRedisStream**: Specialized stream handler for STEP Client messages (DENM data)
 5. **StepProducerRedisStream**: Specialized stream handler for STEP Producer messages (DENM and collision arrays)
 6. **StepCrashPredictionRedisStream**: Specialized stream handler for Crash Prediction messages (position arrays)
+7. **StepMonitoringRedisStream**: Specialized stream handler for STEP Monitoring messages (forecasted trajectory data)
 
 Component Details
 -----------------
@@ -180,6 +181,10 @@ is designed to be extended by specialized stream handlers for different STEP com
          +publish_position_array(array: PositionArrayV1): Awaitable[None]
       }
       
+      class StepMonitoringRedisStream {
+         +publish_forecasted_trajectory(trajectory: ForecastedTrajectoryV1): Awaitable[None]
+      }
+      
       class StepRedisPool {
       }
       
@@ -189,6 +194,7 @@ is designed to be extended by specialized stream handlers for different STEP com
       StepClientRedisStream --|> StepRedisStream
       StepProducerRedisStream --|> StepRedisStream
       StepCrashPredictionRedisStream --|> StepRedisStream
+      StepMonitoringRedisStream --|> StepRedisStream
 
 **Key Features**:
 
@@ -201,7 +207,7 @@ is designed to be extended by specialized stream handlers for different STEP com
 
 **Specialized Stream Classes**:
 
-The package provides four specialized stream implementations that extend ``StepRedisStream``:
+The package provides five specialized stream implementations that extend ``StepRedisStream``:
 
 * **StepAdapterRedisStream**: Handles STEP Adapter messages, specifically for publishing and consuming 
   Cooperative Awareness Messages (CAM) wrapped in CloudEvents format. Manages CAM data with automatic 
@@ -215,6 +221,10 @@ The package provides four specialized stream implementations that extend ``StepR
 
 * **StepCrashPredictionRedisStream**: Specializes in Crash Prediction data processing, publishing 
   position array data as CloudEvents to Crash Prediction streams for real-time analysis.
+
+* **StepMonitoringRedisStream**: Handles STEP Monitoring messages, specifically for publishing 
+  forecasted trajectory data and receiving validated monitoring messages from Redis streams for 
+  real-time trajectory monitoring and analysis.
 
 Package Integration
 -------------------
@@ -234,6 +244,7 @@ with each other and with the Redis server:
          [step_client]
          [step_producer]
          [step_crash_prediction]
+         [step_trajectory_forecasting]
       }
       
       package "step_redis" {
@@ -245,6 +256,7 @@ with each other and with the Redis server:
          [StepClientRedisStream] as ClientStream
          [StepProducerRedisStream] as ProducerStream
          [StepCrashPredictionRedisStream] as CrashStream
+         [StepMonitoringRedisStream] as MonitoringStream
       }
       
       database "Redis Server" {
@@ -256,6 +268,7 @@ with each other and with the Redis server:
       [step_client] --> ClientStream : uses
       [step_producer] --> ProducerStream : uses
       [step_crash_prediction] --> CrashStream : uses
+      [step_trajectory_forecasting] --> MonitoringStream : uses
       
       Pool ..> PoolParams : configured by
       BaseStream ..> StreamParams : configured by
@@ -264,14 +277,213 @@ with each other and with the Redis server:
       ClientStream --|> BaseStream : extends
       ProducerStream --|> BaseStream : extends
       CrashStream --|> BaseStream : extends
+      MonitoringStream --|> BaseStream : extends
       
       AdapterStream --> Pool : uses
       ClientStream --> Pool : uses
       ProducerStream --> Pool : uses
       CrashStream --> Pool : uses
+      MonitoringStream --> Pool : uses
       
       Pool --> RedisConnection : manages
       BaseStream --> RedisStreams : interacts with
+
+Message Flow
+------------
+
+Redis Streams Mechanism
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``step_redis`` package leverages **Redis Streams**, a log-based data structure that enables 
+powerful message streaming capabilities for distributed systems. Redis Streams provide an 
+append-only log where messages are immutably stored with unique IDs, allowing multiple 
+consumers to process messages independently and reliably.
+
+**Core Concepts**
+
+* **Stream**: An append-only log of messages identified by a stream name (e.g., "cam_stream"). 
+  Each message entry has an auto-generated ID (timestamp-sequence) and contains field-value pairs.
+
+* **Consumer Groups**: Enable cooperative message consumption where multiple consumers work together. 
+  Each consumer in a group receives different messages, enabling horizontal scaling and load distribution.
+
+* **Consumer**: An individual processor within a consumer group that reads and processes messages. 
+  Multiple consumers can be part of the same group to distribute workload.
+
+* **Automatic Acknowledgment**: The package uses ``noack=True`` mode where messages are automatically 
+  acknowledged upon delivery, simplifying consumer logic while maintaining high throughput.
+
+* **Stream Trimming**: Streams are automatically trimmed to a configurable maximum length 
+  (``max_length`` parameter) using approximate trimming (``~`` operator) for performance efficiency.
+
+* **TTL Management**: Streams can have a Time-To-Live (``ttl_seconds``) that automatically expires 
+  streams after the specified duration, useful for temporary data storage.
+
+**Message Publishing Flow**
+
+When a message is published using ``publish_message()`` or specialized methods like 
+``publish_cam_message()``, the following operations occur:
+
+   1. Message is serialized to JSON (for CloudEvents-compliant messages)
+   2. ``XADD`` command adds the message to the stream with a field named ``payload``
+   3. Stream is trimmed to ``max_length`` using approximate trimming (``XTRIM ~ maxlen``)
+   4. If configured, stream TTL is refreshed using ``EXPIRE`` command
+   5. Message receives a unique ID based on server timestamp and sequence number
+
+**Message Consumption Flow**
+
+When consuming messages using ``receive_message()``, an async generator continuously:
+
+   1. Executes ``XREADGROUP`` to read messages from the consumer group
+   2. Uses the special ID ``>`` to receive only new, undelivered messages
+   3. Blocks for ``wait_timeout_ms`` milliseconds waiting for new messages
+   4. When a message arrives, extracts the ``payload`` field and yields it
+   5. Message is automatically acknowledged (``noack=True``) without manual ACK
+   6. If configured, refreshes the stream TTL after each read cycle
+   7. Continues indefinitely until explicitly stopped
+
+**Stream Initialization**
+
+Before publishing or consuming messages, the stream and consumer group must be initialized:
+
+   1. ``XGROUP CREATE`` creates the consumer group if it doesn't exist
+   2. Uses ``mkstream=True`` to automatically create the stream if needed
+   3. If the group already exists, the error is caught and logged (idempotent operation)
+   4. Initial TTL is set if configured in ``StepRedisStreamParams``
+
+Message Flow Sequence
+~~~~~~~~~~~~~~~~~~~~~~
+
+The following sequence diagram illustrates the complete message flow in the STEP Redis 
+architecture, showing how publishers, Redis server, and multiple consumers interact:
+
+.. container:: scrollable-diagram
+
+   .. plantuml::
+      :align: center
+
+      !theme plain
+      
+      participant "Publisher\n(StepRedisStream)" as Publisher
+      participant "Redis Server\n(Streams)" as Redis
+      participant "Consumer Group\nmy_group" as Group
+      participant "Consumer 1\n(StepRedisStream)" as Consumer1
+      participant "Consumer 2\n(StepRedisStream)" as Consumer2
+      
+      == Stream Initialization ==
+      
+      Consumer1 -> Consumer1: create_input_stream()
+      Consumer1 -> Redis: XGROUP CREATE my_stream my_group\nmkstream=True
+      activate Redis
+      Redis --> Consumer1: OK (stream and group created)
+      deactivate Redis
+      
+      Consumer1 -> Consumer1: update_stream_ttl(ttl_seconds)
+      Consumer1 -> Redis: EXPIRE my_stream ttl_seconds
+      activate Redis
+      Redis --> Consumer1: 1 (TTL set)
+      deactivate Redis
+      
+      Consumer2 -> Consumer2: create_input_stream()
+      Consumer2 -> Redis: XGROUP CREATE my_stream my_group
+      activate Redis
+      Redis --> Consumer2: BUSYGROUP (group exists)
+      note right: Consumer logs info and continues
+      deactivate Redis
+      
+      == Message Publishing ==
+      
+      Publisher -> Publisher: publish_message(message)
+      Publisher -> Publisher: Serialize message to JSON
+      Publisher -> Redis: XADD my_stream MAXLEN ~ max_length\npayload: "{...json...}"
+      activate Redis
+      Redis -> Redis: Trim stream if length > max_length
+      Redis --> Publisher: message_id (e.g., "1234567890123-0")
+      deactivate Redis
+      
+      Publisher -> Publisher: update_stream_ttl(ttl_seconds)
+      Publisher -> Redis: EXPIRE my_stream ttl_seconds
+      activate Redis
+      Redis --> Publisher: 1 (TTL refreshed)
+      deactivate Redis
+      
+      == Message Consumption (Consumer 1) ==
+      
+      Consumer1 -> Consumer1: receive_message()
+      Consumer1 -> Redis: XREADGROUP GROUP my_group consumer1\nSTREAMS my_stream >\nBLOCK wait_timeout_ms COUNT 1 NOACK
+      activate Redis
+      note over Redis: Consumer1 receives the message\n(automatic acknowledgment)
+      Redis --> Consumer1: [[my_stream, [["message_id", {"payload": "..."}]]]]
+      deactivate Redis
+      
+      Consumer1 -> Consumer1: Extract and yield payload
+      Consumer1 -> Consumer1: Process message
+      
+      Consumer1 -> Consumer1: update_stream_ttl(ttl_seconds)
+      Consumer1 -> Redis: EXPIRE my_stream ttl_seconds
+      activate Redis
+      Redis --> Consumer1: 1 (TTL refreshed)
+      deactivate Redis
+      
+      == Message Publishing (Second Message) ==
+      
+      Publisher -> Publisher: publish_message(message2)
+      Publisher -> Redis: XADD my_stream MAXLEN ~ max_length\npayload: "{...json2...}"
+      activate Redis
+      Redis --> Publisher: message_id_2
+      deactivate Redis
+      
+      == Message Consumption (Consumer 2) ==
+      
+      Consumer2 -> Consumer2: receive_message()
+      Consumer2 -> Redis: XREADGROUP GROUP my_group consumer2\nSTREAMS my_stream >\nBLOCK wait_timeout_ms COUNT 1 NOACK
+      activate Redis
+      note over Redis: Consumer2 receives message_id_2\n(load distribution within group)
+      Redis --> Consumer2: [[my_stream, [["message_id_2", {"payload": "..."}]]]]
+      deactivate Redis
+      
+      Consumer2 -> Consumer2: Extract and yield payload
+      Consumer2 -> Consumer2: Process message
+      
+      == Timeout Scenario ==
+      
+      Consumer1 -> Consumer1: receive_message()
+      Consumer1 -> Redis: XREADGROUP GROUP my_group consumer1\nSTREAMS my_stream >\nBLOCK wait_timeout_ms COUNT 1 NOACK
+      activate Redis
+      note over Redis: No new messages available,\nwaits for timeout duration
+      Redis --> Consumer1: [] (empty response after timeout)
+      deactivate Redis
+      
+      Consumer1 -> Consumer1: Log timeout, continue loop
+      
+      Consumer1 -> Consumer1: update_stream_ttl(ttl_seconds)
+      Consumer1 -> Redis: EXPIRE my_stream ttl_seconds
+      activate Redis
+      Redis --> Consumer1: 1 (TTL refreshed)
+      deactivate Redis
+
+**Key Characteristics**
+
+* **Horizontal Scalability**: Multiple consumers in the same group share the workload, 
+  with each message delivered to only one consumer in the group.
+
+* **Automatic Acknowledgment**: Using ``noack=True`` provides maximum throughput by 
+  eliminating the overhead of explicit acknowledgments and pending entries list management.
+
+* **Blocking Reads**: Consumers use blocking reads (``BLOCK wait_timeout_ms``) to efficiently 
+  wait for new messages without polling, reducing network traffic and CPU usage.
+
+* **Stream Persistence**: Messages remain in the stream until trimmed by length limits, 
+  allowing late-joining consumers to catch up on recent history.
+
+* **TTL Refresh Pattern**: Periodic TTL updates ensure active streams remain available while 
+  inactive streams automatically expire to conserve memory.
+
+* **Approximate Trimming**: Using approximate trimming (``~`` operator) with ``MAXLEN`` 
+  provides better performance by trimming in macro nodes, though actual length may slightly 
+  exceed the limit.
+
+
 
 Usage Patterns
 --------------

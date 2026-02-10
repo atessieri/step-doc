@@ -1,0 +1,729 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>step_redis.step_monitoring_redis_stream module &mdash; STEP Redis 1.2.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/tabs.css?v=4c969af8" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=ca5f51dc" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/sphinx_prompt_css.css?v=351d85e3" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=6efca38a"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../_static/tabs.js?v=3ee01567"></script>
+      <script src="../_static/js/expand_tabs.js?v=1e151f68"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="step_redis.step_producer_redis_stream module" href="step_redis.step_producer_redis_stream.html" />
+    <link rel="prev" title="step_redis.step_crash_prediction_redis_stream module" href="step_redis.step_crash_prediction_redis_stream.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            STEP Redis
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">STEP Redis:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#installing-from-git-repository">Installing from git repository</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../usage.html">Redis Usage Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../usage.html#introduction">Introduction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../usage.html#key-components">Key Components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../usage.html#basic-usage">Basic Usage</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../usage.html#general-pattern">General Pattern</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../usage.html#advanced-usage-stream-demo-example">Advanced Usage: Stream Demo Example</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../usage.html#stream-demo-components">Stream Demo Components</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../usage.html#running-the-demo-application">Running the Demo Application</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../usage.html#best-practices">Best Practices</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../package_script.html">Package Script</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../package_script.html#create-environment">Create environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../package_script.html#development-with-tox">Development with Tox</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../package_script.html#available-environments">Available Environments</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../package_script.html#testing-environments">Testing Environments</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../package_script.html#code-quality-commands">Code Quality Commands</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../package_script.html#documentation-commands">Documentation Commands</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../package_script.html#package-management">Package Management</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../package_script.html#cleanup-commands">Cleanup Commands</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../package_script.html#pdf-conversion">PDF conversion</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture.html">Architecture</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../architecture.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture.html#library">Library</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture.html#key-components">Key Components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture.html#component-details">Component Details</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../architecture.html#stepredispool">StepRedisPool</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../architecture.html#stepredisstreamparams">StepRedisStreamParams</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../architecture.html#stepredisstream">StepRedisStream</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture.html#package-integration">Package Integration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture.html#message-flow">Message Flow</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../architecture.html#redis-streams-mechanism">Redis Streams Mechanism</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../architecture.html#message-flow-sequence">Message Flow Sequence</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture.html#usage-patterns">Usage Patterns</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../architecture.html#example-usage">Example Usage</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../architecture.html#base-stream-usage">Base Stream Usage</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../architecture.html#specialized-stream-usage">Specialized Stream Usage</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture.html#error-handling">Error Handling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture.html#design-considerations">Design Considerations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture.html#cloudevents-integration">CloudEvents Integration</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../schemas_rst/json_schemas.html">JSON Schemas</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../schemas_rst/json_schemas.html#json-schemas-groups">JSON Schemas Groups</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../schemas_rst/its_messages.html">ITS Messages</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../schemas_rst/cam_message.html">CAM Message</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../schemas_rst/cam_data_v1_schema.html">CAM Data V1 Schema</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cam_data_v1_schema.html#cam-data-version-1">CAM Data Version 1</a><ul>
+<li class="toctree-l7"><a class="reference internal" href="../schemas_rst/cam_data_v1_schema.html#acceleration-component">Acceleration Component</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../schemas_rst/cam_data_v1_schema.html#reference-altitude">Reference Altitude</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../schemas_rst/cam_data_v1_schema.html#curvature">Curvature</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../schemas_rst/cam_data_v1_schema.html#curvature-calculation-mode">Curvature Calculation Mode</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../schemas_rst/cam_data_v1_schema.html#drive-direction">Drive Direction</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../schemas_rst/cam_data_v1_schema.html#heading">Heading</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../schemas_rst/cam_data_v1_schema.html#identification">Identification</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../schemas_rst/cam_data_v1_schema.html#position-confidence-ellipse">Position Confidence Ellipse</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../schemas_rst/cam_data_v1_schema.html#reference-position">Reference Position</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../schemas_rst/cam_data_v1_schema.html#speed">Speed</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../schemas_rst/cam_data_v1_schema.html#traffic-participant-type">Traffic Participant Type</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../schemas_rst/cam_data_v1_schema.html#vehicle-length">Vehicle Length</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../schemas_rst/cam_data_v1_schema.html#vehicle-length-confidence-indication">Vehicle Length Confidence Indication</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../schemas_rst/cam_data_v1_schema.html#vehicle-role">Vehicle Role</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../schemas_rst/cam_data_v1_schema.html#yaw-rate">Yaw Rate</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../schemas_rst/denm_message.html">DENM Message</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html">DENM Data V1 Schema</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#denm-data-version-1">DENM Data Version 1</a><ul>
+<li class="toctree-l7"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#action-id">Action Id</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#reference-altitude">Reference Altitude</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#cause-code">Cause Code</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#heading">Heading</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#location-container">Location Container</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#denm-management-container">DENM Management Container</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#object-dimension">Object Dimension</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#object-face">Object Face</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#perceived-object">Perceived Object</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#position-confidence-ellipse">Position Confidence Ellipse</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#pre-crash-container">Pre-Crash Container</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#reference-position">Reference Position</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#road-type">Road Type</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#situation-container">Situation Container</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#speed">Speed</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#denm-termination-type">DENM Termination Type</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#traffic-direction-type">Traffic Direction Type</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#traffic-participant-type">Traffic Participant Type</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../schemas_rst/cloud_events_messages.html">Cloud Events Messages</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../schemas_rst/cloud_events_step_adapter_schema.html">STEP Adapter Schema</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../schemas_rst/cloud_events_step_adapter_schema.html#cloud-event-step-adapter">Cloud Event STEP Adapter</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_adapter_schema.html#acceleration-component">Acceleration Component</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_adapter_schema.html#cloud-event-cam-data-v1">Cloud Event Cam Data V1</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_adapter_schema.html#reference-altitude">Reference Altitude</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_adapter_schema.html#cam-data-version-1">CAM Data Version 1</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_adapter_schema.html#curvature">Curvature</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_adapter_schema.html#curvature-calculation-mode">Curvature Calculation Mode</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_adapter_schema.html#cloud-event-data-content-types">Cloud Event Data Content Types</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_adapter_schema.html#drive-direction">Drive Direction</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_adapter_schema.html#heading">Heading</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_adapter_schema.html#identification">Identification</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_adapter_schema.html#position-confidence-ellipse">Position Confidence Ellipse</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_adapter_schema.html#reference-position">Reference Position</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_adapter_schema.html#cloudevents-specification-version">CloudEvents Specification Version</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_adapter_schema.html#speed">Speed</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_adapter_schema.html#traffic-participant-type">Traffic Participant Type</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_adapter_schema.html#vehicle-length">Vehicle Length</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_adapter_schema.html#vehicle-length-confidence-indication">Vehicle Length Confidence Indication</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_adapter_schema.html#vehicle-role">Vehicle Role</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_adapter_schema.html#yaw-rate">Yaw Rate</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../schemas_rst/cloud_events_step_client_schema.html">STEP Client Schema</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../schemas_rst/cloud_events_step_client_schema.html#cloud-events-step-client">Cloud Events STEP Client</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_client_schema.html#action-id">Action Id</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_client_schema.html#reference-altitude">Reference Altitude</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_client_schema.html#cause-code">Cause Code</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_client_schema.html#cloud-event-denm-data-v1">Cloud Event DENM Data V1</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_client_schema.html#cloud-event-data-content-types">Cloud Event Data Content Types</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_client_schema.html#denm-data-version-1">DENM Data Version 1</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_client_schema.html#heading">Heading</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_client_schema.html#location-container">Location Container</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_client_schema.html#denm-management-container">DENM Management Container</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_client_schema.html#object-dimension">Object Dimension</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_client_schema.html#object-face">Object Face</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_client_schema.html#perceived-object">Perceived Object</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_client_schema.html#position-confidence-ellipse">Position Confidence Ellipse</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_client_schema.html#pre-crash-container">Pre-Crash Container</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_client_schema.html#reference-position">Reference Position</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_client_schema.html#road-type">Road Type</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_client_schema.html#situation-container">Situation Container</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_client_schema.html#cloudevents-specification-version">CloudEvents Specification Version</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_client_schema.html#speed">Speed</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_client_schema.html#denm-termination-type">DENM Termination Type</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_client_schema.html#traffic-direction-type">Traffic Direction Type</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_client_schema.html#traffic-participant-type">Traffic Participant Type</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../schemas_rst/cloud_events_step_crash_prediction_schema.html">STEP Crash Prediction Schema</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../schemas_rst/cloud_events_step_crash_prediction_schema.html#cloud-event-step-crash-prediction">Cloud Event STEP Crash Prediction</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_crash_prediction_schema.html#reference-altitude">Reference Altitude</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_crash_prediction_schema.html#cloud-event-position-array-v1">Cloud Event Position Array V1</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_crash_prediction_schema.html#cloud-event-data-content-types">Cloud Event Data Content Types</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_crash_prediction_schema.html#drive-direction">Drive Direction</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_crash_prediction_schema.html#heading">Heading</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_crash_prediction_schema.html#identification">Identification</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_crash_prediction_schema.html#position-array-version-1">Position Array Version 1</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_crash_prediction_schema.html#position-confidence-ellipse">Position Confidence Ellipse</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_crash_prediction_schema.html#position-info">Position Info</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_crash_prediction_schema.html#position-type">Position Type</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_crash_prediction_schema.html#reference-position">Reference Position</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_crash_prediction_schema.html#cloudevents-specification-version">CloudEvents Specification Version</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_crash_prediction_schema.html#speed">Speed</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_crash_prediction_schema.html#traffic-participant-type">Traffic Participant Type</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_crash_prediction_schema.html#vehicle-length">Vehicle Length</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_crash_prediction_schema.html#vehicle-length-confidence-indication">Vehicle Length Confidence Indication</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../schemas_rst/cloud_events_step_monitoring_schema.html">STEP Monitoring Schema</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../schemas_rst/cloud_events_step_monitoring_schema.html#overview">Overview</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../schemas_rst/cloud_events_step_monitoring_schema.html#current-usage">Current Usage</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_monitoring_schema.html#cloud-event-step-monitoring">Cloud Event STEP Monitoring</a><ul>
+<li class="toctree-l7"><a class="reference internal" href="../schemas_rst/cloud_events_step_monitoring_schema.html#actor-trajectory-forecasted">Actor Trajectory Forecasted</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../schemas_rst/cloud_events_step_monitoring_schema.html#cloud-events-forecasted-trajectory-message">Cloud Events Forecasted Trajectory Message</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../schemas_rst/cloud_events_step_monitoring_schema.html#cloud-event-data-content-types">Cloud Event Data Content Types</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../schemas_rst/cloud_events_step_monitoring_schema.html#forecasted-point">Forecasted Point</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../schemas_rst/cloud_events_step_monitoring_schema.html#position-type">Position Type</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../schemas_rst/cloud_events_step_monitoring_schema.html#cloudevents-specification-version">CloudEvents Specification Version</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../schemas_rst/cloud_events_step_monitoring_schema.html#trajectory-forecasted-type">Trajectory Forecasted Type</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../schemas_rst/cloud_events_step_producer_schema.html">STEP Producer Schema</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../schemas_rst/cloud_events_step_producer_schema.html#cloud-event-step-producer">Cloud Event STEP Producer</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_producer_schema.html#action-id">Action Id</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_producer_schema.html#reference-altitude">Reference Altitude</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_producer_schema.html#cause-code">Cause Code</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_producer_schema.html#cloud-event-data-content-types">Cloud Event Data Content Types</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_producer_schema.html#denm-data-version-1">DENM Data Version 1</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_producer_schema.html#drive-direction">Drive Direction</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_producer_schema.html#heading">Heading</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_producer_schema.html#identification">Identification</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_producer_schema.html#location-container">Location Container</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_producer_schema.html#denm-management-container">DENM Management Container</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_producer_schema.html#object-dimension">Object Dimension</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_producer_schema.html#object-face">Object Face</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_producer_schema.html#perceived-object">Perceived Object</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_producer_schema.html#position-confidence-ellipse">Position Confidence Ellipse</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_producer_schema.html#position-info">Position Info</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_producer_schema.html#position-type">Position Type</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_producer_schema.html#pre-crash-container">Pre-Crash Container</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_producer_schema.html#cloud-event-denm-data-v1">Cloud Event DENM Data V1</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_producer_schema.html#cloud-event-station-collision-array-data-v1">Cloud Event Station Collision Array Data V1</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_producer_schema.html#reference-position">Reference Position</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_producer_schema.html#road-type">Road Type</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_producer_schema.html#situation-container">Situation Container</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_producer_schema.html#cloudevents-specification-version">CloudEvents Specification Version</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_producer_schema.html#speed">Speed</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_producer_schema.html#station-collision-array-version-1">Station Collision Array Version 1</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_producer_schema.html#denm-termination-type">DENM Termination Type</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_producer_schema.html#traffic-direction-type">Traffic Direction Type</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_producer_schema.html#traffic-participant-type">Traffic Participant Type</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="reference internal" href="step_redis.html">step_redis package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="step_redis.html#submodules">Submodules</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="step_redis.step_adapter_redis_stream.html">step_redis.step_adapter_redis_stream module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="step_redis.step_adapter_redis_stream.html#step_redis.step_adapter_redis_stream.StepAdapterRedisStream"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_adapter_redis_stream.html#step_redis.step_adapter_redis_stream.StepAdapterRedisStream.pool"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream.pool</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_adapter_redis_stream.html#step_redis.step_adapter_redis_stream.StepAdapterRedisStream.config"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream.config</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_adapter_redis_stream.html#step_redis.step_adapter_redis_stream.StepAdapterRedisStream.logger"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream.logger</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_adapter_redis_stream.html#step_redis.step_adapter_redis_stream.StepAdapterRedisStream.__aenter__"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream.__aenter__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_adapter_redis_stream.html#step_redis.step_adapter_redis_stream.StepAdapterRedisStream.publish_cam_message"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream.publish_cam_message()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_adapter_redis_stream.html#step_redis.step_adapter_redis_stream.StepAdapterRedisStream.receive_adapter_message"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream.receive_adapter_message()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="step_redis.step_client_redis_stream.html">step_redis.step_client_redis_stream module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="step_redis.step_client_redis_stream.html#step_redis.step_client_redis_stream.StepClientRedisStream"><code class="docutils literal notranslate"><span class="pre">StepClientRedisStream</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_client_redis_stream.html#step_redis.step_client_redis_stream.StepClientRedisStream.pool"><code class="docutils literal notranslate"><span class="pre">StepClientRedisStream.pool</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_client_redis_stream.html#step_redis.step_client_redis_stream.StepClientRedisStream.config"><code class="docutils literal notranslate"><span class="pre">StepClientRedisStream.config</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_client_redis_stream.html#step_redis.step_client_redis_stream.StepClientRedisStream.logger"><code class="docutils literal notranslate"><span class="pre">StepClientRedisStream.logger</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_client_redis_stream.html#step_redis.step_client_redis_stream.StepClientRedisStream.__aenter__"><code class="docutils literal notranslate"><span class="pre">StepClientRedisStream.__aenter__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_client_redis_stream.html#step_redis.step_client_redis_stream.StepClientRedisStream.publish_denm_message"><code class="docutils literal notranslate"><span class="pre">StepClientRedisStream.publish_denm_message()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_client_redis_stream.html#step_redis.step_client_redis_stream.StepClientRedisStream.receive_client_message"><code class="docutils literal notranslate"><span class="pre">StepClientRedisStream.receive_client_message()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="step_redis.step_crash_prediction_redis_stream.html">step_redis.step_crash_prediction_redis_stream module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="step_redis.step_crash_prediction_redis_stream.html#step_redis.step_crash_prediction_redis_stream.StepCrashPredictionRedisStream"><code class="docutils literal notranslate"><span class="pre">StepCrashPredictionRedisStream</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_crash_prediction_redis_stream.html#step_redis.step_crash_prediction_redis_stream.StepCrashPredictionRedisStream.pool"><code class="docutils literal notranslate"><span class="pre">StepCrashPredictionRedisStream.pool</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_crash_prediction_redis_stream.html#step_redis.step_crash_prediction_redis_stream.StepCrashPredictionRedisStream.config"><code class="docutils literal notranslate"><span class="pre">StepCrashPredictionRedisStream.config</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_crash_prediction_redis_stream.html#step_redis.step_crash_prediction_redis_stream.StepCrashPredictionRedisStream.logger"><code class="docutils literal notranslate"><span class="pre">StepCrashPredictionRedisStream.logger</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_crash_prediction_redis_stream.html#step_redis.step_crash_prediction_redis_stream.StepCrashPredictionRedisStream.__aenter__"><code class="docutils literal notranslate"><span class="pre">StepCrashPredictionRedisStream.__aenter__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_crash_prediction_redis_stream.html#step_redis.step_crash_prediction_redis_stream.StepCrashPredictionRedisStream.publish_position_array"><code class="docutils literal notranslate"><span class="pre">StepCrashPredictionRedisStream.publish_position_array()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_crash_prediction_redis_stream.html#step_redis.step_crash_prediction_redis_stream.StepCrashPredictionRedisStream.receive_crash_prediction_message"><code class="docutils literal notranslate"><span class="pre">StepCrashPredictionRedisStream.receive_crash_prediction_message()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">step_redis.step_monitoring_redis_stream module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#step_redis.step_monitoring_redis_stream.StepMonitoringRedisStream"><code class="docutils literal notranslate"><span class="pre">StepMonitoringRedisStream</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#step_redis.step_monitoring_redis_stream.StepMonitoringRedisStream.pool"><code class="docutils literal notranslate"><span class="pre">StepMonitoringRedisStream.pool</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#step_redis.step_monitoring_redis_stream.StepMonitoringRedisStream.config"><code class="docutils literal notranslate"><span class="pre">StepMonitoringRedisStream.config</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#step_redis.step_monitoring_redis_stream.StepMonitoringRedisStream.logger"><code class="docutils literal notranslate"><span class="pre">StepMonitoringRedisStream.logger</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#step_redis.step_monitoring_redis_stream.StepMonitoringRedisStream.__aenter__"><code class="docutils literal notranslate"><span class="pre">StepMonitoringRedisStream.__aenter__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#step_redis.step_monitoring_redis_stream.StepMonitoringRedisStream.publish_forecasted_trajectory"><code class="docutils literal notranslate"><span class="pre">StepMonitoringRedisStream.publish_forecasted_trajectory()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#step_redis.step_monitoring_redis_stream.StepMonitoringRedisStream.receive_monitoring_message"><code class="docutils literal notranslate"><span class="pre">StepMonitoringRedisStream.receive_monitoring_message()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="step_redis.step_producer_redis_stream.html">step_redis.step_producer_redis_stream module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="step_redis.step_producer_redis_stream.html#step_redis.step_producer_redis_stream.StepProducerRedisStream"><code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_producer_redis_stream.html#step_redis.step_producer_redis_stream.StepProducerRedisStream.pool"><code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream.pool</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_producer_redis_stream.html#step_redis.step_producer_redis_stream.StepProducerRedisStream.config"><code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream.config</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_producer_redis_stream.html#step_redis.step_producer_redis_stream.StepProducerRedisStream.logger"><code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream.logger</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_producer_redis_stream.html#step_redis.step_producer_redis_stream.StepProducerRedisStream.__aenter__"><code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream.__aenter__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_producer_redis_stream.html#step_redis.step_producer_redis_stream.StepProducerRedisStream.publish_denm_message"><code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream.publish_denm_message()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_producer_redis_stream.html#step_redis.step_producer_redis_stream.StepProducerRedisStream.publish_station_collision_array"><code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream.publish_station_collision_array()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_producer_redis_stream.html#step_redis.step_producer_redis_stream.StepProducerRedisStream.receive_producer_message"><code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream.receive_producer_message()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="step_redis.step_redis_pool.html">step_redis.step_redis_pool module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPool"><code class="docutils literal notranslate"><span class="pre">StepRedisPool</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPool.params"><code class="docutils literal notranslate"><span class="pre">StepRedisPool.params</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPool.logger"><code class="docutils literal notranslate"><span class="pre">StepRedisPool.logger</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPool.__aenter__"><code class="docutils literal notranslate"><span class="pre">StepRedisPool.__aenter__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPool.__aexit__"><code class="docutils literal notranslate"><span class="pre">StepRedisPool.__aexit__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.host"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.host</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.port"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.port</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.username"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.username</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.password"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.password</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.db"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.db</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.socket_timeout"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.socket_timeout</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.socket_connect_timeout"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.socket_connect_timeout</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.socket_keep_idle"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.socket_keep_idle</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.socket_keep_alive"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.socket_keep_alive</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.socket_keep_cnt"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.socket_keep_cnt</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.ssl_enable"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.ssl_enable</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.ssl_client_key_file"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.ssl_client_key_file</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.ssl_client_key_file_password"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.ssl_client_key_file_password</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.ssl_client_cert_file"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.ssl_client_cert_file</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.ssl_cert_requested"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.ssl_cert_requested</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.ssl_ca_certs_file"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.ssl_ca_certs_file</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.health_check_interval"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.health_check_interval</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.max_connections"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.max_connections</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.connection_available_timeout"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.connection_available_timeout</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.protocol"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.protocol</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="step_redis.step_redis_stream.html">step_redis.step_redis_stream module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream"><code class="docutils literal notranslate"><span class="pre">StepRedisStream</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream.pool"><code class="docutils literal notranslate"><span class="pre">StepRedisStream.pool</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream.config"><code class="docutils literal notranslate"><span class="pre">StepRedisStream.config</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream.logger"><code class="docutils literal notranslate"><span class="pre">StepRedisStream.logger</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream.__aenter__"><code class="docutils literal notranslate"><span class="pre">StepRedisStream.__aenter__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream.__aexit__"><code class="docutils literal notranslate"><span class="pre">StepRedisStream.__aexit__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream.create_input_stream"><code class="docutils literal notranslate"><span class="pre">StepRedisStream.create_input_stream()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream.get_stream_ttl"><code class="docutils literal notranslate"><span class="pre">StepRedisStream.get_stream_ttl()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream.ping"><code class="docutils literal notranslate"><span class="pre">StepRedisStream.ping()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream.publish_message"><code class="docutils literal notranslate"><span class="pre">StepRedisStream.publish_message()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream.receive_message"><code class="docutils literal notranslate"><span class="pre">StepRedisStream.receive_message()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream.update_stream_ttl"><code class="docutils literal notranslate"><span class="pre">StepRedisStream.update_stream_ttl()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStreamParams"><code class="docutils literal notranslate"><span class="pre">StepRedisStreamParams</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStreamParams.stream_id"><code class="docutils literal notranslate"><span class="pre">StepRedisStreamParams.stream_id</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStreamParams.group_id"><code class="docutils literal notranslate"><span class="pre">StepRedisStreamParams.group_id</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStreamParams.wait_timeout_ms"><code class="docutils literal notranslate"><span class="pre">StepRedisStreamParams.wait_timeout_ms</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStreamParams.max_length"><code class="docutils literal notranslate"><span class="pre">StepRedisStreamParams.max_length</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStreamParams.consumer_name"><code class="docutils literal notranslate"><span class="pre">StepRedisStreamParams.consumer_name</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStreamParams.ttl_seconds"><code class="docutils literal notranslate"><span class="pre">StepRedisStreamParams.ttl_seconds</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStreamParams.__post_init__"><code class="docutils literal notranslate"><span class="pre">StepRedisStreamParams.__post_init__()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../test_rst/test.html">Unit Test package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../test_rst/test.html#submodules">Submodules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../test_rst/test.test___init__.html">test.test___init__ module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___init__.html#test.test___init__.test_package_exports"><code class="docutils literal notranslate"><span class="pre">test_package_exports()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___init__.html#test.test___init__.test_release_date"><code class="docutils literal notranslate"><span class="pre">test_release_date()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___init__.html#test.test___init__.test_version"><code class="docutils literal notranslate"><span class="pre">test_version()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../test_rst/test.test_step_adapter_redis_stream.html">test.test_step_adapter_redis_stream module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_step_adapter_redis_stream.html#test.test_step_adapter_redis_stream.TestStepAdapterRedisStream"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterRedisStream</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_adapter_redis_stream.html#test.test_step_adapter_redis_stream.TestStepAdapterRedisStream.test___aenter__"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterRedisStream.test___aenter__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_adapter_redis_stream.html#test.test_step_adapter_redis_stream.TestStepAdapterRedisStream.test___init__"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterRedisStream.test___init__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_adapter_redis_stream.html#test.test_step_adapter_redis_stream.TestStepAdapterRedisStream.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterRedisStream.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_adapter_redis_stream.html#test.test_step_adapter_redis_stream.TestStepAdapterRedisStream.test_publish_cam_message"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterRedisStream.test_publish_cam_message()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_adapter_redis_stream.html#test.test_step_adapter_redis_stream.TestStepAdapterRedisStream.test_receive_adapter_message"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterRedisStream.test_receive_adapter_message()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../test_rst/test.test_step_client_redis_stream.html">test.test_step_client_redis_stream module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_step_client_redis_stream.html#test.test_step_client_redis_stream.TestStepClientRedisStream"><code class="docutils literal notranslate"><span class="pre">TestStepClientRedisStream</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_client_redis_stream.html#test.test_step_client_redis_stream.TestStepClientRedisStream.test___aenter__"><code class="docutils literal notranslate"><span class="pre">TestStepClientRedisStream.test___aenter__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_client_redis_stream.html#test.test_step_client_redis_stream.TestStepClientRedisStream.test___init__"><code class="docutils literal notranslate"><span class="pre">TestStepClientRedisStream.test___init__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_client_redis_stream.html#test.test_step_client_redis_stream.TestStepClientRedisStream.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestStepClientRedisStream.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_client_redis_stream.html#test.test_step_client_redis_stream.TestStepClientRedisStream.test_publish_denm_message"><code class="docutils literal notranslate"><span class="pre">TestStepClientRedisStream.test_publish_denm_message()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_client_redis_stream.html#test.test_step_client_redis_stream.TestStepClientRedisStream.test_receive_client_message"><code class="docutils literal notranslate"><span class="pre">TestStepClientRedisStream.test_receive_client_message()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../test_rst/test.test_step_crash_prediction_redis_stream.html">test.test_step_crash_prediction_redis_stream module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_step_crash_prediction_redis_stream.html#test.test_step_crash_prediction_redis_stream.TestStepCrashPredictionRedisStream"><code class="docutils literal notranslate"><span class="pre">TestStepCrashPredictionRedisStream</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_crash_prediction_redis_stream.html#test.test_step_crash_prediction_redis_stream.TestStepCrashPredictionRedisStream.test___aenter__"><code class="docutils literal notranslate"><span class="pre">TestStepCrashPredictionRedisStream.test___aenter__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_crash_prediction_redis_stream.html#test.test_step_crash_prediction_redis_stream.TestStepCrashPredictionRedisStream.test___init__"><code class="docutils literal notranslate"><span class="pre">TestStepCrashPredictionRedisStream.test___init__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_crash_prediction_redis_stream.html#test.test_step_crash_prediction_redis_stream.TestStepCrashPredictionRedisStream.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestStepCrashPredictionRedisStream.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_crash_prediction_redis_stream.html#test.test_step_crash_prediction_redis_stream.TestStepCrashPredictionRedisStream.test_publish_position_array"><code class="docutils literal notranslate"><span class="pre">TestStepCrashPredictionRedisStream.test_publish_position_array()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_crash_prediction_redis_stream.html#test.test_step_crash_prediction_redis_stream.TestStepCrashPredictionRedisStream.test_receive_crash_prediction_message"><code class="docutils literal notranslate"><span class="pre">TestStepCrashPredictionRedisStream.test_receive_crash_prediction_message()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../test_rst/test.test_step_monitoring_redis_stream.html">test.test_step_monitoring_redis_stream module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_step_monitoring_redis_stream.html#test.test_step_monitoring_redis_stream.TestStepMonitoringRedisStream"><code class="docutils literal notranslate"><span class="pre">TestStepMonitoringRedisStream</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_monitoring_redis_stream.html#test.test_step_monitoring_redis_stream.TestStepMonitoringRedisStream.test___aenter__"><code class="docutils literal notranslate"><span class="pre">TestStepMonitoringRedisStream.test___aenter__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_monitoring_redis_stream.html#test.test_step_monitoring_redis_stream.TestStepMonitoringRedisStream.test___init__"><code class="docutils literal notranslate"><span class="pre">TestStepMonitoringRedisStream.test___init__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_monitoring_redis_stream.html#test.test_step_monitoring_redis_stream.TestStepMonitoringRedisStream.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestStepMonitoringRedisStream.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_monitoring_redis_stream.html#test.test_step_monitoring_redis_stream.TestStepMonitoringRedisStream.test_publish_forecasted_trajectory"><code class="docutils literal notranslate"><span class="pre">TestStepMonitoringRedisStream.test_publish_forecasted_trajectory()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_monitoring_redis_stream.html#test.test_step_monitoring_redis_stream.TestStepMonitoringRedisStream.test_receive_monitoring_message"><code class="docutils literal notranslate"><span class="pre">TestStepMonitoringRedisStream.test_receive_monitoring_message()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../test_rst/test.test_step_producer_redis_stream.html">test.test_step_producer_redis_stream module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_step_producer_redis_stream.html#test.test_step_producer_redis_stream.TestStepProducerRedisStream"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisStream</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_producer_redis_stream.html#test.test_step_producer_redis_stream.TestStepProducerRedisStream.test___aenter__"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisStream.test___aenter__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_producer_redis_stream.html#test.test_step_producer_redis_stream.TestStepProducerRedisStream.test___init__"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisStream.test___init__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_producer_redis_stream.html#test.test_step_producer_redis_stream.TestStepProducerRedisStream.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisStream.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_producer_redis_stream.html#test.test_step_producer_redis_stream.TestStepProducerRedisStream.test_publish_denm_message"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisStream.test_publish_denm_message()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_producer_redis_stream.html#test.test_step_producer_redis_stream.TestStepProducerRedisStream.test_publish_station_collision_array"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisStream.test_publish_station_collision_array()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_producer_redis_stream.html#test.test_step_producer_redis_stream.TestStepProducerRedisStream.test_receive_producer_message"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisStream.test_receive_producer_message()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../test_rst/test.test_step_redis_pool.html">test.test_step_redis_pool module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_step_redis_pool.html#test.test_step_redis_pool.TestStepRedisPool"><code class="docutils literal notranslate"><span class="pre">TestStepRedisPool</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_pool.html#test.test_step_redis_pool.TestStepRedisPool.redis_params_no_ssl"><code class="docutils literal notranslate"><span class="pre">TestStepRedisPool.redis_params_no_ssl()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_pool.html#test.test_step_redis_pool.TestStepRedisPool.redis_params_ssl"><code class="docutils literal notranslate"><span class="pre">TestStepRedisPool.redis_params_ssl()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_pool.html#test.test_step_redis_pool.TestStepRedisPool.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestStepRedisPool.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_pool.html#test.test_step_redis_pool.TestStepRedisPool.test_async_context_manager"><code class="docutils literal notranslate"><span class="pre">TestStepRedisPool.test_async_context_manager()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_pool.html#test.test_step_redis_pool.TestStepRedisPool.test_init_with_ssl"><code class="docutils literal notranslate"><span class="pre">TestStepRedisPool.test_init_with_ssl()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_pool.html#test.test_step_redis_pool.TestStepRedisPool.test_init_without_ssl"><code class="docutils literal notranslate"><span class="pre">TestStepRedisPool.test_init_without_ssl()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_step_redis_pool.html#test.test_step_redis_pool.TestStepRedisPoolParams"><code class="docutils literal notranslate"><span class="pre">TestStepRedisPoolParams</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_pool.html#test.test_step_redis_pool.TestStepRedisPoolParams.redis_params_no_ssl"><code class="docutils literal notranslate"><span class="pre">TestStepRedisPoolParams.redis_params_no_ssl()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_pool.html#test.test_step_redis_pool.TestStepRedisPoolParams.redis_params_ssl"><code class="docutils literal notranslate"><span class="pre">TestStepRedisPoolParams.redis_params_ssl()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_pool.html#test.test_step_redis_pool.TestStepRedisPoolParams.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestStepRedisPoolParams.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_pool.html#test.test_step_redis_pool.TestStepRedisPoolParams.test_redis_pool_params_init_no_ssl"><code class="docutils literal notranslate"><span class="pre">TestStepRedisPoolParams.test_redis_pool_params_init_no_ssl()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_pool.html#test.test_step_redis_pool.TestStepRedisPoolParams.test_redis_pool_params_init_ssl"><code class="docutils literal notranslate"><span class="pre">TestStepRedisPoolParams.test_redis_pool_params_init_ssl()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../test_rst/test.test_step_redis_stream.html">test.test_step_redis_stream module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStream"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStream.mock_pool"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.mock_pool()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStream.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStream.test_context"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_context()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStream.test_create_input_stream"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_create_input_stream()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStream.test_create_input_stream_params_error"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_create_input_stream_params_error()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStream.test_create_input_stream_redis_already_exists"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_create_input_stream_redis_already_exists()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStream.test_create_input_stream_redis_error"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_create_input_stream_redis_error()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStream.test_get_stream_ttl"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_get_stream_ttl()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStream.test_init"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_init()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStream.test_ping"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_ping()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStream.test_publish_message_params_error"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_publish_message_params_error()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStream.test_publish_message_success"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_publish_message_success()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStream.test_receive_message"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_receive_message()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStream.test_receive_message_params_error"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_receive_message_params_error()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStream.test_update_stream_ttl"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_update_stream_ttl()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStream.test_update_stream_ttl_error"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_update_stream_ttl_error()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStreamParams"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStreamParams</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStreamParams.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStreamParams.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStreamParams.test_params_boundary_values"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStreamParams.test_params_boundary_values()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStreamParams.test_params_invalid_values"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStreamParams.test_params_invalid_values()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">STEP Redis</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="step_redis.html">step_redis package</a></li>
+      <li class="breadcrumb-item active">step_redis.step_monitoring_redis_stream module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/step_redis_rst/step_redis.step_monitoring_redis_stream.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-step_redis.step_monitoring_redis_stream">
+<span id="step-redis-step-monitoring-redis-stream-module"></span><h1>step_redis.step_monitoring_redis_stream module<a class="headerlink" href="#module-step_redis.step_monitoring_redis_stream" title="Link to this heading"></a></h1>
+<p>Redis stream handler for STEP monitoring messages.</p>
+<p>This module provides the StepMonitoringRedisStream class, a specialized Redis stream
+handler for managing STEP monitoring messages in CloudEvents-compliant format. It extends
+the base StepRedisStream functionality to handle forecasted trajectory data and monitoring
+messages within the STEP (Sustainable Transport and Environmental Protection) ecosystem.</p>
+<dl class="simple">
+<dt>The module enables:</dt><dd><ul class="simple">
+<li><p>Publishing forecasted trajectory messages to Redis streams</p></li>
+<li><p>Receiving and validating monitoring messages from Redis streams</p></li>
+<li><p>CloudEvents-compliant message formatting</p></li>
+<li><p>Asynchronous stream operations with context manager support</p></li>
+</ul>
+</dd>
+</dl>
+<div class="admonition-example admonition">
+<p class="admonition-title">Example</p>
+<p>Basic usage with async context manager:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">async</span> <span class="k">with</span> <span class="n">StepMonitoringRedisStream</span><span class="p">(</span><span class="n">pool</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">logger</span><span class="p">)</span> <span class="k">as</span> <span class="n">stream</span><span class="p">:</span>
+    <span class="c1"># Publish forecasted trajectory</span>
+    <span class="k">await</span> <span class="n">stream</span><span class="o">.</span><span class="n">publish_forecasted_trajectory</span><span class="p">(</span><span class="n">trajectory_data</span><span class="p">)</span>
+
+    <span class="c1"># Receive monitoring messages</span>
+    <span class="k">async</span> <span class="k">for</span> <span class="n">message</span> <span class="ow">in</span> <span class="n">stream</span><span class="o">.</span><span class="n">receive_monitoring_message</span><span class="p">():</span>
+        <span class="n">process_message</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<dl class="py class">
+<dt class="sig sig-object py" id="step_redis.step_monitoring_redis_stream.StepMonitoringRedisStream">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">step_redis.step_monitoring_redis_stream.</span></span><span class="sig-name descname"><span class="pre">StepMonitoringRedisStream</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pool</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPool" title="step_redis.step_redis_pool.StepRedisPool"><span class="pre">StepRedisPool</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStreamParams" title="step_redis.step_redis_stream.StepRedisStreamParams"><span class="pre">StepRedisStreamParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">logger</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Logger</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/step_redis/step_monitoring_redis_stream.html#StepMonitoringRedisStream"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#step_redis.step_monitoring_redis_stream.StepMonitoringRedisStream" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream" title="step_redis.step_redis_stream.StepRedisStream"><code class="xref py py-class docutils literal notranslate"><span class="pre">StepRedisStream</span></code></a></p>
+<p>A Redis stream handler for STEP monitoring messages, providing methods to publish
+and receive forecasted trajectory and monitoring messages in CloudEvents-compliant
+format.</p>
+<p>Inherits from StepRedisStream and is tailored for handling STEP monitoring data, including
+publishing forecasted trajectories and receiving validated monitoring messages from a Redis stream.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="step_redis.step_monitoring_redis_stream.StepMonitoringRedisStream.pool">
+<span class="sig-name descname"><span class="pre">pool</span></span><a class="headerlink" href="#step_redis.step_monitoring_redis_stream.StepMonitoringRedisStream.pool" title="Link to this definition"></a></dt>
+<dd><p>Redis connection pool for managing connections.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPool" title="step_redis.step_redis_pool.StepRedisPool">StepRedisPool</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="step_redis.step_monitoring_redis_stream.StepMonitoringRedisStream.config">
+<span class="sig-name descname"><span class="pre">config</span></span><a class="headerlink" href="#step_redis.step_monitoring_redis_stream.StepMonitoringRedisStream.config" title="Link to this definition"></a></dt>
+<dd><p>Configuration object containing Redis stream settings.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>RedisStreamConfiguration</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="step_redis.step_monitoring_redis_stream.StepMonitoringRedisStream.logger">
+<span class="sig-name descname"><span class="pre">logger</span></span><a class="headerlink" href="#step_redis.step_monitoring_redis_stream.StepMonitoringRedisStream.logger" title="Link to this definition"></a></dt>
+<dd><p>Logger instance for logging operations.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Logger</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="step_redis.step_monitoring_redis_stream.StepMonitoringRedisStream.__aenter__">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">__aenter__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#step_redis.step_monitoring_redis_stream.StepMonitoringRedisStream" title="step_redis.step_monitoring_redis_stream.StepMonitoringRedisStream"><span class="pre">StepMonitoringRedisStream</span></a></span></span><a class="reference internal" href="../_modules/step_redis/step_monitoring_redis_stream.html#StepMonitoringRedisStream.__aenter__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#step_redis.step_monitoring_redis_stream.StepMonitoringRedisStream.__aenter__" title="Link to this definition"></a></dt>
+<dd><p>Asynchronous context manager entry method for StepMonitoringRedisStream.</p>
+<p>This method is called when entering an async context using <code class="docutils literal notranslate"><span class="pre">async</span> <span class="pre">with</span></code>.
+It first calls the parent class’s <code class="docutils literal notranslate"><span class="pre">__aenter__</span></code> method to set up the base context,
+then returns self to allow the instance to be used within the context manager.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The instance itself for use in the context manager.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#step_redis.step_monitoring_redis_stream.StepMonitoringRedisStream" title="step_redis.step_monitoring_redis_stream.StepMonitoringRedisStream">StepMonitoringRedisStream</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="step_redis.step_monitoring_redis_stream.StepMonitoringRedisStream.publish_forecasted_trajectory">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">publish_forecasted_trajectory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">forecasted_trajectory_data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">ActorTrajectoryForecasted</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/step_redis/step_monitoring_redis_stream.html#StepMonitoringRedisStream.publish_forecasted_trajectory"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#step_redis.step_monitoring_redis_stream.StepMonitoringRedisStream.publish_forecasted_trajectory" title="Link to this definition"></a></dt>
+<dd><p>Publishes a forecasted trajectory message to STEP monitoring stream.</p>
+<p>Create a CloudEvents-compliant message containing the forecasted trajectory data
+and publishes it to the configured STEP Monitoring Redis stream.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>forecasted_trajectory_data</strong> (<em>list</em><em>[</em><em>ActorTrajectoryForecasted</em><em>]</em>) – The forecasted trajectory
+data to be published.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="step_redis.step_monitoring_redis_stream.StepMonitoringRedisStream.receive_monitoring_message">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">receive_monitoring_message</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">AsyncGenerator</span><span class="p"><span class="pre">[</span></span><span class="pre">MonitoringCloudEventsJsonRoot</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/step_redis/step_monitoring_redis_stream.html#StepMonitoringRedisStream.receive_monitoring_message"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#step_redis.step_monitoring_redis_stream.StepMonitoringRedisStream.receive_monitoring_message" title="Link to this definition"></a></dt>
+<dd><p>Receives and validates Monitoring messages from the Redis stream.</p>
+<p>Asynchronously iterates over messages received from the configured Redis stream,
+logs each received message, and yields validated MonitoringCloudEventsJsonRoot instances.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Yields<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>MonitoringCloudEventsJsonRoot</em> – Validated Monitoring cloud event messages.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="step_redis.step_crash_prediction_redis_stream.html" class="btn btn-neutral float-left" title="step_redis.step_crash_prediction_redis_stream module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="step_redis.step_producer_redis_stream.html" class="btn btn-neutral float-right" title="step_redis.step_producer_redis_stream module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, Vodafone Automotive.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

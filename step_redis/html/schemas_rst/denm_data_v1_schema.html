@@ -1,0 +1,2038 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DENM Data V1 Schema &mdash; STEP Redis 1.2.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/tabs.css?v=4c969af8" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=ca5f51dc" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/sphinx_prompt_css.css?v=351d85e3" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=6efca38a"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../_static/tabs.js?v=3ee01567"></script>
+      <script src="../_static/js/expand_tabs.js?v=1e151f68"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Cloud Events Messages" href="cloud_events_messages.html" />
+    <link rel="prev" title="DENM Message" href="denm_message.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            STEP Redis
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">STEP Redis:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#installing-from-git-repository">Installing from git repository</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../usage.html">Redis Usage Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../usage.html#introduction">Introduction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../usage.html#key-components">Key Components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../usage.html#basic-usage">Basic Usage</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../usage.html#general-pattern">General Pattern</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../usage.html#advanced-usage-stream-demo-example">Advanced Usage: Stream Demo Example</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../usage.html#stream-demo-components">Stream Demo Components</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../usage.html#running-the-demo-application">Running the Demo Application</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../usage.html#best-practices">Best Practices</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../package_script.html">Package Script</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../package_script.html#create-environment">Create environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../package_script.html#development-with-tox">Development with Tox</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../package_script.html#available-environments">Available Environments</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../package_script.html#testing-environments">Testing Environments</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../package_script.html#code-quality-commands">Code Quality Commands</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../package_script.html#documentation-commands">Documentation Commands</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../package_script.html#package-management">Package Management</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../package_script.html#cleanup-commands">Cleanup Commands</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../package_script.html#pdf-conversion">PDF conversion</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture.html">Architecture</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../architecture.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture.html#library">Library</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture.html#key-components">Key Components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture.html#component-details">Component Details</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../architecture.html#stepredispool">StepRedisPool</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../architecture.html#stepredisstreamparams">StepRedisStreamParams</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../architecture.html#stepredisstream">StepRedisStream</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture.html#package-integration">Package Integration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture.html#message-flow">Message Flow</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../architecture.html#redis-streams-mechanism">Redis Streams Mechanism</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../architecture.html#message-flow-sequence">Message Flow Sequence</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture.html#usage-patterns">Usage Patterns</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../architecture.html#example-usage">Example Usage</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../architecture.html#base-stream-usage">Base Stream Usage</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../architecture.html#specialized-stream-usage">Specialized Stream Usage</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture.html#error-handling">Error Handling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture.html#design-considerations">Design Considerations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture.html#cloudevents-integration">CloudEvents Integration</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="reference internal" href="json_schemas.html">JSON Schemas</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="json_schemas.html#json-schemas-groups">JSON Schemas Groups</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="its_messages.html">ITS Messages</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="cam_message.html">CAM Message</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="cam_data_v1_schema.html">CAM Data V1 Schema</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="cam_data_v1_schema.html#cam-data-version-1">CAM Data Version 1</a><ul>
+<li class="toctree-l7"><a class="reference internal" href="cam_data_v1_schema.html#acceleration-component">Acceleration Component</a></li>
+<li class="toctree-l7"><a class="reference internal" href="cam_data_v1_schema.html#reference-altitude">Reference Altitude</a></li>
+<li class="toctree-l7"><a class="reference internal" href="cam_data_v1_schema.html#curvature">Curvature</a></li>
+<li class="toctree-l7"><a class="reference internal" href="cam_data_v1_schema.html#curvature-calculation-mode">Curvature Calculation Mode</a></li>
+<li class="toctree-l7"><a class="reference internal" href="cam_data_v1_schema.html#drive-direction">Drive Direction</a></li>
+<li class="toctree-l7"><a class="reference internal" href="cam_data_v1_schema.html#heading">Heading</a></li>
+<li class="toctree-l7"><a class="reference internal" href="cam_data_v1_schema.html#identification">Identification</a></li>
+<li class="toctree-l7"><a class="reference internal" href="cam_data_v1_schema.html#position-confidence-ellipse">Position Confidence Ellipse</a></li>
+<li class="toctree-l7"><a class="reference internal" href="cam_data_v1_schema.html#reference-position">Reference Position</a></li>
+<li class="toctree-l7"><a class="reference internal" href="cam_data_v1_schema.html#speed">Speed</a></li>
+<li class="toctree-l7"><a class="reference internal" href="cam_data_v1_schema.html#traffic-participant-type">Traffic Participant Type</a></li>
+<li class="toctree-l7"><a class="reference internal" href="cam_data_v1_schema.html#vehicle-length">Vehicle Length</a></li>
+<li class="toctree-l7"><a class="reference internal" href="cam_data_v1_schema.html#vehicle-length-confidence-indication">Vehicle Length Confidence Indication</a></li>
+<li class="toctree-l7"><a class="reference internal" href="cam_data_v1_schema.html#vehicle-role">Vehicle Role</a></li>
+<li class="toctree-l7"><a class="reference internal" href="cam_data_v1_schema.html#yaw-rate">Yaw Rate</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l4 current"><a class="reference internal" href="denm_message.html">DENM Message</a><ul class="current">
+<li class="toctree-l5 current"><a class="current reference internal" href="#">DENM Data V1 Schema</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#denm-data-version-1">DENM Data Version 1</a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#action-id">Action Id</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#reference-altitude">Reference Altitude</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#cause-code">Cause Code</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#heading">Heading</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#location-container">Location Container</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#denm-management-container">DENM Management Container</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#object-dimension">Object Dimension</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#object-face">Object Face</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#perceived-object">Perceived Object</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#position-confidence-ellipse">Position Confidence Ellipse</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#pre-crash-container">Pre-Crash Container</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#reference-position">Reference Position</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#road-type">Road Type</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#situation-container">Situation Container</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#speed">Speed</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#denm-termination-type">DENM Termination Type</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#traffic-direction-type">Traffic Direction Type</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#traffic-participant-type">Traffic Participant Type</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cloud_events_messages.html">Cloud Events Messages</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cloud_events_step_adapter_schema.html">STEP Adapter Schema</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="cloud_events_step_adapter_schema.html#cloud-event-step-adapter">Cloud Event STEP Adapter</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_adapter_schema.html#acceleration-component">Acceleration Component</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_adapter_schema.html#cloud-event-cam-data-v1">Cloud Event Cam Data V1</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_adapter_schema.html#reference-altitude">Reference Altitude</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_adapter_schema.html#cam-data-version-1">CAM Data Version 1</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_adapter_schema.html#curvature">Curvature</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_adapter_schema.html#curvature-calculation-mode">Curvature Calculation Mode</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_adapter_schema.html#cloud-event-data-content-types">Cloud Event Data Content Types</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_adapter_schema.html#drive-direction">Drive Direction</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_adapter_schema.html#heading">Heading</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_adapter_schema.html#identification">Identification</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_adapter_schema.html#position-confidence-ellipse">Position Confidence Ellipse</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_adapter_schema.html#reference-position">Reference Position</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_adapter_schema.html#cloudevents-specification-version">CloudEvents Specification Version</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_adapter_schema.html#speed">Speed</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_adapter_schema.html#traffic-participant-type">Traffic Participant Type</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_adapter_schema.html#vehicle-length">Vehicle Length</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_adapter_schema.html#vehicle-length-confidence-indication">Vehicle Length Confidence Indication</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_adapter_schema.html#vehicle-role">Vehicle Role</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_adapter_schema.html#yaw-rate">Yaw Rate</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="cloud_events_step_client_schema.html">STEP Client Schema</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="cloud_events_step_client_schema.html#cloud-events-step-client">Cloud Events STEP Client</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_client_schema.html#action-id">Action Id</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_client_schema.html#reference-altitude">Reference Altitude</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_client_schema.html#cause-code">Cause Code</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_client_schema.html#cloud-event-denm-data-v1">Cloud Event DENM Data V1</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_client_schema.html#cloud-event-data-content-types">Cloud Event Data Content Types</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_client_schema.html#denm-data-version-1">DENM Data Version 1</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_client_schema.html#heading">Heading</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_client_schema.html#location-container">Location Container</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_client_schema.html#denm-management-container">DENM Management Container</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_client_schema.html#object-dimension">Object Dimension</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_client_schema.html#object-face">Object Face</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_client_schema.html#perceived-object">Perceived Object</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_client_schema.html#position-confidence-ellipse">Position Confidence Ellipse</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_client_schema.html#pre-crash-container">Pre-Crash Container</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_client_schema.html#reference-position">Reference Position</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_client_schema.html#road-type">Road Type</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_client_schema.html#situation-container">Situation Container</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_client_schema.html#cloudevents-specification-version">CloudEvents Specification Version</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_client_schema.html#speed">Speed</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_client_schema.html#denm-termination-type">DENM Termination Type</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_client_schema.html#traffic-direction-type">Traffic Direction Type</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_client_schema.html#traffic-participant-type">Traffic Participant Type</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="cloud_events_step_crash_prediction_schema.html">STEP Crash Prediction Schema</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="cloud_events_step_crash_prediction_schema.html#cloud-event-step-crash-prediction">Cloud Event STEP Crash Prediction</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_crash_prediction_schema.html#reference-altitude">Reference Altitude</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_crash_prediction_schema.html#cloud-event-position-array-v1">Cloud Event Position Array V1</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_crash_prediction_schema.html#cloud-event-data-content-types">Cloud Event Data Content Types</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_crash_prediction_schema.html#drive-direction">Drive Direction</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_crash_prediction_schema.html#heading">Heading</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_crash_prediction_schema.html#identification">Identification</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_crash_prediction_schema.html#position-array-version-1">Position Array Version 1</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_crash_prediction_schema.html#position-confidence-ellipse">Position Confidence Ellipse</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_crash_prediction_schema.html#position-info">Position Info</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_crash_prediction_schema.html#position-type">Position Type</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_crash_prediction_schema.html#reference-position">Reference Position</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_crash_prediction_schema.html#cloudevents-specification-version">CloudEvents Specification Version</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_crash_prediction_schema.html#speed">Speed</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_crash_prediction_schema.html#traffic-participant-type">Traffic Participant Type</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_crash_prediction_schema.html#vehicle-length">Vehicle Length</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_crash_prediction_schema.html#vehicle-length-confidence-indication">Vehicle Length Confidence Indication</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="cloud_events_step_monitoring_schema.html">STEP Monitoring Schema</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="cloud_events_step_monitoring_schema.html#overview">Overview</a></li>
+<li class="toctree-l5"><a class="reference internal" href="cloud_events_step_monitoring_schema.html#current-usage">Current Usage</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_monitoring_schema.html#cloud-event-step-monitoring">Cloud Event STEP Monitoring</a><ul>
+<li class="toctree-l7"><a class="reference internal" href="cloud_events_step_monitoring_schema.html#actor-trajectory-forecasted">Actor Trajectory Forecasted</a></li>
+<li class="toctree-l7"><a class="reference internal" href="cloud_events_step_monitoring_schema.html#cloud-events-forecasted-trajectory-message">Cloud Events Forecasted Trajectory Message</a></li>
+<li class="toctree-l7"><a class="reference internal" href="cloud_events_step_monitoring_schema.html#cloud-event-data-content-types">Cloud Event Data Content Types</a></li>
+<li class="toctree-l7"><a class="reference internal" href="cloud_events_step_monitoring_schema.html#forecasted-point">Forecasted Point</a></li>
+<li class="toctree-l7"><a class="reference internal" href="cloud_events_step_monitoring_schema.html#position-type">Position Type</a></li>
+<li class="toctree-l7"><a class="reference internal" href="cloud_events_step_monitoring_schema.html#cloudevents-specification-version">CloudEvents Specification Version</a></li>
+<li class="toctree-l7"><a class="reference internal" href="cloud_events_step_monitoring_schema.html#trajectory-forecasted-type">Trajectory Forecasted Type</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="cloud_events_step_producer_schema.html">STEP Producer Schema</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="cloud_events_step_producer_schema.html#cloud-event-step-producer">Cloud Event STEP Producer</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_producer_schema.html#action-id">Action Id</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_producer_schema.html#reference-altitude">Reference Altitude</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_producer_schema.html#cause-code">Cause Code</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_producer_schema.html#cloud-event-data-content-types">Cloud Event Data Content Types</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_producer_schema.html#denm-data-version-1">DENM Data Version 1</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_producer_schema.html#drive-direction">Drive Direction</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_producer_schema.html#heading">Heading</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_producer_schema.html#identification">Identification</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_producer_schema.html#location-container">Location Container</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_producer_schema.html#denm-management-container">DENM Management Container</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_producer_schema.html#object-dimension">Object Dimension</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_producer_schema.html#object-face">Object Face</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_producer_schema.html#perceived-object">Perceived Object</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_producer_schema.html#position-confidence-ellipse">Position Confidence Ellipse</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_producer_schema.html#position-info">Position Info</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_producer_schema.html#position-type">Position Type</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_producer_schema.html#pre-crash-container">Pre-Crash Container</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_producer_schema.html#cloud-event-denm-data-v1">Cloud Event DENM Data V1</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_producer_schema.html#cloud-event-station-collision-array-data-v1">Cloud Event Station Collision Array Data V1</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_producer_schema.html#reference-position">Reference Position</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_producer_schema.html#road-type">Road Type</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_producer_schema.html#situation-container">Situation Container</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_producer_schema.html#cloudevents-specification-version">CloudEvents Specification Version</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_producer_schema.html#speed">Speed</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_producer_schema.html#station-collision-array-version-1">Station Collision Array Version 1</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_producer_schema.html#denm-termination-type">DENM Termination Type</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_producer_schema.html#traffic-direction-type">Traffic Direction Type</a></li>
+<li class="toctree-l6"><a class="reference internal" href="cloud_events_step_producer_schema.html#traffic-participant-type">Traffic Participant Type</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../step_redis_rst/step_redis.html">step_redis package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../step_redis_rst/step_redis.html#submodules">Submodules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../step_redis_rst/step_redis.step_adapter_redis_stream.html">step_redis.step_adapter_redis_stream module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../step_redis_rst/step_redis.step_adapter_redis_stream.html#step_redis.step_adapter_redis_stream.StepAdapterRedisStream"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_adapter_redis_stream.html#step_redis.step_adapter_redis_stream.StepAdapterRedisStream.pool"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream.pool</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_adapter_redis_stream.html#step_redis.step_adapter_redis_stream.StepAdapterRedisStream.config"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream.config</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_adapter_redis_stream.html#step_redis.step_adapter_redis_stream.StepAdapterRedisStream.logger"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream.logger</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_adapter_redis_stream.html#step_redis.step_adapter_redis_stream.StepAdapterRedisStream.__aenter__"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream.__aenter__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_adapter_redis_stream.html#step_redis.step_adapter_redis_stream.StepAdapterRedisStream.publish_cam_message"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream.publish_cam_message()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_adapter_redis_stream.html#step_redis.step_adapter_redis_stream.StepAdapterRedisStream.receive_adapter_message"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream.receive_adapter_message()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../step_redis_rst/step_redis.step_client_redis_stream.html">step_redis.step_client_redis_stream module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../step_redis_rst/step_redis.step_client_redis_stream.html#step_redis.step_client_redis_stream.StepClientRedisStream"><code class="docutils literal notranslate"><span class="pre">StepClientRedisStream</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_client_redis_stream.html#step_redis.step_client_redis_stream.StepClientRedisStream.pool"><code class="docutils literal notranslate"><span class="pre">StepClientRedisStream.pool</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_client_redis_stream.html#step_redis.step_client_redis_stream.StepClientRedisStream.config"><code class="docutils literal notranslate"><span class="pre">StepClientRedisStream.config</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_client_redis_stream.html#step_redis.step_client_redis_stream.StepClientRedisStream.logger"><code class="docutils literal notranslate"><span class="pre">StepClientRedisStream.logger</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_client_redis_stream.html#step_redis.step_client_redis_stream.StepClientRedisStream.__aenter__"><code class="docutils literal notranslate"><span class="pre">StepClientRedisStream.__aenter__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_client_redis_stream.html#step_redis.step_client_redis_stream.StepClientRedisStream.publish_denm_message"><code class="docutils literal notranslate"><span class="pre">StepClientRedisStream.publish_denm_message()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_client_redis_stream.html#step_redis.step_client_redis_stream.StepClientRedisStream.receive_client_message"><code class="docutils literal notranslate"><span class="pre">StepClientRedisStream.receive_client_message()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../step_redis_rst/step_redis.step_crash_prediction_redis_stream.html">step_redis.step_crash_prediction_redis_stream module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../step_redis_rst/step_redis.step_crash_prediction_redis_stream.html#step_redis.step_crash_prediction_redis_stream.StepCrashPredictionRedisStream"><code class="docutils literal notranslate"><span class="pre">StepCrashPredictionRedisStream</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_crash_prediction_redis_stream.html#step_redis.step_crash_prediction_redis_stream.StepCrashPredictionRedisStream.pool"><code class="docutils literal notranslate"><span class="pre">StepCrashPredictionRedisStream.pool</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_crash_prediction_redis_stream.html#step_redis.step_crash_prediction_redis_stream.StepCrashPredictionRedisStream.config"><code class="docutils literal notranslate"><span class="pre">StepCrashPredictionRedisStream.config</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_crash_prediction_redis_stream.html#step_redis.step_crash_prediction_redis_stream.StepCrashPredictionRedisStream.logger"><code class="docutils literal notranslate"><span class="pre">StepCrashPredictionRedisStream.logger</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_crash_prediction_redis_stream.html#step_redis.step_crash_prediction_redis_stream.StepCrashPredictionRedisStream.__aenter__"><code class="docutils literal notranslate"><span class="pre">StepCrashPredictionRedisStream.__aenter__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_crash_prediction_redis_stream.html#step_redis.step_crash_prediction_redis_stream.StepCrashPredictionRedisStream.publish_position_array"><code class="docutils literal notranslate"><span class="pre">StepCrashPredictionRedisStream.publish_position_array()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_crash_prediction_redis_stream.html#step_redis.step_crash_prediction_redis_stream.StepCrashPredictionRedisStream.receive_crash_prediction_message"><code class="docutils literal notranslate"><span class="pre">StepCrashPredictionRedisStream.receive_crash_prediction_message()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../step_redis_rst/step_redis.step_monitoring_redis_stream.html">step_redis.step_monitoring_redis_stream module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../step_redis_rst/step_redis.step_monitoring_redis_stream.html#step_redis.step_monitoring_redis_stream.StepMonitoringRedisStream"><code class="docutils literal notranslate"><span class="pre">StepMonitoringRedisStream</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_monitoring_redis_stream.html#step_redis.step_monitoring_redis_stream.StepMonitoringRedisStream.pool"><code class="docutils literal notranslate"><span class="pre">StepMonitoringRedisStream.pool</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_monitoring_redis_stream.html#step_redis.step_monitoring_redis_stream.StepMonitoringRedisStream.config"><code class="docutils literal notranslate"><span class="pre">StepMonitoringRedisStream.config</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_monitoring_redis_stream.html#step_redis.step_monitoring_redis_stream.StepMonitoringRedisStream.logger"><code class="docutils literal notranslate"><span class="pre">StepMonitoringRedisStream.logger</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_monitoring_redis_stream.html#step_redis.step_monitoring_redis_stream.StepMonitoringRedisStream.__aenter__"><code class="docutils literal notranslate"><span class="pre">StepMonitoringRedisStream.__aenter__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_monitoring_redis_stream.html#step_redis.step_monitoring_redis_stream.StepMonitoringRedisStream.publish_forecasted_trajectory"><code class="docutils literal notranslate"><span class="pre">StepMonitoringRedisStream.publish_forecasted_trajectory()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_monitoring_redis_stream.html#step_redis.step_monitoring_redis_stream.StepMonitoringRedisStream.receive_monitoring_message"><code class="docutils literal notranslate"><span class="pre">StepMonitoringRedisStream.receive_monitoring_message()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../step_redis_rst/step_redis.step_producer_redis_stream.html">step_redis.step_producer_redis_stream module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../step_redis_rst/step_redis.step_producer_redis_stream.html#step_redis.step_producer_redis_stream.StepProducerRedisStream"><code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_producer_redis_stream.html#step_redis.step_producer_redis_stream.StepProducerRedisStream.pool"><code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream.pool</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_producer_redis_stream.html#step_redis.step_producer_redis_stream.StepProducerRedisStream.config"><code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream.config</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_producer_redis_stream.html#step_redis.step_producer_redis_stream.StepProducerRedisStream.logger"><code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream.logger</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_producer_redis_stream.html#step_redis.step_producer_redis_stream.StepProducerRedisStream.__aenter__"><code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream.__aenter__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_producer_redis_stream.html#step_redis.step_producer_redis_stream.StepProducerRedisStream.publish_denm_message"><code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream.publish_denm_message()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_producer_redis_stream.html#step_redis.step_producer_redis_stream.StepProducerRedisStream.publish_station_collision_array"><code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream.publish_station_collision_array()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_producer_redis_stream.html#step_redis.step_producer_redis_stream.StepProducerRedisStream.receive_producer_message"><code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream.receive_producer_message()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_pool.html">step_redis.step_redis_pool module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPool"><code class="docutils literal notranslate"><span class="pre">StepRedisPool</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPool.params"><code class="docutils literal notranslate"><span class="pre">StepRedisPool.params</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPool.logger"><code class="docutils literal notranslate"><span class="pre">StepRedisPool.logger</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPool.__aenter__"><code class="docutils literal notranslate"><span class="pre">StepRedisPool.__aenter__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPool.__aexit__"><code class="docutils literal notranslate"><span class="pre">StepRedisPool.__aexit__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.host"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.host</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.port"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.port</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.username"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.username</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.password"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.password</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.db"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.db</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.socket_timeout"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.socket_timeout</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.socket_connect_timeout"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.socket_connect_timeout</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.socket_keep_idle"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.socket_keep_idle</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.socket_keep_alive"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.socket_keep_alive</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.socket_keep_cnt"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.socket_keep_cnt</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.ssl_enable"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.ssl_enable</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.ssl_client_key_file"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.ssl_client_key_file</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.ssl_client_key_file_password"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.ssl_client_key_file_password</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.ssl_client_cert_file"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.ssl_client_cert_file</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.ssl_cert_requested"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.ssl_cert_requested</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.ssl_ca_certs_file"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.ssl_ca_certs_file</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.health_check_interval"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.health_check_interval</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.max_connections"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.max_connections</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.connection_available_timeout"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.connection_available_timeout</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.protocol"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.protocol</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_stream.html">step_redis.step_redis_stream module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream"><code class="docutils literal notranslate"><span class="pre">StepRedisStream</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream.pool"><code class="docutils literal notranslate"><span class="pre">StepRedisStream.pool</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream.config"><code class="docutils literal notranslate"><span class="pre">StepRedisStream.config</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream.logger"><code class="docutils literal notranslate"><span class="pre">StepRedisStream.logger</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream.__aenter__"><code class="docutils literal notranslate"><span class="pre">StepRedisStream.__aenter__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream.__aexit__"><code class="docutils literal notranslate"><span class="pre">StepRedisStream.__aexit__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream.create_input_stream"><code class="docutils literal notranslate"><span class="pre">StepRedisStream.create_input_stream()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream.get_stream_ttl"><code class="docutils literal notranslate"><span class="pre">StepRedisStream.get_stream_ttl()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream.ping"><code class="docutils literal notranslate"><span class="pre">StepRedisStream.ping()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream.publish_message"><code class="docutils literal notranslate"><span class="pre">StepRedisStream.publish_message()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream.receive_message"><code class="docutils literal notranslate"><span class="pre">StepRedisStream.receive_message()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream.update_stream_ttl"><code class="docutils literal notranslate"><span class="pre">StepRedisStream.update_stream_ttl()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStreamParams"><code class="docutils literal notranslate"><span class="pre">StepRedisStreamParams</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStreamParams.stream_id"><code class="docutils literal notranslate"><span class="pre">StepRedisStreamParams.stream_id</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStreamParams.group_id"><code class="docutils literal notranslate"><span class="pre">StepRedisStreamParams.group_id</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStreamParams.wait_timeout_ms"><code class="docutils literal notranslate"><span class="pre">StepRedisStreamParams.wait_timeout_ms</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStreamParams.max_length"><code class="docutils literal notranslate"><span class="pre">StepRedisStreamParams.max_length</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStreamParams.consumer_name"><code class="docutils literal notranslate"><span class="pre">StepRedisStreamParams.consumer_name</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStreamParams.ttl_seconds"><code class="docutils literal notranslate"><span class="pre">StepRedisStreamParams.ttl_seconds</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStreamParams.__post_init__"><code class="docutils literal notranslate"><span class="pre">StepRedisStreamParams.__post_init__()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../test_rst/test.html">Unit Test package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../test_rst/test.html#submodules">Submodules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../test_rst/test.test___init__.html">test.test___init__ module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___init__.html#test.test___init__.test_package_exports"><code class="docutils literal notranslate"><span class="pre">test_package_exports()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___init__.html#test.test___init__.test_release_date"><code class="docutils literal notranslate"><span class="pre">test_release_date()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___init__.html#test.test___init__.test_version"><code class="docutils literal notranslate"><span class="pre">test_version()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../test_rst/test.test_step_adapter_redis_stream.html">test.test_step_adapter_redis_stream module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_step_adapter_redis_stream.html#test.test_step_adapter_redis_stream.TestStepAdapterRedisStream"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterRedisStream</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_adapter_redis_stream.html#test.test_step_adapter_redis_stream.TestStepAdapterRedisStream.test___aenter__"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterRedisStream.test___aenter__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_adapter_redis_stream.html#test.test_step_adapter_redis_stream.TestStepAdapterRedisStream.test___init__"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterRedisStream.test___init__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_adapter_redis_stream.html#test.test_step_adapter_redis_stream.TestStepAdapterRedisStream.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterRedisStream.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_adapter_redis_stream.html#test.test_step_adapter_redis_stream.TestStepAdapterRedisStream.test_publish_cam_message"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterRedisStream.test_publish_cam_message()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_adapter_redis_stream.html#test.test_step_adapter_redis_stream.TestStepAdapterRedisStream.test_receive_adapter_message"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterRedisStream.test_receive_adapter_message()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../test_rst/test.test_step_client_redis_stream.html">test.test_step_client_redis_stream module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_step_client_redis_stream.html#test.test_step_client_redis_stream.TestStepClientRedisStream"><code class="docutils literal notranslate"><span class="pre">TestStepClientRedisStream</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_client_redis_stream.html#test.test_step_client_redis_stream.TestStepClientRedisStream.test___aenter__"><code class="docutils literal notranslate"><span class="pre">TestStepClientRedisStream.test___aenter__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_client_redis_stream.html#test.test_step_client_redis_stream.TestStepClientRedisStream.test___init__"><code class="docutils literal notranslate"><span class="pre">TestStepClientRedisStream.test___init__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_client_redis_stream.html#test.test_step_client_redis_stream.TestStepClientRedisStream.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestStepClientRedisStream.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_client_redis_stream.html#test.test_step_client_redis_stream.TestStepClientRedisStream.test_publish_denm_message"><code class="docutils literal notranslate"><span class="pre">TestStepClientRedisStream.test_publish_denm_message()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_client_redis_stream.html#test.test_step_client_redis_stream.TestStepClientRedisStream.test_receive_client_message"><code class="docutils literal notranslate"><span class="pre">TestStepClientRedisStream.test_receive_client_message()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../test_rst/test.test_step_crash_prediction_redis_stream.html">test.test_step_crash_prediction_redis_stream module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_step_crash_prediction_redis_stream.html#test.test_step_crash_prediction_redis_stream.TestStepCrashPredictionRedisStream"><code class="docutils literal notranslate"><span class="pre">TestStepCrashPredictionRedisStream</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_crash_prediction_redis_stream.html#test.test_step_crash_prediction_redis_stream.TestStepCrashPredictionRedisStream.test___aenter__"><code class="docutils literal notranslate"><span class="pre">TestStepCrashPredictionRedisStream.test___aenter__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_crash_prediction_redis_stream.html#test.test_step_crash_prediction_redis_stream.TestStepCrashPredictionRedisStream.test___init__"><code class="docutils literal notranslate"><span class="pre">TestStepCrashPredictionRedisStream.test___init__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_crash_prediction_redis_stream.html#test.test_step_crash_prediction_redis_stream.TestStepCrashPredictionRedisStream.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestStepCrashPredictionRedisStream.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_crash_prediction_redis_stream.html#test.test_step_crash_prediction_redis_stream.TestStepCrashPredictionRedisStream.test_publish_position_array"><code class="docutils literal notranslate"><span class="pre">TestStepCrashPredictionRedisStream.test_publish_position_array()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_crash_prediction_redis_stream.html#test.test_step_crash_prediction_redis_stream.TestStepCrashPredictionRedisStream.test_receive_crash_prediction_message"><code class="docutils literal notranslate"><span class="pre">TestStepCrashPredictionRedisStream.test_receive_crash_prediction_message()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../test_rst/test.test_step_monitoring_redis_stream.html">test.test_step_monitoring_redis_stream module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_step_monitoring_redis_stream.html#test.test_step_monitoring_redis_stream.TestStepMonitoringRedisStream"><code class="docutils literal notranslate"><span class="pre">TestStepMonitoringRedisStream</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_monitoring_redis_stream.html#test.test_step_monitoring_redis_stream.TestStepMonitoringRedisStream.test___aenter__"><code class="docutils literal notranslate"><span class="pre">TestStepMonitoringRedisStream.test___aenter__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_monitoring_redis_stream.html#test.test_step_monitoring_redis_stream.TestStepMonitoringRedisStream.test___init__"><code class="docutils literal notranslate"><span class="pre">TestStepMonitoringRedisStream.test___init__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_monitoring_redis_stream.html#test.test_step_monitoring_redis_stream.TestStepMonitoringRedisStream.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestStepMonitoringRedisStream.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_monitoring_redis_stream.html#test.test_step_monitoring_redis_stream.TestStepMonitoringRedisStream.test_publish_forecasted_trajectory"><code class="docutils literal notranslate"><span class="pre">TestStepMonitoringRedisStream.test_publish_forecasted_trajectory()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_monitoring_redis_stream.html#test.test_step_monitoring_redis_stream.TestStepMonitoringRedisStream.test_receive_monitoring_message"><code class="docutils literal notranslate"><span class="pre">TestStepMonitoringRedisStream.test_receive_monitoring_message()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../test_rst/test.test_step_producer_redis_stream.html">test.test_step_producer_redis_stream module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_step_producer_redis_stream.html#test.test_step_producer_redis_stream.TestStepProducerRedisStream"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisStream</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_producer_redis_stream.html#test.test_step_producer_redis_stream.TestStepProducerRedisStream.test___aenter__"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisStream.test___aenter__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_producer_redis_stream.html#test.test_step_producer_redis_stream.TestStepProducerRedisStream.test___init__"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisStream.test___init__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_producer_redis_stream.html#test.test_step_producer_redis_stream.TestStepProducerRedisStream.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisStream.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_producer_redis_stream.html#test.test_step_producer_redis_stream.TestStepProducerRedisStream.test_publish_denm_message"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisStream.test_publish_denm_message()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_producer_redis_stream.html#test.test_step_producer_redis_stream.TestStepProducerRedisStream.test_publish_station_collision_array"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisStream.test_publish_station_collision_array()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_producer_redis_stream.html#test.test_step_producer_redis_stream.TestStepProducerRedisStream.test_receive_producer_message"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisStream.test_receive_producer_message()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../test_rst/test.test_step_redis_pool.html">test.test_step_redis_pool module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_step_redis_pool.html#test.test_step_redis_pool.TestStepRedisPool"><code class="docutils literal notranslate"><span class="pre">TestStepRedisPool</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_pool.html#test.test_step_redis_pool.TestStepRedisPool.redis_params_no_ssl"><code class="docutils literal notranslate"><span class="pre">TestStepRedisPool.redis_params_no_ssl()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_pool.html#test.test_step_redis_pool.TestStepRedisPool.redis_params_ssl"><code class="docutils literal notranslate"><span class="pre">TestStepRedisPool.redis_params_ssl()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_pool.html#test.test_step_redis_pool.TestStepRedisPool.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestStepRedisPool.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_pool.html#test.test_step_redis_pool.TestStepRedisPool.test_async_context_manager"><code class="docutils literal notranslate"><span class="pre">TestStepRedisPool.test_async_context_manager()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_pool.html#test.test_step_redis_pool.TestStepRedisPool.test_init_with_ssl"><code class="docutils literal notranslate"><span class="pre">TestStepRedisPool.test_init_with_ssl()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_pool.html#test.test_step_redis_pool.TestStepRedisPool.test_init_without_ssl"><code class="docutils literal notranslate"><span class="pre">TestStepRedisPool.test_init_without_ssl()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_step_redis_pool.html#test.test_step_redis_pool.TestStepRedisPoolParams"><code class="docutils literal notranslate"><span class="pre">TestStepRedisPoolParams</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_pool.html#test.test_step_redis_pool.TestStepRedisPoolParams.redis_params_no_ssl"><code class="docutils literal notranslate"><span class="pre">TestStepRedisPoolParams.redis_params_no_ssl()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_pool.html#test.test_step_redis_pool.TestStepRedisPoolParams.redis_params_ssl"><code class="docutils literal notranslate"><span class="pre">TestStepRedisPoolParams.redis_params_ssl()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_pool.html#test.test_step_redis_pool.TestStepRedisPoolParams.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestStepRedisPoolParams.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_pool.html#test.test_step_redis_pool.TestStepRedisPoolParams.test_redis_pool_params_init_no_ssl"><code class="docutils literal notranslate"><span class="pre">TestStepRedisPoolParams.test_redis_pool_params_init_no_ssl()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_pool.html#test.test_step_redis_pool.TestStepRedisPoolParams.test_redis_pool_params_init_ssl"><code class="docutils literal notranslate"><span class="pre">TestStepRedisPoolParams.test_redis_pool_params_init_ssl()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../test_rst/test.test_step_redis_stream.html">test.test_step_redis_stream module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStream"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStream.mock_pool"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.mock_pool()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStream.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStream.test_context"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_context()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStream.test_create_input_stream"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_create_input_stream()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStream.test_create_input_stream_params_error"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_create_input_stream_params_error()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStream.test_create_input_stream_redis_already_exists"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_create_input_stream_redis_already_exists()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStream.test_create_input_stream_redis_error"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_create_input_stream_redis_error()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStream.test_get_stream_ttl"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_get_stream_ttl()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStream.test_init"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_init()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStream.test_ping"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_ping()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStream.test_publish_message_params_error"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_publish_message_params_error()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStream.test_publish_message_success"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_publish_message_success()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStream.test_receive_message"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_receive_message()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStream.test_receive_message_params_error"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_receive_message_params_error()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStream.test_update_stream_ttl"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_update_stream_ttl()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStream.test_update_stream_ttl_error"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_update_stream_ttl_error()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStreamParams"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStreamParams</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStreamParams.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStreamParams.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStreamParams.test_params_boundary_values"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStreamParams.test_params_boundary_values()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_redis_stream.html#test.test_step_redis_stream.TestStepRedisStreamParams.test_params_invalid_values"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStreamParams.test_params_invalid_values()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">STEP Redis</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="json_schemas.html">JSON Schemas</a></li>
+          <li class="breadcrumb-item"><a href="its_messages.html">ITS Messages</a></li>
+          <li class="breadcrumb-item"><a href="denm_message.html">DENM Message</a></li>
+      <li class="breadcrumb-item active">DENM Data V1 Schema</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/schemas_rst/denm_data_v1_schema.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="denm-data-v1-schema">
+<h1>DENM Data V1 Schema<a class="headerlink" href="#denm-data-v1-schema" title="Link to this heading"></a></h1>
+<p>The DENM (Decentralized Environmental Notification Message) schema defines the structure for messages used
+in C_ITS communication to notify about road events and hazards. The schema consists of several main containers:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><strong>Action ID</strong>: Uniquely identifies the DENM through originatingStationId and sequenceNumber</p></li>
+<li><dl class="simple">
+<dt><strong>Management Container</strong>: Contains basic event management data including:</dt><dd><ul>
+<li><p>Detection and reference times</p></li>
+<li><p>Geographic position and validity information</p></li>
+<li><p>Station type and transmission parameters</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p><strong>Situation Container</strong>: Describes the type and quality of the detected event</p></li>
+<li><p><strong>Location Container</strong>: Provides detailed positioning information about the event</p></li>
+<li><dl class="simple">
+<dt><strong>PreCrash Container</strong>: Contains specific data related to potential collision scenarios, including:</dt><dd><ul>
+<li><p>Perceived object details</p></li>
+<li><p>Time to collision</p></li>
+<li><p>Impact section information</p></li>
+<li><p>Estimated braking distance</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</div></blockquote>
+<p>This schema defines a JSON Schema <strong>version 1</strong>. For further information, please refer
+to the python classes.</p>
+<p>Example of the message:</p>
+<div class="highlight-JSON notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;stationId&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">25648</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;managementContainer&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;actionId&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;originatingStationId&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">123</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;sequenceNumber&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">25</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;detectionTime&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2018-04-05T17:31:00.000Z&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;referenceTime&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2018-04-05T17:31:01.000Z&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;termination&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;isCancellation&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;eventPosition&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;latitude&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">45.587878</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;longitude&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">60.458789</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;positionConfidence&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;semiMajorAxisLengthConfidence&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">12</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;semiMinorAxisLengthConfidence&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">123</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;semiMajorAxisOrientation&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="nt">&quot;altitude&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;value&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">12000</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;confidence&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">50</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;awarenessDistance&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;trafficDirection&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;allTrafficDirections&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;validityDuration&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">60</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;transmissionInterval&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1000</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;stationType&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;passengerCar&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;referenceStationId&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">25648</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;referenceObjectId&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">123</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;situationContainer&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;informationQuality&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;eventType&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;collisionRisk97&quot;</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;locationContainer&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;eventSpeed&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;value&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">12367</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;confidence&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">50</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;eventPositionHeading&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;value&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">123</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;confidence&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">50</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;roadType&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;urban-NoStructuralSeparationToOppositeLanes&quot;</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;preCrashContainer&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;perceivedObject&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;objectId&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">123</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;measurementDeltaTime&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">123</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;position&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;latitude&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">45.587878</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;longitude&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">60.458789</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;positionConfidence&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">&quot;semiMajorAxisLengthConfidence&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">12</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">&quot;semiMinorAxisLengthConfidence&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">123</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">&quot;semiMajorAxisOrientation&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="nt">&quot;altitude&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">&quot;value&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">12000</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">&quot;confidence&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">50</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="nt">&quot;speed&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;value&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">12367</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;confidence&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">50</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="nt">&quot;heading&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;value&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">123</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;confidence&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">50</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="nt">&quot;objectDimensionZ&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;value&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">123</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;confidence&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">5</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="nt">&quot;objectDimensionY&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;value&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">123</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;confidence&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">5</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="nt">&quot;objectDimensionX&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;value&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">123</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;confidence&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">5</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="nt">&quot;objectPerceptionQuality&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">5</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;stationIdInvolved&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">25648</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;timeToCollision&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1000</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;impactSection&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;front&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;estimatedBrakingDistance&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;estimatedCollisionLatitude&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">37.7749</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;estimatedCollisionLongitude&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">-122.4194</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<section id="denm-data-version-1">
+<span id="denm-data-version-1"></span><h2>DENM Data Version 1<a class="headerlink" href="#denm-data-version-1" title="Link to this heading"></a></h2>
+<p>DENM data version 1</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td colspan="4"><p>denm_data_v1_schema</p></td>
+</tr>
+<tr class="row-even"><td><p>type</p></td>
+<td colspan="3"><p><em>object</em></p></td>
+</tr>
+<tr class="row-odd"><td colspan="4"><p>properties</p></td>
+</tr>
+<tr class="row-even"><td rowspan="6"><ul class="simple">
+<li><p><strong>stationId</strong></p></li>
+</ul>
+</td>
+<td colspan="3"><p><em>Station Id</em></p></td>
+</tr>
+<tr class="row-odd"><td colspan="3"><p>Identification of the station</p></td>
+</tr>
+<tr class="row-even"><td><p>type</p></td>
+<td colspan="2"><p><em>integer</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>examples</p></td>
+<td colspan="2"><p>25648</p></td>
+</tr>
+<tr class="row-even"><td><p>maximum</p></td>
+<td colspan="2"><p>4294967295</p></td>
+</tr>
+<tr class="row-odd"><td><p>minimum</p></td>
+<td colspan="2"><p>0</p></td>
+</tr>
+<tr class="row-even"><td rowspan="2"><ul class="simple">
+<li><p><strong>managementContainer</strong></p></li>
+</ul>
+</td>
+<td colspan="3"><p><em>Management Container</em></p></td>
+</tr>
+<tr class="row-odd"><td colspan="3"><p><a class="reference internal" href="#denm-management-container">DENM Management Container</a></p></td>
+</tr>
+<tr class="row-even"><td rowspan="4"><ul class="simple">
+<li><p><strong>situationContainer</strong></p></li>
+</ul>
+</td>
+<td colspan="3"><p><em>Situation Container</em></p></td>
+</tr>
+<tr class="row-odd"><td colspan="3"><p>Information about location of the event</p></td>
+</tr>
+<tr class="row-even"><td rowspan="2"><p>anyOf</p></td>
+<td colspan="2"><p><a class="reference internal" href="#situation-container">Situation Container</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td><p><em>null</em></p></td>
+</tr>
+<tr class="row-even"><td rowspan="4"><ul class="simple">
+<li><p><strong>locationContainer</strong></p></li>
+</ul>
+</td>
+<td colspan="3"><p><em>Location Container</em></p></td>
+</tr>
+<tr class="row-odd"><td colspan="3"><p>Information about location of the event</p></td>
+</tr>
+<tr class="row-even"><td rowspan="2"><p>anyOf</p></td>
+<td colspan="2"><p><a class="reference internal" href="#location-container">Location Container</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td><p><em>null</em></p></td>
+</tr>
+<tr class="row-even"><td rowspan="4"><ul class="simple">
+<li><p><strong>preCrashContainer</strong></p></li>
+</ul>
+</td>
+<td colspan="3"><p><em>Pre-Crash Container</em></p></td>
+</tr>
+<tr class="row-odd"><td colspan="3"><p>Contain detailed information about an object with which a vehicle and/or the traffic is likely to collide</p></td>
+</tr>
+<tr class="row-even"><td rowspan="2"><p>anyOf</p></td>
+<td colspan="2"><p><a class="reference internal" href="#pre-crash-container">Pre-Crash Container</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td><p><em>null</em></p></td>
+</tr>
+<tr class="row-even"><td><p>additionalProperties</p></td>
+<td colspan="3"><p>False</p></td>
+</tr>
+</tbody>
+</table>
+<section id="action-id">
+<span id="action-id"></span><h3>Action Id<a class="headerlink" href="#action-id" title="Link to this heading"></a></h3>
+<p>A unique identifier for an action that combines station ID and sequence number</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p>type</p></td>
+<td colspan="2"><p><em>object</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="3"><p>properties</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="6"><ul class="simple">
+<li><p><strong>originatingStationId</strong></p></li>
+</ul>
+</td>
+<td colspan="2"><p><em>Station Id</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="2"><p>The identifier of the originating station of the action</p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td><p><em>integer</em></p></td>
+</tr>
+<tr class="row-even"><td><p>examples</p></td>
+<td><p>25648</p></td>
+</tr>
+<tr class="row-odd"><td><p>maximum</p></td>
+<td><p>4294967295</p></td>
+</tr>
+<tr class="row-even"><td><p>minimum</p></td>
+<td><p>0</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="6"><ul class="simple">
+<li><p><strong>sequenceNumber</strong></p></li>
+</ul>
+</td>
+<td colspan="2"><p><em>Sequence Number</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="2"><p>The sequence number of the action</p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td><p><em>integer</em></p></td>
+</tr>
+<tr class="row-even"><td><p>examples</p></td>
+<td><p>123</p></td>
+</tr>
+<tr class="row-odd"><td><p>maximum</p></td>
+<td><p>65535</p></td>
+</tr>
+<tr class="row-even"><td><p>minimum</p></td>
+<td><p>0</p></td>
+</tr>
+<tr class="row-odd"><td><p>additionalProperties</p></td>
+<td colspan="2"><p>False</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="reference-altitude">
+<span id="reference-altitude"></span><h3>Reference Altitude<a class="headerlink" href="#reference-altitude" title="Link to this heading"></a></h3>
+<p>Provides the altitude and confidence level of an altitude information in a WGS84 coordinate system</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p>type</p></td>
+<td colspan="3"><p><em>object</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="4"><p>properties</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="6"><ul class="simple">
+<li><p><strong>value</strong></p></li>
+</ul>
+</td>
+<td colspan="3"><p><em>Altitude Value</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="3"><p>Altitude value in 0.01 metre</p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td colspan="2"><p><em>integer</em></p></td>
+</tr>
+<tr class="row-even"><td><p>examples</p></td>
+<td colspan="2"><p>12000</p></td>
+</tr>
+<tr class="row-odd"><td><p>maximum</p></td>
+<td colspan="2"><p>800000</p></td>
+</tr>
+<tr class="row-even"><td><p>minimum</p></td>
+<td colspan="2"><p>-100000</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="7"><ul class="simple">
+<li><p><strong>confidence</strong></p></li>
+</ul>
+</td>
+<td colspan="3"><p><em>Altitude Confidence</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="3"><p>Indicates the altitude confidence value which represents the estimated absolute accuracy of an altitude value of a geographical point with a default confidence level of 95 %. Unit: 0.01 metre</p></td>
+</tr>
+<tr class="row-odd"><td><p>examples</p></td>
+<td colspan="2"><p>50</p></td>
+</tr>
+<tr class="row-even"><td rowspan="4"><p>anyOf</p></td>
+<td><p>type</p></td>
+<td><p><em>integer</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>maximum</p></td>
+<td><p>20001</p></td>
+</tr>
+<tr class="row-even"><td><p>minimum</p></td>
+<td><p>1</p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td><p><em>null</em></p></td>
+</tr>
+<tr class="row-even"><td><p>additionalProperties</p></td>
+<td colspan="3"><p>False</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="cause-code">
+<span id="cause-code"></span><h3>Cause Code<a class="headerlink" href="#cause-code" title="Link to this heading"></a></h3>
+<p>Defines an enumeration of cause codes</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p>type</p></td>
+<td><p><em>string</em></p></td>
+</tr>
+<tr class="row-even"><td><p>enum</p></td>
+<td><p>trafficCondition1, accident2, roadworks3, impassability5, adverseWeatherCondition-Adhesion6, aquaplaning7, hazardousLocation-SurfaceCondition9, hazardousLocation-ObstacleOnTheRoad10, hazardousLocation-AnimalOnTheRoad11, humanPresenceOnTheRoad12, wrongWayDriving14, rescueAndRecoveryWorkInProgress15, adverseWeatherCondition-ExtremeWeatherCondition17, adverseWeatherCondition-Visibility18, adverseWeatherCondition-Precipitation19, violence20, slowVehicle26, dangerousEndOfQueue27, dontPanic42, publicTransportVehicleApproaching28, vehicleBreakdown91, postCrash92, humanProblem93, stationaryVehicle94, emergencyVehicleApproaching95, hazardousLocation-DangerousCurve96, collisionRisk97, signalViolation98, dangerousSituation99, railwayLevelCrossing100</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="heading">
+<span id="heading"></span><h3>Heading<a class="headerlink" href="#heading" title="Link to this heading"></a></h3>
+<p>Represents the Heading in a WGS84 co-ordinates system</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p>type</p></td>
+<td colspan="3"><p><em>object</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="4"><p>properties</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="6"><ul class="simple">
+<li><p><strong>value</strong></p></li>
+</ul>
+</td>
+<td colspan="3"><p><em>Heading Value</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="3"><p>Represents the orientation of the horizontal velocity vector with regards to the WGS84 north. Unit: 0.1 degrees</p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td colspan="2"><p><em>integer</em></p></td>
+</tr>
+<tr class="row-even"><td><p>examples</p></td>
+<td colspan="2"><p>123</p></td>
+</tr>
+<tr class="row-odd"><td><p>maximum</p></td>
+<td colspan="2"><p>3599</p></td>
+</tr>
+<tr class="row-even"><td><p>minimum</p></td>
+<td colspan="2"><p>0</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="7"><ul class="simple">
+<li><p><strong>confidence</strong></p></li>
+</ul>
+</td>
+<td colspan="3"><p><em>Heading Confidence</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="3"><p>Indicates the heading confidence value which represents the estimated absolute accuracy of a heading value with a confidence level of 95 %. Unit: 0.1 degree</p></td>
+</tr>
+<tr class="row-odd"><td><p>examples</p></td>
+<td colspan="2"><p>50</p></td>
+</tr>
+<tr class="row-even"><td rowspan="4"><p>anyOf</p></td>
+<td><p>type</p></td>
+<td><p><em>integer</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>maximum</p></td>
+<td><p>126</p></td>
+</tr>
+<tr class="row-even"><td><p>minimum</p></td>
+<td><p>1</p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td><p><em>null</em></p></td>
+</tr>
+<tr class="row-even"><td><p>additionalProperties</p></td>
+<td colspan="3"><p>False</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="location-container">
+<span id="location-container"></span><h3>Location Container<a class="headerlink" href="#location-container" title="Link to this heading"></a></h3>
+<p>Information about location of the event</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p>type</p></td>
+<td colspan="3"><p><em>object</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="4"><p>properties</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="4"><ul class="simple">
+<li><p><strong>eventSpeed</strong></p></li>
+</ul>
+</td>
+<td colspan="3"><p><em>Speed</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="3"><p>Speed of a detected dynamic event and the confidence of the speed information</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="2"><p>anyOf</p></td>
+<td colspan="2"><p><a class="reference internal" href="#speed">Speed</a></p></td>
+</tr>
+<tr class="row-even"><td><p>type</p></td>
+<td><p><em>null</em></p></td>
+</tr>
+<tr class="row-odd"><td rowspan="4"><ul class="simple">
+<li><p><strong>eventPositionHeading</strong></p></li>
+</ul>
+</td>
+<td colspan="3"><p><em>Heading</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="3"><p>Heading of a dynamic event and the confidence of the heading information</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="2"><p>anyOf</p></td>
+<td colspan="2"><p><a class="reference internal" href="#heading">Heading</a></p></td>
+</tr>
+<tr class="row-even"><td><p>type</p></td>
+<td><p><em>null</em></p></td>
+</tr>
+<tr class="row-odd"><td rowspan="5"><ul class="simple">
+<li><p><strong>roadType</strong></p></li>
+</ul>
+</td>
+<td colspan="3"><p><em>Road Type</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="3"><p>The type of road road type information at the event position</p></td>
+</tr>
+<tr class="row-odd"><td><p>examples</p></td>
+<td colspan="2"><p>urban-NoStructuralSeparationToOppositeLanes</p></td>
+</tr>
+<tr class="row-even"><td rowspan="2"><p>anyOf</p></td>
+<td colspan="2"><p><a class="reference internal" href="#road-type">Road Type</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td><p><em>null</em></p></td>
+</tr>
+<tr class="row-even"><td><p>additionalProperties</p></td>
+<td colspan="3"><p>False</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="denm-management-container">
+<span id="denm-management-container"></span><h3>DENM Management Container<a class="headerlink" href="#denm-management-container" title="Link to this heading"></a></h3>
+<p>General information about the event</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p>type</p></td>
+<td colspan="3"><p><em>object</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="4"><p>properties</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="3"><ul class="simple">
+<li><p><strong>actionId</strong></p></li>
+</ul>
+</td>
+<td colspan="3"><p><em>Action ID</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="3"><p>The unique identifier of DENM warning message</p></td>
+</tr>
+<tr class="row-odd"><td colspan="3"><p><a class="reference internal" href="#action-id">Action Id</a></p></td>
+</tr>
+<tr class="row-even"><td rowspan="5"><ul class="simple">
+<li><p><strong>detectionTime</strong></p></li>
+</ul>
+</td>
+<td colspan="3"><p><em>Timestamp of Detection</em></p></td>
+</tr>
+<tr class="row-odd"><td colspan="3"><p>Timestamp in ISO format of when the event happened</p></td>
+</tr>
+<tr class="row-even"><td><p>type</p></td>
+<td colspan="2"><p><em>string</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>examples</p></td>
+<td colspan="2"><p>2018-04-05T17:31:00.000Z</p></td>
+</tr>
+<tr class="row-even"><td><p>pattern</p></td>
+<td colspan="2"><p>^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])T([01]\d|2[0-3]):([0-5]\d):([0-5]\d)(\.\d{1,6})?(Z|([+-](0\d|1[0-4]):[0-5]\d))?$</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="5"><ul class="simple">
+<li><p><strong>referenceTime</strong></p></li>
+</ul>
+</td>
+<td colspan="3"><p><em>Timestamp of Reference</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="3"><p>Timestamp in ISO format of when a new DENM, an update DENM or a cancellation DENM is generated</p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td colspan="2"><p><em>string</em></p></td>
+</tr>
+<tr class="row-even"><td><p>examples</p></td>
+<td colspan="2"><p>2018-04-05T17:31:00.000Z</p></td>
+</tr>
+<tr class="row-odd"><td><p>pattern</p></td>
+<td colspan="2"><p>^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])T([01]\d|2[0-3]):([0-5]\d):([0-5]\d)(\.\d{1,6})?(Z|([+-](0\d|1[0-4]):[0-5]\d))?$</p></td>
+</tr>
+<tr class="row-even"><td rowspan="4"><ul class="simple">
+<li><p><strong>termination</strong></p></li>
+</ul>
+</td>
+<td colspan="3"><p><em>Termination</em></p></td>
+</tr>
+<tr class="row-odd"><td colspan="3"><p>The termination of the DENM</p></td>
+</tr>
+<tr class="row-even"><td rowspan="2"><p>anyOf</p></td>
+<td colspan="2"><p><a class="reference internal" href="#denm-termination-type">DENM Termination Type</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td><p><em>null</em></p></td>
+</tr>
+<tr class="row-even"><td rowspan="4"><ul class="simple">
+<li><p><strong>eventPosition</strong></p></li>
+</ul>
+</td>
+<td colspan="3"><p><em>Event Position</em></p></td>
+</tr>
+<tr class="row-odd"><td colspan="3"><p>Event position with latitude, longitude and position confidence ellipse</p></td>
+</tr>
+<tr class="row-even"><td rowspan="2"><p>anyOf</p></td>
+<td colspan="2"><p><a class="reference internal" href="#reference-position">Reference Position</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td><p><em>null</em></p></td>
+</tr>
+<tr class="row-even"><td rowspan="6"><ul class="simple">
+<li><p><strong>awarenessDistance</strong></p></li>
+</ul>
+</td>
+<td colspan="3"><p><em>Awareness Distance</em></p></td>
+</tr>
+<tr class="row-odd"><td colspan="3"><p>The radius in meter of the circular awareness area, with centre at the event position</p></td>
+</tr>
+<tr class="row-even"><td><p>examples</p></td>
+<td colspan="2"><p>100</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="3"><p>anyOf</p></td>
+<td><p>type</p></td>
+<td><p><em>integer</em></p></td>
+</tr>
+<tr class="row-even"><td><p>minimum</p></td>
+<td><p>0</p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td><p><em>null</em></p></td>
+</tr>
+<tr class="row-even"><td rowspan="5"><ul class="simple">
+<li><p><strong>trafficDirection</strong></p></li>
+</ul>
+</td>
+<td colspan="3"><p><em>Traffic Direction</em></p></td>
+</tr>
+<tr class="row-odd"><td colspan="3"><p>The traffic direction along which the receiving ITS-S may encounter the event</p></td>
+</tr>
+<tr class="row-even"><td><p>examples</p></td>
+<td colspan="2"><p>allTrafficDirections</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="2"><p>anyOf</p></td>
+<td colspan="2"><p><a class="reference internal" href="#traffic-direction-type">Traffic Direction Type</a></p></td>
+</tr>
+<tr class="row-even"><td><p>type</p></td>
+<td><p><em>null</em></p></td>
+</tr>
+<tr class="row-odd"><td rowspan="7"><ul class="simple">
+<li><p><strong>validityDuration</strong></p></li>
+</ul>
+</td>
+<td colspan="3"><p><em>Validity Duration</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="3"><p>The duration in seconds for which the DENM is valid related to the detection time</p></td>
+</tr>
+<tr class="row-odd"><td><p>examples</p></td>
+<td colspan="2"><p>60</p></td>
+</tr>
+<tr class="row-even"><td rowspan="4"><p>anyOf</p></td>
+<td><p>type</p></td>
+<td><p><em>integer</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>maximum</p></td>
+<td><p>86400</p></td>
+</tr>
+<tr class="row-even"><td><p>minimum</p></td>
+<td><p>0</p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td><p><em>null</em></p></td>
+</tr>
+<tr class="row-even"><td rowspan="7"><ul class="simple">
+<li><p><strong>transmissionInterval</strong></p></li>
+</ul>
+</td>
+<td colspan="3"><p><em>Transmission Interval</em></p></td>
+</tr>
+<tr class="row-odd"><td colspan="3"><p>The interval in milliseconds for transmissions of the DENM for keep alive forwarding</p></td>
+</tr>
+<tr class="row-even"><td><p>examples</p></td>
+<td colspan="2"><p>1000</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="4"><p>anyOf</p></td>
+<td><p>type</p></td>
+<td><p><em>integer</em></p></td>
+</tr>
+<tr class="row-even"><td><p>maximum</p></td>
+<td><p>10000</p></td>
+</tr>
+<tr class="row-odd"><td><p>exclusiveMinimum</p></td>
+<td><p>0</p></td>
+</tr>
+<tr class="row-even"><td><p>type</p></td>
+<td><p><em>null</em></p></td>
+</tr>
+<tr class="row-odd"><td rowspan="4"><ul class="simple">
+<li><p><strong>stationType</strong></p></li>
+</ul>
+</td>
+<td colspan="3"><p><em>Participant Type</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="3"><p>Type of the participant</p></td>
+</tr>
+<tr class="row-odd"><td><p>examples</p></td>
+<td colspan="2"><p>passengerCar</p></td>
+</tr>
+<tr class="row-even"><td colspan="3"><p><a class="reference internal" href="#traffic-participant-type">Traffic Participant Type</a></p></td>
+</tr>
+<tr class="row-odd"><td rowspan="7"><ul class="simple">
+<li><p><strong>referenceStationId</strong></p></li>
+</ul>
+</td>
+<td colspan="3"><p><em>Reference Station ID</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="3"><p>The ID of the reference station involved in the event</p></td>
+</tr>
+<tr class="row-odd"><td><p>examples</p></td>
+<td colspan="2"><p>25648</p></td>
+</tr>
+<tr class="row-even"><td rowspan="4"><p>anyOf</p></td>
+<td><p>type</p></td>
+<td><p><em>integer</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>maximum</p></td>
+<td><p>4294967295</p></td>
+</tr>
+<tr class="row-even"><td><p>minimum</p></td>
+<td><p>0</p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td><p><em>null</em></p></td>
+</tr>
+<tr class="row-even"><td rowspan="7"><ul class="simple">
+<li><p><strong>referenceObjectId</strong></p></li>
+</ul>
+</td>
+<td colspan="3"><p><em>Reference Object Id</em></p></td>
+</tr>
+<tr class="row-odd"><td colspan="3"><p>The unique identifier of the reference perceived object involved in the event</p></td>
+</tr>
+<tr class="row-even"><td><p>examples</p></td>
+<td colspan="2"><p>123</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="4"><p>anyOf</p></td>
+<td><p>type</p></td>
+<td><p><em>integer</em></p></td>
+</tr>
+<tr class="row-even"><td><p>maximum</p></td>
+<td><p>65535</p></td>
+</tr>
+<tr class="row-odd"><td><p>minimum</p></td>
+<td><p>0</p></td>
+</tr>
+<tr class="row-even"><td><p>type</p></td>
+<td><p><em>null</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>additionalProperties</p></td>
+<td colspan="3"><p>False</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="object-dimension">
+<span id="object-dimension"></span><h3>Object Dimension<a class="headerlink" href="#object-dimension" title="Link to this heading"></a></h3>
+<p>Represent the dimensions of a detected object</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p>type</p></td>
+<td colspan="3"><p><em>object</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="4"><p>properties</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="6"><ul class="simple">
+<li><p><strong>value</strong></p></li>
+</ul>
+</td>
+<td colspan="3"><p><em>Value</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="3"><p>Single dimension of an object. Unit: 0.1 metre</p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td colspan="2"><p><em>integer</em></p></td>
+</tr>
+<tr class="row-even"><td><p>examples</p></td>
+<td colspan="2"><p>123</p></td>
+</tr>
+<tr class="row-odd"><td><p>maximum</p></td>
+<td colspan="2"><p>255</p></td>
+</tr>
+<tr class="row-even"><td><p>minimum</p></td>
+<td colspan="2"><p>1</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="7"><ul class="simple">
+<li><p><strong>confidence</strong></p></li>
+</ul>
+</td>
+<td colspan="3"><p><em>Confidence</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="3"><p>Indicates the confidence value which represents the estimated absolute accuracy of a dimension value with a confidence level of 95%. Unit: 0.1 metre</p></td>
+</tr>
+<tr class="row-odd"><td><p>examples</p></td>
+<td colspan="2"><p>5</p></td>
+</tr>
+<tr class="row-even"><td rowspan="4"><p>anyOf</p></td>
+<td><p>type</p></td>
+<td><p><em>integer</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>maximum</p></td>
+<td><p>31</p></td>
+</tr>
+<tr class="row-even"><td><p>minimum</p></td>
+<td><p>1</p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td><p><em>null</em></p></td>
+</tr>
+<tr class="row-even"><td><p>additionalProperties</p></td>
+<td colspan="3"><p>False</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="object-face">
+<span id="object-face"></span><h3>Object Face<a class="headerlink" href="#object-face" title="Link to this heading"></a></h3>
+<p>The object is modelled as a rectangular prism</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p>type</p></td>
+<td><p><em>string</em></p></td>
+</tr>
+<tr class="row-even"><td><p>enum</p></td>
+<td><p>front, sideLeftFront, sideLeftBack, sideRightFront, sideRightBack, back</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="perceived-object">
+<span id="perceived-object"></span><h3>Perceived Object<a class="headerlink" href="#perceived-object" title="Link to this heading"></a></h3>
+<p>A class representing a perceived object with various attributes describing its physical and temporal characteristics</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p>type</p></td>
+<td colspan="3"><p><em>object</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="4"><p>properties</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="7"><ul class="simple">
+<li><p><strong>objectId</strong></p></li>
+</ul>
+</td>
+<td colspan="3"><p><em>Object Id</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="3"><p>The unique identifier of the perceived object</p></td>
+</tr>
+<tr class="row-odd"><td><p>examples</p></td>
+<td colspan="2"><p>123</p></td>
+</tr>
+<tr class="row-even"><td rowspan="4"><p>anyOf</p></td>
+<td><p>type</p></td>
+<td><p><em>integer</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>maximum</p></td>
+<td><p>65535</p></td>
+</tr>
+<tr class="row-even"><td><p>minimum</p></td>
+<td><p>0</p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td><p><em>null</em></p></td>
+</tr>
+<tr class="row-even"><td rowspan="6"><ul class="simple">
+<li><p><strong>measurementDeltaTime</strong></p></li>
+</ul>
+</td>
+<td colspan="3"><p><em>Measurement Delta Time</em></p></td>
+</tr>
+<tr class="row-odd"><td colspan="3"><p>The time difference between the reference time and the time of the perceived object. Negative values indicate that the provided object state refers to a point in time before the reference time. The value is capped at min or max. Unit: 0.001 second</p></td>
+</tr>
+<tr class="row-even"><td><p>type</p></td>
+<td colspan="2"><p><em>integer</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>examples</p></td>
+<td colspan="2"><p>123</p></td>
+</tr>
+<tr class="row-even"><td><p>maximum</p></td>
+<td colspan="2"><p>2047</p></td>
+</tr>
+<tr class="row-odd"><td><p>minimum</p></td>
+<td colspan="2"><p>-2048</p></td>
+</tr>
+<tr class="row-even"><td rowspan="3"><ul class="simple">
+<li><p><strong>position</strong></p></li>
+</ul>
+</td>
+<td colspan="3"><p><em>Point Position</em></p></td>
+</tr>
+<tr class="row-odd"><td colspan="3"><p>The point position with latitude, longitude and position confidence ellipse</p></td>
+</tr>
+<tr class="row-even"><td colspan="3"><p><a class="reference internal" href="#reference-position">Reference Position</a></p></td>
+</tr>
+<tr class="row-odd"><td rowspan="4"><ul class="simple">
+<li><p><strong>speed</strong></p></li>
+</ul>
+</td>
+<td colspan="3"><p><em>Speed</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="3"><p>Speed of a detected object and the confidence of the speed information</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="2"><p>anyOf</p></td>
+<td colspan="2"><p><a class="reference internal" href="#speed">Speed</a></p></td>
+</tr>
+<tr class="row-even"><td><p>type</p></td>
+<td><p><em>null</em></p></td>
+</tr>
+<tr class="row-odd"><td rowspan="4"><ul class="simple">
+<li><p><strong>heading</strong></p></li>
+</ul>
+</td>
+<td colspan="3"><p><em>Heading</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="3"><p>Heading of a detected object and the confidence of the heading information</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="2"><p>anyOf</p></td>
+<td colspan="2"><p><a class="reference internal" href="#heading">Heading</a></p></td>
+</tr>
+<tr class="row-even"><td><p>type</p></td>
+<td><p><em>null</em></p></td>
+</tr>
+<tr class="row-odd"><td rowspan="4"><ul class="simple">
+<li><p><strong>objectDimensionZ</strong></p></li>
+</ul>
+</td>
+<td colspan="3"><p><em>Object Dimension Z</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="3"><p>The height of the object and the confidence of the height information</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="2"><p>anyOf</p></td>
+<td colspan="2"><p><a class="reference internal" href="#object-dimension">Object Dimension</a></p></td>
+</tr>
+<tr class="row-even"><td><p>type</p></td>
+<td><p><em>null</em></p></td>
+</tr>
+<tr class="row-odd"><td rowspan="4"><ul class="simple">
+<li><p><strong>objectDimensionY</strong></p></li>
+</ul>
+</td>
+<td colspan="3"><p><em>Object Dimension Y</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="3"><p>The width of the object and the confidence of the width information</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="2"><p>anyOf</p></td>
+<td colspan="2"><p><a class="reference internal" href="#object-dimension">Object Dimension</a></p></td>
+</tr>
+<tr class="row-even"><td><p>type</p></td>
+<td><p><em>null</em></p></td>
+</tr>
+<tr class="row-odd"><td rowspan="4"><ul class="simple">
+<li><p><strong>objectDimensionX</strong></p></li>
+</ul>
+</td>
+<td colspan="3"><p><em>Object Dimension X</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="3"><p>The length of the object and the confidence of the length information</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="2"><p>anyOf</p></td>
+<td colspan="2"><p><a class="reference internal" href="#object-dimension">Object Dimension</a></p></td>
+</tr>
+<tr class="row-even"><td><p>type</p></td>
+<td><p><em>null</em></p></td>
+</tr>
+<tr class="row-odd"><td rowspan="7"><ul class="simple">
+<li><p><strong>objectPerceptionQuality</strong></p></li>
+</ul>
+</td>
+<td colspan="3"><p><em>Object Perception Quality</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="3"><p>Represents a single-value indication about the overall information quality of a perceived object. 15 is maximum quality, 0 is minimum quality</p></td>
+</tr>
+<tr class="row-odd"><td><p>examples</p></td>
+<td colspan="2"><p>5</p></td>
+</tr>
+<tr class="row-even"><td rowspan="4"><p>anyOf</p></td>
+<td><p>type</p></td>
+<td><p><em>integer</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>maximum</p></td>
+<td><p>15</p></td>
+</tr>
+<tr class="row-even"><td><p>exclusiveMinimum</p></td>
+<td><p>0</p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td><p><em>null</em></p></td>
+</tr>
+<tr class="row-even"><td><p>additionalProperties</p></td>
+<td colspan="3"><p>False</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="position-confidence-ellipse">
+<span id="position-confidence-ellipse"></span><h3>Position Confidence Ellipse<a class="headerlink" href="#position-confidence-ellipse" title="Link to this heading"></a></h3>
+<p>Indicates the horizontal position confidence ellipse which represents the estimated accuracy with a confidence level of 95 %</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p>type</p></td>
+<td colspan="2"><p><em>object</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="3"><p>properties</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="6"><ul class="simple">
+<li><p><strong>semiMajorAxisLengthConfidence</strong></p></li>
+</ul>
+</td>
+<td colspan="2"><p><em>Semi Major Axis Length Confidence</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="2"><p>Half of length of the major axis, i.e. distance between the centre point and major axis point of the position accuracy ellipse. Unit: 0.01 metre</p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td><p><em>integer</em></p></td>
+</tr>
+<tr class="row-even"><td><p>examples</p></td>
+<td><p>123</p></td>
+</tr>
+<tr class="row-odd"><td><p>maximum</p></td>
+<td><p>4094</p></td>
+</tr>
+<tr class="row-even"><td><p>minimum</p></td>
+<td><p>1</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="6"><ul class="simple">
+<li><p><strong>semiMinorAxisLengthConfidence</strong></p></li>
+</ul>
+</td>
+<td colspan="2"><p><em>Semi Minor Axis Length Confidence</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="2"><p>Half of length of the minor axis, i.e. distance between the centre point and minor axis point of the position accuracy ellipse. Unit: 0.01 metre</p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td><p><em>integer</em></p></td>
+</tr>
+<tr class="row-even"><td><p>examples</p></td>
+<td><p>12</p></td>
+</tr>
+<tr class="row-odd"><td><p>maximum</p></td>
+<td><p>4094</p></td>
+</tr>
+<tr class="row-even"><td><p>minimum</p></td>
+<td><p>1</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="6"><ul class="simple">
+<li><p><strong>semiMajorAxisOrientation</strong></p></li>
+</ul>
+</td>
+<td colspan="2"><p><em>Semi Major Axis Orientation</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="2"><p>Represents an angle value in degrees described in the WGS84 reference system with respect to the WGS84 north. Unit: 0.1 degrees</p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td><p><em>integer</em></p></td>
+</tr>
+<tr class="row-even"><td><p>examples</p></td>
+<td><p>0</p></td>
+</tr>
+<tr class="row-odd"><td><p>maximum</p></td>
+<td><p>3599</p></td>
+</tr>
+<tr class="row-even"><td><p>minimum</p></td>
+<td><p>0</p></td>
+</tr>
+<tr class="row-odd"><td><p>additionalProperties</p></td>
+<td colspan="2"><p>False</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="pre-crash-container">
+<span id="pre-crash-container"></span><h3>Pre-Crash Container<a class="headerlink" href="#pre-crash-container" title="Link to this heading"></a></h3>
+<p>Contain detailed information about an object with which a vehicle and/or the traffic is likely to collide</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p>type</p></td>
+<td colspan="3"><p><em>object</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="4"><p>properties</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="2"><ul class="simple">
+<li><p><strong>perceivedObject</strong></p></li>
+</ul>
+</td>
+<td colspan="3"><p>The perceived object with its position and speed</p></td>
+</tr>
+<tr class="row-even"><td colspan="3"><p><a class="reference internal" href="#perceived-object">Perceived Object</a></p></td>
+</tr>
+<tr class="row-odd"><td rowspan="7"><ul class="simple">
+<li><p><strong>stationIdInvolved</strong></p></li>
+</ul>
+</td>
+<td colspan="3"><p><em>Station ID Involved</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="3"><p>The identification of the station involved in the event represented by the cartesian coordinates</p></td>
+</tr>
+<tr class="row-odd"><td><p>examples</p></td>
+<td colspan="2"><p>25648</p></td>
+</tr>
+<tr class="row-even"><td rowspan="4"><p>anyOf</p></td>
+<td><p>type</p></td>
+<td><p><em>integer</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>maximum</p></td>
+<td><p>4294967295</p></td>
+</tr>
+<tr class="row-even"><td><p>minimum</p></td>
+<td><p>0</p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td><p><em>null</em></p></td>
+</tr>
+<tr class="row-even"><td rowspan="7"><ul class="simple">
+<li><p><strong>timeToCollision</strong></p></li>
+</ul>
+</td>
+<td colspan="3"><p><em>Time to Collision</em></p></td>
+</tr>
+<tr class="row-odd"><td colspan="3"><p>The estimated difference in milliseconds to the collision with the object represented by the cartesian coordinates respect to the reference time. The value is capped at min or max. Unit: millisecond</p></td>
+</tr>
+<tr class="row-even"><td><p>examples</p></td>
+<td colspan="2"><p>1000</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="4"><p>anyOf</p></td>
+<td><p>type</p></td>
+<td><p><em>integer</em></p></td>
+</tr>
+<tr class="row-even"><td><p>maximum</p></td>
+<td><p>10000</p></td>
+</tr>
+<tr class="row-odd"><td><p>minimum</p></td>
+<td><p>1</p></td>
+</tr>
+<tr class="row-even"><td><p>type</p></td>
+<td><p><em>null</em></p></td>
+</tr>
+<tr class="row-odd"><td rowspan="5"><ul class="simple">
+<li><p><strong>impactSection</strong></p></li>
+</ul>
+</td>
+<td colspan="3"><p><em>Impact Section</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="3"><p>Indication of the object’s section where the impact will most likely occur. When the target object is likely to be a vehicle, then this component should be present, otherwise it should not be provided.</p></td>
+</tr>
+<tr class="row-odd"><td><p>examples</p></td>
+<td colspan="2"><p>front</p></td>
+</tr>
+<tr class="row-even"><td rowspan="2"><p>anyOf</p></td>
+<td colspan="2"><p><a class="reference internal" href="#object-face">Object Face</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td><p><em>null</em></p></td>
+</tr>
+<tr class="row-even"><td rowspan="7"><ul class="simple">
+<li><p><strong>estimatedBrakingDistance</strong></p></li>
+</ul>
+</td>
+<td colspan="3"><p><em>Estimated Braking Distance</em></p></td>
+</tr>
+<tr class="row-odd"><td colspan="3"><p>The estimated distance in 0.1 meter in which the vehicle would need to come to a complete hold, if no obstruction was in the way</p></td>
+</tr>
+<tr class="row-even"><td><p>examples</p></td>
+<td colspan="2"><p>100</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="4"><p>anyOf</p></td>
+<td><p>type</p></td>
+<td><p><em>integer</em></p></td>
+</tr>
+<tr class="row-even"><td><p>maximum</p></td>
+<td><p>4095</p></td>
+</tr>
+<tr class="row-odd"><td><p>minimum</p></td>
+<td><p>0</p></td>
+</tr>
+<tr class="row-even"><td><p>type</p></td>
+<td><p><em>null</em></p></td>
+</tr>
+<tr class="row-odd"><td rowspan="7"><ul class="simple">
+<li><p><strong>estimatedCollisionLatitude</strong></p></li>
+</ul>
+</td>
+<td colspan="3"><p><em>Estimated Collision Latitude</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="3"><p>The estimated latitude of the collision event position in WGS84 decimal degrees</p></td>
+</tr>
+<tr class="row-odd"><td><p>examples</p></td>
+<td colspan="2"><p>37.7749</p></td>
+</tr>
+<tr class="row-even"><td rowspan="4"><p>anyOf</p></td>
+<td><p>type</p></td>
+<td><p><em>number</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>maximum</p></td>
+<td><p>90.0</p></td>
+</tr>
+<tr class="row-even"><td><p>minimum</p></td>
+<td><p>-90.0</p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td><p><em>null</em></p></td>
+</tr>
+<tr class="row-even"><td rowspan="7"><ul class="simple">
+<li><p><strong>estimatedCollisionLongitude</strong></p></li>
+</ul>
+</td>
+<td colspan="3"><p><em>Estimated Collision Longitude</em></p></td>
+</tr>
+<tr class="row-odd"><td colspan="3"><p>The estimated longitude of the collision event position in WGS84 decimal degrees</p></td>
+</tr>
+<tr class="row-even"><td><p>examples</p></td>
+<td colspan="2"><p>-122.4194</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="4"><p>anyOf</p></td>
+<td><p>type</p></td>
+<td><p><em>number</em></p></td>
+</tr>
+<tr class="row-even"><td><p>maximum</p></td>
+<td><p>180.0</p></td>
+</tr>
+<tr class="row-odd"><td><p>minimum</p></td>
+<td><p>-180.0</p></td>
+</tr>
+<tr class="row-even"><td><p>type</p></td>
+<td><p><em>null</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>additionalProperties</p></td>
+<td colspan="3"><p>False</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="reference-position">
+<span id="reference-position"></span><h3>Reference Position<a class="headerlink" href="#reference-position" title="Link to this heading"></a></h3>
+<p>Reference position with latitude, longitude and position confidence ellipse</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p>type</p></td>
+<td colspan="3"><p><em>object</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="4"><p>properties</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="6"><ul class="simple">
+<li><p><strong>latitude</strong></p></li>
+</ul>
+</td>
+<td colspan="3"><p><em>Latitude</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="3"><p>The latitude of the geographical point</p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td colspan="2"><p><em>number</em></p></td>
+</tr>
+<tr class="row-even"><td><p>examples</p></td>
+<td colspan="2"><p>45.587878</p></td>
+</tr>
+<tr class="row-odd"><td><p>maximum</p></td>
+<td colspan="2"><p>90.0</p></td>
+</tr>
+<tr class="row-even"><td><p>minimum</p></td>
+<td colspan="2"><p>-90.0</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="6"><ul class="simple">
+<li><p><strong>longitude</strong></p></li>
+</ul>
+</td>
+<td colspan="3"><p><em>Longitude</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="3"><p>The longitude of the geographical point</p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td colspan="2"><p><em>number</em></p></td>
+</tr>
+<tr class="row-even"><td><p>examples</p></td>
+<td colspan="2"><p>60.458789</p></td>
+</tr>
+<tr class="row-odd"><td><p>maximum</p></td>
+<td colspan="2"><p>180.0</p></td>
+</tr>
+<tr class="row-even"><td><p>minimum</p></td>
+<td colspan="2"><p>-180.0</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="4"><ul class="simple">
+<li><p><strong>positionConfidence</strong></p></li>
+</ul>
+</td>
+<td colspan="3"><p><em>Position Confidence Ellipse</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="3"><p>The confidence ellipse associated to the geographical position.</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="2"><p>anyOf</p></td>
+<td colspan="2"><p><a class="reference internal" href="#position-confidence-ellipse">Position Confidence Ellipse</a></p></td>
+</tr>
+<tr class="row-even"><td><p>type</p></td>
+<td><p><em>null</em></p></td>
+</tr>
+<tr class="row-odd"><td rowspan="4"><ul class="simple">
+<li><p><strong>altitude</strong></p></li>
+</ul>
+</td>
+<td colspan="3"><p><em>Altitude</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="3"><p>The altitude information of the geographical point.</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="2"><p>anyOf</p></td>
+<td colspan="2"><p><a class="reference internal" href="#reference-altitude">Reference Altitude</a></p></td>
+</tr>
+<tr class="row-even"><td><p>type</p></td>
+<td><p><em>null</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>additionalProperties</p></td>
+<td colspan="3"><p>False</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="road-type">
+<span id="road-type"></span><h3>Road Type<a class="headerlink" href="#road-type" title="Link to this heading"></a></h3>
+<p>Enumeration representing road types</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p>type</p></td>
+<td><p><em>string</em></p></td>
+</tr>
+<tr class="row-even"><td><p>enum</p></td>
+<td><p>urban-NoStructuralSeparationToOppositeLanes, urban-WithStructuralSeparationToOppositeLanes, nonUrban-NoStructuralSeparationToOppositeLanes, nonUrban-WithStructuralSeparationToOppositeLanes</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="situation-container">
+<span id="situation-container"></span><h3>Situation Container<a class="headerlink" href="#situation-container" title="Link to this heading"></a></h3>
+<p>Information about the situation of the event</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p>type</p></td>
+<td colspan="3"><p><em>object</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="4"><p>properties</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="7"><ul class="simple">
+<li><p><strong>informationQuality</strong></p></li>
+</ul>
+</td>
+<td colspan="3"><p><em>Information Quality</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="3"><p>The quality of the location information where 7 is the highest quality</p></td>
+</tr>
+<tr class="row-odd"><td><p>examples</p></td>
+<td colspan="2"><p>5</p></td>
+</tr>
+<tr class="row-even"><td rowspan="4"><p>anyOf</p></td>
+<td><p>type</p></td>
+<td><p><em>integer</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>maximum</p></td>
+<td><p>7</p></td>
+</tr>
+<tr class="row-even"><td><p>minimum</p></td>
+<td><p>1</p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td><p><em>null</em></p></td>
+</tr>
+<tr class="row-even"><td rowspan="4"><ul class="simple">
+<li><p><strong>eventType</strong></p></li>
+</ul>
+</td>
+<td colspan="3"><p><em>Event Type</em></p></td>
+</tr>
+<tr class="row-odd"><td colspan="3"><p>The type of event</p></td>
+</tr>
+<tr class="row-even"><td><p>examples</p></td>
+<td colspan="2"><p>collisionRisk97</p></td>
+</tr>
+<tr class="row-odd"><td colspan="3"><p><a class="reference internal" href="#cause-code">Cause Code</a></p></td>
+</tr>
+<tr class="row-even"><td><p>additionalProperties</p></td>
+<td colspan="3"><p>False</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="speed">
+<span id="speed"></span><h3>Speed<a class="headerlink" href="#speed" title="Link to this heading"></a></h3>
+<p>Represents the Speed in a WGS84 co-ordinates system</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p>type</p></td>
+<td colspan="3"><p><em>object</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="4"><p>properties</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="6"><ul class="simple">
+<li><p><strong>value</strong></p></li>
+</ul>
+</td>
+<td colspan="3"><p><em>Speed Value</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="3"><p>Represents a speed value, i.e. the magnitude of the velocity-vector. Unit: 0.01 m/s</p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td colspan="2"><p><em>integer</em></p></td>
+</tr>
+<tr class="row-even"><td><p>examples</p></td>
+<td colspan="2"><p>12367</p></td>
+</tr>
+<tr class="row-odd"><td><p>maximum</p></td>
+<td colspan="2"><p>16382</p></td>
+</tr>
+<tr class="row-even"><td><p>minimum</p></td>
+<td colspan="2"><p>0</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="7"><ul class="simple">
+<li><p><strong>confidence</strong></p></li>
+</ul>
+</td>
+<td colspan="3"><p><em>Speed Confidence</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="3"><p>Indicates the speed confidence value which represents the estimated absolute accuracy of a speed value with a confidence level of 95 %. Unit: 0.01 m/s</p></td>
+</tr>
+<tr class="row-odd"><td><p>examples</p></td>
+<td colspan="2"><p>50</p></td>
+</tr>
+<tr class="row-even"><td rowspan="4"><p>anyOf</p></td>
+<td><p>type</p></td>
+<td><p><em>integer</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>maximum</p></td>
+<td><p>126</p></td>
+</tr>
+<tr class="row-even"><td><p>minimum</p></td>
+<td><p>1</p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td><p><em>null</em></p></td>
+</tr>
+<tr class="row-even"><td><p>additionalProperties</p></td>
+<td colspan="3"><p>False</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="denm-termination-type">
+<span id="denm-termination-type"></span><h3>DENM Termination Type<a class="headerlink" href="#denm-termination-type" title="Link to this heading"></a></h3>
+<p>Enumeration for DENM (Decentralized Environmental Notification Message) termination types</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p>type</p></td>
+<td><p><em>string</em></p></td>
+</tr>
+<tr class="row-even"><td><p>enum</p></td>
+<td><p>isCancellation, isNegation</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="traffic-direction-type">
+<span id="traffic-direction-type"></span><h3>Traffic Direction Type<a class="headerlink" href="#traffic-direction-type" title="Link to this heading"></a></h3>
+<p>Enumeration representing traffic directions in relation to a reference direction</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p>type</p></td>
+<td><p><em>string</em></p></td>
+</tr>
+<tr class="row-even"><td><p>enum</p></td>
+<td><p>allTrafficDirections, sameAsReferenceDirection-upstreamOfReferencePosition, sameAsReferenceDirection-downstreamOfReferencePosition, oppositeToReferenceDirection</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="traffic-participant-type">
+<span id="traffic-participant-type"></span><h3>Traffic Participant Type<a class="headerlink" href="#traffic-participant-type" title="Link to this heading"></a></h3>
+<p>Class representing different types of traffic participants</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p>type</p></td>
+<td><p><em>string</em></p></td>
+</tr>
+<tr class="row-even"><td><p>enum</p></td>
+<td><p>unknown, pedestrian, cyclist, moped, motorcycle, passengerCar, bus, lightTruck, heavyTruck, trailer, specialVehicle, tram, lightVruVehicle, animal, agricultural, roadSideUnit</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="denm_message.html" class="btn btn-neutral float-left" title="DENM Message" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="cloud_events_messages.html" class="btn btn-neutral float-right" title="Cloud Events Messages" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, Vodafone Automotive.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
