@@ -6,19 +6,19 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Architecture &mdash; STEP Publisher Pickle 1.0.3 documentation</title>
+  <title>Architecture &mdash; STEP Publisher Pickle 1.0.5 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="_static/tabs.css?v=4c969af8" />
-      <link rel="stylesheet" type="text/css" href="_static/css/custom.css?v=ca6f9a36" />
+      <link rel="stylesheet" type="text/css" href="_static/css/custom.css?v=ca5f51dc" />
       <link rel="stylesheet" type="text/css" href="_static/css/sphinx_prompt_css.css?v=351d85e3" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=baaebd52"></script>
-      <script src="_static/doctools.js?v=9bcbadda"></script>
-      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/documentation_options.js?v=d55fa986"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="_static/tabs.js?v=3ee01567"></script>
       <script src="_static/js/expand_tabs.js?v=1e151f68"></script>
     <script src="_static/js/theme.js"></script>
@@ -93,7 +93,15 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="package_script.html">Package Script</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="package_script.html#create-environment">Create environment</a></li>
-<li class="toctree-l2"><a class="reference internal" href="package_script.html#make">Make</a></li>
+<li class="toctree-l2"><a class="reference internal" href="package_script.html#development-with-tox">Development with Tox</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="package_script.html#available-environments">Available Environments</a></li>
+<li class="toctree-l3"><a class="reference internal" href="package_script.html#testing-environments">Testing Environments</a></li>
+<li class="toctree-l3"><a class="reference internal" href="package_script.html#code-quality-commands">Code Quality Commands</a></li>
+<li class="toctree-l3"><a class="reference internal" href="package_script.html#documentation-commands">Documentation Commands</a></li>
+<li class="toctree-l3"><a class="reference internal" href="package_script.html#package-management">Package Management</a></li>
+<li class="toctree-l3"><a class="reference internal" href="package_script.html#cleanup-commands">Cleanup Commands</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="package_script.html#pdf-conversion">PDF conversion</a></li>
 </ul>
 </li>
@@ -437,7 +445,6 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="test_rst/test.test___main__.html">test.test___main__ module</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.TestExitCode"><code class="docutils literal notranslate"><span class="pre">TestExitCode</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.TestExitCode.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestExitCode.test___slots__()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.TestExitCode.test_enum_length"><code class="docutils literal notranslate"><span class="pre">TestExitCode.test_enum_length()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.TestExitCode.test_enum_values"><code class="docutils literal notranslate"><span class="pre">TestExitCode.test_enum_values()</span></code></a></li>
 </ul>
@@ -584,7 +591,6 @@
 </ul>
 </li>
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_publisher_pkl_config.html#test.test_step_publisher_pkl_config.TestMqttQoSConfig"><code class="docutils literal notranslate"><span class="pre">TestMqttQoSConfig</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_publisher_pkl_config.html#test.test_step_publisher_pkl_config.TestMqttQoSConfig.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestMqttQoSConfig.test___slots__()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_publisher_pkl_config.html#test.test_step_publisher_pkl_config.TestMqttQoSConfig.test_value"><code class="docutils literal notranslate"><span class="pre">TestMqttQoSConfig.test_value()</span></code></a></li>
 </ul>
 </li>
@@ -966,10 +972,11 @@ separation of concerns in the architecture, with StepBroker handling MQTT commun
 Scenario managing vehicle trajectory data, and the main application orchestrating the
 publishing workflow. Both components rely on configuration provided by StepPublisherPklConfig
 and logging services from StepLogger.</p>
+<div class="scrollable-diagram docutils container">
 <figure class="align-center">
 <p class="plantuml">
-<object data="_images/plantuml-7533d5382e8842b5553d1a9453cc433bf294f353.svg" type="image/svg+xml" style="width:792px;height:689px;background:#FFFFFF;">
-<img src="_images/plantuml-7533d5382e8842b5553d1a9453cc433bf294f353.png" alt="package &quot;STEP Publisher Pickle&quot; {
+<object data="_images/plantuml-4390190c70a3c2edd9813a823f3973a9d50165af.svg" type="image/svg+xml" style="width:792px;height:689px;background:#FFFFFF;">
+<img src="_images/plantuml-4390190c70a3c2edd9813a823f3973a9d50165af.png" alt="package &quot;STEP Publisher Pickle&quot; {
    [Main Application] as Main
    [StepBroker] as Broker
    [Scenario] as Scenario
@@ -977,9 +984,9 @@ and logging services from StepLogger.</p>
    [StepLogger] as Logger
    [StepPublisherPklError] as Exception
    note left of Main
-     Asynchronous publisher
-     orchestrator with CLI
-     and TaskGroup management
+   Asynchronous publisher
+   orchestrator with CLI
+   and TaskGroup management
    end note
 }
 
@@ -1018,6 +1025,7 @@ end note"/>
 
 </object></p>
 </figure>
+</div>
 </section>
 </section>
 <section id="class-diagram">
@@ -1030,37 +1038,38 @@ StepBroker, Scenario, and StepPublisherPklConfig components, while StepBroker de
 StepBrokerConfig (a subset of StepPublisherPklConfig) for MQTT connection configuration.
 This object-oriented design allows for clear separation of responsibilities and modular
 development.</p>
+<div class="scrollable-diagram docutils container">
 <figure class="align-center">
 <p class="plantuml">
-<object data="_images/plantuml-a3fa2c106b540458c9a17f4e888c63b6baf2bc74.svg" type="image/svg+xml" style="width:961px;height:594px;background:#FFFFFF;">
-<img src="_images/plantuml-a3fa2c106b540458c9a17f4e888c63b6baf2bc74.png" alt="!theme plain
+<object data="_images/plantuml-e7cbb8b3849cf13393d5352bd4b50c690289956e.svg" type="image/svg+xml" style="width:956px;height:594px;background:#FFFFFF;">
+<img src="_images/plantuml-e7cbb8b3849cf13393d5352bd4b50c690289956e.png" alt="!theme plain
 skinparam classAttributeIconSize 0
 
- class MainApplication {
+class MainApplication {
    +async _main_async()
    +async _publisher_run()
    +_exception_handler()
    +main()
- }
+}
 
- class StepBroker {
+class StepBroker {
    -_config: StepBrokerConfig
    -_geo_network_address: GeoNetworkAddress
    -_logger: Logger
    +async __aenter__()
    +async __aexit__()
    +async client_publish_its_message()
- }
+}
 
- class Scenario {
+class Scenario {
    -_logger: Logger
    -_stations: dict
    +load_data()
    +get_vehicle_ids()
    +pop_position_arrays()
- }
+}
 
- class StepPublisherPklConfig {
+class StepPublisherPklConfig {
    +mqttClient: MqttClientConfig
    +mqttProtocol: MqttProtocolConfig
    +stepBroker: StepBrokerConfig
@@ -1068,32 +1077,33 @@ skinparam classAttributeIconSize 0
    +pklFolder: str
    +get_default()
    +model_validate()
- }
+}
 
- class StepLogger {
+class StepLogger {
    +setup_logging()
    +get_logger()
- }
+}
 
- class StepPublisherPklError {
- }
+class StepPublisherPklError {
+}
 
- class StepCliError {
- }
+class StepCliError {
+}
 
- MainApplication --&gt; StepBroker : creates and uses
- MainApplication --&gt; Scenario : creates and uses
- MainApplication --&gt; StepPublisherPklConfig : loads
- MainApplication --&gt; StepLogger : uses
- MainApplication --&gt; StepCliError : throws
- StepBroker --&gt; StepPublisherPklConfig : uses config
- StepBroker --&gt; StepLogger : uses
- StepBroker --&gt; StepPublisherPklError : throws
- Scenario --&gt; StepLogger : uses
- StepCliError --|&gt; StepPublisherPklError : extends"/>
+MainApplication --&gt; StepBroker : creates and uses
+MainApplication --&gt; Scenario : creates and uses
+MainApplication --&gt; StepPublisherPklConfig : loads
+MainApplication --&gt; StepLogger : uses
+MainApplication --&gt; StepCliError : throws
+StepBroker --&gt; StepPublisherPklConfig : uses config
+StepBroker --&gt; StepLogger : uses
+StepBroker --&gt; StepPublisherPklError : throws
+Scenario --&gt; StepLogger : uses
+StepCliError --|&gt; StepPublisherPklError : extends"/>
 
 </object></p>
 </figure>
+</div>
 </section>
 <section id="sequence-diagrams">
 <h2>Sequence Diagrams<a class="headerlink" href="#sequence-diagrams" title="Link to this heading"></a></h2>
@@ -1108,6 +1118,7 @@ from CARLA-generated pickle file scenario data to the STEP MQTT broker. It demon
 how the Main Application orchestrates the loading of CARLA vehicle trajectories, calculates
 timing intervals using ItsTime, and publishes messages concurrently for multiple vehicles
 using TaskGroup.</p>
+<div class="scrollable-diagram docutils container">
 <figure class="align-center">
 <p class="plantuml">
 <object data="_images/plantuml-bc57ca413cbb844df6bcbb816eb4e2a06c26b01f.svg" type="image/svg+xml" style="width:801px;height:941px;background:#FFFFFF;">
@@ -1166,6 +1177,7 @@ end"/>
 
 </object></p>
 </figure>
+</div>
 </section>
 </section>
 </section>
@@ -1181,7 +1193,7 @@ end"/>
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2025, Vodafone Automotive.</p>
+    <p>&#169; Copyright 2026, Vodafone Automotive.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

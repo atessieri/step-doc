@@ -295,55 +295,57 @@ Scenario managing vehicle trajectory data, and the main application orchestratin
 publishing workflow. Both components rely on configuration provided by StepPublisherPklConfig 
 and logging services from StepLogger.
 
-.. plantuml::
-   :align: center
-    
-   package "STEP Publisher Pickle" {
-      [Main Application] as Main
-      [StepBroker] as Broker
-      [Scenario] as Scenario
-      [StepPublisherPklConfig] as Config
-      [StepLogger] as Logger
-      [StepPublisherPklError] as Exception
-      note left of Main
-        Asynchronous publisher
-        orchestrator with CLI
-        and TaskGroup management
+.. container:: scrollable-diagram
+
+   .. plantuml::
+      :align: center
+      
+      package "STEP Publisher Pickle" {
+         [Main Application] as Main
+         [StepBroker] as Broker
+         [Scenario] as Scenario
+         [StepPublisherPklConfig] as Config
+         [StepLogger] as Logger
+         [StepPublisherPklError] as Exception
+         note left of Main
+         Asynchronous publisher
+         orchestrator with CLI
+         and TaskGroup management
+         end note
+      }
+      
+      cloud "MQTT Broker" as MQTT
+      folder "Pickle Files" as PKL
+      
+      Main -down-> Broker : uses
+      Main -down-> Scenario : uses
+      Main -up-> Config : loads
+      Broker -up-> Config : uses
+      Broker -down-> MQTT : publishes CAM
+      Scenario -down-> PKL : loads vehicle data
+      Main -up-> Logger : uses
+      Broker -up-> Logger : uses
+      Main -down-> Exception : throws
+
+      note bottom of MQTT
+         Publish only
+         (no subscription)
       end note
-   }
-    
-   cloud "MQTT Broker" as MQTT
-   folder "Pickle Files" as PKL
-    
-   Main -down-> Broker : uses
-   Main -down-> Scenario : uses
-   Main -up-> Config : loads
-   Broker -up-> Config : uses
-   Broker -down-> MQTT : publishes CAM
-   Scenario -down-> PKL : loads vehicle data
-   Main -up-> Logger : uses
-   Broker -up-> Logger : uses
-   Main -down-> Exception : throws
 
-   note bottom of MQTT
-      Publish only
-      (no subscription)
-   end note
+      note bottom of PKL
+         CARLA-generated
+         vehicle trajectory files
+      end note
 
-   note bottom of PKL
-      CARLA-generated
-      vehicle trajectory files
-   end note
+      note top of Config
+         Configuration management
+         with JSON schema support
+      end note
 
-   note top of Config
-      Configuration management
-      with JSON schema support
-   end note
-
-   note top of Scenario
-      CARLA trajectory loader
-      and timing manager
-   end note
+      note top of Scenario
+         CARLA trajectory loader
+         and timing manager
+      end note
 
 Class Diagram
 -------------
@@ -357,68 +359,69 @@ StepBrokerConfig (a subset of StepPublisherPklConfig) for MQTT connection config
 This object-oriented design allows for clear separation of responsibilities and modular 
 development.
 
-.. plantuml::
-   :align: center
-   
-   !theme plain
-   skinparam classAttributeIconSize 0
+.. container:: scrollable-diagram
 
-    class MainApplication {
-      +async _main_async()
-      +async _publisher_run()
-      +_exception_handler()
-      +main()
-    }
+   .. plantuml::
+      :align: center
+      
+      !theme plain
+      skinparam classAttributeIconSize 0
 
-    class StepBroker {
-      -_config: StepBrokerConfig
-      -_geo_network_address: GeoNetworkAddress
-      -_logger: Logger
-      +async __aenter__()
-      +async __aexit__()
-      +async client_publish_its_message()
-    }
+      class MainApplication {
+         +async _main_async()
+         +async _publisher_run()
+         +_exception_handler()
+         +main()
+      }
 
-    class Scenario {
-      -_logger: Logger
-      -_stations: dict
-      +load_data()
-      +get_vehicle_ids()
-      +pop_position_arrays()
-    }
+      class StepBroker {
+         -_config: StepBrokerConfig
+         -_geo_network_address: GeoNetworkAddress
+         -_logger: Logger
+         +async __aenter__()
+         +async __aexit__()
+         +async client_publish_its_message()
+      }
 
-    class StepPublisherPklConfig {
-      +mqttClient: MqttClientConfig
-      +mqttProtocol: MqttProtocolConfig
-      +stepBroker: StepBrokerConfig
-      +logging: LogConfig
-      +pklFolder: str
-      +get_default()
-      +model_validate()
-    }
-    
-    class StepLogger {
-      +setup_logging()
-      +get_logger()
-    }
-    
-    class StepPublisherPklError {
-    }
-    
-    class StepCliError {
-    }
-    
-    MainApplication --> StepBroker : creates and uses
-    MainApplication --> Scenario : creates and uses
-    MainApplication --> StepPublisherPklConfig : loads
-    MainApplication --> StepLogger : uses
-    MainApplication --> StepCliError : throws
-    StepBroker --> StepPublisherPklConfig : uses config
-    StepBroker --> StepLogger : uses
-    StepBroker --> StepPublisherPklError : throws
-    Scenario --> StepLogger : uses
-    StepCliError --|> StepPublisherPklError : extends
-  
+      class Scenario {
+         -_logger: Logger
+         -_stations: dict
+         +load_data()
+         +get_vehicle_ids()
+         +pop_position_arrays()
+      }
+
+      class StepPublisherPklConfig {
+         +mqttClient: MqttClientConfig
+         +mqttProtocol: MqttProtocolConfig
+         +stepBroker: StepBrokerConfig
+         +logging: LogConfig
+         +pklFolder: str
+         +get_default()
+         +model_validate()
+      }
+      
+      class StepLogger {
+         +setup_logging()
+         +get_logger()
+      }
+      
+      class StepPublisherPklError {
+      }
+      
+      class StepCliError {
+      }
+      
+      MainApplication --> StepBroker : creates and uses
+      MainApplication --> Scenario : creates and uses
+      MainApplication --> StepPublisherPklConfig : loads
+      MainApplication --> StepLogger : uses
+      MainApplication --> StepCliError : throws
+      StepBroker --> StepPublisherPklConfig : uses config
+      StepBroker --> StepLogger : uses
+      StepBroker --> StepPublisherPklError : throws
+      Scenario --> StepLogger : uses
+      StepCliError --|> StepPublisherPklError : extends
 
 Sequence Diagrams
 -----------------
@@ -437,58 +440,60 @@ how the Main Application orchestrates the loading of CARLA vehicle trajectories,
 timing intervals using ItsTime, and publishes messages concurrently for multiple vehicles 
 using TaskGroup.
 
-.. plantuml::
-   :align: center
+.. container:: scrollable-diagram
 
-   participant "Main Application" as Main
-   participant "Scenario" as Scenario
-   participant "StepBroker" as Broker
-   participant "STEP MQTT Broker" as MQTT
-   participant "Pickle Files" as PKL
+   .. plantuml::
+      :align: center
 
-   Main -> Scenario : load_data()
-   Scenario -> PKL : load CARLA pickle files
-   PKL --> Scenario : CARLA vehicle trajectories
-   Scenario --> Main : data loaded
-   
-   Main -> Scenario : get_vehicle_ids()
-   Scenario --> Main : [vehicle_id_1, vehicle_id_2, ...]
-   
-   note over Main
-      Create TaskGroup
-      for concurrent publishing
-   end note
-   
-   loop For each vehicle_id
-      Main -> Main : create _publisher_run(vehicle_id) task
-   end
-   
-   note over Main
-      Tasks run concurrently
-      in TaskGroup
-   end note
-   
-   loop For each vehicle position
-      Main -> Scenario : pop_position_arrays(vehicle_id)
-      Scenario --> Main : StationPositionResult
+      participant "Main Application" as Main
+      participant "Scenario" as Scenario
+      participant "StepBroker" as Broker
+      participant "STEP MQTT Broker" as MQTT
+      participant "Pickle Files" as PKL
+
+      Main -> Scenario : load_data()
+      Scenario -> PKL : load CARLA pickle files
+      PKL --> Scenario : CARLA vehicle trajectories
+      Scenario --> Main : data loaded
       
-      alt position exists
-         Main -> Main : wrap in CamMessageV1
-         Main -> Broker : client_publish_its_message(CAM)
-         note over Broker
-            Encode ITS message
-            with GeoNetwork addressing
-         end note
-         Broker -> MQTT : mqtt_publish(ITS_message)
-         MQTT --> Broker : success
+      Main -> Scenario : get_vehicle_ids()
+      Scenario --> Main : [vehicle_id_1, vehicle_id_2, ...]
+      
+      note over Main
+         Create TaskGroup
+         for concurrent publishing
+      end note
+      
+      loop For each vehicle_id
+         Main -> Main : create _publisher_run(vehicle_id) task
+      end
+      
+      note over Main
+         Tasks run concurrently
+         in TaskGroup
+      end note
+      
+      loop For each vehicle position
+         Main -> Scenario : pop_position_arrays(vehicle_id)
+         Scenario --> Main : StationPositionResult
          
-         alt next_position_time exists
-            Main -> Main : calculate time_difference()
-            note over Main
-               Sleep for calculated delta
-               to maintain realistic timing
+         alt position exists
+            Main -> Main : wrap in CamMessageV1
+            Main -> Broker : client_publish_its_message(CAM)
+            note over Broker
+               Encode ITS message
+               with GeoNetwork addressing
             end note
-            Main -> Main : asyncio_sleep(delta)
+            Broker -> MQTT : mqtt_publish(ITS_message)
+            MQTT --> Broker : success
+            
+            alt next_position_time exists
+               Main -> Main : calculate time_difference()
+               note over Main
+                  Sleep for calculated delta
+                  to maintain realistic timing
+               end note
+               Main -> Main : asyncio_sleep(delta)
+            end
          end
       end
-   end
