@@ -128,6 +128,10 @@ The following component diagram shows the main flows of the system:
 
         interface "ASN.1 C-ITS" as messages
 
+        package "STEP Monitoring Streaming" {
+            [Monitoring\nStreaming] as monitoring
+        }
+
         package "STEP Communication System" {
             [STEP Broker] as step
         }
@@ -142,12 +146,13 @@ The following component diagram shows the main flows of the system:
                 [Data\nStorage] as data
             }
             client -left-> adapter: "3. CAM,CPM"
-            client -down-> Producer: "7. DENM"
+            client -down-> Producer: "8. DENM"
             adapter -left-> trajectory: "4. Position points\narray"
             trajectory <-down-> data: "Query data"
+            data -left-> monitoring: "5. Trajectory forecasted data"
             collision <-up-> data: "Query data"
-            collision -left-> Producer: "5. Event forecasted"
-            Producer -up-> client: "6. DENM"
+            collision -left-> Producer: "6. Event forecasted"
+            Producer -up-> client: "7. DENM"
         }
         step --right--( messages
         step --down--> client: "1. ASN.1 ITS\nCAN,DENM,CPM"
@@ -159,28 +164,28 @@ Flow Description
 
 In the previous diagram, the flows are numerated. The description of each flow is:
 
-    #.  **ANS.1 ITS from STEP Broker to Client**: The messages in the flow are:
+    1.  **ANS.1 ITS from STEP Broker to Client**: The messages in the flow are:
         
             * CAM 
             * DENM
             * CPM
 
         The messages received are based on the geo-hashing in the MQTT topic.
-    #.  **ANS.1 ITS from STEP Client to STEP Broker**: The messages in the flow are:
+    2.  **ANS.1 ITS from STEP Client to STEP Broker**: The messages in the flow are:
         
             * DENM
 
         The message sent contains a forecasting of a Crash. The message contains the 
         information of only 2 stations involved. So if the crash involves more than 2 stations,
         the messages generated will be the number of stations decreased by one. 
-    #.  **CAM,CPM from STEP Client to Adapter**: The messages received by STEP Client
+    3.  **CAM,CPM from STEP Client to Adapter**: The messages received by STEP Client
         are encoded in CloudEvent compatible format. The data field contains:
         
             * CAM
             * CPM
 
         The message is validated by JSON schema :ref:`target_cloud_events_step_adapter_schema`.
-    #.  **Position points array from adapter to trajectory**: STEP Adapter executes the
+    4.  **Position points array from adapter to trajectory**: STEP Adapter executes the
         following tasks:
             
             * Collect the messages per station id or perceptive object id
@@ -191,10 +196,13 @@ In the previous diagram, the flows are numerated. The description of each flow i
             * Down or up sampling to have a constant rate (**sampling normalize**)
 
         The message is validated by JSON schema :ref:`target_cloud_events_step_crash_prediction_schema`.
-    #.  **Event forecasted from avoidance collision to Producer**: The message contains the
+    5.  **Trajectory forecasted data from trajectory to monitoring**: The message contains the
+        position point of the station involved in the event. The message is validated by JSON schema
+        :ref:`target_cloud_events_step_monitoring_schema`.
+    6.  **Event forecasted from avoidance collision to Producer**: The message contains the
         position point of the station involved in the event. The message is validated by JSON schema
         :ref:`target_cloud_events_step_producer_schema`.
-    #.  **DENM from Producer to client**: The message DENM contains the pre-crash container. The message
+    7.  **DENM from Producer to client**: The message DENM contains the pre-crash container. The message
         is validated by JSON schema :ref:`target_cloud_events_step_client_schema`.
-    #.  **DENM from client to Producer**: The message DENM contains the environment notification generated 
+    8.  **DENM from client to Producer**: The message DENM contains the environment notification generated 
         by other stations. The message is validated by JSON schema :ref:`target_cloud_events_step_producer_schema`.
