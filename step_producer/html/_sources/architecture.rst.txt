@@ -61,15 +61,16 @@ Core Dependencies
 
 **step_redis**
    STEP-specific Redis integration library that provides the messaging and stream processing 
-   foundation. Core functionality includes:
+   foundation as a black box interface. Core functionality includes:
 
       * **Connection Pooling**: Efficient Redis connection management with automatic reconnection
       * **Stream Processing**: High-level abstractions for Redis streams with consumer group support
       * **Message Serialization**: Automatic conversion between Python objects and Redis stream data
       * **Error Handling**: Robust error handling and recovery mechanisms for Redis operations
 
-   Provides the base classes ``StepRedisPool`` and ``StepRedisStream`` that are extended by 
-   ``StepProducerRedisPool`` and ``StepProducerRedisStream`` for Producer-specific functionality.
+   Provides the base classes ``StepRedisPool`` and ``StepRedisStream``, along with specialized 
+   implementations like ``StepProducerRedisStream`` and ``StepClientRedisStream`` for different 
+   stream operations. The STEP Producer uses these classes directly without custom extensions.
 
 Architecture Integration
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -94,13 +95,15 @@ in the system design.
 
 Main Components:
 
-   #. **DenServiceDataManager/DenServiceManager**: Class for managing the DEN service lifecycle, 
-      including message creation, processing, and termination.
-   #. **StepProducerRedisPool/StepProducerRedisStream**: Redis integration 
-      for message queuing
+   #. **DenServiceManager**: Orchestrator for DEN service lifecycle, including message creation, 
+      processing, and termination
+   #. **DenServiceDataManager**: Data management for DENM records with multi-index storage
+   #. **OrderedListRecord/RecordKey**: Time-ordered record management with unique record keys
+   #. **Redis Integration (step_redis)**: Redis connection pooling and stream processing via 
+      StepRedisPool and StepRedisStream base classes
    #. **StepProducerConfig**: Configuration management for the Producer
    #. **StepLogger**: Logging utilities specific to the STEP Producer
-   #. **StepInterruptException**: Custom exceptions for error handling
+   #. **StepException**: Custom exceptions for error handling
 
 DenServiceManager
 ^^^^^^^^^^^^^^^^^
@@ -126,11 +129,11 @@ termination and cleanup.
 **Key Methods:**
 
    * ``process_station_collisions_received()``: Main entry point for processing collision arrays, delegating 
-     to the data manager for record creation and handling stream publication
+     to the data manager for record creation and returning list of DENM messages
    * ``process_denm_record_received()``: Handles incoming DENM records, specifically processing 
      termination requests with negation flags
-   * ``periodical_cleanup_run()``: Executes continuous cleanup operations, identifying expired records and 
-     publishing cancellation messages
+   * ``periodical_cleanup()``: Executes cleanup operation, identifying expired records and 
+     returning list of cancellation messages
    * ``_denm_create_cancellation()``: Creates cancellation DENM messages by copying original message data 
      while setting the termination flag
 
@@ -144,9 +147,8 @@ scenarios.
 **Configuration Parameters:**
 
    * ``station_id``: Unique identifier for the originating ITS station
-   * ``time_after_collision``: Duration to continue broadcasting DENM after collision detection
-   * ``denm_last_update_max_delay_ms``: Maximum allowed delay for DENM record updates
-   * ``denm_check_last_update_max_interval``: Maximum interval between cleanup operations
+   * ``time_after_collision_sec``: Duration in seconds to continue broadcasting DENM after collision detection
+   * ``denm_last_update_max_delay_ms``: Maximum allowed delay in milliseconds for DENM record updates
 
 DenServiceDataManager
 ^^^^^^^^^^^^^^^^^^^^^
@@ -158,24 +160,28 @@ multiple data structures for optimal performance.
 
 **Internal Architecture:**
 
-The module consists of two primary classes working in tandem:
+The data management layer consists of three primary data structures:
 
-   #. **DenmRecord**: A lightweight data container that encapsulates individual DENM messages along with 
-      metadata including reference time, unique record keys, and action ID indices. This class implements 
-      comparison operators for chronological sorting and hash functionality for efficient dictionary storage.
-   #. **DenServiceDataManager**: The core service class that manages collections of DENM records through 
-      multiple specialized indices and provides comprehensive lifecycle management operations.
+   #. **DenmRecordInfo**: A frozen dataclass that encapsulates DENM data (``DenmDataV1``), reference time 
+      (``ItsTime``), and monotonic timestamp. Automatically extracts reference time from the DENM's 
+      management container upon initialization.
+   #. **OrderedListRecord**: A time-ordered record container with comparison operators for chronological 
+      sorting. Pairs a reference time with a unique record key for efficient sorted list operations.
+   #. **RecordKey**: A frozen dataclass holding unique identifiers for DENM records, containing reference 
+      and involved actor IDs (station ID and object ID pairs).
+   #. **DenServiceDataManager**: The core service class that manages collections using multiple specialized 
+      indices for optimal performance across different access patterns.
 
 **Data Storage Strategy:**
 
 The data manager employs a multi-index architecture for optimal performance:
 
-   * ``_denm_sorted_records``: A ``SortedList`` maintaining chronological ordering of records for efficient 
-     time-based operations O(log n).
-   * ``_record_key_index``: Hash-based dictionary providing O(1) lookup by unique record keys composed 
-     of station and object IDs
-   * ``_action_id_index``: Hash-based dictionary enabling fast retrieval by action ID tuples (station 
-     ID, sequence number)
+   * ``_denm_sorted_records``: A ``SortedList[OrderedListRecord]`` maintaining chronological ordering 
+     for efficient time-based operations O(log n). Each record contains reference time and record key.
+   * ``_record_key_index``: Hash-based dictionary ``dict[RecordKey, DenmRecordInfo]`` providing O(1) 
+     lookup by unique record keys composed of reference and involved actor identifiers
+   * ``_action_id_index``: Hash-based dictionary ``dict[ActionId, DenmRecordInfo]`` enabling fast 
+     retrieval by action ID (originating station ID and sequence number)
 
 **Key Functionality:**
 
@@ -192,15 +198,21 @@ The data manager employs a multi-index architecture for optimal performance:
 
 **Record Management:**
 
-Each DENM record is uniquely identified by a four-tuple record key 
-``(reference_station_id, reference_object_id, target_station_id, target_object_id)``, enabling precise tracking of 
-collision relationships between specific ITS entities. The system supports both new record creation and 
-existing record updates, reusing action IDs where appropriate to maintain message continuity.
+Each DENM record is uniquely identified by a ``RecordKey`` containing:
+
+   * ``reference_actor_id``: ActorId (station_id, object_id) of the reference vehicle
+   * ``involved_actor_id``: ActorId (station_id, object_id) of the involved vehicle
+
+This structure enables precise tracking of collision relationships between specific ITS entities. The system 
+supports both new record creation and existing record updates, reusing action IDs where appropriate to 
+maintain message continuity.
 
 **Performance Optimizations:**
 
-   * Utilizes ``__slots__`` for memory efficiency in both ``DenmRecord`` and ``DenServiceDataManager`` classes
+   * Utilizes ``__slots__`` for memory efficiency in ``DenServiceDataManager`` and ``OrderedListRecord`` classes
+   * Uses frozen dataclasses for ``DenmRecordInfo`` and ``RecordKey`` for immutability and performance
    * Implements ``SortedList`` for maintaining chronological order without manual sorting overhead
+   * Caches hash values in ``OrderedListRecord`` for efficient dictionary/set operations
    * Provides multiple access patterns (chronological, key-based, action ID-based) for different operational requirements
    * Includes comprehensive logging with configurable detail levels for operational monitoring and debugging
 
@@ -209,6 +221,54 @@ existing record updates, reusing action IDs where appropriate to maintain messag
 The component implements sophisticated expiration logic through ``get_interval_oldest_update_ms()``, calculating 
 appropriate cleanup intervals based on the oldest record's reference time while respecting maximum interval 
 constraints. This enables adaptive cleanup scheduling that responds to actual system load and message aging patterns.
+
+OrderedListRecord Module
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The ``ordered_list_record`` module provides lightweight, memory-efficient data structures for time-ordered 
+operations in DENM management. This module is designed specifically for high-frequency, time-ordered 
+operations (insert, search, delete) in sorted lists and hash tables.
+
+**Core Components:**
+
+   #. **RecordKey**: A frozen dataclass that holds unique identifiers for DENM records:
+      
+      * ``reference_actor_id``: ActorId containing station_id and object_id of reference vehicle
+      * ``involved_actor_id``: ActorId containing station_id and object_id of involved vehicle
+      
+      Provides immutable record identification with automatic hashing for efficient dictionary operations.
+   
+   #. **OrderedListRecord**: A time-ordered record container implementing rich comparison operators:
+      
+      * Encapsulates reference time (``ItsTime``) and record key (``RecordKey``)
+      * Implements ``__lt__``, ``__le__``, ``__gt__``, ``__ge__`` for chronological ordering
+      * Implements ``__eq__`` and ``__hash__`` based on record key for deduplication
+      * Uses ``__slots__`` with hash caching for minimal memory footprint
+      * Decorated with ``@total_ordering`` for complete comparison support
+
+**Design Features:**
+
+   * **Memory Efficiency**: Uses ``__slots__`` to minimize memory overhead per record
+   * **Hash Caching**: Caches hash values during initialization for fast dictionary/set operations
+   * **Immutable Keys**: Frozen dataclasses ensure record keys cannot be modified after creation
+   * **Comparison Semantics**: 
+     
+     - Ordering based on reference time (chronological)
+     - Equality based on record key (uniqueness)
+   
+   * **Type Safety**: Leverages dataclass validation and type hints for robust implementation
+
+**Integration with DenServiceDataManager:**
+
+The ``OrderedListRecord`` instances are stored in the ``_denm_sorted_records`` SortedList, enabling:
+
+   * O(log n) insertion maintaining chronological order
+   * O(log n) deletion when records expire
+   * O(1) equality checks for duplicate detection
+   * Fast iteration over time-ordered records for cleanup operations
+
+This separation of concerns allows the ``DenServiceDataManager`` to focus on business logic while 
+leveraging optimized data structures for time-ordered operations.
 
 StepProducerConfig
 ^^^^^^^^^^^^^^^^^^
@@ -233,12 +293,12 @@ The configuration system follows a well-structured hierarchical model with multi
 **Producer Instance Settings:**
 
    * ``templateVersion``: Configuration schema version for compatibility management
-   * ``instanceName``: Unique identifier for the Producer instance within the ecosystem
+   * ``instanceName``: Unique identifier for the Producer instance within the ecosystem (not in config model, runtime param)
    * ``stationId``: ITS station identifier (0-4294967295) for message origination
    * ``timeAfterCollision``: Duration in seconds to continue broadcasting DENM after collision detection (0-10)
    * ``denmLastUpdateMaxDelay``: Maximum allowed delay in milliseconds for DENM record updates (1-10000)
-   * ``denmCheckLastUpdateMaxInterval``: Maximum interval in milliseconds for checking DENM updates (1000-60000)
-   * ``reconnectInterval``: Time interval in seconds for automatic reconnection attempts
+   * ``denmCheckLastUpdateInterval``: Interval in seconds for checking DENM updates and cleanup operations (1-60)
+   * ``reconnectInterval``: Time interval in seconds for automatic reconnection attempts (0-10)
 
 **Redis Integration Configuration:**
 
@@ -304,55 +364,65 @@ configuration patterns, consistent validation rules, and compatible schema defin
 enable configuration sharing and validation across the entire STEP platform.
 
 
-StepProducerRedisPool and StepProducerRedisStream
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Redis Integration (step_redis)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The ``StepProducerRedisPool`` and ``StepProducerRedisStream`` components provide the Redis
-integration layer for the STEP Producer architecture, enabling efficient message
-queuing and distribution between different system components.
+The STEP Producer integrates with Redis through the **step_redis** library, which provides 
+the messaging infrastructure as a black box with well-defined interfaces. This library handles 
+all Redis connection management, stream processing, and message serialization/deserialization.
 
-``StepProducerRedisPool``
+**step_redis Interface:**
 
-   #. **Connection Management**: Extends the ``StepRedisPool`` base class to handle 
-      Redis connection pooling specifically for STEP Producer needs.
-   #. **Resource Management**: Provides asynchronous context management through 
-      ``__aenter__`` and ``__aexit__`` methods for safe connection handling.
-   #. **Connection Configuration**: Manages Redis connection parameters such 
-      as host, port, and authentication details.
-   #. **Connection Pooling**: Implements connection pooling to optimize performance 
-      and resource utilization when interacting with Redis.
+The library exposes several key abstractions used by STEP Producer:
 
-``StepProducerRedisStream``
-
-   #. **Stream Management**: Extends the ``StepRedisStream`` base class to implement 
-      specialized stream handling for ITS messages.
-   #. **Input Stream Processing**: Manages connections to input streams from:
-
-      * ``step_client`` for receiving DENM (Decentralized Environmental Notification Messages) 
-        message.
-      * ``step_crash_prediction`` for receiving collision prediction data with the actors
-        involved
-
-   #. **Output Stream Management**: Handles output streams with specific routing:
-      
-      * Connects to ``step_client`` for sending DENM messages generated by the Producer
+   * **StepRedisPool**: Base class for managing Redis connection pools with automatic 
+     reconnection and health monitoring
+   * **StepRedisStream**: Base class for Redis stream operations providing:
+     
+     - Stream creation and consumer group management
+     - Asynchronous message publishing
+     - Message reception with automatic deserialization
+     - Context manager support for resource cleanup
    
-   #. **Stream Creation**: Creates and configures input streams with appropriate consumer 
-      group IDs for message distribution.
-   #. **Message Publishing**: Provides methods to publish messages to the configured output streams.
-   #. **Message Receiving**: Offers functionality to receive and parse messages from input streams.
+   * **StepRedisPoolParams**: Configuration parameters for connection pool initialization
+   * **StepRedisStreamParams**: Configuration parameters for stream setup
+   * **StepProducerRedisStream**: Producer-specific stream implementation for:
+     
+     - Receiving collision data from ``step_crash_prediction`` component
+     - Receiving DENM messages from ``step_client`` component
+     - Publishing DENM messages to ``step_client`` for distribution
+   
+   * **StepClientRedisStream**: Client stream interface for message routing
 
-Together, these components form the communication infrastructure that enables standardized 
-message exchange between STEP Producer and other components in the STEP ecosystem through 
-Redis streams.
+**Message Flow:**
+
+   #. **Input Processing**: Monitors Redis streams for:
+      
+      - ``ProducerCloudEventsStationCollisionArrayV1``: Collision prediction data
+      - ``ProducerCloudEventsDenmDataV1``: DENM records (for negation processing)
+   
+   #. **Output Publishing**: Publishes generated DENM messages to output streams as 
+      ``ProducerCloudEventsDenmDataV1`` cloud events
+
+**Integration Benefits:**
+
+   * Transparent connection pooling and resource management
+   * Automatic message serialization using step_cloud_schemas
+   * Stream reliability with consumer group support
+   * Asynchronous operations for high throughput
+   * Configurable retry and reconnection logic
+
+The step_redis library abstracts all Redis-specific implementation details, allowing the 
+STEP Producer to focus on DEN service logic while maintaining reliable, high-performance 
+message processing.
 
 StepLogger
 ^^^^^^^^^^
 
-The ``StepLogger`` component provides specialized logging functionality for the STEP Client
+The ``StepLogger`` component provides specialized logging functionality for the STEP Producer
 architecture, enabling comprehensive and configurable logging throughout the application. 
 It serves as a wrapper around Python's standard logging facilities with additional features 
-tailored to STEP Client's needs.
+tailored to STEP Producer's needs.
 
 Key features of ``StepLogger`` include:
 
@@ -371,35 +441,34 @@ Key features of ``StepLogger`` include:
    #. **Context-aware Logging**: Includes context information such as component IDs, 
       transaction IDs, and operation details to facilitate troubleshooting.
    #. **Configuration Integration**: Leverages the logging configuration section 
-      from ``StepClientConfig`` to enable consistent setup across components.
+      from ``StepProducerConfig`` to enable consistent setup across components.
    #. **Utility Methods**: Offers utility methods like ``setup_logging()`` for initial 
       configuration and ``get_logger()`` for retrieving appropriately configured 
       logger instances.
    #. **Error Handling**: Includes robust error handling to prevent logging failures 
       from impacting core application functionality.
 
-The ``StepLogger`` component ensures that the STEP Client maintains comprehensive 
+The ``StepLogger`` component ensures that the STEP Producer maintains comprehensive 
 logging capabilities to support monitoring, debugging, and operational insights 
 across all system components.
 
-StepInterruptException
-^^^^^^^^^^^^^^^^^^^^^^
+StepException
+^^^^^^^^^^^^^
 
-The ``StepInterruptException`` component provides a custom exception class for handling
-interruptions within the STEP Producer architecture. This exception is designed 
-to be raised in situations where the normal flow of processing needs to be interrupted, 
-such as when a critical error occurs or when an operation is canceled.
+The ``step_exception`` module provides custom exception classes for error handling
+within the STEP Producer architecture. These exceptions are designed to handle
+various error scenarios including CLI errors, interruptions, and other exceptional conditions.
 
-Key features of ``StepInterruptException`` include:
+Key features include:
 
-   #. **Custom Exception Class**: Inherits from Python's built-in ``Exception`` class, 
-      allowing it to be raised and caught like any standard exception.
-   #. **Error Context**: Provides a mechanism to include additional context or 
-      information about the error when raising the exception.
-   #. **Graceful Shutdown**: Designed to be used in scenarios where the application 
-      needs to gracefully shut down or clean up resources before exiting.
-   #. **Integration with Logging**: Can be logged using the ``StepLogger`` component 
-      to capture detailed error information for debugging and operational monitoring.
+   #. **StepCliError**: Custom exception class for command-line interface errors, 
+      inherits from Python's built-in ``Exception`` class
+   #. **Error Context**: Provides mechanisms to include additional context or 
+      information about errors when raising exceptions
+   #. **Graceful Shutdown**: Designed for scenarios requiring graceful shutdown 
+      with proper resource cleanup
+   #. **Integration with Logging**: Works seamlessly with ``StepLogger`` component 
+      to capture detailed error information for debugging and operational monitoring
 
 Component Diagram
 ^^^^^^^^^^^^^^^^^
@@ -408,39 +477,44 @@ The following component diagram illustrates the high-level architecture of the S
 and its interactions with external systems. It shows the relationships between the core
 components and how they interact with Redis streams and external data sources.
 
-.. plantuml::
-   :align: center
+.. container:: scrollable-diagram
 
-   package "STEP Producer" {
-      package "DenService" {
-          [DenServiceManager] as DSM
-          [DenServiceDataManager] as DSDM
-          note left of DSM
-            Orchestrates DENM
-            lifecycle management
-          end note
-          note right of DSDM
-            Manages DENM records
-            with multi-index storage
-          end note
+   .. plantuml::
+      :align: center
+
+      package "STEP Producer" {
+         package "DenService" {
+            [DenServiceManager] as DSM
+            [DenServiceDataManager] as DSDM
+            note left of DSM
+               Orchestrates DENM
+               lifecycle management
+            end note
+            note right of DSDM
+               Manages DENM records
+               with multi-index storage
+            end note
+         }
+         [StepProducerConfig] as Config
+         [StepLogger] as Logger
       }
-      package "Redis Proxy" {
-          [StepProducerRedisPool] as ProducerRedisPool
-          [StepProducerRedisStream] as ProducerRedisStream
-          note bottom of ProducerRedisStream
-             Redis Streams for
-             message queuing
-          end note
+      package "Redis Integration" {
+         [StepRedisPool] as RedisPool <<step_redis>>
+         [StepProducerRedisStream] as ProducerRedisStream <<step_redis>>
+         [StepClientRedisStream] as ClientRedisStream <<step_redis>>
+         note bottom of ProducerRedisStream
+            Redis streams for
+            message queuing
+            (provided by step_redis)
+         end note
       }
-      [StepProducerConfig] as Config
-      [StepLogger] as Logger
-   }
-   DSM -- DSDM : delegates data operations
-   DSM -- ProducerRedisStream : publishes DENM messages
-   DSM -- Logger : logs operations
-   DSM -- Config : get configuration 
-   DSDM -- Logger : logs data operations
-   ProducerRedisStream -- ProducerRedisPool : channel management 
+      DSM -- DSDM : delegates data operations
+      DSM -- ProducerRedisStream : publishes DENM messages
+      DSM -- Logger : logs operations
+      DSM -- Config : uses configuration 
+      DSDM -- Logger : logs data operations
+      ProducerRedisStream -- RedisPool : uses connection pool
+      ClientRedisStream -- RedisPool : uses connection pool 
 
 Class Diagram
 -------------
@@ -449,117 +523,136 @@ The class diagram below illustrates the structure and relationships between
 the key classes in the STEP Producer architecture. It shows the main methods 
 and attributes of each class and how they interact with one another.
 
-.. plantuml::
-   :align: center
-   
-   !theme plain
-   skinparam classAttributeIconSize 0
+.. container:: scrollable-diagram
 
-   class DenServiceManager {
-      -_denm_service_data
-      -_logger
-      +__init__
-      +async process_station_collisions_received
-      +async process_denm_record_received
-      +async periodical_cleanup_run
-      -denm_create_cancellation
-   }
+   .. plantuml::
+      :align: center
+      
+      !theme plain
+      skinparam classAttributeIconSize 0
 
-   class DenServiceDataManager {
-      -_denm_sorted_records
-      -_record_key_index
-      -_action_id_index
-      -_station_id
-      -_sequence_number
-      -_time_after_collision
-      -_denm_last_update_max_delay_ms
-      -_denm_check_last_update_max_interval
-      -_logger
-      -_lock
-      +__init__
-      +insert_station_collision_array
-      +get_denm_records_clean_reference_expired
-      +get_interval_oldest_update_ms
-      +remove_denm_record
-      -_station_order
-      -_create_denm
-   }
+      class DenServiceManager {
+         -_denm_service_data
+         -_logger
+         +__init__
+         +process_station_collisions_received
+         +process_denm_record_received
+         +periodical_cleanup
+         -_denm_create_cancellation
+      }
 
-   class DenmRecord {
-      -_denm
-      -_reference_time
-      -_record_key
-      -_action_id_index
-      +__init__
-      +denm: DenmDataV1 <<property>>
-      +reference_time: ItsTime <<property>>
-      +action_id_index: tuple[int, int] <<property>>
-      +record_key: tuple[int, int, int, int] <<property>>
-      +__eq__
-      +__ne__
-      +__lt__
-      +__le__
-      +__gt__
-      +__ge__
-      +__hash__
-      +__str__
-      +__repr__
-   }
+      class DenServiceDataManager {
+         -_denm_sorted_records: SortedList[OrderedListRecord]
+         -_record_key_index: dict[RecordKey, DenmRecordInfo]
+         -_action_id_index: dict[ActionId, DenmRecordInfo]
+         -_station_id
+         -_sequence_number
+         -_time_after_collision_sec
+         -_denm_last_update_max_delay_ms
+         -_logger
+         +__init__
+         +insert_station_collision_array
+         +get_denm_records_clean_reference_expired
+         +get_interval_oldest_update_ms
+         +remove_denm_record
+         -_station_order
+         -_create_denm_record_info
+         -_create_action_id
+         -_create_record_key
+      }
 
-   class StepProducerConfig {
-      +templateVersion
-      +instanceName
-      +stationId
-      +timeAfterCollision
-      +denmLastUpdateMaxDelay
-      +denmCheckLastUpdateMaxInterval
-      +reconnectInterval
-      +redis
-      +log
-      +{static} get_default
-      +{static} print_config_schema
-      +{static} print_config_example
-   }
+      class DenmRecordInfo {
+         +denm_data: DenmDataV1
+         +reference_time: ItsTime
+         +monotonic_time_sec: int
+         +__post_init__
+      }
 
-   class StepProducerRedisPool {
-      +MAX_CONNECTIONS
-      +__init__
-      +async __aenter__
-      +async __aexit__
-   }
+      class OrderedListRecord {
+         -_reference_time
+         -_record_key
+         -_hash_cache
+         +__init__
+         +reference_time: ItsTime <<property>>
+         +record_key: RecordKey <<property>>
+         +__eq__
+         +__lt__
+         +__le__
+         +__gt__
+         +__ge__
+         +__hash__
+      }
 
-   class StepProducerRedisStream {
-      -_consumer_name
-      -_config
-      -_stream_ttl
-      +__init__
-      +async __aenter__
-      +async create_client_input_stream
-      +async publish_denm_message
-      +async receive_producer_message
-   }
+      class RecordKey {
+         +reference_actor_id: ActorId
+         +involved_actor_id: ActorId
+      }
 
-   class StepLogger {
-      +{static} setup_logging
-      +{static} get_logger
-   }
+      class StepProducerConfig {
+         +templateVersion
+         +stationId
+         +timeAfterCollision
+         +denmLastUpdateMaxDelay
+         +denmCheckLastUpdateInterval
+         +reconnectInterval
+         +redis
+         +log
+         +{static} get_default
+         +{static} print_config_schema
+         +{static} print_config_example
+      }
 
-   DenServiceManager --> DenServiceDataManager : uses
-   DenServiceManager --> StepProducerRedisStream : publishes to
-   DenServiceManager --> StepLogger : logs with
-    
-   DenServiceDataManager --> DenmRecord : manages
-   DenServiceDataManager --> StepLogger : logs with
-   
-   StepProducerRedisStream --> StepProducerRedisPool : uses
-   StepProducerRedisStream --> StepProducerConfig : configured by
-   
-   StepProducerRedisPool --> StepProducerConfig : configured by
-   
-   StepLogger --> StepProducerConfig : configured by
+      class StepRedisPool <<from step_redis>> {
+         <<interface>>
+         +async __aenter__
+         +async __aexit__
+         {abstract} Connection pooling
+         {abstract} Resource management
+      }
 
-   StepProducerRedisPool --|> StepRedisPool : extends
-   StepProducerRedisStream --|> StepRedisStream : extends
+      class StepRedisStream <<from step_redis>> {
+         <<interface>>
+         +async __aenter__
+         +async __aexit__
+         {abstract} Stream management
+         {abstract} Message publishing
+         {abstract} Message receiving
+      }
+
+      class StepProducerRedisStream <<from step_redis>> {
+         {abstract} Producer-specific streams
+         {abstract} Collision data reception
+         {abstract} DENM message handling
+      }
+
+      class StepClientRedisStream <<from step_redis>> {
+         {abstract} Client stream interface
+         {abstract} Message routing
+      }
+
+      class StepLogger {
+         +{static} setup_logging
+         +{static} get_logger
+      }
+
+      DenServiceManager --> DenServiceDataManager : uses
+      DenServiceManager --> StepProducerRedisStream : publishes to
+      DenServiceManager --> StepLogger : logs with
+      
+      DenServiceDataManager --> DenmRecordInfo : manages
+      DenServiceDataManager --> OrderedListRecord : maintains sorted list of
+      DenServiceDataManager --> RecordKey : indexes by
+      DenServiceDataManager --> StepLogger : logs with
+      
+      DenmRecordInfo --> DenmDataV1 : contains
+      OrderedListRecord --> RecordKey : references
+      RecordKey --> ActorId : contains pair of
+      
+      StepProducerRedisStream --|> StepRedisStream : extends
+      StepClientRedisStream --|> StepRedisStream : extends
+      StepRedisStream ..> StepRedisPool : uses
+      
+      StepLogger --> StepProducerConfig : configured by
 
 Sequence Diagrams
 -----------------
@@ -581,50 +674,92 @@ from the crash event message sent by STEP Crash Prediction. It demonstrates how 
 DenServiceManager component processes the incoming collision data, creates the 
 DENM messages, and publishes them to Redis streams. 
 
-.. plantuml::
-   :align: center
+.. container:: scrollable-diagram
 
-   participant "STEP Crash Prediction" as CrashPrediction
-   participant "STEP Client" as Client
-   participant "StepProducerRedisStream" as RedisStream
-   participant "DenServiceManager" as DenManager
-   participant "DenServiceDataManager" as DenDataManager
+   .. plantuml::
+      :align: center
 
-   CrashPrediction -> RedisStream : Crash Event
-   RedisStream -> DenManager : Crash Event
-   DenManager -> DenDataManager : Crash Event 
-   note over DenDataManager
-      Check the if all DENMs related
-      to this foreseen is already 
-      created.
-      Generate new or updated DENM
-   end note
-   DenDataManager -> DenManager : List of DENM
-   DenManager -> RedisStream : List of DENM
-   RedisStream -> Client : DENM_1
-   RedisStream -> Client : DENM_n
+      participant "STEP Crash Prediction" as CrashPrediction
+      participant "STEP Client" as Client
+      participant "StepProducerRedisStream" as RedisStream
+      participant "DenServiceManager" as DenManager
+      participant "DenServiceDataManager" as DenDataManager
+
+      CrashPrediction -> RedisStream : Station Collision Array
+      RedisStream -> DenManager : Station Collision Array
+      DenManager -> DenDataManager : insert_station_collision_array() 
+      note over DenDataManager
+         Check if DENMs for collision pairs
+         already exist. Generate action IDs
+         and create/update DENM records.
+         Return list of DENM messages.
+      end note
+      DenDataManager -> DenManager : List of DenmDataV1
+      DenManager -> RedisStream : List of DenmDataV1
+      RedisStream -> Client : DENM_1
+      RedisStream -> Client : DENM_n
    
 DENM negation
 ^^^^^^^^^^^^^
 
 The sequence diagram below illustrates the process of negation of a DENM.
 
-.. plantuml::
-   :align: center
+.. container:: scrollable-diagram
 
-   participant "STEP Client" as Client
-   participant "StepProducerRedisStream" as RedisStream
-   participant "DenServiceManager" as DenManager
-   participant "DenServiceDataManager" as DenDataManager
+   .. plantuml::
+      :align: center
 
-   Client -> RedisStream : DENM Negation
-   RedisStream -> DenManager : DENM Negation
-   DenManager -> DenDataManager : Remove DENM
-   note over DenDataManager
-      Remove the DENM 
-      information related to
-      Action Id 
-   end note
+      participant "STEP Client" as Client
+      participant "StepProducerRedisStream" as RedisStream
+      participant "DenServiceManager" as DenManager
+      participant "DenServiceDataManager" as DenDataManager
+
+      Client -> RedisStream : DENM with Negation
+      RedisStream -> DenManager : process_denm_record_received()
+      DenManager -> DenDataManager : remove_denm_record(action_id)
+      note over DenDataManager
+         Lookup DENM by action ID in index.
+         Remove from sorted list and
+         both hash indices.
+      end note
+
+Periodic Cleanup
+^^^^^^^^^^^^^^^^
+
+The sequence diagram below illustrates the periodic cleanup process that removes expired DENM records.
+
+.. container:: scrollable-diagram
+
+   .. plantuml::
+      :align: center
+
+      participant "Cleanup Task" as CleanupTask
+      participant "DenServiceManager" as DenManager
+      participant "DenServiceDataManager" as DenDataManager
+      participant "StepClientRedisStream" as RedisStream
+      participant "STEP Client" as Client
+
+      loop Every denmCheckLastUpdateInterval seconds
+         CleanupTask -> DenManager : periodical_cleanup()
+         DenManager -> DenDataManager : get_denm_records_clean_reference_expired()
+         note over DenDataManager
+            Iterate through sorted records
+            from oldest. Check if reference time
+            plus validity duration has expired.
+            Remove and return expired records.
+         end note
+         DenDataManager -> DenManager : List of expired DenmDataV1
+         loop For each expired DENM
+            DenManager -> DenManager : _denm_create_cancellation()
+            note over DenManager
+               Create cancellation DENM
+               by copying original with
+               termination=CANCELLATION
+            end note
+            DenManager -> RedisStream : DENM Cancellation
+            RedisStream -> Client : DENM Cancellation
+         end loop
+      end loop
 
 Performance Considerations
 --------------------------
@@ -705,7 +840,7 @@ For processing a single DENM negation:
 Periodic Cleanup Performance
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-**Scenario**: Automatic expiration cleanup in ``periodical_cleanup_run()``
+**Scenario**: Automatic expiration cleanup in ``periodical_cleanup()``
 
 **Algorithm Complexity Analysis:**
 

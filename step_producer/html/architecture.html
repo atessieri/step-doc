@@ -6,21 +6,21 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Architecture &mdash; STEP Producer 1.0.3 documentation</title>
+  <title>Architecture &mdash; STEP Producer 1.0.5 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="_static/tabs.css?v=4c969af8" />
-      <link rel="stylesheet" type="text/css" href="_static/css/custom.css?v=ca6f9a36" />
+      <link rel="stylesheet" type="text/css" href="_static/css/custom.css?v=ca5f51dc" />
       <link rel="stylesheet" type="text/css" href="_static/css/sphinx_prompt_css.css?v=351d85e3" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=baaebd52"></script>
-      <script src="_static/doctools.js?v=9bcbadda"></script>
-      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/documentation_options.js?v=d55fa986"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="_static/tabs.js?v=3ee01567"></script>
-      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
       <script src="_static/js/expand_tabs.js?v=1e151f68"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
@@ -50,8 +50,10 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">STEP Producer:</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#installing-from-git-repository">Installing from git repository</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation with uv</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#configure-authentication">Configure authentication</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#url-registry-configuration">URL Registry configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#installing-from-registry">Installing from registry</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="commands.html">Command Line Interface</a><ul>
@@ -94,7 +96,15 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="package_script.html">Package Script</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="package_script.html#create-environment">Create environment</a></li>
-<li class="toctree-l2"><a class="reference internal" href="package_script.html#make">Make</a></li>
+<li class="toctree-l2"><a class="reference internal" href="package_script.html#development-with-tox">Development with Tox</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="package_script.html#available-environments">Available Environments</a></li>
+<li class="toctree-l3"><a class="reference internal" href="package_script.html#testing-environments">Testing Environments</a></li>
+<li class="toctree-l3"><a class="reference internal" href="package_script.html#code-quality-commands">Code Quality Commands</a></li>
+<li class="toctree-l3"><a class="reference internal" href="package_script.html#documentation-commands">Documentation Commands</a></li>
+<li class="toctree-l3"><a class="reference internal" href="package_script.html#package-management">Package Management</a></li>
+<li class="toctree-l3"><a class="reference internal" href="package_script.html#cleanup-commands">Cleanup Commands</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="package_script.html#pdf-conversion">PDF conversion</a></li>
 </ul>
 </li>
@@ -108,10 +118,11 @@
 <li class="toctree-l2"><a class="reference internal" href="#components">Components</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#denservicemanager">DenServiceManager</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#denservicedatamanager">DenServiceDataManager</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#orderedlistrecord-module">OrderedListRecord Module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#stepproducerconfig">StepProducerConfig</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#stepproducerredispool-and-stepproducerredisstream">StepProducerRedisPool and StepProducerRedisStream</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#redis-integration-step-redis">Redis Integration (step_redis)</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#steplogger">StepLogger</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#stepinterruptexception">StepInterruptException</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#stepexception">StepException</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#component-diagram">Component Diagram</a></li>
 </ul>
 </li>
@@ -119,6 +130,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#sequence-diagrams">Sequence Diagrams</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#denm-creation-and-publication">DENM creation and publication</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#denm-negation">DENM negation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#periodic-cleanup">Periodic Cleanup</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#performance-considerations">Performance Considerations</a><ul>
@@ -170,30 +182,36 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="schemas_rst/json_schemas.html#output-message-schema">Output Message Schema</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="schemas_rst/cloud_events_step_client_schema.html">STEP Client Schema</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="schemas_rst/cloud_events_step_client_schema.html#cloud-events-step-client">Cloud Events STEP Client</a><ul>
-<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_client_schema.html#action-id">Action Id</a></li>
-<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_client_schema.html#reference-altitude">Reference Altitude</a></li>
-<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_client_schema.html#cause-code">Cause Code</a></li>
-<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_client_schema.html#cloud-event-denm-data-v1">Cloud Event DENM Data V1</a></li>
-<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_client_schema.html#cloud-event-data-content-types">Cloud Event Data Content Types</a></li>
-<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_client_schema.html#denm-data-version-1">DENM Data Version 1</a></li>
-<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_client_schema.html#heading">Heading</a></li>
-<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_client_schema.html#location-container">Location Container</a></li>
-<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_client_schema.html#denm-management-container">DENM Management Container</a></li>
-<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_client_schema.html#object-dimension">Object Dimension</a></li>
-<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_client_schema.html#object-face">Object Face</a></li>
-<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_client_schema.html#perceived-object">Perceived Object</a></li>
-<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_client_schema.html#position-confidence-ellipse">Position Confidence Ellipse</a></li>
-<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_client_schema.html#pre-crash-container">Pre-Crash Container</a></li>
-<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_client_schema.html#reference-position">Reference Position</a></li>
-<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_client_schema.html#road-type">Road Type</a></li>
-<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_client_schema.html#situation-container">Situation Container</a></li>
-<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_client_schema.html#cloudevents-specification-version">CloudEvents Specification Version</a></li>
-<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_client_schema.html#speed">Speed</a></li>
-<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_client_schema.html#denm-termination-type">DENM Termination Type</a></li>
-<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_client_schema.html#traffic-direction-type">Traffic Direction Type</a></li>
-<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_client_schema.html#traffic-participant-type">Traffic Participant Type</a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas_rst/cloud_events_step_producer_schema.html">STEP Producer Schema</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="schemas_rst/cloud_events_step_producer_schema.html#cloud-event-step-producer">Cloud Event STEP Producer</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_producer_schema.html#action-id">Action Id</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_producer_schema.html#reference-altitude">Reference Altitude</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_producer_schema.html#cause-code">Cause Code</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_producer_schema.html#cloud-event-data-content-types">Cloud Event Data Content Types</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_producer_schema.html#denm-data-version-1">DENM Data Version 1</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_producer_schema.html#drive-direction">Drive Direction</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_producer_schema.html#heading">Heading</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_producer_schema.html#identification">Identification</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_producer_schema.html#location-container">Location Container</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_producer_schema.html#denm-management-container">DENM Management Container</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_producer_schema.html#object-dimension">Object Dimension</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_producer_schema.html#object-face">Object Face</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_producer_schema.html#perceived-object">Perceived Object</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_producer_schema.html#position-confidence-ellipse">Position Confidence Ellipse</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_producer_schema.html#position-info">Position Info</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_producer_schema.html#position-type">Position Type</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_producer_schema.html#pre-crash-container">Pre-Crash Container</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_producer_schema.html#cloud-event-denm-data-v1">Cloud Event DENM Data V1</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_producer_schema.html#cloud-event-station-collision-array-data-v1">Cloud Event Station Collision Array Data V1</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_producer_schema.html#reference-position">Reference Position</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_producer_schema.html#road-type">Road Type</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_producer_schema.html#situation-container">Situation Container</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_producer_schema.html#cloudevents-specification-version">CloudEvents Specification Version</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_producer_schema.html#speed">Speed</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_producer_schema.html#station-collision-array-version-1">Station Collision Array Version 1</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_producer_schema.html#denm-termination-type">DENM Termination Type</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_producer_schema.html#traffic-direction-type">Traffic Direction Type</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cloud_events_step_producer_schema.html#traffic-participant-type">Traffic Participant Type</a></li>
 </ul>
 </li>
 </ul>
@@ -239,6 +257,7 @@
 <li class="toctree-l5"><a class="reference internal" href="schemas_rst/step_producer_config_schema.html#step-producer-configuration">STEP Producer Configuration</a><ul>
 <li class="toctree-l6"><a class="reference internal" href="schemas_rst/step_producer_config_schema.html#log-configuration">Log Configuration</a></li>
 <li class="toctree-l6"><a class="reference internal" href="schemas_rst/step_producer_config_schema.html#log-file-handler">Log File Handler</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/step_producer_config_schema.html#log-handler-configuration">Log Handler Configuration</a></li>
 <li class="toctree-l6"><a class="reference internal" href="schemas_rst/step_producer_config_schema.html#log-interval-type">Log Interval Type</a></li>
 <li class="toctree-l6"><a class="reference internal" href="schemas_rst/step_producer_config_schema.html#logging-level">Logging Level</a></li>
 <li class="toctree-l6"><a class="reference internal" href="schemas_rst/step_producer_config_schema.html#log-null-handler">Log Null Handler</a></li>
@@ -327,6 +346,7 @@
 </ul>
 </li>
 <li class="toctree-l4"><a class="reference internal" href="step_producer_rst/step_producer.step_logger.html#step_producer.step_logger.get_logger"><code class="docutils literal notranslate"><span class="pre">get_logger()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="step_producer_rst/step_producer.step_logger.html#step_producer.step_logger.logger_force_write"><code class="docutils literal notranslate"><span class="pre">logger_force_write()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="step_producer_rst/step_producer.step_producer_config.html">step_producer.step_producer_config module</a><ul>
@@ -335,10 +355,8 @@
 </ul>
 </li>
 <li class="toctree-l4"><a class="reference internal" href="step_producer_rst/step_producer.step_producer_config.html#step_producer.step_producer_config.LogConfig"><code class="docutils literal notranslate"><span class="pre">LogConfig</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="step_producer_rst/step_producer.step_producer_config.html#step_producer.step_producer_config.LogConfig.handler"><code class="docutils literal notranslate"><span class="pre">LogConfig.handler</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="step_producer_rst/step_producer.step_producer_config.html#step_producer.step_producer_config.LogConfig.level"><code class="docutils literal notranslate"><span class="pre">LogConfig.level</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="step_producer_rst/step_producer.step_producer_config.html#step_producer.step_producer_config.LogConfig.format"><code class="docutils literal notranslate"><span class="pre">LogConfig.format</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="step_producer_rst/step_producer.step_producer_config.html#step_producer.step_producer_config.LogConfig.dateFormat"><code class="docutils literal notranslate"><span class="pre">LogConfig.dateFormat</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_producer_rst/step_producer.step_producer_config.html#step_producer.step_producer_config.LogConfig.handlersConfig"><code class="docutils literal notranslate"><span class="pre">LogConfig.handlersConfig</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_producer_rst/step_producer.step_producer_config.html#step_producer.step_producer_config.LogConfig.globalLevel"><code class="docutils literal notranslate"><span class="pre">LogConfig.globalLevel</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="step_producer_rst/step_producer.step_producer_config.html#step_producer.step_producer_config.LogConfig.get_default"><code class="docutils literal notranslate"><span class="pre">LogConfig.get_default()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="step_producer_rst/step_producer.step_producer_config.html#step_producer.step_producer_config.LogConfig.model_config"><code class="docutils literal notranslate"><span class="pre">LogConfig.model_config</span></code></a></li>
 </ul>
@@ -350,6 +368,15 @@
 <li class="toctree-l5"><a class="reference internal" href="step_producer_rst/step_producer.step_producer_config.html#step_producer.step_producer_config.LogFileHandler.append"><code class="docutils literal notranslate"><span class="pre">LogFileHandler.append</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="step_producer_rst/step_producer.step_producer_config.html#step_producer.step_producer_config.LogFileHandler.get_default"><code class="docutils literal notranslate"><span class="pre">LogFileHandler.get_default()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="step_producer_rst/step_producer.step_producer_config.html#step_producer.step_producer_config.LogFileHandler.model_config"><code class="docutils literal notranslate"><span class="pre">LogFileHandler.model_config</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="step_producer_rst/step_producer.step_producer_config.html#step_producer.step_producer_config.LogHandlerConfig"><code class="docutils literal notranslate"><span class="pre">LogHandlerConfig</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="step_producer_rst/step_producer.step_producer_config.html#step_producer.step_producer_config.LogHandlerConfig.handler"><code class="docutils literal notranslate"><span class="pre">LogHandlerConfig.handler</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_producer_rst/step_producer.step_producer_config.html#step_producer.step_producer_config.LogHandlerConfig.level"><code class="docutils literal notranslate"><span class="pre">LogHandlerConfig.level</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_producer_rst/step_producer.step_producer_config.html#step_producer.step_producer_config.LogHandlerConfig.format"><code class="docutils literal notranslate"><span class="pre">LogHandlerConfig.format</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_producer_rst/step_producer.step_producer_config.html#step_producer.step_producer_config.LogHandlerConfig.dateFormat"><code class="docutils literal notranslate"><span class="pre">LogHandlerConfig.dateFormat</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_producer_rst/step_producer.step_producer_config.html#step_producer.step_producer_config.LogHandlerConfig.get_default"><code class="docutils literal notranslate"><span class="pre">LogHandlerConfig.get_default()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_producer_rst/step_producer.step_producer_config.html#step_producer.step_producer_config.LogHandlerConfig.model_config"><code class="docutils literal notranslate"><span class="pre">LogHandlerConfig.model_config</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l4"><a class="reference internal" href="step_producer_rst/step_producer.step_producer_config.html#step_producer.step_producer_config.LogHandlerType"><code class="docutils literal notranslate"><span class="pre">LogHandlerType</span></code></a><ul>
@@ -502,26 +529,6 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="step_producer_rst/step_producer.step_producer_redis.html">step_producer.step_producer_redis module</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="step_producer_rst/step_producer.step_producer_redis.html#step_producer.step_producer_redis.StepProducerRedisPool"><code class="docutils literal notranslate"><span class="pre">StepProducerRedisPool</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="step_producer_rst/step_producer.step_producer_redis.html#step_producer.step_producer_redis.StepProducerRedisPool.config"><code class="docutils literal notranslate"><span class="pre">StepProducerRedisPool.config</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="step_producer_rst/step_producer.step_producer_redis.html#step_producer.step_producer_redis.StepProducerRedisPool.logger"><code class="docutils literal notranslate"><span class="pre">StepProducerRedisPool.logger</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="step_producer_rst/step_producer.step_producer_redis.html#step_producer.step_producer_redis.StepProducerRedisPool.__aenter__"><code class="docutils literal notranslate"><span class="pre">StepProducerRedisPool.__aenter__()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l4"><a class="reference internal" href="step_producer_rst/step_producer.step_producer_redis.html#step_producer.step_producer_redis.StepProducerRedisStream"><code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="step_producer_rst/step_producer.step_producer_redis.html#step_producer.step_producer_redis.StepProducerRedisStream.consumer_name"><code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream.consumer_name</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="step_producer_rst/step_producer.step_producer_redis.html#step_producer.step_producer_redis.StepProducerRedisStream.config"><code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream.config</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="step_producer_rst/step_producer.step_producer_redis.html#step_producer.step_producer_redis.StepProducerRedisStream.logger"><code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream.logger</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="step_producer_rst/step_producer.step_producer_redis.html#step_producer.step_producer_redis.StepProducerRedisStream.pool"><code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream.pool</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="step_producer_rst/step_producer.step_producer_redis.html#step_producer.step_producer_redis.StepProducerRedisStream.__aenter__"><code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream.__aenter__()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="step_producer_rst/step_producer.step_producer_redis.html#step_producer.step_producer_redis.StepProducerRedisStream.create_client_input_stream"><code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream.create_client_input_stream()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="step_producer_rst/step_producer.step_producer_redis.html#step_producer.step_producer_redis.StepProducerRedisStream.publish_denm_message"><code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream.publish_denm_message()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="step_producer_rst/step_producer.step_producer_redis.html#step_producer.step_producer_redis.StepProducerRedisStream.receive_producer_message"><code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream.receive_producer_message()</span></code></a></li>
-</ul>
-</li>
-</ul>
-</li>
 </ul>
 </li>
 </ul>
@@ -549,11 +556,11 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="test_rst/test.test___main__.html">test.test___main__ module</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.TestExitCode"><code class="docutils literal notranslate"><span class="pre">TestExitCode</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.TestExitCode.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestExitCode.test___slots__()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.TestExitCode.test_enum_length"><code class="docutils literal notranslate"><span class="pre">TestExitCode.test_enum_length()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.TestExitCode.test_enum_values"><code class="docutils literal notranslate"><span class="pre">TestExitCode.test_enum_values()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.redis_stream_fixture"><code class="docutils literal notranslate"><span class="pre">redis_stream_fixture()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test_args_parse"><code class="docutils literal notranslate"><span class="pre">test_args_parse()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test_exception_handler"><code class="docutils literal notranslate"><span class="pre">test_exception_handler()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test_get_config_schema_file"><code class="docutils literal notranslate"><span class="pre">test_get_config_schema_file()</span></code></a></li>
@@ -562,6 +569,7 @@
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test_main_async"><code class="docutils literal notranslate"><span class="pre">test_main_async()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test_main_interrupt_exception"><code class="docutils literal notranslate"><span class="pre">test_main_interrupt_exception()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test_periodical_cleanup_run"><code class="docutils literal notranslate"><span class="pre">test_periodical_cleanup_run()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test_redis_params_convert"><code class="docutils literal notranslate"><span class="pre">test_redis_params_convert()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test_signal_handler_raises_keyboard_interrupt"><code class="docutils literal notranslate"><span class="pre">test_signal_handler_raises_keyboard_interrupt()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test_stream_receive_run"><code class="docutils literal notranslate"><span class="pre">test_stream_receive_run()</span></code></a></li>
 </ul>
@@ -626,11 +634,33 @@
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_logger.html#test.test_step_logger.test_get_logger_default"><code class="docutils literal notranslate"><span class="pre">test_get_logger_default()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_logger.html#test.test_step_logger.test_get_logger_exception"><code class="docutils literal notranslate"><span class="pre">test_get_logger_exception()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_logger.html#test.test_step_logger.test_get_logger_unknown_handler"><code class="docutils literal notranslate"><span class="pre">test_get_logger_unknown_handler()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_logger.html#test.test_step_logger.test_logger_force_write"><code class="docutils literal notranslate"><span class="pre">test_logger_force_write()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_logger.html#test.test_step_logger.test_namer_replaces_log_extension_with_bz2"><code class="docutils literal notranslate"><span class="pre">test_namer_replaces_log_extension_with_bz2()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_logger.html#test.test_step_logger.test_rotator_compresses_file_and_removes_source"><code class="docutils literal notranslate"><span class="pre">test_rotator_compresses_file_and_removes_source()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="test_rst/test.test_step_producer_config.html">test.test_step_producer_config module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_producer_config.html#test.test_step_producer_config.TestConfigGenerateJsonSchema"><code class="docutils literal notranslate"><span class="pre">TestConfigGenerateJsonSchema</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_producer_config.html#test.test_step_producer_config.TestConfigGenerateJsonSchema.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestConfigGenerateJsonSchema.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_producer_config.html#test.test_step_producer_config.TestConfigGenerateJsonSchema.test_generate"><code class="docutils literal notranslate"><span class="pre">TestConfigGenerateJsonSchema.test_generate()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_producer_config.html#test.test_step_producer_config.TestConfigGenerateJsonSchema.test_generate_with_validation_mode"><code class="docutils literal notranslate"><span class="pre">TestConfigGenerateJsonSchema.test_generate_with_validation_mode()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_producer_config.html#test.test_step_producer_config.TestLogConfig"><code class="docutils literal notranslate"><span class="pre">TestLogConfig</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_producer_config.html#test.test_step_producer_config.TestLogConfig.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestLogConfig.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_producer_config.html#test.test_step_producer_config.TestLogConfig.test_get_default"><code class="docutils literal notranslate"><span class="pre">TestLogConfig.test_get_default()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_producer_config.html#test.test_step_producer_config.TestLogFileHandler"><code class="docutils literal notranslate"><span class="pre">TestLogFileHandler</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_producer_config.html#test.test_step_producer_config.TestLogFileHandler.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestLogFileHandler.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_producer_config.html#test.test_step_producer_config.TestLogFileHandler.test_get_default"><code class="docutils literal notranslate"><span class="pre">TestLogFileHandler.test_get_default()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_producer_config.html#test.test_step_producer_config.TestLogHandlerConfig"><code class="docutils literal notranslate"><span class="pre">TestLogHandlerConfig</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_producer_config.html#test.test_step_producer_config.TestLogHandlerConfig.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestLogHandlerConfig.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_producer_config.html#test.test_step_producer_config.TestLogHandlerConfig.test_get_default"><code class="docutils literal notranslate"><span class="pre">TestLogHandlerConfig.test_get_default()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_producer_config.html#test.test_step_producer_config.TestLogHandlerType"><code class="docutils literal notranslate"><span class="pre">TestLogHandlerType</span></code></a><ul>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_producer_config.html#test.test_step_producer_config.TestLogHandlerType.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestLogHandlerType.test___slots__()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_producer_config.html#test.test_step_producer_config.TestLogHandlerType.test_value"><code class="docutils literal notranslate"><span class="pre">TestLogHandlerType.test_value()</span></code></a></li>
@@ -708,24 +738,6 @@
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_producer_config.html#test.test_step_producer_config.TestStepProducerConfig.test_get_default"><code class="docutils literal notranslate"><span class="pre">TestStepProducerConfig.test_get_default()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_producer_config.html#test.test_step_producer_config.TestStepProducerConfig.test_print_config_example"><code class="docutils literal notranslate"><span class="pre">TestStepProducerConfig.test_print_config_example()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_producer_config.html#test.test_step_producer_config.TestStepProducerConfig.test_print_config_schema"><code class="docutils literal notranslate"><span class="pre">TestStepProducerConfig.test_print_config_schema()</span></code></a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="test_rst/test.test_step_producer_redis.html">test.test_step_producer_redis module</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_producer_redis.html#test.test_step_producer_redis.TestStepProducerRedisPool"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisPool</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_producer_redis.html#test.test_step_producer_redis.TestStepProducerRedisPool.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisPool.test___slots__()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_producer_redis.html#test.test_step_producer_redis.TestStepProducerRedisPool.test_aenter"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisPool.test_aenter()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_producer_redis.html#test.test_step_producer_redis.TestStepProducerRedisPool.test_init"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisPool.test_init()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_producer_redis.html#test.test_step_producer_redis.TestStepProducerRedisStream"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisStream</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_producer_redis.html#test.test_step_producer_redis.TestStepProducerRedisStream.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisStream.test___slots__()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_producer_redis.html#test.test_step_producer_redis.TestStepProducerRedisStream.test__aenter__"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisStream.test__aenter__()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_producer_redis.html#test.test_step_producer_redis.TestStepProducerRedisStream.test_create_client_input_stream"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisStream.test_create_client_input_stream()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_producer_redis.html#test.test_step_producer_redis.TestStepProducerRedisStream.test_publish_denm_message"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisStream.test_publish_denm_message()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_producer_redis.html#test.test_step_producer_redis.TestStepProducerRedisStream.test_receive_producer_message"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisStream.test_receive_producer_message()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_producer_redis.html#test.test_step_producer_redis.TestStepProducerRedisStream.test_stream_init"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisStream.test_stream_init()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -820,7 +832,7 @@ This library provides:</p>
 message generation and processing.</p>
 </dd>
 <dt><strong>step_redis</strong></dt><dd><p>STEP-specific Redis integration library that provides the messaging and stream processing
-foundation. Core functionality includes:</p>
+foundation as a black box interface. Core functionality includes:</p>
 <blockquote>
 <div><ul class="simple">
 <li><p><strong>Connection Pooling</strong>: Efficient Redis connection management with automatic reconnection</p></li>
@@ -829,8 +841,9 @@ foundation. Core functionality includes:</p>
 <li><p><strong>Error Handling</strong>: Robust error handling and recovery mechanisms for Redis operations</p></li>
 </ul>
 </div></blockquote>
-<p>Provides the base classes <code class="docutils literal notranslate"><span class="pre">StepRedisPool</span></code> and <code class="docutils literal notranslate"><span class="pre">StepRedisStream</span></code> that are extended by
-<code class="docutils literal notranslate"><span class="pre">StepProducerRedisPool</span></code> and <code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream</span></code> for Producer-specific functionality.</p>
+<p>Provides the base classes <code class="docutils literal notranslate"><span class="pre">StepRedisPool</span></code> and <code class="docutils literal notranslate"><span class="pre">StepRedisStream</span></code>, along with specialized
+implementations like <code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream</span></code> and <code class="docutils literal notranslate"><span class="pre">StepClientRedisStream</span></code> for different
+stream operations. The STEP Producer uses these classes directly without custom extensions.</p>
 </dd>
 </dl>
 </section>
@@ -857,13 +870,15 @@ in the system design.</p>
 <p>Main Components:</p>
 <blockquote>
 <div><ol class="arabic simple">
-<li><p><strong>DenServiceDataManager/DenServiceManager</strong>: Class for managing the DEN service lifecycle,
-including message creation, processing, and termination.</p></li>
-<li><p><strong>StepProducerRedisPool/StepProducerRedisStream</strong>: Redis integration
-for message queuing</p></li>
+<li><p><strong>DenServiceManager</strong>: Orchestrator for DEN service lifecycle, including message creation,
+processing, and termination</p></li>
+<li><p><strong>DenServiceDataManager</strong>: Data management for DENM records with multi-index storage</p></li>
+<li><p><strong>OrderedListRecord/RecordKey</strong>: Time-ordered record management with unique record keys</p></li>
+<li><p><strong>Redis Integration (step_redis)</strong>: Redis connection pooling and stream processing via
+StepRedisPool and StepRedisStream base classes</p></li>
 <li><p><strong>StepProducerConfig</strong>: Configuration management for the Producer</p></li>
 <li><p><strong>StepLogger</strong>: Logging utilities specific to the STEP Producer</p></li>
-<li><p><strong>StepInterruptException</strong>: Custom exceptions for error handling</p></li>
+<li><p><strong>StepException</strong>: Custom exceptions for error handling</p></li>
 </ol>
 </div></blockquote>
 <section id="denservicemanager">
@@ -891,11 +906,11 @@ enabling seamless integration with other STEP ecosystem components.</p></li>
 <blockquote>
 <div><ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">process_station_collisions_received()</span></code>: Main entry point for processing collision arrays, delegating
-to the data manager for record creation and handling stream publication</p></li>
+to the data manager for record creation and returning list of DENM messages</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">process_denm_record_received()</span></code>: Handles incoming DENM records, specifically processing
 termination requests with negation flags</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">periodical_cleanup_run()</span></code>: Executes continuous cleanup operations, identifying expired records and
-publishing cancellation messages</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">periodical_cleanup()</span></code>: Executes cleanup operation, identifying expired records and
+returning list of cancellation messages</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">_denm_create_cancellation()</span></code>: Creates cancellation DENM messages by copying original message data
 while setting the termination flag</p></li>
 </ul>
@@ -909,9 +924,8 @@ scenarios.</p>
 <blockquote>
 <div><ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">station_id</span></code>: Unique identifier for the originating ITS station</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">time_after_collision</span></code>: Duration to continue broadcasting DENM after collision detection</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">denm_last_update_max_delay_ms</span></code>: Maximum allowed delay for DENM record updates</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">denm_check_last_update_max_interval</span></code>: Maximum interval between cleanup operations</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">time_after_collision_sec</span></code>: Duration in seconds to continue broadcasting DENM after collision detection</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">denm_last_update_max_delay_ms</span></code>: Maximum allowed delay in milliseconds for DENM record updates</p></li>
 </ul>
 </div></blockquote>
 </section>
@@ -922,26 +936,30 @@ implementing efficient storage, indexing, and retrieval mechanisms optimized for
 detection scenarios. This component serves as the persistent storage layer for the DEN service, maintaining
 multiple data structures for optimal performance.</p>
 <p><strong>Internal Architecture:</strong></p>
-<p>The module consists of two primary classes working in tandem:</p>
+<p>The data management layer consists of three primary data structures:</p>
 <blockquote>
 <div><ol class="arabic simple">
-<li><p><strong>DenmRecord</strong>: A lightweight data container that encapsulates individual DENM messages along with
-metadata including reference time, unique record keys, and action ID indices. This class implements
-comparison operators for chronological sorting and hash functionality for efficient dictionary storage.</p></li>
-<li><p><strong>DenServiceDataManager</strong>: The core service class that manages collections of DENM records through
-multiple specialized indices and provides comprehensive lifecycle management operations.</p></li>
+<li><p><strong>DenmRecordInfo</strong>: A frozen dataclass that encapsulates DENM data (<code class="docutils literal notranslate"><span class="pre">DenmDataV1</span></code>), reference time
+(<code class="docutils literal notranslate"><span class="pre">ItsTime</span></code>), and monotonic timestamp. Automatically extracts reference time from the DENM’s
+management container upon initialization.</p></li>
+<li><p><strong>OrderedListRecord</strong>: A time-ordered record container with comparison operators for chronological
+sorting. Pairs a reference time with a unique record key for efficient sorted list operations.</p></li>
+<li><p><strong>RecordKey</strong>: A frozen dataclass holding unique identifiers for DENM records, containing reference
+and involved actor IDs (station ID and object ID pairs).</p></li>
+<li><p><strong>DenServiceDataManager</strong>: The core service class that manages collections using multiple specialized
+indices for optimal performance across different access patterns.</p></li>
 </ol>
 </div></blockquote>
 <p><strong>Data Storage Strategy:</strong></p>
 <p>The data manager employs a multi-index architecture for optimal performance:</p>
 <blockquote>
 <div><ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">_denm_sorted_records</span></code>: A <code class="docutils literal notranslate"><span class="pre">SortedList</span></code> maintaining chronological ordering of records for efficient
-time-based operations O(log n).</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">_record_key_index</span></code>: Hash-based dictionary providing O(1) lookup by unique record keys composed
-of station and object IDs</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">_action_id_index</span></code>: Hash-based dictionary enabling fast retrieval by action ID tuples (station
-ID, sequence number)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_denm_sorted_records</span></code>: A <code class="docutils literal notranslate"><span class="pre">SortedList[OrderedListRecord]</span></code> maintaining chronological ordering
+for efficient time-based operations O(log n). Each record contains reference time and record key.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_record_key_index</span></code>: Hash-based dictionary <code class="docutils literal notranslate"><span class="pre">dict[RecordKey,</span> <span class="pre">DenmRecordInfo]</span></code> providing O(1)
+lookup by unique record keys composed of reference and involved actor identifiers</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_action_id_index</span></code>: Hash-based dictionary <code class="docutils literal notranslate"><span class="pre">dict[ActionId,</span> <span class="pre">DenmRecordInfo]</span></code> enabling fast
+retrieval by action ID (originating station ID and sequence number)</p></li>
 </ul>
 </div></blockquote>
 <p><strong>Key Functionality:</strong></p>
@@ -960,15 +978,23 @@ numbers for action IDs, implementing proper wrap-around logic to prevent conflic
 </ol>
 </div></blockquote>
 <p><strong>Record Management:</strong></p>
-<p>Each DENM record is uniquely identified by a four-tuple record key
-<code class="docutils literal notranslate"><span class="pre">(reference_station_id,</span> <span class="pre">reference_object_id,</span> <span class="pre">target_station_id,</span> <span class="pre">target_object_id)</span></code>, enabling precise tracking of
-collision relationships between specific ITS entities. The system supports both new record creation and
-existing record updates, reusing action IDs where appropriate to maintain message continuity.</p>
+<p>Each DENM record is uniquely identified by a <code class="docutils literal notranslate"><span class="pre">RecordKey</span></code> containing:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">reference_actor_id</span></code>: ActorId (station_id, object_id) of the reference vehicle</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">involved_actor_id</span></code>: ActorId (station_id, object_id) of the involved vehicle</p></li>
+</ul>
+</div></blockquote>
+<p>This structure enables precise tracking of collision relationships between specific ITS entities. The system
+supports both new record creation and existing record updates, reusing action IDs where appropriate to
+maintain message continuity.</p>
 <p><strong>Performance Optimizations:</strong></p>
 <blockquote>
 <div><ul class="simple">
-<li><p>Utilizes <code class="docutils literal notranslate"><span class="pre">__slots__</span></code> for memory efficiency in both <code class="docutils literal notranslate"><span class="pre">DenmRecord</span></code> and <code class="docutils literal notranslate"><span class="pre">DenServiceDataManager</span></code> classes</p></li>
+<li><p>Utilizes <code class="docutils literal notranslate"><span class="pre">__slots__</span></code> for memory efficiency in <code class="docutils literal notranslate"><span class="pre">DenServiceDataManager</span></code> and <code class="docutils literal notranslate"><span class="pre">OrderedListRecord</span></code> classes</p></li>
+<li><p>Uses frozen dataclasses for <code class="docutils literal notranslate"><span class="pre">DenmRecordInfo</span></code> and <code class="docutils literal notranslate"><span class="pre">RecordKey</span></code> for immutability and performance</p></li>
 <li><p>Implements <code class="docutils literal notranslate"><span class="pre">SortedList</span></code> for maintaining chronological order without manual sorting overhead</p></li>
+<li><p>Caches hash values in <code class="docutils literal notranslate"><span class="pre">OrderedListRecord</span></code> for efficient dictionary/set operations</p></li>
 <li><p>Provides multiple access patterns (chronological, key-based, action ID-based) for different operational requirements</p></li>
 <li><p>Includes comprehensive logging with configurable detail levels for operational monitoring and debugging</p></li>
 </ul>
@@ -977,6 +1003,60 @@ existing record updates, reusing action IDs where appropriate to maintain messag
 <p>The component implements sophisticated expiration logic through <code class="docutils literal notranslate"><span class="pre">get_interval_oldest_update_ms()</span></code>, calculating
 appropriate cleanup intervals based on the oldest record’s reference time while respecting maximum interval
 constraints. This enables adaptive cleanup scheduling that responds to actual system load and message aging patterns.</p>
+</section>
+<section id="orderedlistrecord-module">
+<h3>OrderedListRecord Module<a class="headerlink" href="#orderedlistrecord-module" title="Link to this heading"></a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">ordered_list_record</span></code> module provides lightweight, memory-efficient data structures for time-ordered
+operations in DENM management. This module is designed specifically for high-frequency, time-ordered
+operations (insert, search, delete) in sorted lists and hash tables.</p>
+<p><strong>Core Components:</strong></p>
+<blockquote>
+<div><ol class="arabic">
+<li><p><strong>RecordKey</strong>: A frozen dataclass that holds unique identifiers for DENM records:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">reference_actor_id</span></code>: ActorId containing station_id and object_id of reference vehicle</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">involved_actor_id</span></code>: ActorId containing station_id and object_id of involved vehicle</p></li>
+</ul>
+<p>Provides immutable record identification with automatic hashing for efficient dictionary operations.</p>
+</li>
+<li><p><strong>OrderedListRecord</strong>: A time-ordered record container implementing rich comparison operators:</p>
+<ul class="simple">
+<li><p>Encapsulates reference time (<code class="docutils literal notranslate"><span class="pre">ItsTime</span></code>) and record key (<code class="docutils literal notranslate"><span class="pre">RecordKey</span></code>)</p></li>
+<li><p>Implements <code class="docutils literal notranslate"><span class="pre">__lt__</span></code>, <code class="docutils literal notranslate"><span class="pre">__le__</span></code>, <code class="docutils literal notranslate"><span class="pre">__gt__</span></code>, <code class="docutils literal notranslate"><span class="pre">__ge__</span></code> for chronological ordering</p></li>
+<li><p>Implements <code class="docutils literal notranslate"><span class="pre">__eq__</span></code> and <code class="docutils literal notranslate"><span class="pre">__hash__</span></code> based on record key for deduplication</p></li>
+<li><p>Uses <code class="docutils literal notranslate"><span class="pre">__slots__</span></code> with hash caching for minimal memory footprint</p></li>
+<li><p>Decorated with <code class="docutils literal notranslate"><span class="pre">&#64;total_ordering</span></code> for complete comparison support</p></li>
+</ul>
+</li>
+</ol>
+</div></blockquote>
+<p><strong>Design Features:</strong></p>
+<blockquote>
+<div><ul class="simple">
+<li><p><strong>Memory Efficiency</strong>: Uses <code class="docutils literal notranslate"><span class="pre">__slots__</span></code> to minimize memory overhead per record</p></li>
+<li><p><strong>Hash Caching</strong>: Caches hash values during initialization for fast dictionary/set operations</p></li>
+<li><p><strong>Immutable Keys</strong>: Frozen dataclasses ensure record keys cannot be modified after creation</p></li>
+<li><p><strong>Comparison Semantics</strong>:</p>
+<ul>
+<li><p>Ordering based on reference time (chronological)</p></li>
+<li><p>Equality based on record key (uniqueness)</p></li>
+</ul>
+</li>
+<li><p><strong>Type Safety</strong>: Leverages dataclass validation and type hints for robust implementation</p></li>
+</ul>
+</div></blockquote>
+<p><strong>Integration with DenServiceDataManager:</strong></p>
+<p>The <code class="docutils literal notranslate"><span class="pre">OrderedListRecord</span></code> instances are stored in the <code class="docutils literal notranslate"><span class="pre">_denm_sorted_records</span></code> SortedList, enabling:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>O(log n) insertion maintaining chronological order</p></li>
+<li><p>O(log n) deletion when records expire</p></li>
+<li><p>O(1) equality checks for duplicate detection</p></li>
+<li><p>Fast iteration over time-ordered records for cleanup operations</p></li>
+</ul>
+</div></blockquote>
+<p>This separation of concerns allows the <code class="docutils literal notranslate"><span class="pre">DenServiceDataManager</span></code> to focus on business logic while
+leveraging optimized data structures for time-ordered operations.</p>
 </section>
 <section id="stepproducerconfig">
 <h3>StepProducerConfig<a class="headerlink" href="#stepproducerconfig" title="Link to this heading"></a></h3>
@@ -1000,12 +1080,12 @@ for the Producer service.</p>
 <blockquote>
 <div><ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">templateVersion</span></code>: Configuration schema version for compatibility management</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">instanceName</span></code>: Unique identifier for the Producer instance within the ecosystem</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">instanceName</span></code>: Unique identifier for the Producer instance within the ecosystem (not in config model, runtime param)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">stationId</span></code>: ITS station identifier (0-4294967295) for message origination</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">timeAfterCollision</span></code>: Duration in seconds to continue broadcasting DENM after collision detection (0-10)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">denmLastUpdateMaxDelay</span></code>: Maximum allowed delay in milliseconds for DENM record updates (1-10000)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">denmCheckLastUpdateMaxInterval</span></code>: Maximum interval in milliseconds for checking DENM updates (1000-60000)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">reconnectInterval</span></code>: Time interval in seconds for automatic reconnection attempts</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">denmCheckLastUpdateInterval</span></code>: Interval in seconds for checking DENM updates and cleanup operations (1-60)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">reconnectInterval</span></code>: Time interval in seconds for automatic reconnection attempts (0-10)</p></li>
 </ul>
 </div></blockquote>
 <p><strong>Redis Integration Configuration:</strong></p>
@@ -1077,58 +1157,70 @@ for rapid setup</p></li>
 configuration patterns, consistent validation rules, and compatible schema definitions that
 enable configuration sharing and validation across the entire STEP platform.</p>
 </section>
-<section id="stepproducerredispool-and-stepproducerredisstream">
-<h3>StepProducerRedisPool and StepProducerRedisStream<a class="headerlink" href="#stepproducerredispool-and-stepproducerredisstream" title="Link to this heading"></a></h3>
-<p>The <code class="docutils literal notranslate"><span class="pre">StepProducerRedisPool</span></code> and <code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream</span></code> components provide the Redis
-integration layer for the STEP Producer architecture, enabling efficient message
-queuing and distribution between different system components.</p>
-<p><code class="docutils literal notranslate"><span class="pre">StepProducerRedisPool</span></code></p>
+<section id="redis-integration-step-redis">
+<h3>Redis Integration (step_redis)<a class="headerlink" href="#redis-integration-step-redis" title="Link to this heading"></a></h3>
+<p>The STEP Producer integrates with Redis through the <strong>step_redis</strong> library, which provides
+the messaging infrastructure as a black box with well-defined interfaces. This library handles
+all Redis connection management, stream processing, and message serialization/deserialization.</p>
+<p><strong>step_redis Interface:</strong></p>
+<p>The library exposes several key abstractions used by STEP Producer:</p>
 <blockquote>
-<div><ol class="arabic simple">
-<li><p><strong>Connection Management</strong>: Extends the <code class="docutils literal notranslate"><span class="pre">StepRedisPool</span></code> base class to handle
-Redis connection pooling specifically for STEP Producer needs.</p></li>
-<li><p><strong>Resource Management</strong>: Provides asynchronous context management through
-<code class="docutils literal notranslate"><span class="pre">__aenter__</span></code> and <code class="docutils literal notranslate"><span class="pre">__aexit__</span></code> methods for safe connection handling.</p></li>
-<li><p><strong>Connection Configuration</strong>: Manages Redis connection parameters such
-as host, port, and authentication details.</p></li>
-<li><p><strong>Connection Pooling</strong>: Implements connection pooling to optimize performance
-and resource utilization when interacting with Redis.</p></li>
-</ol>
-</div></blockquote>
-<p><code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream</span></code></p>
-<blockquote>
-<div><ol class="arabic simple">
-<li><p><strong>Stream Management</strong>: Extends the <code class="docutils literal notranslate"><span class="pre">StepRedisStream</span></code> base class to implement
-specialized stream handling for ITS messages.</p></li>
-<li><p><strong>Input Stream Processing</strong>: Manages connections to input streams from:</p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">step_client</span></code> for receiving DENM (Decentralized Environmental Notification Messages)
-message.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">step_crash_prediction</span></code> for receiving collision prediction data with the actors
-involved</p></li>
+<div><ul class="simple">
+<li><p><strong>StepRedisPool</strong>: Base class for managing Redis connection pools with automatic
+reconnection and health monitoring</p></li>
+<li><p><strong>StepRedisStream</strong>: Base class for Redis stream operations providing:</p>
+<ul>
+<li><p>Stream creation and consumer group management</p></li>
+<li><p>Asynchronous message publishing</p></li>
+<li><p>Message reception with automatic deserialization</p></li>
+<li><p>Context manager support for resource cleanup</p></li>
 </ul>
 </li>
-<li><p><strong>Output Stream Management</strong>: Handles output streams with specific routing:</p>
-<ul class="simple">
-<li><p>Connects to <code class="docutils literal notranslate"><span class="pre">step_client</span></code> for sending DENM messages generated by the Producer</p></li>
+<li><p><strong>StepRedisPoolParams</strong>: Configuration parameters for connection pool initialization</p></li>
+<li><p><strong>StepRedisStreamParams</strong>: Configuration parameters for stream setup</p></li>
+<li><p><strong>StepProducerRedisStream</strong>: Producer-specific stream implementation for:</p>
+<ul>
+<li><p>Receiving collision data from <code class="docutils literal notranslate"><span class="pre">step_crash_prediction</span></code> component</p></li>
+<li><p>Receiving DENM messages from <code class="docutils literal notranslate"><span class="pre">step_client</span></code> component</p></li>
+<li><p>Publishing DENM messages to <code class="docutils literal notranslate"><span class="pre">step_client</span></code> for distribution</p></li>
 </ul>
 </li>
-<li><p><strong>Stream Creation</strong>: Creates and configures input streams with appropriate consumer
-group IDs for message distribution.</p></li>
-<li><p><strong>Message Publishing</strong>: Provides methods to publish messages to the configured output streams.</p></li>
-<li><p><strong>Message Receiving</strong>: Offers functionality to receive and parse messages from input streams.</p></li>
+<li><p><strong>StepClientRedisStream</strong>: Client stream interface for message routing</p></li>
+</ul>
+</div></blockquote>
+<p><strong>Message Flow:</strong></p>
+<blockquote>
+<div><ol class="arabic simple">
+<li><p><strong>Input Processing</strong>: Monitors Redis streams for:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ProducerCloudEventsStationCollisionArrayV1</span></code>: Collision prediction data</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ProducerCloudEventsDenmDataV1</span></code>: DENM records (for negation processing)</p></li>
+</ul>
+</li>
+<li><p><strong>Output Publishing</strong>: Publishes generated DENM messages to output streams as
+<code class="docutils literal notranslate"><span class="pre">ProducerCloudEventsDenmDataV1</span></code> cloud events</p></li>
 </ol>
 </div></blockquote>
-<p>Together, these components form the communication infrastructure that enables standardized
-message exchange between STEP Producer and other components in the STEP ecosystem through
-Redis streams.</p>
+<p><strong>Integration Benefits:</strong></p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Transparent connection pooling and resource management</p></li>
+<li><p>Automatic message serialization using step_cloud_schemas</p></li>
+<li><p>Stream reliability with consumer group support</p></li>
+<li><p>Asynchronous operations for high throughput</p></li>
+<li><p>Configurable retry and reconnection logic</p></li>
+</ul>
+</div></blockquote>
+<p>The step_redis library abstracts all Redis-specific implementation details, allowing the
+STEP Producer to focus on DEN service logic while maintaining reliable, high-performance
+message processing.</p>
 </section>
 <section id="steplogger">
 <h3>StepLogger<a class="headerlink" href="#steplogger" title="Link to this heading"></a></h3>
-<p>The <code class="docutils literal notranslate"><span class="pre">StepLogger</span></code> component provides specialized logging functionality for the STEP Client
+<p>The <code class="docutils literal notranslate"><span class="pre">StepLogger</span></code> component provides specialized logging functionality for the STEP Producer
 architecture, enabling comprehensive and configurable logging throughout the application.
 It serves as a wrapper around Python’s standard logging facilities with additional features
-tailored to STEP Client’s needs.</p>
+tailored to STEP Producer’s needs.</p>
 <p>Key features of <code class="docutils literal notranslate"><span class="pre">StepLogger</span></code> include:</p>
 <blockquote>
 <div><ol class="arabic simple">
@@ -1148,7 +1240,7 @@ severity level, source component, and structured message content.</p></li>
 <li><p><strong>Context-aware Logging</strong>: Includes context information such as component IDs,
 transaction IDs, and operation details to facilitate troubleshooting.</p></li>
 <li><p><strong>Configuration Integration</strong>: Leverages the logging configuration section
-from <code class="docutils literal notranslate"><span class="pre">StepClientConfig</span></code> to enable consistent setup across components.</p></li>
+from <code class="docutils literal notranslate"><span class="pre">StepProducerConfig</span></code> to enable consistent setup across components.</p></li>
 <li><p><strong>Utility Methods</strong>: Offers utility methods like <code class="docutils literal notranslate"><span class="pre">setup_logging()</span></code> for initial
 configuration and <code class="docutils literal notranslate"><span class="pre">get_logger()</span></code> for retrieving appropriately configured
 logger instances.</p></li>
@@ -1156,27 +1248,26 @@ logger instances.</p></li>
 from impacting core application functionality.</p></li>
 </ol>
 </div></blockquote>
-<p>The <code class="docutils literal notranslate"><span class="pre">StepLogger</span></code> component ensures that the STEP Client maintains comprehensive
+<p>The <code class="docutils literal notranslate"><span class="pre">StepLogger</span></code> component ensures that the STEP Producer maintains comprehensive
 logging capabilities to support monitoring, debugging, and operational insights
 across all system components.</p>
 </section>
-<section id="stepinterruptexception">
-<h3>StepInterruptException<a class="headerlink" href="#stepinterruptexception" title="Link to this heading"></a></h3>
-<p>The <code class="docutils literal notranslate"><span class="pre">StepInterruptException</span></code> component provides a custom exception class for handling
-interruptions within the STEP Producer architecture. This exception is designed
-to be raised in situations where the normal flow of processing needs to be interrupted,
-such as when a critical error occurs or when an operation is canceled.</p>
-<p>Key features of <code class="docutils literal notranslate"><span class="pre">StepInterruptException</span></code> include:</p>
+<section id="stepexception">
+<h3>StepException<a class="headerlink" href="#stepexception" title="Link to this heading"></a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">step_exception</span></code> module provides custom exception classes for error handling
+within the STEP Producer architecture. These exceptions are designed to handle
+various error scenarios including CLI errors, interruptions, and other exceptional conditions.</p>
+<p>Key features include:</p>
 <blockquote>
 <div><ol class="arabic simple">
-<li><p><strong>Custom Exception Class</strong>: Inherits from Python’s built-in <code class="docutils literal notranslate"><span class="pre">Exception</span></code> class,
-allowing it to be raised and caught like any standard exception.</p></li>
-<li><p><strong>Error Context</strong>: Provides a mechanism to include additional context or
-information about the error when raising the exception.</p></li>
-<li><p><strong>Graceful Shutdown</strong>: Designed to be used in scenarios where the application
-needs to gracefully shut down or clean up resources before exiting.</p></li>
-<li><p><strong>Integration with Logging</strong>: Can be logged using the <code class="docutils literal notranslate"><span class="pre">StepLogger</span></code> component
-to capture detailed error information for debugging and operational monitoring.</p></li>
+<li><p><strong>StepCliError</strong>: Custom exception class for command-line interface errors,
+inherits from Python’s built-in <code class="docutils literal notranslate"><span class="pre">Exception</span></code> class</p></li>
+<li><p><strong>Error Context</strong>: Provides mechanisms to include additional context or
+information about errors when raising exceptions</p></li>
+<li><p><strong>Graceful Shutdown</strong>: Designed for scenarios requiring graceful shutdown
+with proper resource cleanup</p></li>
+<li><p><strong>Integration with Logging</strong>: Works seamlessly with <code class="docutils literal notranslate"><span class="pre">StepLogger</span></code> component
+to capture detailed error information for debugging and operational monitoring</p></li>
 </ol>
 </div></blockquote>
 </section>
@@ -1185,42 +1276,47 @@ to capture detailed error information for debugging and operational monitoring.<
 <p>The following component diagram illustrates the high-level architecture of the STEP Producer
 and its interactions with external systems. It shows the relationships between the core
 components and how they interact with Redis streams and external data sources.</p>
+<div class="scrollable-diagram docutils container">
 <figure class="align-center">
 <p class="plantuml">
-<object data="_images/plantuml-108098ce5d9c97f7d5b39bbb3e6a802cc46d29fe.svg" type="image/svg+xml" style="width:1253px;height:457px;background:#FFFFFF;">
-<img src="_images/plantuml-108098ce5d9c97f7d5b39bbb3e6a802cc46d29fe.png" alt="package &quot;STEP Producer&quot; {
+<object data="_images/plantuml-47c407cc06812be2c08e0a6346a3171ea0ecb0e3.svg" type="image/svg+xml" style="width:1329px;height:465px;background:#FFFFFF;">
+<img src="_images/plantuml-47c407cc06812be2c08e0a6346a3171ea0ecb0e3.png" alt="package &quot;STEP Producer&quot; {
    package &quot;DenService&quot; {
-       [DenServiceManager] as DSM
-       [DenServiceDataManager] as DSDM
-       note left of DSM
+      [DenServiceManager] as DSM
+      [DenServiceDataManager] as DSDM
+      note left of DSM
          Orchestrates DENM
          lifecycle management
-       end note
-       note right of DSDM
+      end note
+      note right of DSDM
          Manages DENM records
          with multi-index storage
-       end note
-   }
-   package &quot;Redis Proxy&quot; {
-       [StepProducerRedisPool] as ProducerRedisPool
-       [StepProducerRedisStream] as ProducerRedisStream
-       note bottom of ProducerRedisStream
-          Redis Streams for
-          message queuing
-       end note
+      end note
    }
    [StepProducerConfig] as Config
    [StepLogger] as Logger
 }
+package &quot;Redis Integration&quot; {
+   [StepRedisPool] as RedisPool &lt;&lt;step_redis&gt;&gt;
+   [StepProducerRedisStream] as ProducerRedisStream &lt;&lt;step_redis&gt;&gt;
+   [StepClientRedisStream] as ClientRedisStream &lt;&lt;step_redis&gt;&gt;
+   note bottom of ProducerRedisStream
+      Redis streams for
+      message queuing
+      (provided by step_redis)
+   end note
+}
 DSM -- DSDM : delegates data operations
 DSM -- ProducerRedisStream : publishes DENM messages
 DSM -- Logger : logs operations
-DSM -- Config : get configuration
+DSM -- Config : uses configuration
 DSDM -- Logger : logs data operations
-ProducerRedisStream -- ProducerRedisPool : channel management"/>
+ProducerRedisStream -- RedisPool : uses connection pool
+ClientRedisStream -- RedisPool : uses connection pool"/>
 
 </object></p>
 </figure>
+</div>
 </section>
 </section>
 <section id="class-diagram">
@@ -1228,70 +1324,76 @@ ProducerRedisStream -- ProducerRedisPool : channel management"/>
 <p>The class diagram below illustrates the structure and relationships between
 the key classes in the STEP Producer architecture. It shows the main methods
 and attributes of each class and how they interact with one another.</p>
+<div class="scrollable-diagram docutils container">
 <figure class="align-center">
 <p class="plantuml">
-<object data="_images/plantuml-f0df4cd3dc0c5fc447bf1e469c330da461c50e7f.svg" type="image/svg+xml" style="width:1077px;height:1344px;background:#FFFFFF;">
-<img src="_images/plantuml-f0df4cd3dc0c5fc447bf1e469c330da461c50e7f.png" alt="!theme plain
+<object data="_images/plantuml-ede7c162254d4678e0c90606ce07b8633c9b7ad2.svg" type="image/svg+xml" style="width:1308px;height:1346px;background:#FFFFFF;">
+<img src="_images/plantuml-ede7c162254d4678e0c90606ce07b8633c9b7ad2.png" alt="!theme plain
 skinparam classAttributeIconSize 0
 
 class DenServiceManager {
    -_denm_service_data
    -_logger
    +__init__
-   +async process_station_collisions_received
-   +async process_denm_record_received
-   +async periodical_cleanup_run
-   -denm_create_cancellation
+   +process_station_collisions_received
+   +process_denm_record_received
+   +periodical_cleanup
+   -_denm_create_cancellation
 }
 
 class DenServiceDataManager {
-   -_denm_sorted_records
-   -_record_key_index
-   -_action_id_index
+   -_denm_sorted_records: SortedList[OrderedListRecord]
+   -_record_key_index: dict[RecordKey, DenmRecordInfo]
+   -_action_id_index: dict[ActionId, DenmRecordInfo]
    -_station_id
    -_sequence_number
-   -_time_after_collision
+   -_time_after_collision_sec
    -_denm_last_update_max_delay_ms
-   -_denm_check_last_update_max_interval
    -_logger
-   -_lock
    +__init__
    +insert_station_collision_array
    +get_denm_records_clean_reference_expired
    +get_interval_oldest_update_ms
    +remove_denm_record
    -_station_order
-   -_create_denm
+   -_create_denm_record_info
+   -_create_action_id
+   -_create_record_key
 }
 
-class DenmRecord {
-   -_denm
+class DenmRecordInfo {
+   +denm_data: DenmDataV1
+   +reference_time: ItsTime
+   +monotonic_time_sec: int
+   +__post_init__
+}
+
+class OrderedListRecord {
    -_reference_time
    -_record_key
-   -_action_id_index
+   -_hash_cache
    +__init__
-   +denm: DenmDataV1 &lt;&lt;property&gt;&gt;
    +reference_time: ItsTime &lt;&lt;property&gt;&gt;
-   +action_id_index: tuple[int, int] &lt;&lt;property&gt;&gt;
-   +record_key: tuple[int, int, int, int] &lt;&lt;property&gt;&gt;
+   +record_key: RecordKey &lt;&lt;property&gt;&gt;
    +__eq__
-   +__ne__
    +__lt__
    +__le__
    +__gt__
    +__ge__
    +__hash__
-   +__str__
-   +__repr__
+}
+
+class RecordKey {
+   +reference_actor_id: ActorId
+   +involved_actor_id: ActorId
 }
 
 class StepProducerConfig {
    +templateVersion
-   +instanceName
    +stationId
    +timeAfterCollision
    +denmLastUpdateMaxDelay
-   +denmCheckLastUpdateMaxInterval
+   +denmCheckLastUpdateInterval
    +reconnectInterval
    +redis
    +log
@@ -1300,22 +1402,32 @@ class StepProducerConfig {
    +{static} print_config_example
 }
 
-class StepProducerRedisPool {
-   +MAX_CONNECTIONS
-   +__init__
+class StepRedisPool &lt;&lt;from step_redis&gt;&gt; {
+   &lt;&lt;interface&gt;&gt;
    +async __aenter__
    +async __aexit__
+   {abstract} Connection pooling
+   {abstract} Resource management
 }
 
-class StepProducerRedisStream {
-   -_consumer_name
-   -_config
-   -_stream_ttl
-   +__init__
+class StepRedisStream &lt;&lt;from step_redis&gt;&gt; {
+   &lt;&lt;interface&gt;&gt;
    +async __aenter__
-   +async create_client_input_stream
-   +async publish_denm_message
-   +async receive_producer_message
+   +async __aexit__
+   {abstract} Stream management
+   {abstract} Message publishing
+   {abstract} Message receiving
+}
+
+class StepProducerRedisStream &lt;&lt;from step_redis&gt;&gt; {
+   {abstract} Producer-specific streams
+   {abstract} Collision data reception
+   {abstract} DENM message handling
+}
+
+class StepClientRedisStream &lt;&lt;from step_redis&gt;&gt; {
+   {abstract} Client stream interface
+   {abstract} Message routing
 }
 
 class StepLogger {
@@ -1327,21 +1439,24 @@ DenServiceManager --&gt; DenServiceDataManager : uses
 DenServiceManager --&gt; StepProducerRedisStream : publishes to
 DenServiceManager --&gt; StepLogger : logs with
 
-DenServiceDataManager --&gt; DenmRecord : manages
+DenServiceDataManager --&gt; DenmRecordInfo : manages
+DenServiceDataManager --&gt; OrderedListRecord : maintains sorted list of
+DenServiceDataManager --&gt; RecordKey : indexes by
 DenServiceDataManager --&gt; StepLogger : logs with
 
-StepProducerRedisStream --&gt; StepProducerRedisPool : uses
-StepProducerRedisStream --&gt; StepProducerConfig : configured by
+DenmRecordInfo --&gt; DenmDataV1 : contains
+OrderedListRecord --&gt; RecordKey : references
+RecordKey --&gt; ActorId : contains pair of
 
-StepProducerRedisPool --&gt; StepProducerConfig : configured by
+StepProducerRedisStream --|&gt; StepRedisStream : extends
+StepClientRedisStream --|&gt; StepRedisStream : extends
+StepRedisStream ..&gt; StepRedisPool : uses
 
-StepLogger --&gt; StepProducerConfig : configured by
-
-StepProducerRedisPool --|&gt; StepRedisPool : extends
-StepProducerRedisStream --|&gt; StepRedisStream : extends"/>
+StepLogger --&gt; StepProducerConfig : configured by"/>
 
 </object></p>
 </figure>
+</div>
 </section>
 <section id="sequence-diagrams">
 <h2>Sequence Diagrams<a class="headerlink" href="#sequence-diagrams" title="Link to this heading"></a></h2>
@@ -1361,54 +1476,97 @@ temporal flow of operations as messages move through the system.</p>
 from the crash event message sent by STEP Crash Prediction. It demonstrates how the
 DenServiceManager component processes the incoming collision data, creates the
 DENM messages, and publishes them to Redis streams.</p>
+<div class="scrollable-diagram docutils container">
 <figure class="align-center">
 <p class="plantuml">
-<object data="_images/plantuml-175230a6e99af825b347ddaf258bb908eca3a70e.svg" type="image/svg+xml" style="width:816px;height:392px;background:#FFFFFF;">
-<img src="_images/plantuml-175230a6e99af825b347ddaf258bb908eca3a70e.png" alt="participant &quot;STEP Crash Prediction&quot; as CrashPrediction
+<object data="_images/plantuml-b3981644d03459981466ade0bf417ac6c71fee1f.svg" type="image/svg+xml" style="width:850px;height:392px;background:#FFFFFF;">
+<img src="_images/plantuml-b3981644d03459981466ade0bf417ac6c71fee1f.png" alt="participant &quot;STEP Crash Prediction&quot; as CrashPrediction
 participant &quot;STEP Client&quot; as Client
 participant &quot;StepProducerRedisStream&quot; as RedisStream
 participant &quot;DenServiceManager&quot; as DenManager
 participant &quot;DenServiceDataManager&quot; as DenDataManager
 
-CrashPrediction -&gt; RedisStream : Crash Event
-RedisStream -&gt; DenManager : Crash Event
-DenManager -&gt; DenDataManager : Crash Event
+CrashPrediction -&gt; RedisStream : Station Collision Array
+RedisStream -&gt; DenManager : Station Collision Array
+DenManager -&gt; DenDataManager : insert_station_collision_array()
 note over DenDataManager
-   Check the if all DENMs related
-   to this foreseen is already
-   created.
-   Generate new or updated DENM
+   Check if DENMs for collision pairs
+   already exist. Generate action IDs
+   and create/update DENM records.
+   Return list of DENM messages.
 end note
-DenDataManager -&gt; DenManager : List of DENM
-DenManager -&gt; RedisStream : List of DENM
+DenDataManager -&gt; DenManager : List of DenmDataV1
+DenManager -&gt; RedisStream : List of DenmDataV1
 RedisStream -&gt; Client : DENM_1
 RedisStream -&gt; Client : DENM_n"/>
 
 </object></p>
 </figure>
+</div>
 </section>
 <section id="denm-negation">
 <h3>DENM negation<a class="headerlink" href="#denm-negation" title="Link to this heading"></a></h3>
 <p>The sequence diagram below illustrates the process of negation of a DENM.</p>
+<div class="scrollable-diagram docutils container">
 <figure class="align-center">
 <p class="plantuml">
-<object data="_images/plantuml-31dd354aba9c9872dd94c4091abd421018e72731.svg" type="image/svg+xml" style="width:629px;height:254px;background:#FFFFFF;">
-<img src="_images/plantuml-31dd354aba9c9872dd94c4091abd421018e72731.png" alt="participant &quot;STEP Client&quot; as Client
+<object data="_images/plantuml-62b4b5b60592b6b669b5c083383132630a269f83.svg" type="image/svg+xml" style="width:746px;height:254px;background:#FFFFFF;">
+<img src="_images/plantuml-62b4b5b60592b6b669b5c083383132630a269f83.png" alt="participant &quot;STEP Client&quot; as Client
 participant &quot;StepProducerRedisStream&quot; as RedisStream
 participant &quot;DenServiceManager&quot; as DenManager
 participant &quot;DenServiceDataManager&quot; as DenDataManager
 
-Client -&gt; RedisStream : DENM Negation
-RedisStream -&gt; DenManager : DENM Negation
-DenManager -&gt; DenDataManager : Remove DENM
+Client -&gt; RedisStream : DENM with Negation
+RedisStream -&gt; DenManager : process_denm_record_received()
+DenManager -&gt; DenDataManager : remove_denm_record(action_id)
 note over DenDataManager
-   Remove the DENM
-   information related to
-   Action Id
+   Lookup DENM by action ID in index.
+   Remove from sorted list and
+   both hash indices.
 end note"/>
 
 </object></p>
 </figure>
+</div>
+</section>
+<section id="periodic-cleanup">
+<h3>Periodic Cleanup<a class="headerlink" href="#periodic-cleanup" title="Link to this heading"></a></h3>
+<p>The sequence diagram below illustrates the periodic cleanup process that removes expired DENM records.</p>
+<div class="scrollable-diagram docutils container">
+<figure class="align-center">
+<p class="plantuml">
+<object data="_images/plantuml-edf03b04b28fc3cd44c8b74901977bdd80148072.svg" type="image/svg+xml" style="width:886px;height:508px;background:#FFFFFF;">
+<img src="_images/plantuml-edf03b04b28fc3cd44c8b74901977bdd80148072.png" alt="participant &quot;Cleanup Task&quot; as CleanupTask
+participant &quot;DenServiceManager&quot; as DenManager
+participant &quot;DenServiceDataManager&quot; as DenDataManager
+participant &quot;StepClientRedisStream&quot; as RedisStream
+participant &quot;STEP Client&quot; as Client
+
+loop Every denmCheckLastUpdateInterval seconds
+   CleanupTask -&gt; DenManager : periodical_cleanup()
+   DenManager -&gt; DenDataManager : get_denm_records_clean_reference_expired()
+   note over DenDataManager
+      Iterate through sorted records
+      from oldest. Check if reference time
+      plus validity duration has expired.
+      Remove and return expired records.
+   end note
+   DenDataManager -&gt; DenManager : List of expired DenmDataV1
+   loop For each expired DENM
+      DenManager -&gt; DenManager : _denm_create_cancellation()
+      note over DenManager
+         Create cancellation DENM
+         by copying original with
+         termination=CANCELLATION
+      end note
+      DenManager -&gt; RedisStream : DENM Cancellation
+      RedisStream -&gt; Client : DENM Cancellation
+   end loop
+end loop"/>
+
+</object></p>
+</figure>
+</div>
 </section>
 </section>
 <section id="performance-considerations">
@@ -1481,7 +1639,7 @@ DENM records:</p>
 </section>
 <section id="periodic-cleanup-performance">
 <h3>Periodic Cleanup Performance<a class="headerlink" href="#periodic-cleanup-performance" title="Link to this heading"></a></h3>
-<p><strong>Scenario</strong>: Automatic expiration cleanup in <code class="docutils literal notranslate"><span class="pre">periodical_cleanup_run()</span></code></p>
+<p><strong>Scenario</strong>: Automatic expiration cleanup in <code class="docutils literal notranslate"><span class="pre">periodical_cleanup()</span></code></p>
 <p><strong>Algorithm Complexity Analysis:</strong></p>
 <ol class="arabic simple">
 <li><p><strong>Batch Record Identification and Removal</strong>: <span class="math notranslate nohighlight">\(O(e*log(n))\)</span> where e is the number of expired records</p></li>
@@ -1527,7 +1685,7 @@ potential bottlenecks and mitigation strategies:</p>
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2025, Vodafone Automotive.</p>
+    <p>&#169; Copyright 2026, Vodafone Automotive.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
