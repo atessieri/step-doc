@@ -84,7 +84,7 @@ Core Dependencies
    message processing and position data generation.
 
 **step_redis**
-   STEP-specific Redis integration library that provides the messaging and stream processing 
+   STEP-specific Redis integration library that provides the messaging and stream processing
    foundation. Core functionality includes:
 
       * **Connection Pooling**: Efficient Redis connection management with automatic reconnection
@@ -92,8 +92,9 @@ Core Dependencies
       * **Message Serialization**: Automatic conversion between Python objects and Redis stream data
       * **Error Handling**: Robust error handling and recovery mechanisms for Redis operations
 
-   Provides the base classes ``StepRedisPool`` and ``StepRedisStream`` that are extended by 
-   ``StepAdapterRedisPool`` and ``StepAdapterRedisStream`` for Adapter-specific functionality.
+   Provides the base classes ``StepRedisPool`` and ``StepRedisStream``, plus specialized
+   stream adapters such as ``StepAdapterRedisStream`` and ``StepCrashPredictionRedisStream``
+   used by the STEP Adapter service.
 
 Architecture Integration
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -118,16 +119,17 @@ and maintainability in the system design.
 
 Main Components:
 
-   #. **ActorDataset/ActorDatasetConfig**: Multi-actor position dataset management 
+   #. **ActorDataset/ActorDatasetConfig**: Multi-actor position dataset management
       with real-time interpolation and temporal indexing.
-   #. **PointDataset/PointDatasetConfig**: Position dataset management with cubic 
-      spline interpolation for individual actors, directly performing all interpolation 
+   #. **PointDataset/PointDatasetConfig**: Position dataset management with cubic
+      spline interpolation for individual actors, directly performing all interpolation
       tasks using SciPy.
-   #. **StepAdapterRedisPool/StepAdapterRedisStream**: Redis integration 
-      for message streaming and crash prediction data distribution.
+   #. **StepRedisPool/StepAdapterRedisStream/StepCrashPredictionRedisStream**: External
+      Redis integration from ``step_redis`` for message streaming and crash prediction
+      data distribution.
    #. **StepAdapterConfig**: Configuration management for the Adapter
    #. **StepLogger**: Logging utilities specific to the STEP Adapter
-   #. **StepCliException**: Custom exceptions for error handling
+   #. **StepCliError**: Custom exceptions for error handling
 
 ActorDataset
 ^^^^^^^^^^^^
@@ -152,27 +154,26 @@ and high-performance interpolation capabilities designed for V2X applications.
 
 **Key Methods:**
 
-   * ``add_actor_position()``: Main entry point for processing position data from ITS messages, 
-     delegating to individual PointDataset instances for interpolation processing
-   * ``get_position_arrays()``: Retrieves interpolated position arrays from all active actors 
-     for crash prediction distribution
-   * ``cleanup_expired_actors()``: Executes periodic cleanup operations, removing expired actors 
-     and reclaiming memory resources
-   * ``get_active_actor_count()``: Returns current fleet size for monitoring and scaling decisions
+    * ``add_cam_message()``: Main entry point for processing CAM data and generating
+       ``PositionArrayV1`` output
+    * ``clear_old_points()``: Executes periodic cleanup operations, removing expired actors
+       and reclaiming memory resources
 
 **Architecture Integration:**
 
-The ``ActorDataset`` operates as the coordination hub between individual ``PointDataset`` instances 
-for actor-specific processing and the ``StepAdapterRedisStream`` for message distribution. It utilizes 
-comprehensive logging for operational visibility and implements configurable timing parameters 
-for adaptive behavior in different traffic scenarios.
+The ``ActorDataset`` operates as the coordination hub between individual ``PointDataset`` instances
+for actor-specific processing and the external ``step_redis`` streams used by the service runtime.
+It utilizes comprehensive logging for operational visibility and implements configurable timing
+parameters for adaptive behavior in different traffic scenarios.
 
 **Configuration Parameters:**
 
-   * ``max_actor_history_length_sec``: Max length of position history maintained per actor
+   * ``input_max_point_number``: Maximum number of input points retained per actor
+   * ``input_max_period_ms``: Maximum allowed period between input points
+   * ``input_max_local_time_deviation_ms``: Maximum allowed local time deviation
+   * ``input_oldest_allowed_time_ms``: Oldest input timestamp accepted for processing
    * ``output_nominal_sample_frequency``: Target interpolation rate for position arrays
-   * ``period_max_deviation_ms``: Maximum timing tolerance for interpolation points
-   * ``cleanup_interval_seconds``: Frequency of automatic actor cleanup operations
+   * ``output_period_max_deviation_ms``: Maximum timing tolerance for interpolation points
 
 PointDataset
 ^^^^^^^^^^^^
@@ -311,46 +312,42 @@ configuration patterns, consistent validation rules, and compatible schema defin
 enable configuration sharing and validation across the entire STEP platform.
 
 
-StepAdapterRedisPool and StepAdapterRedisStream
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Redis Streams Integration (step_redis)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The ``StepAdapterRedisPool`` and ``StepAdapterRedisStream`` components provide the Redis
-integration layer for the STEP Adapter architecture, enabling efficient message
-streaming and position data distribution for crash prediction systems.
+The Redis integration layer is provided by the external ``step_redis`` package. The STEP Adapter
+service uses the following components from that library to receive ITS messages and publish
+position arrays for crash prediction systems.
 
-``StepAdapterRedisPool``
+``StepRedisPool``
 
-   #. **Connection Management**: Extends the ``StepRedisPool`` base class to handle 
-      Redis connection pooling specifically for STEP Adapter needs.
-   #. **Resource Management**: Provides asynchronous context management through 
-      ``__aenter__`` and ``__aexit__`` methods for safe connection handling.
-   #. **Connection Configuration**: Manages Redis connection parameters such 
-      as host, port, and authentication details.
-   #. **Connection Pooling**: Implements connection pooling to optimize performance 
-      and resource utilization when interacting with Redis streams.
+   #. **Connection Management**: Provides Redis connection pooling with async context
+      management through ``__aenter__`` and ``__aexit__``.
+   #. **Connection Configuration**: Manages Redis connection parameters such as host,
+      port, authentication, SSL, and keepalive settings.
+   #. **Connection Pooling**: Optimizes performance and resource utilization when
+      interacting with Redis streams.
 
 ``StepAdapterRedisStream``
 
-   #. **Stream Management**: Extends the ``StepRedisStream`` base class to implement 
-      specialized stream handling for ITS position data and crash prediction workflows.
-   #. **Input Stream Processing**: Manages connections to input streams for receiving:
-
-      * CAM (Cooperative Awareness Messages) from ``step_client``
-      * CPM (Collective Perception Messages) from ``step_client``
-
-   #. **Output Stream Management**: Handles output streams with specific routing:
-      
-      * Connects to ``step_crash_prediction`` for sending position array data
-   
-   #. **Stream Creation**: Creates and configures input streams with appropriate consumer 
+   #. **Stream Management**: Extends ``StepRedisStream`` to handle STEP Adapter
+      CloudEvents messages.
+   #. **Input Stream Processing**: Receives CAM/CPM adapter messages from ``step_client``.
+   #. **Stream Creation**: Creates and configures input streams with appropriate consumer
       group IDs for message distribution and load balancing.
-   #. **Message Publishing**: Provides methods to publish position arrays to crash prediction streams.
-   #. **Message Receiving**: Offers functionality to receive and parse ITS messages from input streams.
-   #. **CloudEvents Compliance**: Handles CloudEvents-compliant message formatting and validation 
-      for standardized message exchange across the STEP ecosystem.
+   #. **Message Receiving**: Provides ``receive_adapter_message()`` for parsing adapter
+      CloudEvents payloads.
 
-Together, these components form the communication infrastructure that enables standardized 
-message exchange between STEP Adapter and other components in the STEP ecosystem through 
+``StepCrashPredictionRedisStream``
+
+   #. **Output Stream Management**: Publishes position arrays to ``step_crash_prediction``.
+   #. **Message Publishing**: Provides ``publish_position_array()`` for CloudEvents-compliant
+      position array messages.
+   #. **Message Receiving**: Provides ``receive_crash_prediction_message()`` for consuming
+      crash prediction messages if needed.
+
+Together, these components form the communication infrastructure that enables standardized
+message exchange between STEP Adapter and other components in the STEP ecosystem through
 Redis streams, specifically facilitating the flow of position data to crash prediction systems.
 
 StepLogger
@@ -379,9 +376,9 @@ Key features of ``StepLogger`` include:
       processing details, and interpolation status to facilitate troubleshooting.
    #. **Configuration Integration**: Leverages the logging configuration section 
       from ``StepAdapterConfig`` to enable consistent setup across components.
-   #. **Utility Methods**: Offers utility methods like ``setup_logging()`` for initial 
-      configuration and ``get_logger()`` for retrieving appropriately configured 
-      logger instances.
+   #. **Utility Methods**: Offers utility methods like ``get_logger()`` for retrieving
+      appropriately configured logger instances and ``logger_force_write()`` for
+      forced INFO output.
    #. **Error Handling**: Includes robust error handling to prevent logging failures 
       from impacting core position processing functionality.
 
@@ -390,15 +387,15 @@ logging capabilities to support monitoring, debugging, and operational insights
 across all system components, particularly for tracking position processing performance 
 and interpolation quality.
 
-StepCliException
-^^^^^^^^^^^^^^^^
+StepCliError
+^^^^^^^^^^^^
 
-The ``StepCliException`` component provides a custom exception class for handling
+The ``StepCliError`` component provides a custom exception class for handling
 command-line interface errors and application interruptions within the STEP Adapter architecture. 
 This exception is designed to be raised in situations where command-line processing 
 encounters errors or when normal operation flow needs to be interrupted.
 
-Key features of ``StepCliException`` include:
+Key features of ``StepCliError`` include:
 
    #. **Custom Exception Class**: Inherits from Python's built-in ``Exception`` class, 
       allowing it to be raised and caught like any standard exception.
@@ -418,40 +415,44 @@ The following component diagram illustrates the high-level architecture of the S
 and its interactions with external systems. It shows the relationships between the core
 components and how they interact with Redis streams and external data sources.
 
-.. plantuml::
-   :align: center
+.. container:: scrollable-diagram
 
-   package "STEP Adapter" {
-      package "Position Processing" {
-          [ActorDataset] as AD
-          [PointDataset] as PD
-          note left of AD
-            Multi-actor coordination with
-            temporal indexing
-          end note
-          note right of PD
-            Integrated cubic spline interpolation
-            using SciPy for trajectory smoothing
-          end note
+   .. plantuml::
+      :align: center
+
+      package "STEP Adapter" {
+         package "Position Processing" {
+            [ActorDataset] as AD
+            [PointDataset] as PD
+            note left of AD
+               Multi-actor coordination with
+               temporal indexing
+            end note
+            note right of PD
+               Integrated cubic spline interpolation
+               using SciPy for trajectory smoothing
+            end note
+         }
+         [StepAdapterConfig] as Config
+         [StepLogger] as Logger
       }
-      package "Redis Proxy" {
-          [StepAdapterRedisPool] as AdapterRedisPool
-          [StepAdapterRedisStream] as AdapterRedisStream
-          note bottom of AdapterRedisStream
-             Redis Streams for
-             ITS message processing
-          end note
+      package "step_redis" {
+         [StepRedisPool] as RedisPool
+         [StepAdapterRedisStream] as AdapterRedisStream
+         [StepCrashPredictionRedisStream] as CrashRedisStream
+         note bottom of AdapterRedisStream
+            Redis Streams for
+            ITS message processing
+         end note
       }
-      [StepAdapterConfig] as Config
-      [StepLogger] as Logger
-   }
-   AD -- PD : manages multiple
-   AD -- AdapterRedisStream : publishes position arrays
-   AD -- Logger : logs operations
-   AD -- Config : get configuration 
-   PD -- Logger : logs processing
-   PI -- Logger : logs interpolation
-   AdapterRedisStream -- AdapterRedisPool : channel management 
+      AdapterRedisStream --> AD : CAM/CPM messages
+      AD --> CrashRedisStream : position arrays
+      AD -- PD : manages multiple
+      AD -- Logger : logs operations
+      AD -- Config : get configuration
+      PD -- Logger : logs processing
+      AdapterRedisStream -- RedisPool : uses
+      CrashRedisStream -- RedisPool : uses
 
 Class Diagram
 -------------
@@ -460,98 +461,118 @@ The class diagram below illustrates the structure and relationships between
 the key classes in the STEP Adapter architecture. It shows the main methods 
 and attributes of each class and how they interact with one another.
 
-.. plantuml::
-   :align: center
-   
-   !theme plain
-   skinparam classAttributeIconSize 0
+.. container:: scrollable-diagram
 
-   class ActorDataset {
-      -_actors
-      -_temporal_index
-      -_config
-      -_logger
-      -_lock
-      +__init__
-      +add_actor_position
-      +get_position_arrays
-      +cleanup_expired_actors
-      +get_active_actor_count
-   }
+   .. plantuml::
+      :align: center
+      
+      !theme plain
+      skinparam classAttributeIconSize 0
 
-   class PointDataset {
-      -_input_points_queue
-      -_np_input_points_timestamp_ms
-      -_np_input_points_latitude
-      -_np_input_points_longitude
-      -_np_input_points_altitude
-      -_vehicle_length
-      -_vehicle_width
-      -_actor
-      -_config
-      -_logger
-      +__init__
-      +add_point
-      +actor
-      +vehicle_length
-      +vehicle_width
-      +last_record_time
-      -_create_interpolated_arrays
-      -_create_interpolated_position
-      -_create_positions_list
-      -_check_position_coherence
-      -_clear_history
-   }
+      class ActorDataset {
+         -_actor_dataset
+         -_last_ordered_recorded_time
+         -_config
+         -_logger
+         +__init__
+         +add_cam_message
+         +clear_old_points
+      }
 
-   class StepAdapterConfig {
-      +templateVersion
-      +instanceName
-      +reconnectInterval
-      +redis
-      +log
-      +{static} get_default
-      +{static} print_config_schema
-      +{static} print_config_example
-   }
+      class PointDataset {
+         -_input_points_queue
+         -_np_input_points_timestamp_ms
+         -_np_input_points_latitude
+         -_np_input_points_longitude
+         -_np_input_points_altitude
+         -_vehicle_length
+         -_vehicle_width
+         -_actor
+         -_config
+         -_logger
+         +__init__
+         +add_point
+         +actor
+         +vehicle_length
+         +vehicle_width
+         +last_record_time
+         -_create_interpolated_arrays
+         -_create_interpolated_position
+         -_create_positions_list
+         -_check_position_coherence
+         -_clear_history
+      }
 
-   class StepAdapterRedisPool {
-      +MAX_CONNECTIONS
-      +__init__
-      +async __aenter__
-      +async __aexit__
-   }
+      class StepAdapterConfig {
+         +templateVersion
+         +maxActorHistoryPointNumber
+         +inputMaxPeriod
+         +inputLocalTimeMaxDeviation
+         +inputOldestAllowedTime
+         +outputNominalSampleFrequency
+         +outputPeriodMaxDeviation
+         +receiveClientNumber
+         +cleanerInterval
+         +reconnectInterval
+         +redis
+         +log
+         +{static} get_default
+         +{static} print_config_schema
+         +{static} print_config_example
+      }
 
-   class StepAdapterRedisStream {
-      -_consumer_name
-      -_config
-      -_stream_ttl
-      +__init__
-      +async __aenter__
-      +async create_client_input_stream
-      +async publish_position_array
-      +async receive_adapter_message
-   }
+      package "step_redis" {
+         class StepRedisPool {
+            +__init__
+            +async __aenter__
+            +async __aexit__
+         }
 
-   class StepLogger {
-      +{static} setup_logging
-      +{static} get_logger
-   }
+         class StepRedisStream {
+            +__init__
+            +async __aenter__
+            +async __aexit__
+            +async create_input_stream
+            +async publish_message
+            +async receive_message
+         }
 
-   ActorDataset --> PointDataset : manages
-   ActorDataset --> StepAdapterRedisStream : publishes to
-   ActorDataset --> StepLogger : logs with
-    
-   PointDataset --> StepLogger : logs with
-   
-   StepAdapterRedisStream --> StepAdapterRedisPool : uses
-   StepAdapterRedisStream --> StepAdapterConfig : configured by
-   
-   StepAdapterRedisPool --> StepAdapterConfig : configured by
-   
-   StepLogger --> StepAdapterConfig : configured by
+         class StepAdapterRedisStream {
+            +__init__
+            +async __aenter__
+            +async publish_cam_message
+            +async receive_adapter_message
+         }
 
-   StepAdapterRedisPool --|> StepRedisPool : extends
-   StepAdapterRedisStream --|> StepRedisStream : extends
+         class StepCrashPredictionRedisStream {
+            +__init__
+            +async __aenter__
+            +async publish_position_array
+            +async receive_crash_prediction_message
+         }
+      }
+
+      class StepLogger {
+         +{static} get_logger
+         +{static} logger_force_write
+      }
+
+      ActorDataset --> PointDataset : manages
+      StepAdapterRedisStream --> ActorDataset : consumes
+      ActorDataset --> StepCrashPredictionRedisStream : publishes to
+      ActorDataset --> StepLogger : logs with
+      
+      PointDataset --> StepLogger : logs with
+      
+      StepAdapterRedisStream --> StepRedisPool : uses
+      StepCrashPredictionRedisStream --> StepRedisPool : uses
+      StepAdapterRedisStream --> StepAdapterConfig : configured by
+      StepCrashPredictionRedisStream --> StepAdapterConfig : configured by
+      
+      StepLogger --> StepAdapterConfig : configured by
+
+      StepAdapterRedisStream --|> StepRedisStream : extends
+      StepCrashPredictionRedisStream --|> StepRedisStream : extends
 
 Sequence Diagrams
 -----------------
@@ -573,27 +594,30 @@ from ITS messages sent by STEP Client. It demonstrates how the ActorDataset comp
 processes incoming CAM/CPM messages, coordinates with PointDataset for actor-specific
 processing, and generates interpolated position arrays.
 
-.. plantuml::
-   :align: center
+.. container:: scrollable-diagram
 
-   participant "STEP Client" as Client
-   participant "StepAdapterRedisStream" as RedisStream
-   participant "ActorDataset" as ActorDataset
-   participant "PointDataset" as PointDataset
+   .. plantuml::
+      :align: center
 
-   Client -> RedisStream : CAM/CPM Message
-   RedisStream -> ActorDataset : Position Data
-   ActorDataset -> PointDataset : add_point()
-   note over PointDataset
-      Validate position data,
-      update actor metadata,
-      apply cubic spline interpolation
-      using SciPy's CubicSpline,
-      generate smooth trajectory points,
-      append received position as last point
-   end note
-   PointDataset -> ActorDataset : Interpolated Points + Received Position
-   ActorDataset -> RedisStream : Position Array
+      participant "STEP Client" as Client
+      participant "StepAdapterRedisStream" as AdapterStream
+      participant "ActorDataset" as ActorDataset
+      participant "PointDataset" as PointDataset
+      participant "StepCrashPredictionRedisStream" as CrashStream
+
+      Client -> AdapterStream : CAM/CPM Message
+      AdapterStream -> ActorDataset : Position Data
+      ActorDataset -> PointDataset : add_point()
+      note over PointDataset
+         Validate position data,
+         update actor metadata,
+         apply cubic spline interpolation
+         using SciPy's CubicSpline,
+         generate smooth trajectory points,
+         append received position as last point
+      end note
+      PointDataset -> ActorDataset : Interpolated Points + Received Position
+      ActorDataset -> CrashStream : publish_position_array()
    
 Position Array Publishing to Crash Prediction
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -601,23 +625,25 @@ Position Array Publishing to Crash Prediction
 The sequence diagram below illustrates the process of publishing position arrays
 to the crash prediction system for analysis.
 
-.. plantuml::
-   :align: center
+.. container:: scrollable-diagram
 
-   participant "ActorDataset" as ActorDataset
-   participant "StepAdapterRedisStream" as RedisStream
-   participant "STEP Crash Prediction" as CrashPrediction
+   .. plantuml::
+      :align: center
 
-   ActorDataset -> RedisStream : get_position_arrays()
-   note over ActorDataset
-      Collect interpolated position
-      arrays from all active actors
-   end note
-   RedisStream -> CrashPrediction : Position Array V1
-   note over CrashPrediction
-      Process position arrays for
-      collision risk analysis
-   end note
+      participant "ActorDataset" as ActorDataset
+      participant "StepCrashPredictionRedisStream" as RedisStream
+      participant "STEP Crash Prediction" as CrashPrediction
+
+      ActorDataset -> RedisStream : publish_position_array()
+      note over ActorDataset
+         Build a PositionArrayV1
+         from interpolated points
+      end note
+      RedisStream -> CrashPrediction : Position Array V1
+      note over CrashPrediction
+         Process position arrays for
+         collision risk analysis
+      end note
 
 Performance Considerations
 --------------------------

@@ -1,16 +1,70 @@
-============
-Installation
-============
+====================
+Installation with uv
+====================
 
 STEP Adapter works on Windows, Linux and MacOS. Please follow the instructions below
 to build and run an example in your specific environment.
 
+The installation process is performed using uv program.
+
+------------------------
+Configure authentication
+------------------------
+
+Before installing the library, you need to configure authentication to access the 
+private git repository using a personal access token (PAT). 
+You can use the following command to set up authentication:
+
+.. code-block:: bash
+
+   $uv auth login gitlab.automotive.vodafone.com -u <your-username> --password <your-personal-access-token>
+
+--------------------------
+URL Registry configuration
+--------------------------
+
+In order to access the private git repository, you need to configure the URL registry.
+The configuration is in the file ``uv.toml`` located:
+
+.. tab:: Windows
+
+   .. code-block:: console
+
+      $HOME\AppData\Roaming\uv\
+
+.. tab:: Linux, MacOS
+
+   .. code-block:: bash
+
+      $HOME/.config/uv/
+
+The file should contain the following configuration:
+
+.. code-block:: toml
+
+   # UV Configuration File
+
+   # Index resolution strategy - searches all indexes for best version match
+   index-strategy = "unsafe-best-match"
+
+   # main registry
+   [[index]]
+   name = "pypi"
+   url = "https://pypi.org/simple"
+   default = true
+
+   # step_adapter
+   [[index]]
+   url = "https://gitlab.automotive.vodafone.com/api/v4/projects/1138/packages/pypi/simple"
+
+If you have other indexes configured, make sure to include the above configuration in the file.
+
 ------------------------------
-Installing from git repository
+Installing from registry
 ------------------------------
 
 The command to install the library is:
 
 .. code-block:: bash
 
-   $pip install git+https://gitlab.automotive.vodafone.com/vfa-init/pnrr/step_adapter.git@step_adapter_<version>#egg=step_adapter
+   $uv pip install --upgrade step_adapter

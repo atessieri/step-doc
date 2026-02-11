@@ -6,21 +6,21 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Architecture &mdash; STEP Adapter 1.1.2 documentation</title>
+  <title>Architecture &mdash; STEP Adapter 1.1.3 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="_static/tabs.css?v=4c969af8" />
-      <link rel="stylesheet" type="text/css" href="_static/css/custom.css?v=ca6f9a36" />
+      <link rel="stylesheet" type="text/css" href="_static/css/custom.css?v=ca5f51dc" />
       <link rel="stylesheet" type="text/css" href="_static/css/sphinx_prompt_css.css?v=351d85e3" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=6f037312"></script>
-      <script src="_static/doctools.js?v=9bcbadda"></script>
-      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/documentation_options.js?v=cb7bf70b"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="_static/tabs.js?v=3ee01567"></script>
-      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
       <script src="_static/js/expand_tabs.js?v=1e151f68"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
@@ -50,8 +50,10 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">STEP Adapter:</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#installing-from-git-repository">Installing from git repository</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation with uv</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#configure-authentication">Configure authentication</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#url-registry-configuration">URL Registry configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#installing-from-registry">Installing from registry</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="commands.html">Command Line Interface</a><ul>
@@ -94,7 +96,15 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="package_script.html">Package Script</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="package_script.html#create-environment">Create environment</a></li>
-<li class="toctree-l2"><a class="reference internal" href="package_script.html#make">Make</a></li>
+<li class="toctree-l2"><a class="reference internal" href="package_script.html#development-with-tox">Development with Tox</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="package_script.html#available-environments">Available Environments</a></li>
+<li class="toctree-l3"><a class="reference internal" href="package_script.html#testing-environments">Testing Environments</a></li>
+<li class="toctree-l3"><a class="reference internal" href="package_script.html#code-quality-commands">Code Quality Commands</a></li>
+<li class="toctree-l3"><a class="reference internal" href="package_script.html#documentation-commands">Documentation Commands</a></li>
+<li class="toctree-l3"><a class="reference internal" href="package_script.html#package-management">Package Management</a></li>
+<li class="toctree-l3"><a class="reference internal" href="package_script.html#cleanup-commands">Cleanup Commands</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="package_script.html#pdf-conversion">PDF conversion</a></li>
 </ul>
 </li>
@@ -174,9 +184,9 @@
 <li class="toctree-l3"><a class="reference internal" href="#actordataset">ActorDataset</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#pointdataset">PointDataset</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#stepadapterconfig">StepAdapterConfig</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#stepadapterredispool-and-stepadapterredisstream">StepAdapterRedisPool and StepAdapterRedisStream</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#redis-streams-integration-step-redis">Redis Streams Integration (step_redis)</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#steplogger">StepLogger</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#stepcliexception">StepCliException</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#stepclierror">StepCliError</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#component-diagram">Component Diagram</a></li>
 </ul>
 </li>
@@ -339,6 +349,19 @@
 <li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.InsertPointResult.PERIOD_TOO_SHORT_ERROR"><code class="docutils literal notranslate"><span class="pre">InsertPointResult.PERIOD_TOO_SHORT_ERROR</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.InsertPointResult.PERIOD_TOO_LONG_ERROR"><code class="docutils literal notranslate"><span class="pre">InsertPointResult.PERIOD_TOO_LONG_ERROR</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.InsertPointResult.POSITION_ERROR"><code class="docutils literal notranslate"><span class="pre">InsertPointResult.POSITION_ERROR</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.InterpolatedPositionParams"><code class="docutils literal notranslate"><span class="pre">InterpolatedPositionParams</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.InterpolatedPositionParams.station_info"><code class="docutils literal notranslate"><span class="pre">InterpolatedPositionParams.station_info</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.InterpolatedPositionParams.object_id"><code class="docutils literal notranslate"><span class="pre">InterpolatedPositionParams.object_id</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.InterpolatedPositionParams.current_time"><code class="docutils literal notranslate"><span class="pre">InterpolatedPositionParams.current_time</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.InterpolatedPositionParams.current_lat"><code class="docutils literal notranslate"><span class="pre">InterpolatedPositionParams.current_lat</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.InterpolatedPositionParams.current_lon"><code class="docutils literal notranslate"><span class="pre">InterpolatedPositionParams.current_lon</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.InterpolatedPositionParams.current_alt"><code class="docutils literal notranslate"><span class="pre">InterpolatedPositionParams.current_alt</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.InterpolatedPositionParams.previous_time"><code class="docutils literal notranslate"><span class="pre">InterpolatedPositionParams.previous_time</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.InterpolatedPositionParams.previous_lat"><code class="docutils literal notranslate"><span class="pre">InterpolatedPositionParams.previous_lat</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.InterpolatedPositionParams.previous_lon"><code class="docutils literal notranslate"><span class="pre">InterpolatedPositionParams.previous_lon</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.InterpolatedPositionParams.position_type"><code class="docutils literal notranslate"><span class="pre">InterpolatedPositionParams.position_type</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l4"><a class="reference internal" href="step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.PointDataset"><code class="docutils literal notranslate"><span class="pre">PointDataset</span></code></a><ul>
@@ -557,25 +580,6 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_redis.html">step_adapter.step_adapter_redis module</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_redis.html#step_adapter.step_adapter_redis.StepAdapterRedisPool"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisPool</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_redis.html#step_adapter.step_adapter_redis.StepAdapterRedisPool.max_connections"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisPool.max_connections</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_redis.html#step_adapter.step_adapter_redis.StepAdapterRedisPool.__aenter__"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisPool.__aenter__()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l4"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_redis.html#step_adapter.step_adapter_redis.StepAdapterRedisStream"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_redis.html#step_adapter.step_adapter_redis.StepAdapterRedisStream.consumer_name"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream.consumer_name</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_redis.html#step_adapter.step_adapter_redis.StepAdapterRedisStream.config"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream.config</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_redis.html#step_adapter.step_adapter_redis.StepAdapterRedisStream.logger"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream.logger</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_redis.html#step_adapter.step_adapter_redis.StepAdapterRedisStream.pool"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream.pool</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_redis.html#step_adapter.step_adapter_redis.StepAdapterRedisStream.__aenter__"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream.__aenter__()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_redis.html#step_adapter.step_adapter_redis.StepAdapterRedisStream.create_client_input_stream"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream.create_client_input_stream()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_redis.html#step_adapter.step_adapter_redis.StepAdapterRedisStream.publish_position_array"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream.publish_position_array()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_redis.html#step_adapter.step_adapter_redis.StepAdapterRedisStream.receive_adapter_message"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream.receive_adapter_message()</span></code></a></li>
-</ul>
-</li>
-</ul>
-</li>
 <li class="toctree-l3"><a class="reference internal" href="step_adapter_rst/step_adapter.step_exception.html">step_adapter.step_exception module</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="step_adapter_rst/step_adapter.step_exception.html#step_adapter.step_exception.StepAdapterError"><code class="docutils literal notranslate"><span class="pre">StepAdapterError</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="step_adapter_rst/step_adapter.step_exception.html#step_adapter.step_exception.StepCliError"><code class="docutils literal notranslate"><span class="pre">StepCliError</span></code></a></li>
@@ -617,11 +621,11 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="test_rst/test.test___main__.html">test.test___main__ module</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.TestExitCode"><code class="docutils literal notranslate"><span class="pre">TestExitCode</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.TestExitCode.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestExitCode.test___slots__()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.TestExitCode.test_enum_length"><code class="docutils literal notranslate"><span class="pre">TestExitCode.test_enum_length()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.TestExitCode.test_enum_values"><code class="docutils literal notranslate"><span class="pre">TestExitCode.test_enum_values()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.redis_stream_fixture"><code class="docutils literal notranslate"><span class="pre">redis_stream_fixture()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test_args_parse"><code class="docutils literal notranslate"><span class="pre">test_args_parse()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test_exception_handler"><code class="docutils literal notranslate"><span class="pre">test_exception_handler()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test_get_config_schema_file"><code class="docutils literal notranslate"><span class="pre">test_get_config_schema_file()</span></code></a></li>
@@ -629,6 +633,7 @@
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test_main"><code class="docutils literal notranslate"><span class="pre">test_main()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test_main_async"><code class="docutils literal notranslate"><span class="pre">test_main_async()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test_main_interrupt_exception"><code class="docutils literal notranslate"><span class="pre">test_main_interrupt_exception()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test_redis_params_convert"><code class="docutils literal notranslate"><span class="pre">test_redis_params_convert()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test_signal_handler_raises_keyboard_interrupt"><code class="docutils literal notranslate"><span class="pre">test_signal_handler_raises_keyboard_interrupt()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test_stream_cleaner_run"><code class="docutils literal notranslate"><span class="pre">test_stream_cleaner_run()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test_stream_receive_run"><code class="docutils literal notranslate"><span class="pre">test_stream_receive_run()</span></code></a></li>
@@ -654,9 +659,15 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="test_rst/test.test_point_dataset.html">test.test_point_dataset module</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_point_dataset.html#test.test_point_dataset.TestInsertPointResult"><code class="docutils literal notranslate"><span class="pre">TestInsertPointResult</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_point_dataset.html#test.test_point_dataset.TestInsertPointResult.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestInsertPointResult.test___slots__()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_point_dataset.html#test.test_point_dataset.TestInsertPointResult.test_enum_length"><code class="docutils literal notranslate"><span class="pre">TestInsertPointResult.test_enum_length()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_point_dataset.html#test.test_point_dataset.TestInsertPointResult.test_enum_values"><code class="docutils literal notranslate"><span class="pre">TestInsertPointResult.test_enum_values()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_point_dataset.html#test.test_point_dataset.TestInterpolatedPositionParams"><code class="docutils literal notranslate"><span class="pre">TestInterpolatedPositionParams</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_point_dataset.html#test.test_point_dataset.TestInterpolatedPositionParams.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestInterpolatedPositionParams.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_point_dataset.html#test.test_point_dataset.TestInterpolatedPositionParams.test_equality"><code class="docutils literal notranslate"><span class="pre">TestInterpolatedPositionParams.test_equality()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_point_dataset.html#test.test_point_dataset.TestInterpolatedPositionParams.test_frozen"><code class="docutils literal notranslate"><span class="pre">TestInterpolatedPositionParams.test_frozen()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_point_dataset.html#test.test_point_dataset.TestInterpolatedPositionParams.test_initialization"><code class="docutils literal notranslate"><span class="pre">TestInterpolatedPositionParams.test_initialization()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDataset"><code class="docutils literal notranslate"><span class="pre">TestPointDataset</span></code></a><ul>
@@ -748,7 +759,6 @@
 </ul>
 </li>
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestNominalSampleFrequency"><code class="docutils literal notranslate"><span class="pre">TestNominalSampleFrequency</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestNominalSampleFrequency.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestNominalSampleFrequency.test___slots__()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestNominalSampleFrequency.test_value"><code class="docutils literal notranslate"><span class="pre">TestNominalSampleFrequency.test_value()</span></code></a></li>
 </ul>
 </li>
@@ -792,24 +802,6 @@
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestStepConfigVersion"><code class="docutils literal notranslate"><span class="pre">TestStepConfigVersion</span></code></a><ul>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestStepConfigVersion.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestStepConfigVersion.test___slots__()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestStepConfigVersion.test_value"><code class="docutils literal notranslate"><span class="pre">TestStepConfigVersion.test_value()</span></code></a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="test_rst/test.test_step_adapter_redis.html">test.test_step_adapter_redis module</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_adapter_redis.html#test.test_step_adapter_redis.TestStepAdapterRedisPool"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterRedisPool</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_adapter_redis.html#test.test_step_adapter_redis.TestStepAdapterRedisPool.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterRedisPool.test___slots__()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_adapter_redis.html#test.test_step_adapter_redis.TestStepAdapterRedisPool.test_aenter"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterRedisPool.test_aenter()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_adapter_redis.html#test.test_step_adapter_redis.TestStepAdapterRedisPool.test_init"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterRedisPool.test_init()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_adapter_redis.html#test.test_step_adapter_redis.TestStepAdapterRedisStream"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterRedisStream</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_adapter_redis.html#test.test_step_adapter_redis.TestStepAdapterRedisStream.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterRedisStream.test___slots__()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_adapter_redis.html#test.test_step_adapter_redis.TestStepAdapterRedisStream.test__aenter__"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterRedisStream.test__aenter__()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_adapter_redis.html#test.test_step_adapter_redis.TestStepAdapterRedisStream.test_create_client_input_stream"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterRedisStream.test_create_client_input_stream()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_adapter_redis.html#test.test_step_adapter_redis.TestStepAdapterRedisStream.test_publish_position_array"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterRedisStream.test_publish_position_array()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_adapter_redis.html#test.test_step_adapter_redis.TestStepAdapterRedisStream.test_receive_adapter_message"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterRedisStream.test_receive_adapter_message()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_adapter_redis.html#test.test_step_adapter_redis.TestStepAdapterRedisStream.test_stream_init"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterRedisStream.test_stream_init()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -954,8 +946,9 @@ foundation. Core functionality includes:</p>
 <li><p><strong>Error Handling</strong>: Robust error handling and recovery mechanisms for Redis operations</p></li>
 </ul>
 </div></blockquote>
-<p>Provides the base classes <code class="docutils literal notranslate"><span class="pre">StepRedisPool</span></code> and <code class="docutils literal notranslate"><span class="pre">StepRedisStream</span></code> that are extended by
-<code class="docutils literal notranslate"><span class="pre">StepAdapterRedisPool</span></code> and <code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream</span></code> for Adapter-specific functionality.</p>
+<p>Provides the base classes <code class="docutils literal notranslate"><span class="pre">StepRedisPool</span></code> and <code class="docutils literal notranslate"><span class="pre">StepRedisStream</span></code>, plus specialized
+stream adapters such as <code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream</span></code> and <code class="docutils literal notranslate"><span class="pre">StepCrashPredictionRedisStream</span></code>
+used by the STEP Adapter service.</p>
 </dd>
 </dl>
 </section>
@@ -987,11 +980,12 @@ with real-time interpolation and temporal indexing.</p></li>
 <li><p><strong>PointDataset/PointDatasetConfig</strong>: Position dataset management with cubic
 spline interpolation for individual actors, directly performing all interpolation
 tasks using SciPy.</p></li>
-<li><p><strong>StepAdapterRedisPool/StepAdapterRedisStream</strong>: Redis integration
-for message streaming and crash prediction data distribution.</p></li>
+<li><p><strong>StepRedisPool/StepAdapterRedisStream/StepCrashPredictionRedisStream</strong>: External
+Redis integration from <code class="docutils literal notranslate"><span class="pre">step_redis</span></code> for message streaming and crash prediction
+data distribution.</p></li>
 <li><p><strong>StepAdapterConfig</strong>: Configuration management for the Adapter</p></li>
 <li><p><strong>StepLogger</strong>: Logging utilities specific to the STEP Adapter</p></li>
-<li><p><strong>StepCliException</strong>: Custom exceptions for error handling</p></li>
+<li><p><strong>StepCliError</strong>: Custom exceptions for error handling</p></li>
 </ol>
 </div></blockquote>
 <section id="actordataset">
@@ -1018,27 +1012,32 @@ streams while maintaining data consistency.</p></li>
 <p><strong>Key Methods:</strong></p>
 <blockquote>
 <div><ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">add_actor_position()</span></code>: Main entry point for processing position data from ITS messages,
-delegating to individual PointDataset instances for interpolation processing</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">get_position_arrays()</span></code>: Retrieves interpolated position arrays from all active actors
-for crash prediction distribution</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">cleanup_expired_actors()</span></code>: Executes periodic cleanup operations, removing expired actors
-and reclaiming memory resources</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">get_active_actor_count()</span></code>: Returns current fleet size for monitoring and scaling decisions</p></li>
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">add_cam_message()</span></code>: Main entry point for processing CAM data and generating</dt><dd><p><code class="docutils literal notranslate"><span class="pre">PositionArrayV1</span></code> output</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">clear_old_points()</span></code>: Executes periodic cleanup operations, removing expired actors</dt><dd><p>and reclaiming memory resources</p>
+</dd>
+</dl>
+</li>
 </ul>
 </div></blockquote>
 <p><strong>Architecture Integration:</strong></p>
 <p>The <code class="docutils literal notranslate"><span class="pre">ActorDataset</span></code> operates as the coordination hub between individual <code class="docutils literal notranslate"><span class="pre">PointDataset</span></code> instances
-for actor-specific processing and the <code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream</span></code> for message distribution. It utilizes
-comprehensive logging for operational visibility and implements configurable timing parameters
-for adaptive behavior in different traffic scenarios.</p>
+for actor-specific processing and the external <code class="docutils literal notranslate"><span class="pre">step_redis</span></code> streams used by the service runtime.
+It utilizes comprehensive logging for operational visibility and implements configurable timing
+parameters for adaptive behavior in different traffic scenarios.</p>
 <p><strong>Configuration Parameters:</strong></p>
 <blockquote>
 <div><ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">max_actor_history_length_sec</span></code>: Max length of position history maintained per actor</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">input_max_point_number</span></code>: Maximum number of input points retained per actor</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">input_max_period_ms</span></code>: Maximum allowed period between input points</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">input_max_local_time_deviation_ms</span></code>: Maximum allowed local time deviation</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">input_oldest_allowed_time_ms</span></code>: Oldest input timestamp accepted for processing</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">output_nominal_sample_frequency</span></code>: Target interpolation rate for position arrays</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">period_max_deviation_ms</span></code>: Maximum timing tolerance for interpolation points</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">cleanup_interval_seconds</span></code>: Frequency of automatic actor cleanup operations</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">output_period_max_deviation_ms</span></code>: Maximum timing tolerance for interpolation points</p></li>
 </ul>
 </div></blockquote>
 </section>
@@ -1185,46 +1184,42 @@ for rapid setup</p></li>
 configuration patterns, consistent validation rules, and compatible schema definitions that
 enable configuration sharing and validation across the entire STEP platform.</p>
 </section>
-<section id="stepadapterredispool-and-stepadapterredisstream">
-<h3>StepAdapterRedisPool and StepAdapterRedisStream<a class="headerlink" href="#stepadapterredispool-and-stepadapterredisstream" title="Link to this heading"></a></h3>
-<p>The <code class="docutils literal notranslate"><span class="pre">StepAdapterRedisPool</span></code> and <code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream</span></code> components provide the Redis
-integration layer for the STEP Adapter architecture, enabling efficient message
-streaming and position data distribution for crash prediction systems.</p>
-<p><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisPool</span></code></p>
+<section id="redis-streams-integration-step-redis">
+<h3>Redis Streams Integration (step_redis)<a class="headerlink" href="#redis-streams-integration-step-redis" title="Link to this heading"></a></h3>
+<p>The Redis integration layer is provided by the external <code class="docutils literal notranslate"><span class="pre">step_redis</span></code> package. The STEP Adapter
+service uses the following components from that library to receive ITS messages and publish
+position arrays for crash prediction systems.</p>
+<p><code class="docutils literal notranslate"><span class="pre">StepRedisPool</span></code></p>
 <blockquote>
 <div><ol class="arabic simple">
-<li><p><strong>Connection Management</strong>: Extends the <code class="docutils literal notranslate"><span class="pre">StepRedisPool</span></code> base class to handle
-Redis connection pooling specifically for STEP Adapter needs.</p></li>
-<li><p><strong>Resource Management</strong>: Provides asynchronous context management through
-<code class="docutils literal notranslate"><span class="pre">__aenter__</span></code> and <code class="docutils literal notranslate"><span class="pre">__aexit__</span></code> methods for safe connection handling.</p></li>
-<li><p><strong>Connection Configuration</strong>: Manages Redis connection parameters such
-as host, port, and authentication details.</p></li>
-<li><p><strong>Connection Pooling</strong>: Implements connection pooling to optimize performance
-and resource utilization when interacting with Redis streams.</p></li>
+<li><p><strong>Connection Management</strong>: Provides Redis connection pooling with async context
+management through <code class="docutils literal notranslate"><span class="pre">__aenter__</span></code> and <code class="docutils literal notranslate"><span class="pre">__aexit__</span></code>.</p></li>
+<li><p><strong>Connection Configuration</strong>: Manages Redis connection parameters such as host,
+port, authentication, SSL, and keepalive settings.</p></li>
+<li><p><strong>Connection Pooling</strong>: Optimizes performance and resource utilization when
+interacting with Redis streams.</p></li>
 </ol>
 </div></blockquote>
 <p><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream</span></code></p>
 <blockquote>
 <div><ol class="arabic simple">
-<li><p><strong>Stream Management</strong>: Extends the <code class="docutils literal notranslate"><span class="pre">StepRedisStream</span></code> base class to implement
-specialized stream handling for ITS position data and crash prediction workflows.</p></li>
-<li><p><strong>Input Stream Processing</strong>: Manages connections to input streams for receiving:</p>
-<ul class="simple">
-<li><p>CAM (Cooperative Awareness Messages) from <code class="docutils literal notranslate"><span class="pre">step_client</span></code></p></li>
-<li><p>CPM (Collective Perception Messages) from <code class="docutils literal notranslate"><span class="pre">step_client</span></code></p></li>
-</ul>
-</li>
-<li><p><strong>Output Stream Management</strong>: Handles output streams with specific routing:</p>
-<ul class="simple">
-<li><p>Connects to <code class="docutils literal notranslate"><span class="pre">step_crash_prediction</span></code> for sending position array data</p></li>
-</ul>
-</li>
+<li><p><strong>Stream Management</strong>: Extends <code class="docutils literal notranslate"><span class="pre">StepRedisStream</span></code> to handle STEP Adapter
+CloudEvents messages.</p></li>
+<li><p><strong>Input Stream Processing</strong>: Receives CAM/CPM adapter messages from <code class="docutils literal notranslate"><span class="pre">step_client</span></code>.</p></li>
 <li><p><strong>Stream Creation</strong>: Creates and configures input streams with appropriate consumer
 group IDs for message distribution and load balancing.</p></li>
-<li><p><strong>Message Publishing</strong>: Provides methods to publish position arrays to crash prediction streams.</p></li>
-<li><p><strong>Message Receiving</strong>: Offers functionality to receive and parse ITS messages from input streams.</p></li>
-<li><p><strong>CloudEvents Compliance</strong>: Handles CloudEvents-compliant message formatting and validation
-for standardized message exchange across the STEP ecosystem.</p></li>
+<li><p><strong>Message Receiving</strong>: Provides <code class="docutils literal notranslate"><span class="pre">receive_adapter_message()</span></code> for parsing adapter
+CloudEvents payloads.</p></li>
+</ol>
+</div></blockquote>
+<p><code class="docutils literal notranslate"><span class="pre">StepCrashPredictionRedisStream</span></code></p>
+<blockquote>
+<div><ol class="arabic simple">
+<li><p><strong>Output Stream Management</strong>: Publishes position arrays to <code class="docutils literal notranslate"><span class="pre">step_crash_prediction</span></code>.</p></li>
+<li><p><strong>Message Publishing</strong>: Provides <code class="docutils literal notranslate"><span class="pre">publish_position_array()</span></code> for CloudEvents-compliant
+position array messages.</p></li>
+<li><p><strong>Message Receiving</strong>: Provides <code class="docutils literal notranslate"><span class="pre">receive_crash_prediction_message()</span></code> for consuming
+crash prediction messages if needed.</p></li>
 </ol>
 </div></blockquote>
 <p>Together, these components form the communication infrastructure that enables standardized
@@ -1257,9 +1252,9 @@ severity level, source component, and structured message content.</p></li>
 processing details, and interpolation status to facilitate troubleshooting.</p></li>
 <li><p><strong>Configuration Integration</strong>: Leverages the logging configuration section
 from <code class="docutils literal notranslate"><span class="pre">StepAdapterConfig</span></code> to enable consistent setup across components.</p></li>
-<li><p><strong>Utility Methods</strong>: Offers utility methods like <code class="docutils literal notranslate"><span class="pre">setup_logging()</span></code> for initial
-configuration and <code class="docutils literal notranslate"><span class="pre">get_logger()</span></code> for retrieving appropriately configured
-logger instances.</p></li>
+<li><p><strong>Utility Methods</strong>: Offers utility methods like <code class="docutils literal notranslate"><span class="pre">get_logger()</span></code> for retrieving
+appropriately configured logger instances and <code class="docutils literal notranslate"><span class="pre">logger_force_write()</span></code> for
+forced INFO output.</p></li>
 <li><p><strong>Error Handling</strong>: Includes robust error handling to prevent logging failures
 from impacting core position processing functionality.</p></li>
 </ol>
@@ -1269,13 +1264,13 @@ logging capabilities to support monitoring, debugging, and operational insights
 across all system components, particularly for tracking position processing performance
 and interpolation quality.</p>
 </section>
-<section id="stepcliexception">
-<h3>StepCliException<a class="headerlink" href="#stepcliexception" title="Link to this heading"></a></h3>
-<p>The <code class="docutils literal notranslate"><span class="pre">StepCliException</span></code> component provides a custom exception class for handling
+<section id="stepclierror">
+<h3>StepCliError<a class="headerlink" href="#stepclierror" title="Link to this heading"></a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">StepCliError</span></code> component provides a custom exception class for handling
 command-line interface errors and application interruptions within the STEP Adapter architecture.
 This exception is designed to be raised in situations where command-line processing
 encounters errors or when normal operation flow needs to be interrupted.</p>
-<p>Key features of <code class="docutils literal notranslate"><span class="pre">StepCliException</span></code> include:</p>
+<p>Key features of <code class="docutils literal notranslate"><span class="pre">StepCliError</span></code> include:</p>
 <blockquote>
 <div><ol class="arabic simple">
 <li><p><strong>Custom Exception Class</strong>: Inherits from Python’s built-in <code class="docutils literal notranslate"><span class="pre">Exception</span></code> class,
@@ -1296,43 +1291,47 @@ error scenarios in command-line environments.</p></li>
 <p>The following component diagram illustrates the high-level architecture of the STEP Adapter
 and its interactions with external systems. It shows the relationships between the core
 components and how they interact with Redis streams and external data sources.</p>
+<div class="scrollable-diagram docutils container">
 <figure class="align-center">
 <p class="plantuml">
-<object data="_images/plantuml-1d5ef31f8d85138c59b52aefc6911a069e38fffd.svg" type="image/svg+xml" style="width:1352px;height:461px;background:#FFFFFF;">
-<img src="_images/plantuml-1d5ef31f8d85138c59b52aefc6911a069e38fffd.png" alt="package &quot;STEP Adapter&quot; {
+<object data="_images/plantuml-6007c8f6f1b4e793b3a5587f1ce979a08fc65a2e.svg" type="image/svg+xml" style="width:1345px;height:433px;background:#FFFFFF;">
+<img src="_images/plantuml-6007c8f6f1b4e793b3a5587f1ce979a08fc65a2e.png" alt="package &quot;STEP Adapter&quot; {
    package &quot;Position Processing&quot; {
-       [ActorDataset] as AD
-       [PointDataset] as PD
-       note left of AD
+      [ActorDataset] as AD
+      [PointDataset] as PD
+      note left of AD
          Multi-actor coordination with
          temporal indexing
-       end note
-       note right of PD
+      end note
+      note right of PD
          Integrated cubic spline interpolation
          using SciPy for trajectory smoothing
-       end note
-   }
-   package &quot;Redis Proxy&quot; {
-       [StepAdapterRedisPool] as AdapterRedisPool
-       [StepAdapterRedisStream] as AdapterRedisStream
-       note bottom of AdapterRedisStream
-          Redis Streams for
-          ITS message processing
-       end note
+      end note
    }
    [StepAdapterConfig] as Config
    [StepLogger] as Logger
 }
+package &quot;step_redis&quot; {
+   [StepRedisPool] as RedisPool
+   [StepAdapterRedisStream] as AdapterRedisStream
+   [StepCrashPredictionRedisStream] as CrashRedisStream
+   note bottom of AdapterRedisStream
+      Redis Streams for
+      ITS message processing
+   end note
+}
+AdapterRedisStream --&gt; AD : CAM/CPM messages
+AD --&gt; CrashRedisStream : position arrays
 AD -- PD : manages multiple
-AD -- AdapterRedisStream : publishes position arrays
 AD -- Logger : logs operations
 AD -- Config : get configuration
 PD -- Logger : logs processing
-PI -- Logger : logs interpolation
-AdapterRedisStream -- AdapterRedisPool : channel management"/>
+AdapterRedisStream -- RedisPool : uses
+CrashRedisStream -- RedisPool : uses"/>
 
 </object></p>
 </figure>
+</div>
 </section>
 </section>
 <section id="class-diagram">
@@ -1340,23 +1339,21 @@ AdapterRedisStream -- AdapterRedisPool : channel management"/>
 <p>The class diagram below illustrates the structure and relationships between
 the key classes in the STEP Adapter architecture. It shows the main methods
 and attributes of each class and how they interact with one another.</p>
+<div class="scrollable-diagram docutils container">
 <figure class="align-center">
 <p class="plantuml">
-<object data="_images/plantuml-be954cd64a90b0825d3c0c96f678c08ea9a54bec.svg" type="image/svg+xml" style="width:885px;height:1157px;background:#FFFFFF;">
-<img src="_images/plantuml-be954cd64a90b0825d3c0c96f678c08ea9a54bec.png" alt="!theme plain
+<object data="_images/plantuml-134763890daf363c4f2c5e6db95ed039127902d2.svg" type="image/svg+xml" style="width:1063px;height:1261px;background:#FFFFFF;">
+<img src="_images/plantuml-134763890daf363c4f2c5e6db95ed039127902d2.png" alt="!theme plain
 skinparam classAttributeIconSize 0
 
 class ActorDataset {
-   -_actors
-   -_temporal_index
+   -_actor_dataset
+   -_last_ordered_recorded_time
    -_config
    -_logger
-   -_lock
    +__init__
-   +add_actor_position
-   +get_position_arrays
-   +cleanup_expired_actors
-   +get_active_actor_count
+   +add_cam_message
+   +clear_old_points
 }
 
 class PointDataset {
@@ -1385,7 +1382,14 @@ class PointDataset {
 
 class StepAdapterConfig {
    +templateVersion
-   +instanceName
+   +maxActorHistoryPointNumber
+   +inputMaxPeriod
+   +inputLocalTimeMaxDeviation
+   +inputOldestAllowedTime
+   +outputNominalSampleFrequency
+   +outputPeriodMaxDeviation
+   +receiveClientNumber
+   +cleanerInterval
    +reconnectInterval
    +redis
    +log
@@ -1394,47 +1398,62 @@ class StepAdapterConfig {
    +{static} print_config_example
 }
 
-class StepAdapterRedisPool {
-   +MAX_CONNECTIONS
-   +__init__
-   +async __aenter__
-   +async __aexit__
-}
+package &quot;step_redis&quot; {
+   class StepRedisPool {
+      +__init__
+      +async __aenter__
+      +async __aexit__
+   }
 
-class StepAdapterRedisStream {
-   -_consumer_name
-   -_config
-   -_stream_ttl
-   +__init__
-   +async __aenter__
-   +async create_client_input_stream
-   +async publish_position_array
-   +async receive_adapter_message
+   class StepRedisStream {
+      +__init__
+      +async __aenter__
+      +async __aexit__
+      +async create_input_stream
+      +async publish_message
+      +async receive_message
+   }
+
+   class StepAdapterRedisStream {
+      +__init__
+      +async __aenter__
+      +async publish_cam_message
+      +async receive_adapter_message
+   }
+
+   class StepCrashPredictionRedisStream {
+      +__init__
+      +async __aenter__
+      +async publish_position_array
+      +async receive_crash_prediction_message
+   }
 }
 
 class StepLogger {
-   +{static} setup_logging
    +{static} get_logger
+   +{static} logger_force_write
 }
 
 ActorDataset --&gt; PointDataset : manages
-ActorDataset --&gt; StepAdapterRedisStream : publishes to
+StepAdapterRedisStream --&gt; ActorDataset : consumes
+ActorDataset --&gt; StepCrashPredictionRedisStream : publishes to
 ActorDataset --&gt; StepLogger : logs with
 
 PointDataset --&gt; StepLogger : logs with
 
-StepAdapterRedisStream --&gt; StepAdapterRedisPool : uses
+StepAdapterRedisStream --&gt; StepRedisPool : uses
+StepCrashPredictionRedisStream --&gt; StepRedisPool : uses
 StepAdapterRedisStream --&gt; StepAdapterConfig : configured by
-
-StepAdapterRedisPool --&gt; StepAdapterConfig : configured by
+StepCrashPredictionRedisStream --&gt; StepAdapterConfig : configured by
 
 StepLogger --&gt; StepAdapterConfig : configured by
 
-StepAdapterRedisPool --|&gt; StepRedisPool : extends
-StepAdapterRedisStream --|&gt; StepRedisStream : extends"/>
+StepAdapterRedisStream --|&gt; StepRedisStream : extends
+StepCrashPredictionRedisStream --|&gt; StepRedisStream : extends"/>
 
 </object></p>
 </figure>
+</div>
 </section>
 <section id="sequence-diagrams">
 <h2>Sequence Diagrams<a class="headerlink" href="#sequence-diagrams" title="Link to this heading"></a></h2>
@@ -1454,16 +1473,18 @@ temporal flow of operations as position data moves through the system.</p>
 from ITS messages sent by STEP Client. It demonstrates how the ActorDataset component
 processes incoming CAM/CPM messages, coordinates with PointDataset for actor-specific
 processing, and generates interpolated position arrays.</p>
+<div class="scrollable-diagram docutils container">
 <figure class="align-center">
 <p class="plantuml">
-<object data="_images/plantuml-a228a1b329e34c629c991e9efe3d3f73550ae9ee.svg" type="image/svg+xml" style="width:715px;height:364px;background:#FFFFFF;">
-<img src="_images/plantuml-a228a1b329e34c629c991e9efe3d3f73550ae9ee.png" alt="participant &quot;STEP Client&quot; as Client
-participant &quot;StepAdapterRedisStream&quot; as RedisStream
+<object data="_images/plantuml-617bcf8803d8e6e970bb02d10f1087855b003ff7.svg" type="image/svg+xml" style="width:873px;height:364px;background:#FFFFFF;">
+<img src="_images/plantuml-617bcf8803d8e6e970bb02d10f1087855b003ff7.png" alt="participant &quot;STEP Client&quot; as Client
+participant &quot;StepAdapterRedisStream&quot; as AdapterStream
 participant &quot;ActorDataset&quot; as ActorDataset
 participant &quot;PointDataset&quot; as PointDataset
+participant &quot;StepCrashPredictionRedisStream&quot; as CrashStream
 
-Client -&gt; RedisStream : CAM/CPM Message
-RedisStream -&gt; ActorDataset : Position Data
+Client -&gt; AdapterStream : CAM/CPM Message
+AdapterStream -&gt; ActorDataset : Position Data
 ActorDataset -&gt; PointDataset : add_point()
 note over PointDataset
    Validate position data,
@@ -1474,26 +1495,28 @@ note over PointDataset
    append received position as last point
 end note
 PointDataset -&gt; ActorDataset : Interpolated Points + Received Position
-ActorDataset -&gt; RedisStream : Position Array"/>
+ActorDataset -&gt; CrashStream : publish_position_array()"/>
 
 </object></p>
 </figure>
+</div>
 </section>
 <section id="position-array-publishing-to-crash-prediction">
 <h3>Position Array Publishing to Crash Prediction<a class="headerlink" href="#position-array-publishing-to-crash-prediction" title="Link to this heading"></a></h3>
 <p>The sequence diagram below illustrates the process of publishing position arrays
 to the crash prediction system for analysis.</p>
+<div class="scrollable-diagram docutils container">
 <figure class="align-center">
 <p class="plantuml">
-<object data="_images/plantuml-680624ff715b6d2cd02f95583d5f92089734911a.svg" type="image/svg+xml" style="width:511px;height:260px;background:#FFFFFF;">
-<img src="_images/plantuml-680624ff715b6d2cd02f95583d5f92089734911a.png" alt="participant &quot;ActorDataset&quot; as ActorDataset
-participant &quot;StepAdapterRedisStream&quot; as RedisStream
+<object data="_images/plantuml-3397f754a26f1a5267bf78671d573d35e31c1acc.svg" type="image/svg+xml" style="width:546px;height:260px;background:#FFFFFF;">
+<img src="_images/plantuml-3397f754a26f1a5267bf78671d573d35e31c1acc.png" alt="participant &quot;ActorDataset&quot; as ActorDataset
+participant &quot;StepCrashPredictionRedisStream&quot; as RedisStream
 participant &quot;STEP Crash Prediction&quot; as CrashPrediction
 
-ActorDataset -&gt; RedisStream : get_position_arrays()
+ActorDataset -&gt; RedisStream : publish_position_array()
 note over ActorDataset
-   Collect interpolated position
-   arrays from all active actors
+   Build a PositionArrayV1
+   from interpolated points
 end note
 RedisStream -&gt; CrashPrediction : Position Array V1
 note over CrashPrediction
@@ -1503,6 +1526,7 @@ end note"/>
 
 </object></p>
 </figure>
+</div>
 </section>
 </section>
 <section id="performance-considerations">
@@ -1643,7 +1667,7 @@ potential bottlenecks and mitigation strategies:</p>
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2025, Vodafone Automotive.</p>
+    <p>&#169; Copyright 2026, Vodafone Automotive.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
