@@ -1,0 +1,69 @@
+Collections Points V1 Schema
+============================
+
+The Collections Points Version 1 schema defines the payload used by
+``crash_prediction_log_extractor`` to represent actor sessions, trajectories,
+and crash-risk associations. The JSON Schema is generated from Pydantic models
+and enforces strict validation rules.
+
+Overview
+--------
+
+The root object is ``CollectionsPoints`` and contains:
+
+* ``formatVersion``: fixed to ``1``
+* ``collections``: list of actor collections
+
+Each entry in ``collections`` (``CollectionSections``) contains:
+
+* ``actorId``: actor identifier (station/object)
+* ``sessions``: one or more session blocks
+
+Each ``SessionData`` block contains:
+
+* ``lastRealTime``: ISO-8601 timestamp of the latest real point
+* ``dataType``: ``normalized`` or ``anomaly``
+* ``realPositions``: one or more measured positions
+* ``forecastedPositions``: forecasted trajectory positions
+* ``crashInfo``: crash risk entries associated with actors
+
+The ``Position`` object includes:
+
+* ``time``: ISO-8601 timestamp
+* ``latitude``: from ``-90`` to ``90``
+* ``longitude``: from ``-180`` to ``180``
+* ``speed``: optional, ``>= 0``
+* ``heading``: optional, from ``0`` to ``360``
+
+The ``CrashInfo`` object includes:
+
+* ``risk``: from ``0`` to ``1``
+* ``actorsInvolved``: at least two actor identifiers
+
+Validation Notes
+----------------
+
+* Models are strict (no type coercion) and forbid unknown fields.
+* All schema components are immutable after creation.
+* Timestamp fields use the same ISO-8601 validation pattern.
+* Numeric fields apply explicit bounds for geo and risk values.
+
+Example
+-------
+
+This example is created using JSON Schema **version 1**. For implementation details,
+refer to the Python models in ``crash_prediction_log_extractor.collections_points``.
+
+Example of the configuration schema:
+
+.. literalinclude:: ../schemas_examples/collections_points_v1_schema_example.json
+  :language: JSON
+
+JSON Schema
+-----------
+
+.. _collections_points_schema:
+
+This is JSON Schema **version 1**
+
+.. jsonschema:: ../json_schemas/collections_points_v1_schema.json

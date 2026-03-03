@@ -1,0 +1,215 @@
+Crash Prediction Log Extractor: Overview
+========================================
+
+.. |DEV_STAT| image:: https://img.shields.io/badge/status-beta-yellow.svg
+   :target: https://gitlab.automotive.vodafone.com/vfa-init/pnrr/crash_prediction_log_extractor
+   :alt: Development Status
+.. |GOOGLE_STYLE| image:: https://img.shields.io/badge/%20style-google-3666d6.svg
+   :target: https://google.github.io/styleguide/pyguide.html#s3.8-comments-and-docstrings
+   :alt: Google Style
+.. |DOC_FORMATTER| image:: https://img.shields.io/badge/%20formatter-docformatter-green.svg
+   :target: https://github.com/PyCQA/docformatter
+   :alt: Docstring Style
+.. |ISORT| image:: https://img.shields.io/badge/%20imports-isort-%231674b1
+   :target: https://pycqa.github.io/isort/
+   :alt: Isort
+.. |PYTHON_VERSION| image:: https://img.shields.io/badge/python-3.13%2B-blue.svg
+   :target: https://www.python.org/downloads/
+   :alt: Python Version
+.. |UV| image:: https://img.shields.io/badge/package%20manager-uv-DE5FE9.svg
+   :target: https://github.com/astral-sh/uv
+   :alt: Uv
+.. |PYTEST| image:: https://img.shields.io/badge/tests-pytest-orange.svg
+   :target: https://docs.pytest.org/
+   :alt: Pytest
+.. |RUFF| image:: https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json
+   :target: https://github.com/astral-sh/ruff
+   :alt: Ruff
+.. |MYPY| image:: https://img.shields.io/badge/typing-mypy-blue.svg
+   :target: https://mypy.readthedocs.io/
+   :alt: Mypy
+.. |PYLINT| image:: https://img.shields.io/badge/code%20quality-pylint-blue.svg
+   :target: https://pylint.pycqa.org/
+   :alt: Pylint
+.. |SPHINX_DOCS| image:: https://img.shields.io/badge/docs-sphinx-blue.svg
+   :target: https://www.sphinx-doc.org/en/master/index.html
+   :alt: Sphinx
+.. |TOX| image:: https://img.shields.io/badge/local%20automation-tox-brightgreen.svg
+   :target: https://tox.readthedocs.io/
+   :alt: Tox
+.. |TEST_COVERAGE| image:: ./badges/test_coverage.svg
+   :alt: Test Coverage
+.. |DOCSTRING_COVERAGE| image:: ./badges/docstr_coverage.svg
+   :alt: Documentation Coverage
+.. |GITLAB_BADGE| image:: https://img.shields.io/badge/CI%2FCD-gitlab-fc4d6c
+   :target: https://docs.gitlab.com/ci/pipelines
+   :alt: Pipeline
+
++----------------------+----------------------------------------------------------+
+| **Code Status**      | |DEV_STAT| |DOCSTRING_COVERAGE| |TEST_COVERAGE|          |
++----------------------+----------------------------------------------------------+
+| **Code Quality**     | |RUFF| |ISORT| |MYPY| |PYLINT|                           |
++----------------------+----------------------------------------------------------+
+| **Documentation**    | |SPHINX_DOCS| |GOOGLE_STYLE| |DOC_FORMATTER|             |
++----------------------+----------------------------------------------------------+
+| **Testing**          | |PYTEST|                                                 |
++----------------------+----------------------------------------------------------+
+| **Automation**       | |GITLAB_BADGE| |TOX|                                     |
++----------------------+----------------------------------------------------------+
+| **Python**           | |PYTHON_VERSION| |UV|                                    |
++----------------------+----------------------------------------------------------+
+
+.. list-table::
+   :widths: 20 80
+   :stub-columns: 1
+
+   * - Version
+     - |release|
+   * - Release Date
+     - |release_date|
+
+.. toctree::
+   :maxdepth: -1
+   :hidden:
+   :caption: Crash Prediction Log Extractor:
+
+   installation
+   commands
+   usage
+   package_script
+   architecture
+   schemas_rst/json_schemas
+   crash_prediction_log_extractor_rst/crash_prediction_log_extractor
+   test_rst/test
+
+The **crash_prediction_log_extractor** package is a STEP utility that parses
+``step_crash_prediction`` logs and converts marker-based scenario traces into a
+validated ``CollectionsPoints`` JSON payload.
+
+Purpose
+-------
+
+The project provides a deterministic, file-based extraction workflow for
+post-processing crash prediction runs. It reads plain-text logs, identifies
+scenario markers, assembles per-actor trajectory and crash-event data, and
+exports structured JSON suitable for debugging, analysis, and downstream tools.
+
+Key Features
+------------
+
+Marker-Based Parsing
+~~~~~~~~~~~~~~~~~~~~
+
+- **Scenario parsing**: Detects ``--Scenario start--`` / ``--Scenario end--``
+  boundaries in mixed runtime log output
+- **Section parsing**: Parses ``normalized`` and ``anomaly`` sections for both
+  ``real`` and ``forecasted`` trajectories
+- **Crash parsing**: Extracts crash blocks with risk values and all actors
+  involved in each crash event
+- **Deterministic behavior**: Ignores non-marker lines and applies fixed parser
+  state transitions
+
+Typed Data Model and Validation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- **Strict payload models**: Uses Pydantic models for ``Position``,
+  ``CrashInfo``, ``SessionData``, ``CollectionSections``, and
+  ``CollectionsPoints``
+- **Schema and example generation**: CLI can emit JSON schema and sample JSON
+  artifacts for integration and validation workflows
+- **Precision-aware serialization**: Coordinates, speed, heading, and risk are
+  serialized with consistent rounding rules
+- **Actor identity integration**: Uses ``ActorId`` from ``step_cloud_schemas``
+  across parser and output models
+
+CLI Operations
+~~~~~~~~~~~~~~
+
+- **Extraction mode**: Parse an input log file and write extracted collections
+  data to JSON
+- **Schema mode**: Generate JSON schema files for ``CollectionsPoints``
+- **Example mode**: Generate example JSON payload files
+- **Configurable logging**: Optional log file output with selectable
+  ``CRITICAL``/``ERROR``/``WARNING``/``INFO``/``DEBUG`` levels
+
+Core Components
+---------------
+
+CLI Entry Point
+~~~~~~~~~~~~~~~
+
+The ``__main__.py`` module provides command parsing and execution routing.
+It supports combined operations in a single run (for example schema generation,
+example generation, and extraction), and returns explicit exit codes for
+success, usage errors, unhandled exceptions, and user interruption.
+
+Log Extractor
+~~~~~~~~~~~~~
+
+The ``LogExtractor`` class in ``log_extractor.py`` is the parser engine. It
+uses regular expressions and finite-state parsing to extract:
+
+- actor identifiers
+- real and forecasted positions
+- crash risks and actor involvement
+
+It then merges parsed scenarios into one final ``CollectionsPoints`` payload.
+
+Collections Model Layer
+~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``collections_points.py`` module defines immutable, validated models and
+artifact utilities. It centralizes:
+
+- data contracts for extraction output
+- JSON schema generation
+- example payload generation
+- JSON file writing helpers
+
+Logging Utilities
+~~~~~~~~~~~~~~~~~
+
+The ``step_logger.py`` module provides UTC-based log formatting, console/file
+handlers, and a forced-write utility for informational messages that must be
+emitted regardless of default logger level.
+
+Architecture
+------------
+
+Processing Pipeline
+~~~~~~~~~~~~~~~~~~~
+
+The extraction pipeline follows these steps:
+
+#. Read log file line-by-line
+#. Detect marker lines with regex patterns
+#. Parse section/crash content via finite-state machines
+#. Build and merge actor session data
+#. Emit final ``CollectionsPoints`` JSON output
+
+Parser State Machines
+~~~~~~~~~~~~~~~~~~~~~
+
+The parser is implemented with dedicated state enums:
+
+- ``ParserScenarioState`` for scenario boundaries
+- ``ParserSectionDataState`` for section data blocks
+- ``ParserCrashState`` for crash blocks
+
+This design keeps parsing explicit and predictable even when logs contain
+non-marker operational lines.
+
+Dependencies
+------------
+
+Runtime Dependencies
+~~~~~~~~~~~~~~~~~~~~
+
+- ``pydantic`` for strict models and schema generation
+- ``step_cloud_schemas`` for the shared ``ActorId`` type
+
+Development Tooling
+~~~~~~~~~~~~~~~~~~~
+
+The project tooling includes ``pytest``, ``ruff``, ``mypy``, ``pylint``,
+``isort``, ``tox``, and Sphinx-based documentation generation.

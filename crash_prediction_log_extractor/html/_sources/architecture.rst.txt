@@ -1,0 +1,374 @@
+Architecture
+============
+
+This document describes the architecture of ``crash_prediction_log_extractor``,
+a Python library and CLI that parses marker-based
+``step_crash_prediction`` logs and produces ``CollectionsPoints`` JSON payloads.
+
+Overview
+--------
+
+The library implements a deterministic, file-based parsing pipeline:
+
+#. Read a log file line-by-line.
+#. Detect scenario and section markers using regular expressions.
+#. Build in-memory typed session data for each actor.
+#. Merge sessions into a validated ``CollectionsPoints`` payload.
+#. Optionally write JSON output, schema, or example artifacts from the CLI.
+
+The architecture is intentionally small and layered:
+
+* **Orchestration layer**: CLI entry point in ``__main__.py``
+* **Parsing layer**: ``LogExtractor`` and parser state machines
+* **Data model layer**: Pydantic models in ``collections_points.py``
+* **Observability layer**: UTC logging utilities in ``step_logger.py``
+
+Library
+-------
+
+Core Dependencies
+^^^^^^^^^^^^^^^^^
+
+**pydantic**
+   Provides strict, immutable payload models and JSON-schema generation for:
+
+   * ``Position``
+   * ``CrashInfo``
+   * ``SessionData``
+   * ``CollectionSections``
+   * ``CollectionsPoints``
+
+**step_cloud_schemas**
+   Provides ``ActorId`` used as the actor identity primitive across parser and
+   output models.
+
+**Python Standard Library**
+   Used extensively for core behavior:
+
+   * ``argparse`` for CLI options
+   * ``logging`` for runtime diagnostics
+   * ``pathlib`` for file-system operations
+   * ``re`` for marker parsing
+   * ``dataclasses`` and ``enum`` for parser internals
+
+Architecture Integration
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+The dependency selection supports the extractor goals:
+
+* **Schema safety** via strict Pydantic models
+* **Deterministic parsing** via explicit regex + finite-state parsing
+* **Simple deployment** with no external services required
+* **Traceable execution** via configurable file/console logging
+
+Components
+----------
+
+Main Components:
+
+   #. **CLI Entry Point** (``__main__.py``): argument parsing, execution routing,
+      and exit-code management
+   #. **LogExtractor** (``log_extractor.py``): marker parser and scenario merger
+   #. **CollectionsPoints Models** (``collections_points.py``): typed payload,
+      schema generation, and example generation
+   #. **Step Logger** (``step_logger.py``): UTC logger setup and forced info writes
+
+CLI Entry Point
+^^^^^^^^^^^^^^^
+
+The ``main()`` function in ``__main__.py`` orchestrates all user operations.
+
+**Responsibilities:**
+
+   #. Parse CLI arguments (schema/example generation, extraction, logging).
+   #. Configure runtime logger (stdout and optional file handler).
+   #. Run extraction through ``LogExtractor`` when ``--input_file`` is provided.
+   #. Write output JSON and report operation status.
+   #. Return typed exit codes:
+
+      * ``0``: success
+      * ``1``: usage (no args)
+      * ``2``: unhandled exception
+      * ``3``: interrupted execution
+
+LogExtractor
+^^^^^^^^^^^^
+
+``LogExtractor`` is the core parser service. It scans a text log stream and
+extracts data from markers only.
+
+**Internal parser structure:**
+
+* ``ParserScenarioState``: scenario-level boundaries
+* ``ParserSectionDataState``: section-level parsing for
+  ``normalized|anomaly`` x ``real|forecasted``
+* ``ParserCrashState``: parsing of crash blocks and risk/actor tuples
+
+**Regex marker families:**
+
+* Scenario markers: ``--Scenario (start|end)--``
+* Section markers: ``--Section (anomaly|normalized) (real|forecasted) (start|end)--``
+* Crash section markers: ``--Section crash (start|end)--``
+* Crash markers: ``--Crash (start|end)--`` and ``--Risk: ...--``
+* Actor markers: ``--Id: sid <station_id>, oid <object_id|None>--``
+* Point markers: ``--t: <time>, p: (<lat>, <lon>), s: <speed|None>, h: <heading|None>--``
+
+**Session assembly pipeline:**
+
+#. Parse one scenario with ``_extract_section()``.
+#. Populate temporary dictionaries for each section type.
+#. Parse crash entries and map involved actors.
+#. Merge per-actor ``SessionData``.
+#. Append scenario sessions to global actor collections.
+#. Emit final ``CollectionsPoints`` at end of file.
+
+**Merge rule:**
+
+When an actor appears in both normalized and anomaly data in the same scenario,
+anomaly data overwrites normalized data for that actor in that scenario merge.
+
+CollectionsPoints Models
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+The data-model layer defines immutable payload objects:
+
+* ``Position``: time, latitude, longitude, optional speed/heading
+* ``CrashInfo``: risk and involved actor list
+* ``SessionData``: last real timestamp + trajectory + crash info
+* ``CollectionSections``: actor id + list of sessions
+* ``CollectionsPoints``: root payload with ``formatVersion`` and collections
+
+Model behavior includes:
+
+* strict validation and ``extra='forbid'``
+* numeric serializers for fixed precision output
+* schema generation via ``ConfigGenerateJsonSchema``
+* artifact writing:
+
+  * ``print_to_file()``
+  * ``print_schema()``
+  * ``print_example()``
+
+Step Logger
+^^^^^^^^^^^
+
+``step_logger.py`` provides centralized logging behavior.
+
+**Design points:**
+
+* UTC timestamp formatting via ``UtcFormatter``
+* stdout handler for immediate error visibility
+* optional file handler for detailed execution tracing
+* ``logger_force_write()`` to emit info messages regardless of current levels
+
+Component Diagram
+-----------------
+
+The following component diagram illustrates how runtime pieces collaborate.
+
+.. container:: scrollable-diagram
+
+   .. plantuml::
+      :align: center
+
+      package "crash_prediction_log_extractor" {
+         [CLI (__main__.py)] as CLI
+         [LogExtractor] as Extractor
+         [CollectionsPoints Models] as Models
+         [step_logger] as Logger
+      }
+
+      package "External Input/Output" {
+         [Log File] as LogFile
+         [JSON Output] as JsonOut
+         [Schema/Example Files] as Artifacts
+      }
+
+      package "Dependency" {
+         [ActorId (step_cloud_schemas)] as ActorId
+      }
+
+      CLI --> Logger : configure/get logger
+      CLI --> Extractor : extract()
+      CLI --> Models : print_schema()/print_example()
+      CLI --> JsonOut : write output file
+
+      LogFile --> Extractor : line-by-line read
+      Extractor --> Models : build CollectionsPoints
+      Extractor --> Logger : parser logs
+      Models --> Artifacts : schema/example generation
+      Models --> ActorId : actor identity type
+
+Class Diagram
+-------------
+
+The class diagram below highlights the key internal structures.
+
+.. container:: scrollable-diagram
+
+   .. plantuml::
+      :align: center
+
+      !theme plain
+      skinparam classAttributeIconSize 0
+
+      enum ExitCode {
+         OK
+         USAGE
+         ERROR
+         ABORTED
+      }
+
+      enum ParserScenarioState
+      enum ParserSectionDataState
+      enum ParserCrashState
+      enum SectionDataType
+      enum DataType
+
+      class LogExtractor {
+         -_input_file: Path
+         -_logger: Logger
+         -_collections: CollectionsPoints?
+         -_session_normalized_real_data
+         -_session_normalized_forecasted_data
+         -_session_anomaly_real_data
+         -_session_anomaly_forecasted_data
+         -_session_crash_data
+         +collections
+         +extract()
+         -_extract_section()
+         -_extract_section_data()
+         -_extract_section_crash_data()
+         -_extract_crash_data()
+         -_merge_session_data()
+      }
+
+      class ParserTableDataMarkerItem {
+         +data_type: DataType
+         +section_data_type: SectionDataType
+         +data_collection
+      }
+
+      class CollectionsPoints {
+         +formatVersion
+         +collections
+         +print_to_file()
+         +print_schema()
+         +print_example()
+      }
+
+      class CollectionSections {
+         +actorId
+         +sessions
+      }
+
+      class SessionData {
+         +lastRealTime
+         +dataType
+         +realPositions
+         +forecastedPositions
+         +crashInfo
+      }
+
+      class Position
+      class CrashInfo
+      class ActorId <<from step_cloud_schemas>>
+
+      LogExtractor --> ParserScenarioState
+      LogExtractor --> ParserSectionDataState
+      LogExtractor --> ParserCrashState
+      LogExtractor --> ParserTableDataMarkerItem
+      LogExtractor --> CollectionsPoints
+      LogExtractor --> SessionData
+      LogExtractor --> Position
+      LogExtractor --> CrashInfo
+      CrashInfo --> ActorId
+      CollectionSections --> ActorId
+      CollectionsPoints --> CollectionSections
+      SessionData --> Position
+      SessionData --> CrashInfo
+
+Sequence Diagrams
+-----------------
+
+The following sequence diagrams show the two main operational flows.
+
+Extraction Flow
+^^^^^^^^^^^^^^^
+
+.. container:: scrollable-diagram
+
+   .. plantuml::
+      :align: center
+
+      participant "User" as User
+      participant "CLI main()" as CLI
+      participant "LogExtractor" as Extractor
+      participant "Log File" as File
+      participant "CollectionsPoints" as Payload
+
+      User -> CLI : crash_prediction_log_extractor -i input.log -o out.json
+      CLI -> Extractor : __init__(input_file, logger)
+      CLI -> Extractor : extract()
+      Extractor -> File : read lines
+      loop for each scenario block
+         Extractor -> Extractor : _extract_section_data() x4
+         Extractor -> Extractor : _extract_section_crash_data()
+         Extractor -> Extractor : _merge_session_data()
+      end
+      Extractor -> Payload : build CollectionsPoints
+      CLI <- Extractor : collections
+      CLI -> Payload : print_to_file(out.json)
+
+Schema and Example Generation Flow
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. container:: scrollable-diagram
+
+   .. plantuml::
+      :align: center
+
+      participant "User" as User
+      participant "CLI main()" as CLI
+      participant "CollectionsPoints" as Payload
+      participant "File System" as FS
+
+      User -> CLI : crash_prediction_log_extractor -s schema_dir -e example_dir
+      CLI -> Payload : print_schema(schema_dir)
+      Payload -> FS : write *_schema.json
+      CLI -> Payload : print_example(example_dir)
+      Payload -> FS : write *_schema_example.json
+
+Performance Considerations
+--------------------------
+
+The parser is designed for predictability and linear file traversal.
+
+Time Complexity
+^^^^^^^^^^^^^^^
+
+Let:
+
+* :math:`L` = total lines in log file
+* :math:`A` = actors in one scenario
+* :math:`C` = crash records in one scenario
+
+Then:
+
+* **File scanning**: :math:`O(L)` (single forward traversal)
+* **Scenario merge**: approximately :math:`O(A * C)` for actor-to-crash association
+  during ``crashInfo`` filtering
+* **Overall extraction**: dominated by :math:`O(L)` in typical workloads
+
+Space Complexity
+^^^^^^^^^^^^^^^^
+
+* Temporary per-scenario buffers scale with parsed points and crashes for that scenario
+* Final payload scales with total extracted sessions across all scenarios
+
+Practical Notes
+^^^^^^^^^^^^^^^
+
+* Parsing is robust to non-marker lines (ignored)
+* Truncated/malformed sections stop extraction gracefully and can still yield partial results
+* Logging detail can be increased through ``-f`` and ``-l`` for diagnostics

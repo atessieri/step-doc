@@ -1,0 +1,172 @@
+======================
+Command Line Interface
+======================
+
+Overview
+========
+
+The ``crash_prediction_log_extractor`` CLI parses crash-prediction log files and
+produces JSON output based on the ``CollectionsPoints`` schema.
+
+It can also generate:
+
+* JSON schema artifacts for ``CollectionsPoints``
+* JSON example artifacts for ``CollectionsPoints``
+
+
+Basic usage
+===========
+
+.. code-block:: bash
+
+    crash_prediction_log_extractor [options]
+
+If no options are provided, the program prints help and exits with code ``1``.
+
+
+Options
+=======
+
+``-h``, ``--help``
+    Display the help message and exit.
+
+``-v``, ``--version``
+    Show the program version and exit.
+
+``-s <schema folder>``, ``--schema <schema folder>``
+    Generate ``CollectionsPoints`` JSON schema files in the specified directory.
+    The directory is created if it does not exist.
+
+``-e <example folder>``, ``--example <example folder>``
+    Generate ``CollectionsPoints`` JSON example files in the specified directory.
+    The directory is created if it does not exist.
+
+``-i <input file>``, ``--input_file <input file>``
+    Parse the input log file and extract collections data.
+
+``-o <output file>``, ``--output_file <output file>``
+    Path of the JSON output file.
+
+    If omitted while using ``-i``, output is written to the current working
+    directory with the same stem as the input file and ``.json`` extension.
+
+``-f <log file>``, ``--log_file <log file>``
+    Write runtime logs to the specified log file.
+
+``-l <log level>``, ``--log_level <log level>``
+    Logging level used when ``-f`` is specified.
+    Accepted values: ``CRITICAL``, ``ERROR``, ``WARNING``, ``INFO``, ``DEBUG``.
+    Invalid values fallback to ``WARNING``.
+
+
+Detailed command description
+============================
+
+Help command
+------------
+
+.. code-block:: bash
+
+    crash_prediction_log_extractor --help
+
+Shows usage instructions and available options.
+
+Version command
+---------------
+
+.. code-block:: bash
+
+    crash_prediction_log_extractor --version
+
+Shows the installed package version.
+
+Schema generation
+-----------------
+
+.. code-block:: bash
+
+    crash_prediction_log_extractor --schema ./schemas
+
+Generates schema files for the ``CollectionsPoints`` data model.
+
+Example generation
+------------------
+
+.. code-block:: bash
+
+    crash_prediction_log_extractor --example ./examples
+
+Generates example JSON files for the ``CollectionsPoints`` data model.
+
+Log extraction
+--------------
+
+.. code-block:: bash
+
+    crash_prediction_log_extractor --input_file ./logs/crash_prediction.log --output_file ./out/collections.json
+
+Parses marker-based scenario blocks from the log and writes extracted
+collections payload as JSON.
+
+Log extraction with default output name
+---------------------------------------
+
+.. code-block:: bash
+
+    crash_prediction_log_extractor --input_file ./logs/crash_prediction.log
+
+If ``--output_file`` is omitted, output is created as:
+
+.. code-block:: text
+
+    ./crash_prediction.json
+
+in the current working directory.
+
+Logging options
+---------------
+
+.. code-block:: bash
+
+    crash_prediction_log_extractor -i ./logs/crash_prediction.log -o ./out/collections.json -f ./run/extractor.log -l DEBUG
+
+Writes runtime logs to ``./run/extractor.log`` at the selected log level.
+
+
+Exit codes
+==========
+
+The program returns the following exit codes:
+
+* ``0`` (OK): Successful termination.
+* ``1`` (USAGE): No arguments provided.
+* ``2`` (ERROR): Unhandled exception during execution.
+* ``3`` (ABORTED): Interrupted by user/system (for example ``Ctrl+C``).
+
+
+Examples
+========
+
+Generate schema files:
+
+.. code-block:: bash
+
+    crash_prediction_log_extractor -s ./schemas
+
+Generate example files:
+
+.. code-block:: bash
+
+    crash_prediction_log_extractor -e ./examples
+
+Extract to explicit output path:
+
+.. code-block:: bash
+
+    crash_prediction_log_extractor -i ./logs/crash_prediction.log -o ./out/collections.json
+
+Run multiple operations in one command:
+
+.. code-block:: bash
+
+    crash_prediction_log_extractor -s ./schemas -e ./examples -i ./logs/crash_prediction.log -o ./out/collections.json

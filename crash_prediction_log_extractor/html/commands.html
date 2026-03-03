@@ -1,0 +1,556 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Command Line Interface &mdash; Crash Prediction Log Extractor 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/tabs.css?v=4c969af8" />
+      <link rel="stylesheet" type="text/css" href="_static/css/custom.css?v=ca5f51dc" />
+      <link rel="stylesheet" type="text/css" href="_static/css/sphinx_prompt_css.css?v=351d85e3" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=8d563738"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="_static/tabs.js?v=3ee01567"></script>
+      <script src="_static/js/expand_tabs.js?v=1e151f68"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Crash Prediction Log Extractor Usage Guide" href="usage.html" />
+    <link rel="prev" title="Installation with uv" href="installation.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Crash Prediction Log Extractor
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Crash Prediction Log Extractor:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation with uv</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#configure-authentication">Configure authentication</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#url-registry-configuration">URL Registry configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#installing-from-registry">Installing from registry</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Command Line Interface</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#basic-usage">Basic usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#options">Options</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#detailed-command-description">Detailed command description</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#help-command">Help command</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#version-command">Version command</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#schema-generation">Schema generation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#example-generation">Example generation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#log-extraction">Log extraction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#log-extraction-with-default-output-name">Log extraction with default output name</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#logging-options">Logging options</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#exit-codes">Exit codes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#examples">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Crash Prediction Log Extractor Usage Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#what-the-program-does">What the program does</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#cli-syntax">CLI syntax</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#command-line-options">Command-line options</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#examples">Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#exit-codes">Exit codes</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="package_script.html">Package Script</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="package_script.html#create-environment">Create environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="package_script.html#development-with-tox">Development with Tox</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="package_script.html#available-environments">Available Environments</a></li>
+<li class="toctree-l3"><a class="reference internal" href="package_script.html#testing-environments">Testing Environments</a></li>
+<li class="toctree-l3"><a class="reference internal" href="package_script.html#code-quality-commands">Code Quality Commands</a></li>
+<li class="toctree-l3"><a class="reference internal" href="package_script.html#documentation-commands">Documentation Commands</a></li>
+<li class="toctree-l3"><a class="reference internal" href="package_script.html#package-management">Package Management</a></li>
+<li class="toctree-l3"><a class="reference internal" href="package_script.html#cleanup-commands">Cleanup Commands</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="package_script.html#pdf-conversion">PDF conversion</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="architecture.html">Architecture</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#library">Library</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="architecture.html#core-dependencies">Core Dependencies</a></li>
+<li class="toctree-l3"><a class="reference internal" href="architecture.html#architecture-integration">Architecture Integration</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#components">Components</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="architecture.html#cli-entry-point">CLI Entry Point</a></li>
+<li class="toctree-l3"><a class="reference internal" href="architecture.html#logextractor">LogExtractor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="architecture.html#collectionspoints-models">CollectionsPoints Models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="architecture.html#step-logger">Step Logger</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#component-diagram">Component Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#class-diagram">Class Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#sequence-diagrams">Sequence Diagrams</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="architecture.html#extraction-flow">Extraction Flow</a></li>
+<li class="toctree-l3"><a class="reference internal" href="architecture.html#schema-and-example-generation-flow">Schema and Example Generation Flow</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#performance-considerations">Performance Considerations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="architecture.html#time-complexity">Time Complexity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="architecture.html#space-complexity">Space Complexity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="architecture.html#practical-notes">Practical Notes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="schemas_rst/json_schemas.html">JSON Schemas</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="schemas_rst/json_schemas.html#collections-points-schema">Collections Points Schema</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="schemas_rst/collections_points_schema.html">Collections Points V1 Schema</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="schemas_rst/collections_points_schema.html#overview">Overview</a></li>
+<li class="toctree-l4"><a class="reference internal" href="schemas_rst/collections_points_schema.html#validation-notes">Validation Notes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="schemas_rst/collections_points_schema.html#example">Example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="schemas_rst/collections_points_schema.html#json-schema">JSON Schema</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/collections_points_schema.html#crash-prediction-collections-points">Crash Prediction Collections Points</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/collections_points_schema.html#actorid">ActorId</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/collections_points_schema.html#collection-sections">Collection Sections</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/collections_points_schema.html#crash-info">Crash Info</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/collections_points_schema.html#data-type">Data Type</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/collections_points_schema.html#position">Position</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/collections_points_schema.html#session-data">Session Data</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.html">crash_prediction_log_extractor package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.html#overview-of-what-is-parsed">Overview of what is parsed</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.html#marker-grammar">Marker grammar</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.html#output-model-semantics">Output model semantics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.html#cli-usage">CLI usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.html#submodules">Submodules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.collections_points.html">crash_prediction_log_extractor.collections_points module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.CollectionSections"><code class="docutils literal notranslate"><span class="pre">CollectionSections</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.CollectionSections.actorId"><code class="docutils literal notranslate"><span class="pre">CollectionSections.actorId</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.CollectionSections.sessions"><code class="docutils literal notranslate"><span class="pre">CollectionSections.sessions</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.CollectionSections.get_default"><code class="docutils literal notranslate"><span class="pre">CollectionSections.get_default()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.CollectionSections.model_config"><code class="docutils literal notranslate"><span class="pre">CollectionSections.model_config</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.CollectionsPoints"><code class="docutils literal notranslate"><span class="pre">CollectionsPoints</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.CollectionsPoints.formatVersion"><code class="docutils literal notranslate"><span class="pre">CollectionsPoints.formatVersion</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.CollectionsPoints.collections"><code class="docutils literal notranslate"><span class="pre">CollectionsPoints.collections</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.CollectionsPoints.get_default"><code class="docutils literal notranslate"><span class="pre">CollectionsPoints.get_default()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.CollectionsPoints.model_config"><code class="docutils literal notranslate"><span class="pre">CollectionsPoints.model_config</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.CollectionsPoints.print_example"><code class="docutils literal notranslate"><span class="pre">CollectionsPoints.print_example()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.CollectionsPoints.print_schema"><code class="docutils literal notranslate"><span class="pre">CollectionsPoints.print_schema()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.CollectionsPoints.print_to_file"><code class="docutils literal notranslate"><span class="pre">CollectionsPoints.print_to_file()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.CollectionsPointsDataModelVersion"><code class="docutils literal notranslate"><span class="pre">CollectionsPointsDataModelVersion</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.CollectionsPointsDataModelVersion.V1"><code class="docutils literal notranslate"><span class="pre">CollectionsPointsDataModelVersion.V1</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.ConfigGenerateJsonSchema"><code class="docutils literal notranslate"><span class="pre">ConfigGenerateJsonSchema</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.ConfigGenerateJsonSchema.generate"><code class="docutils literal notranslate"><span class="pre">ConfigGenerateJsonSchema.generate()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.CrashInfo"><code class="docutils literal notranslate"><span class="pre">CrashInfo</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.CrashInfo.risk"><code class="docutils literal notranslate"><span class="pre">CrashInfo.risk</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.CrashInfo.actorsInvolved"><code class="docutils literal notranslate"><span class="pre">CrashInfo.actorsInvolved</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.CrashInfo.get_default"><code class="docutils literal notranslate"><span class="pre">CrashInfo.get_default()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.CrashInfo.model_config"><code class="docutils literal notranslate"><span class="pre">CrashInfo.model_config</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.CrashInfo.serialize_risk"><code class="docutils literal notranslate"><span class="pre">CrashInfo.serialize_risk()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.DataType"><code class="docutils literal notranslate"><span class="pre">DataType</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.DataType.NORMALIZED"><code class="docutils literal notranslate"><span class="pre">DataType.NORMALIZED</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.DataType.ANOMALY"><code class="docutils literal notranslate"><span class="pre">DataType.ANOMALY</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.DataType.__get_pydantic_json_schema__"><code class="docutils literal notranslate"><span class="pre">DataType.__get_pydantic_json_schema__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.Position"><code class="docutils literal notranslate"><span class="pre">Position</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.Position.time"><code class="docutils literal notranslate"><span class="pre">Position.time</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.Position.latitude"><code class="docutils literal notranslate"><span class="pre">Position.latitude</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.Position.longitude"><code class="docutils literal notranslate"><span class="pre">Position.longitude</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.Position.speed"><code class="docutils literal notranslate"><span class="pre">Position.speed</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.Position.heading"><code class="docutils literal notranslate"><span class="pre">Position.heading</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.Position.get_default"><code class="docutils literal notranslate"><span class="pre">Position.get_default()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.Position.model_config"><code class="docutils literal notranslate"><span class="pre">Position.model_config</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.Position.serialize_heading"><code class="docutils literal notranslate"><span class="pre">Position.serialize_heading()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.Position.serialize_latitude"><code class="docutils literal notranslate"><span class="pre">Position.serialize_latitude()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.Position.serialize_longitude"><code class="docutils literal notranslate"><span class="pre">Position.serialize_longitude()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.Position.serialize_speed"><code class="docutils literal notranslate"><span class="pre">Position.serialize_speed()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.SessionData"><code class="docutils literal notranslate"><span class="pre">SessionData</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.SessionData.lastRealTime"><code class="docutils literal notranslate"><span class="pre">SessionData.lastRealTime</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.SessionData.dataType"><code class="docutils literal notranslate"><span class="pre">SessionData.dataType</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.SessionData.realPositions"><code class="docutils literal notranslate"><span class="pre">SessionData.realPositions</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.SessionData.forecastedPositions"><code class="docutils literal notranslate"><span class="pre">SessionData.forecastedPositions</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.SessionData.crashInfo"><code class="docutils literal notranslate"><span class="pre">SessionData.crashInfo</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.SessionData.get_default"><code class="docutils literal notranslate"><span class="pre">SessionData.get_default()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.SessionData.model_config"><code class="docutils literal notranslate"><span class="pre">SessionData.model_config</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.log_extractor.html">crash_prediction_log_extractor.log_extractor module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.log_extractor.html#log-file-format">Log file format</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.log_extractor.html#marker-reference">Marker reference</a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.log_extractor.html#full-minimal-scenario-example">Full minimal scenario example</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.log_extractor.html#crash_prediction_log_extractor.log_extractor.LogExtractor"><code class="docutils literal notranslate"><span class="pre">LogExtractor</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.log_extractor.html#crash_prediction_log_extractor.log_extractor.LogExtractor.SCENARIO_PATTERN"><code class="docutils literal notranslate"><span class="pre">LogExtractor.SCENARIO_PATTERN</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.log_extractor.html#crash_prediction_log_extractor.log_extractor.LogExtractor.SECTION_DATA_PATTERN"><code class="docutils literal notranslate"><span class="pre">LogExtractor.SECTION_DATA_PATTERN</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.log_extractor.html#crash_prediction_log_extractor.log_extractor.LogExtractor.SECTION_CRASH_PATTERN"><code class="docutils literal notranslate"><span class="pre">LogExtractor.SECTION_CRASH_PATTERN</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.log_extractor.html#crash_prediction_log_extractor.log_extractor.LogExtractor.CRASH_PATTERN"><code class="docutils literal notranslate"><span class="pre">LogExtractor.CRASH_PATTERN</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.log_extractor.html#crash_prediction_log_extractor.log_extractor.LogExtractor.CRASH_RISK_PATTERN"><code class="docutils literal notranslate"><span class="pre">LogExtractor.CRASH_RISK_PATTERN</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.log_extractor.html#crash_prediction_log_extractor.log_extractor.LogExtractor.ACTOR_ID_PATTERN"><code class="docutils literal notranslate"><span class="pre">LogExtractor.ACTOR_ID_PATTERN</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.log_extractor.html#crash_prediction_log_extractor.log_extractor.LogExtractor.POINT_PATTERN"><code class="docutils literal notranslate"><span class="pre">LogExtractor.POINT_PATTERN</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.log_extractor.html#crash_prediction_log_extractor.log_extractor.LogExtractor.clear_table"><code class="docutils literal notranslate"><span class="pre">LogExtractor.clear_table()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.log_extractor.html#crash_prediction_log_extractor.log_extractor.LogExtractor.collections"><code class="docutils literal notranslate"><span class="pre">LogExtractor.collections</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.log_extractor.html#crash_prediction_log_extractor.log_extractor.LogExtractor.extract"><code class="docutils literal notranslate"><span class="pre">LogExtractor.extract()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.log_extractor.html#crash_prediction_log_extractor.log_extractor.ParserCrashState"><code class="docutils literal notranslate"><span class="pre">ParserCrashState</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.log_extractor.html#crash_prediction_log_extractor.log_extractor.ParserCrashState.WAIT_START_CRASH"><code class="docutils literal notranslate"><span class="pre">ParserCrashState.WAIT_START_CRASH</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.log_extractor.html#crash_prediction_log_extractor.log_extractor.ParserCrashState.WAIT_RISK"><code class="docutils literal notranslate"><span class="pre">ParserCrashState.WAIT_RISK</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.log_extractor.html#crash_prediction_log_extractor.log_extractor.ParserCrashState.WAIT_END_CRASH"><code class="docutils literal notranslate"><span class="pre">ParserCrashState.WAIT_END_CRASH</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.log_extractor.html#crash_prediction_log_extractor.log_extractor.ParserCrashState.DONE"><code class="docutils literal notranslate"><span class="pre">ParserCrashState.DONE</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.log_extractor.html#crash_prediction_log_extractor.log_extractor.ParserScenarioState"><code class="docutils literal notranslate"><span class="pre">ParserScenarioState</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.log_extractor.html#crash_prediction_log_extractor.log_extractor.ParserScenarioState.WAIT_FOR_START_SCENARIO"><code class="docutils literal notranslate"><span class="pre">ParserScenarioState.WAIT_FOR_START_SCENARIO</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.log_extractor.html#crash_prediction_log_extractor.log_extractor.ParserScenarioState.WAIT_FOR_END_SCENARIO"><code class="docutils literal notranslate"><span class="pre">ParserScenarioState.WAIT_FOR_END_SCENARIO</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.log_extractor.html#crash_prediction_log_extractor.log_extractor.ParserScenarioState.DONE"><code class="docutils literal notranslate"><span class="pre">ParserScenarioState.DONE</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.log_extractor.html#crash_prediction_log_extractor.log_extractor.ParserSectionDataState"><code class="docutils literal notranslate"><span class="pre">ParserSectionDataState</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.log_extractor.html#crash_prediction_log_extractor.log_extractor.ParserSectionDataState.WAIT_START_SECTION_DATA"><code class="docutils literal notranslate"><span class="pre">ParserSectionDataState.WAIT_START_SECTION_DATA</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.log_extractor.html#crash_prediction_log_extractor.log_extractor.ParserSectionDataState.WAIT_END_SECTION_DATA"><code class="docutils literal notranslate"><span class="pre">ParserSectionDataState.WAIT_END_SECTION_DATA</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.log_extractor.html#crash_prediction_log_extractor.log_extractor.ParserSectionDataState.DONE"><code class="docutils literal notranslate"><span class="pre">ParserSectionDataState.DONE</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.log_extractor.html#crash_prediction_log_extractor.log_extractor.ParserTableDataMarkerItem"><code class="docutils literal notranslate"><span class="pre">ParserTableDataMarkerItem</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.log_extractor.html#crash_prediction_log_extractor.log_extractor.ParserTableDataMarkerItem.data_type"><code class="docutils literal notranslate"><span class="pre">ParserTableDataMarkerItem.data_type</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.log_extractor.html#crash_prediction_log_extractor.log_extractor.ParserTableDataMarkerItem.section_data_type"><code class="docutils literal notranslate"><span class="pre">ParserTableDataMarkerItem.section_data_type</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.log_extractor.html#crash_prediction_log_extractor.log_extractor.ParserTableDataMarkerItem.data_collection"><code class="docutils literal notranslate"><span class="pre">ParserTableDataMarkerItem.data_collection</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.log_extractor.html#crash_prediction_log_extractor.log_extractor.SectionDataType"><code class="docutils literal notranslate"><span class="pre">SectionDataType</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.log_extractor.html#crash_prediction_log_extractor.log_extractor.SectionDataType.REAL"><code class="docutils literal notranslate"><span class="pre">SectionDataType.REAL</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.log_extractor.html#crash_prediction_log_extractor.log_extractor.SectionDataType.FORECASTED"><code class="docutils literal notranslate"><span class="pre">SectionDataType.FORECASTED</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.step_logger.html">crash_prediction_log_extractor.step_logger module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.step_logger.html#crash_prediction_log_extractor.step_logger.LogMode"><code class="docutils literal notranslate"><span class="pre">LogMode</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.step_logger.html#crash_prediction_log_extractor.step_logger.LogMode.CRITICAL"><code class="docutils literal notranslate"><span class="pre">LogMode.CRITICAL</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.step_logger.html#crash_prediction_log_extractor.step_logger.LogMode.ERROR"><code class="docutils literal notranslate"><span class="pre">LogMode.ERROR</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.step_logger.html#crash_prediction_log_extractor.step_logger.LogMode.WARNING"><code class="docutils literal notranslate"><span class="pre">LogMode.WARNING</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.step_logger.html#crash_prediction_log_extractor.step_logger.LogMode.INFO"><code class="docutils literal notranslate"><span class="pre">LogMode.INFO</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.step_logger.html#crash_prediction_log_extractor.step_logger.LogMode.DEBUG"><code class="docutils literal notranslate"><span class="pre">LogMode.DEBUG</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.step_logger.html#crash_prediction_log_extractor.step_logger.LogMode.to_logging_level"><code class="docutils literal notranslate"><span class="pre">LogMode.to_logging_level()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.step_logger.html#crash_prediction_log_extractor.step_logger.UtcFormatter"><code class="docutils literal notranslate"><span class="pre">UtcFormatter</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.step_logger.html#crash_prediction_log_extractor.step_logger.UtcFormatter.converter"><code class="docutils literal notranslate"><span class="pre">UtcFormatter.converter()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.step_logger.html#crash_prediction_log_extractor.step_logger.get_logger"><code class="docutils literal notranslate"><span class="pre">get_logger()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="crash_prediction_log_extractor_rst/crash_prediction_log_extractor.step_logger.html#crash_prediction_log_extractor.step_logger.logger_force_write"><code class="docutils literal notranslate"><span class="pre">logger_force_write()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="test_rst/test.html">Unit Test package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="test_rst/test.html#subpackages">Subpackages</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="test_rst/file_compare/test.file_compare.html">test.file_compare package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/file_compare/test.file_compare.html#structure">Structure</a></li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/file_compare/test.file_compare.html#subpackages">Subpackages</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/file_compare/schemas/test.file_compare.schemas.html">test.file_compare.schemas package</a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/file_compare/examples/test.file_compare.examples.html">test.file_compare.examples package</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="test_rst/test.html#submodules">Submodules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="test_rst/test.test___init__.html">test.test___init__ module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___init__.html#test.test___init__.test_package_exports"><code class="docutils literal notranslate"><span class="pre">test_package_exports()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___init__.html#test.test___init__.test_release_date"><code class="docutils literal notranslate"><span class="pre">test_release_date()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___init__.html#test.test___init__.test_version"><code class="docutils literal notranslate"><span class="pre">test_version()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="test_rst/test.test_collections_points.html">test.test_collections_points module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_collections_points.html#test.test_collections_points.TestCollectionSections"><code class="docutils literal notranslate"><span class="pre">TestCollectionSections</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_collections_points.html#test.test_collections_points.TestCollectionSections.test_get_default"><code class="docutils literal notranslate"><span class="pre">TestCollectionSections.test_get_default()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_collections_points.html#test.test_collections_points.TestCollectionsPoints"><code class="docutils literal notranslate"><span class="pre">TestCollectionsPoints</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_collections_points.html#test.test_collections_points.TestCollectionsPoints.test_get_default"><code class="docutils literal notranslate"><span class="pre">TestCollectionsPoints.test_get_default()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_collections_points.html#test.test_collections_points.TestCollectionsPoints.test_print_example"><code class="docutils literal notranslate"><span class="pre">TestCollectionsPoints.test_print_example()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_collections_points.html#test.test_collections_points.TestCollectionsPoints.test_print_schema"><code class="docutils literal notranslate"><span class="pre">TestCollectionsPoints.test_print_schema()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_collections_points.html#test.test_collections_points.TestCollectionsPoints.test_print_to_file"><code class="docutils literal notranslate"><span class="pre">TestCollectionsPoints.test_print_to_file()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_collections_points.html#test.test_collections_points.TestCollectionsPointsDataModelVersion"><code class="docutils literal notranslate"><span class="pre">TestCollectionsPointsDataModelVersion</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_collections_points.html#test.test_collections_points.TestCollectionsPointsDataModelVersion.test_value"><code class="docutils literal notranslate"><span class="pre">TestCollectionsPointsDataModelVersion.test_value()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_collections_points.html#test.test_collections_points.TestConfigGenerateJsonSchema"><code class="docutils literal notranslate"><span class="pre">TestConfigGenerateJsonSchema</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_collections_points.html#test.test_collections_points.TestConfigGenerateJsonSchema.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestConfigGenerateJsonSchema.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_collections_points.html#test.test_collections_points.TestConfigGenerateJsonSchema.test_generate"><code class="docutils literal notranslate"><span class="pre">TestConfigGenerateJsonSchema.test_generate()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_collections_points.html#test.test_collections_points.TestCrashInfo"><code class="docutils literal notranslate"><span class="pre">TestCrashInfo</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_collections_points.html#test.test_collections_points.TestCrashInfo.test_get_default"><code class="docutils literal notranslate"><span class="pre">TestCrashInfo.test_get_default()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_collections_points.html#test.test_collections_points.TestCrashInfo.test_risk_rounding"><code class="docutils literal notranslate"><span class="pre">TestCrashInfo.test_risk_rounding()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_collections_points.html#test.test_collections_points.TestDataType"><code class="docutils literal notranslate"><span class="pre">TestDataType</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_collections_points.html#test.test_collections_points.TestDataType.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestDataType.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_collections_points.html#test.test_collections_points.TestDataType.test_value"><code class="docutils literal notranslate"><span class="pre">TestDataType.test_value()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_collections_points.html#test.test_collections_points.TestPosition"><code class="docutils literal notranslate"><span class="pre">TestPosition</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_collections_points.html#test.test_collections_points.TestPosition.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestPosition.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_collections_points.html#test.test_collections_points.TestPosition.test_get_default"><code class="docutils literal notranslate"><span class="pre">TestPosition.test_get_default()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_collections_points.html#test.test_collections_points.TestPosition.test_invalid_timestamp_raises"><code class="docutils literal notranslate"><span class="pre">TestPosition.test_invalid_timestamp_raises()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_collections_points.html#test.test_collections_points.TestPosition.test_model_dump_rounding"><code class="docutils literal notranslate"><span class="pre">TestPosition.test_model_dump_rounding()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_collections_points.html#test.test_collections_points.TestSessionData"><code class="docutils literal notranslate"><span class="pre">TestSessionData</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_collections_points.html#test.test_collections_points.TestSessionData.test_get_default"><code class="docutils literal notranslate"><span class="pre">TestSessionData.test_get_default()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Crash Prediction Log Extractor</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Command Line Interface</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/commands.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="command-line-interface">
+<h1>Command Line Interface<a class="headerlink" href="#command-line-interface" title="Link to this heading"></a></h1>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">crash_prediction_log_extractor</span></code> CLI parses crash-prediction log files and
+produces JSON output based on the <code class="docutils literal notranslate"><span class="pre">CollectionsPoints</span></code> schema.</p>
+<p>It can also generate:</p>
+<ul class="simple">
+<li><p>JSON schema artifacts for <code class="docutils literal notranslate"><span class="pre">CollectionsPoints</span></code></p></li>
+<li><p>JSON example artifacts for <code class="docutils literal notranslate"><span class="pre">CollectionsPoints</span></code></p></li>
+</ul>
+</section>
+<section id="basic-usage">
+<h2>Basic usage<a class="headerlink" href="#basic-usage" title="Link to this heading"></a></h2>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>crash_prediction_log_extractor<span class="w"> </span><span class="o">[</span>options<span class="o">]</span>
+</pre></div>
+</div>
+<p>If no options are provided, the program prints help and exits with code <code class="docutils literal notranslate"><span class="pre">1</span></code>.</p>
+</section>
+<section id="options">
+<h2>Options<a class="headerlink" href="#options" title="Link to this heading"></a></h2>
+<dl>
+<dt><code class="docutils literal notranslate"><span class="pre">-h</span></code>, <code class="docutils literal notranslate"><span class="pre">--help</span></code></dt><dd><p>Display the help message and exit.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">-v</span></code>, <code class="docutils literal notranslate"><span class="pre">--version</span></code></dt><dd><p>Show the program version and exit.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">-s</span> <span class="pre">&lt;schema</span> <span class="pre">folder&gt;</span></code>, <code class="docutils literal notranslate"><span class="pre">--schema</span> <span class="pre">&lt;schema</span> <span class="pre">folder&gt;</span></code></dt><dd><p>Generate <code class="docutils literal notranslate"><span class="pre">CollectionsPoints</span></code> JSON schema files in the specified directory.
+The directory is created if it does not exist.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">-e</span> <span class="pre">&lt;example</span> <span class="pre">folder&gt;</span></code>, <code class="docutils literal notranslate"><span class="pre">--example</span> <span class="pre">&lt;example</span> <span class="pre">folder&gt;</span></code></dt><dd><p>Generate <code class="docutils literal notranslate"><span class="pre">CollectionsPoints</span></code> JSON example files in the specified directory.
+The directory is created if it does not exist.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">-i</span> <span class="pre">&lt;input</span> <span class="pre">file&gt;</span></code>, <code class="docutils literal notranslate"><span class="pre">--input_file</span> <span class="pre">&lt;input</span> <span class="pre">file&gt;</span></code></dt><dd><p>Parse the input log file and extract collections data.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">-o</span> <span class="pre">&lt;output</span> <span class="pre">file&gt;</span></code>, <code class="docutils literal notranslate"><span class="pre">--output_file</span> <span class="pre">&lt;output</span> <span class="pre">file&gt;</span></code></dt><dd><p>Path of the JSON output file.</p>
+<p>If omitted while using <code class="docutils literal notranslate"><span class="pre">-i</span></code>, output is written to the current working
+directory with the same stem as the input file and <code class="docutils literal notranslate"><span class="pre">.json</span></code> extension.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">-f</span> <span class="pre">&lt;log</span> <span class="pre">file&gt;</span></code>, <code class="docutils literal notranslate"><span class="pre">--log_file</span> <span class="pre">&lt;log</span> <span class="pre">file&gt;</span></code></dt><dd><p>Write runtime logs to the specified log file.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">-l</span> <span class="pre">&lt;log</span> <span class="pre">level&gt;</span></code>, <code class="docutils literal notranslate"><span class="pre">--log_level</span> <span class="pre">&lt;log</span> <span class="pre">level&gt;</span></code></dt><dd><p>Logging level used when <code class="docutils literal notranslate"><span class="pre">-f</span></code> is specified.
+Accepted values: <code class="docutils literal notranslate"><span class="pre">CRITICAL</span></code>, <code class="docutils literal notranslate"><span class="pre">ERROR</span></code>, <code class="docutils literal notranslate"><span class="pre">WARNING</span></code>, <code class="docutils literal notranslate"><span class="pre">INFO</span></code>, <code class="docutils literal notranslate"><span class="pre">DEBUG</span></code>.
+Invalid values fallback to <code class="docutils literal notranslate"><span class="pre">WARNING</span></code>.</p>
+</dd>
+</dl>
+</section>
+<section id="detailed-command-description">
+<h2>Detailed command description<a class="headerlink" href="#detailed-command-description" title="Link to this heading"></a></h2>
+<section id="help-command">
+<h3>Help command<a class="headerlink" href="#help-command" title="Link to this heading"></a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>crash_prediction_log_extractor<span class="w"> </span>--help
+</pre></div>
+</div>
+<p>Shows usage instructions and available options.</p>
+</section>
+<section id="version-command">
+<h3>Version command<a class="headerlink" href="#version-command" title="Link to this heading"></a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>crash_prediction_log_extractor<span class="w"> </span>--version
+</pre></div>
+</div>
+<p>Shows the installed package version.</p>
+</section>
+<section id="schema-generation">
+<h3>Schema generation<a class="headerlink" href="#schema-generation" title="Link to this heading"></a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>crash_prediction_log_extractor<span class="w"> </span>--schema<span class="w"> </span>./schemas
+</pre></div>
+</div>
+<p>Generates schema files for the <code class="docutils literal notranslate"><span class="pre">CollectionsPoints</span></code> data model.</p>
+</section>
+<section id="example-generation">
+<h3>Example generation<a class="headerlink" href="#example-generation" title="Link to this heading"></a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>crash_prediction_log_extractor<span class="w"> </span>--example<span class="w"> </span>./examples
+</pre></div>
+</div>
+<p>Generates example JSON files for the <code class="docutils literal notranslate"><span class="pre">CollectionsPoints</span></code> data model.</p>
+</section>
+<section id="log-extraction">
+<h3>Log extraction<a class="headerlink" href="#log-extraction" title="Link to this heading"></a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>crash_prediction_log_extractor<span class="w"> </span>--input_file<span class="w"> </span>./logs/crash_prediction.log<span class="w"> </span>--output_file<span class="w"> </span>./out/collections.json
+</pre></div>
+</div>
+<p>Parses marker-based scenario blocks from the log and writes extracted
+collections payload as JSON.</p>
+</section>
+<section id="log-extraction-with-default-output-name">
+<h3>Log extraction with default output name<a class="headerlink" href="#log-extraction-with-default-output-name" title="Link to this heading"></a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>crash_prediction_log_extractor<span class="w"> </span>--input_file<span class="w"> </span>./logs/crash_prediction.log
+</pre></div>
+</div>
+<p>If <code class="docutils literal notranslate"><span class="pre">--output_file</span></code> is omitted, output is created as:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>./crash_prediction.json
+</pre></div>
+</div>
+<p>in the current working directory.</p>
+</section>
+<section id="logging-options">
+<h3>Logging options<a class="headerlink" href="#logging-options" title="Link to this heading"></a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>crash_prediction_log_extractor<span class="w"> </span>-i<span class="w"> </span>./logs/crash_prediction.log<span class="w"> </span>-o<span class="w"> </span>./out/collections.json<span class="w"> </span>-f<span class="w"> </span>./run/extractor.log<span class="w"> </span>-l<span class="w"> </span>DEBUG
+</pre></div>
+</div>
+<p>Writes runtime logs to <code class="docutils literal notranslate"><span class="pre">./run/extractor.log</span></code> at the selected log level.</p>
+</section>
+</section>
+<section id="exit-codes">
+<h2>Exit codes<a class="headerlink" href="#exit-codes" title="Link to this heading"></a></h2>
+<p>The program returns the following exit codes:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">0</span></code> (OK): Successful termination.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">1</span></code> (USAGE): No arguments provided.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">2</span></code> (ERROR): Unhandled exception during execution.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">3</span></code> (ABORTED): Interrupted by user/system (for example <code class="docutils literal notranslate"><span class="pre">Ctrl+C</span></code>).</p></li>
+</ul>
+</section>
+<section id="examples">
+<h2>Examples<a class="headerlink" href="#examples" title="Link to this heading"></a></h2>
+<p>Generate schema files:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>crash_prediction_log_extractor<span class="w"> </span>-s<span class="w"> </span>./schemas
+</pre></div>
+</div>
+<p>Generate example files:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>crash_prediction_log_extractor<span class="w"> </span>-e<span class="w"> </span>./examples
+</pre></div>
+</div>
+<p>Extract to explicit output path:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>crash_prediction_log_extractor<span class="w"> </span>-i<span class="w"> </span>./logs/crash_prediction.log<span class="w"> </span>-o<span class="w"> </span>./out/collections.json
+</pre></div>
+</div>
+<p>Run multiple operations in one command:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>crash_prediction_log_extractor<span class="w"> </span>-s<span class="w"> </span>./schemas<span class="w"> </span>-e<span class="w"> </span>./examples<span class="w"> </span>-i<span class="w"> </span>./logs/crash_prediction.log<span class="w"> </span>-o<span class="w"> </span>./out/collections.json
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="installation.html" class="btn btn-neutral float-left" title="Installation with uv" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="usage.html" class="btn btn-neutral float-right" title="Crash Prediction Log Extractor Usage Guide" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, Vodafone Automotive.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

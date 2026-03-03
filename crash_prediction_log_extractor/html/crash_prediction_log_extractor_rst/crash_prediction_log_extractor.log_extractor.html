@@ -1,0 +1,954 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>crash_prediction_log_extractor.log_extractor module &mdash; Crash Prediction Log Extractor 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/tabs.css?v=4c969af8" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=ca5f51dc" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/sphinx_prompt_css.css?v=351d85e3" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=8d563738"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../_static/tabs.js?v=3ee01567"></script>
+      <script src="../_static/js/expand_tabs.js?v=1e151f68"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="crash_prediction_log_extractor.step_logger module" href="crash_prediction_log_extractor.step_logger.html" />
+    <link rel="prev" title="crash_prediction_log_extractor.collections_points module" href="crash_prediction_log_extractor.collections_points.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Crash Prediction Log Extractor
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Crash Prediction Log Extractor:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation with uv</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#configure-authentication">Configure authentication</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#url-registry-configuration">URL Registry configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#installing-from-registry">Installing from registry</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../commands.html">Command Line Interface</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../commands.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../commands.html#basic-usage">Basic usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../commands.html#options">Options</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../commands.html#detailed-command-description">Detailed command description</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../commands.html#help-command">Help command</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../commands.html#version-command">Version command</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../commands.html#schema-generation">Schema generation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../commands.html#example-generation">Example generation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../commands.html#log-extraction">Log extraction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../commands.html#log-extraction-with-default-output-name">Log extraction with default output name</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../commands.html#logging-options">Logging options</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../commands.html#exit-codes">Exit codes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../commands.html#examples">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../usage.html">Crash Prediction Log Extractor Usage Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../usage.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../usage.html#what-the-program-does">What the program does</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../usage.html#cli-syntax">CLI syntax</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../usage.html#command-line-options">Command-line options</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../usage.html#examples">Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../usage.html#exit-codes">Exit codes</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../package_script.html">Package Script</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../package_script.html#create-environment">Create environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../package_script.html#development-with-tox">Development with Tox</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../package_script.html#available-environments">Available Environments</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../package_script.html#testing-environments">Testing Environments</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../package_script.html#code-quality-commands">Code Quality Commands</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../package_script.html#documentation-commands">Documentation Commands</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../package_script.html#package-management">Package Management</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../package_script.html#cleanup-commands">Cleanup Commands</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../package_script.html#pdf-conversion">PDF conversion</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture.html">Architecture</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../architecture.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture.html#library">Library</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../architecture.html#core-dependencies">Core Dependencies</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../architecture.html#architecture-integration">Architecture Integration</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture.html#components">Components</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../architecture.html#cli-entry-point">CLI Entry Point</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../architecture.html#logextractor">LogExtractor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../architecture.html#collectionspoints-models">CollectionsPoints Models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../architecture.html#step-logger">Step Logger</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture.html#component-diagram">Component Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture.html#class-diagram">Class Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture.html#sequence-diagrams">Sequence Diagrams</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../architecture.html#extraction-flow">Extraction Flow</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../architecture.html#schema-and-example-generation-flow">Schema and Example Generation Flow</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture.html#performance-considerations">Performance Considerations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../architecture.html#time-complexity">Time Complexity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../architecture.html#space-complexity">Space Complexity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../architecture.html#practical-notes">Practical Notes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../schemas_rst/json_schemas.html">JSON Schemas</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../schemas_rst/json_schemas.html#collections-points-schema">Collections Points Schema</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../schemas_rst/collections_points_schema.html">Collections Points V1 Schema</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../schemas_rst/collections_points_schema.html#overview">Overview</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../schemas_rst/collections_points_schema.html#validation-notes">Validation Notes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../schemas_rst/collections_points_schema.html#example">Example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../schemas_rst/collections_points_schema.html#json-schema">JSON Schema</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../schemas_rst/collections_points_schema.html#crash-prediction-collections-points">Crash Prediction Collections Points</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/collections_points_schema.html#actorid">ActorId</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/collections_points_schema.html#collection-sections">Collection Sections</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/collections_points_schema.html#crash-info">Crash Info</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/collections_points_schema.html#data-type">Data Type</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/collections_points_schema.html#position">Position</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/collections_points_schema.html#session-data">Session Data</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="reference internal" href="crash_prediction_log_extractor.html">crash_prediction_log_extractor package</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="crash_prediction_log_extractor.html#overview-of-what-is-parsed">Overview of what is parsed</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crash_prediction_log_extractor.html#marker-grammar">Marker grammar</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crash_prediction_log_extractor.html#output-model-semantics">Output model semantics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crash_prediction_log_extractor.html#cli-usage">CLI usage</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="crash_prediction_log_extractor.html#submodules">Submodules</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="crash_prediction_log_extractor.collections_points.html">crash_prediction_log_extractor.collections_points module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.CollectionSections"><code class="docutils literal notranslate"><span class="pre">CollectionSections</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.CollectionSections.actorId"><code class="docutils literal notranslate"><span class="pre">CollectionSections.actorId</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.CollectionSections.sessions"><code class="docutils literal notranslate"><span class="pre">CollectionSections.sessions</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.CollectionSections.get_default"><code class="docutils literal notranslate"><span class="pre">CollectionSections.get_default()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.CollectionSections.model_config"><code class="docutils literal notranslate"><span class="pre">CollectionSections.model_config</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.CollectionsPoints"><code class="docutils literal notranslate"><span class="pre">CollectionsPoints</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.CollectionsPoints.formatVersion"><code class="docutils literal notranslate"><span class="pre">CollectionsPoints.formatVersion</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.CollectionsPoints.collections"><code class="docutils literal notranslate"><span class="pre">CollectionsPoints.collections</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.CollectionsPoints.get_default"><code class="docutils literal notranslate"><span class="pre">CollectionsPoints.get_default()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.CollectionsPoints.model_config"><code class="docutils literal notranslate"><span class="pre">CollectionsPoints.model_config</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.CollectionsPoints.print_example"><code class="docutils literal notranslate"><span class="pre">CollectionsPoints.print_example()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.CollectionsPoints.print_schema"><code class="docutils literal notranslate"><span class="pre">CollectionsPoints.print_schema()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.CollectionsPoints.print_to_file"><code class="docutils literal notranslate"><span class="pre">CollectionsPoints.print_to_file()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.CollectionsPointsDataModelVersion"><code class="docutils literal notranslate"><span class="pre">CollectionsPointsDataModelVersion</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.CollectionsPointsDataModelVersion.V1"><code class="docutils literal notranslate"><span class="pre">CollectionsPointsDataModelVersion.V1</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.ConfigGenerateJsonSchema"><code class="docutils literal notranslate"><span class="pre">ConfigGenerateJsonSchema</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.ConfigGenerateJsonSchema.generate"><code class="docutils literal notranslate"><span class="pre">ConfigGenerateJsonSchema.generate()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.CrashInfo"><code class="docutils literal notranslate"><span class="pre">CrashInfo</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.CrashInfo.risk"><code class="docutils literal notranslate"><span class="pre">CrashInfo.risk</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.CrashInfo.actorsInvolved"><code class="docutils literal notranslate"><span class="pre">CrashInfo.actorsInvolved</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.CrashInfo.get_default"><code class="docutils literal notranslate"><span class="pre">CrashInfo.get_default()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.CrashInfo.model_config"><code class="docutils literal notranslate"><span class="pre">CrashInfo.model_config</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.CrashInfo.serialize_risk"><code class="docutils literal notranslate"><span class="pre">CrashInfo.serialize_risk()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.DataType"><code class="docutils literal notranslate"><span class="pre">DataType</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.DataType.NORMALIZED"><code class="docutils literal notranslate"><span class="pre">DataType.NORMALIZED</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.DataType.ANOMALY"><code class="docutils literal notranslate"><span class="pre">DataType.ANOMALY</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.DataType.__get_pydantic_json_schema__"><code class="docutils literal notranslate"><span class="pre">DataType.__get_pydantic_json_schema__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.Position"><code class="docutils literal notranslate"><span class="pre">Position</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.Position.time"><code class="docutils literal notranslate"><span class="pre">Position.time</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.Position.latitude"><code class="docutils literal notranslate"><span class="pre">Position.latitude</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.Position.longitude"><code class="docutils literal notranslate"><span class="pre">Position.longitude</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.Position.speed"><code class="docutils literal notranslate"><span class="pre">Position.speed</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.Position.heading"><code class="docutils literal notranslate"><span class="pre">Position.heading</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.Position.get_default"><code class="docutils literal notranslate"><span class="pre">Position.get_default()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.Position.model_config"><code class="docutils literal notranslate"><span class="pre">Position.model_config</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.Position.serialize_heading"><code class="docutils literal notranslate"><span class="pre">Position.serialize_heading()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.Position.serialize_latitude"><code class="docutils literal notranslate"><span class="pre">Position.serialize_latitude()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.Position.serialize_longitude"><code class="docutils literal notranslate"><span class="pre">Position.serialize_longitude()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.Position.serialize_speed"><code class="docutils literal notranslate"><span class="pre">Position.serialize_speed()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.SessionData"><code class="docutils literal notranslate"><span class="pre">SessionData</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.SessionData.lastRealTime"><code class="docutils literal notranslate"><span class="pre">SessionData.lastRealTime</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.SessionData.dataType"><code class="docutils literal notranslate"><span class="pre">SessionData.dataType</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.SessionData.realPositions"><code class="docutils literal notranslate"><span class="pre">SessionData.realPositions</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.SessionData.forecastedPositions"><code class="docutils literal notranslate"><span class="pre">SessionData.forecastedPositions</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.SessionData.crashInfo"><code class="docutils literal notranslate"><span class="pre">SessionData.crashInfo</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.SessionData.get_default"><code class="docutils literal notranslate"><span class="pre">SessionData.get_default()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.SessionData.model_config"><code class="docutils literal notranslate"><span class="pre">SessionData.model_config</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">crash_prediction_log_extractor.log_extractor module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#log-file-format">Log file format</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#marker-reference">Marker reference</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#full-minimal-scenario-example">Full minimal scenario example</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#crash_prediction_log_extractor.log_extractor.LogExtractor"><code class="docutils literal notranslate"><span class="pre">LogExtractor</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#crash_prediction_log_extractor.log_extractor.LogExtractor.SCENARIO_PATTERN"><code class="docutils literal notranslate"><span class="pre">LogExtractor.SCENARIO_PATTERN</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#crash_prediction_log_extractor.log_extractor.LogExtractor.SECTION_DATA_PATTERN"><code class="docutils literal notranslate"><span class="pre">LogExtractor.SECTION_DATA_PATTERN</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#crash_prediction_log_extractor.log_extractor.LogExtractor.SECTION_CRASH_PATTERN"><code class="docutils literal notranslate"><span class="pre">LogExtractor.SECTION_CRASH_PATTERN</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#crash_prediction_log_extractor.log_extractor.LogExtractor.CRASH_PATTERN"><code class="docutils literal notranslate"><span class="pre">LogExtractor.CRASH_PATTERN</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#crash_prediction_log_extractor.log_extractor.LogExtractor.CRASH_RISK_PATTERN"><code class="docutils literal notranslate"><span class="pre">LogExtractor.CRASH_RISK_PATTERN</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#crash_prediction_log_extractor.log_extractor.LogExtractor.ACTOR_ID_PATTERN"><code class="docutils literal notranslate"><span class="pre">LogExtractor.ACTOR_ID_PATTERN</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#crash_prediction_log_extractor.log_extractor.LogExtractor.POINT_PATTERN"><code class="docutils literal notranslate"><span class="pre">LogExtractor.POINT_PATTERN</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#crash_prediction_log_extractor.log_extractor.LogExtractor.clear_table"><code class="docutils literal notranslate"><span class="pre">LogExtractor.clear_table()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#crash_prediction_log_extractor.log_extractor.LogExtractor.collections"><code class="docutils literal notranslate"><span class="pre">LogExtractor.collections</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#crash_prediction_log_extractor.log_extractor.LogExtractor.extract"><code class="docutils literal notranslate"><span class="pre">LogExtractor.extract()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#crash_prediction_log_extractor.log_extractor.ParserCrashState"><code class="docutils literal notranslate"><span class="pre">ParserCrashState</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#crash_prediction_log_extractor.log_extractor.ParserCrashState.WAIT_START_CRASH"><code class="docutils literal notranslate"><span class="pre">ParserCrashState.WAIT_START_CRASH</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#crash_prediction_log_extractor.log_extractor.ParserCrashState.WAIT_RISK"><code class="docutils literal notranslate"><span class="pre">ParserCrashState.WAIT_RISK</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#crash_prediction_log_extractor.log_extractor.ParserCrashState.WAIT_END_CRASH"><code class="docutils literal notranslate"><span class="pre">ParserCrashState.WAIT_END_CRASH</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#crash_prediction_log_extractor.log_extractor.ParserCrashState.DONE"><code class="docutils literal notranslate"><span class="pre">ParserCrashState.DONE</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#crash_prediction_log_extractor.log_extractor.ParserScenarioState"><code class="docutils literal notranslate"><span class="pre">ParserScenarioState</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#crash_prediction_log_extractor.log_extractor.ParserScenarioState.WAIT_FOR_START_SCENARIO"><code class="docutils literal notranslate"><span class="pre">ParserScenarioState.WAIT_FOR_START_SCENARIO</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#crash_prediction_log_extractor.log_extractor.ParserScenarioState.WAIT_FOR_END_SCENARIO"><code class="docutils literal notranslate"><span class="pre">ParserScenarioState.WAIT_FOR_END_SCENARIO</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#crash_prediction_log_extractor.log_extractor.ParserScenarioState.DONE"><code class="docutils literal notranslate"><span class="pre">ParserScenarioState.DONE</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#crash_prediction_log_extractor.log_extractor.ParserSectionDataState"><code class="docutils literal notranslate"><span class="pre">ParserSectionDataState</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#crash_prediction_log_extractor.log_extractor.ParserSectionDataState.WAIT_START_SECTION_DATA"><code class="docutils literal notranslate"><span class="pre">ParserSectionDataState.WAIT_START_SECTION_DATA</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#crash_prediction_log_extractor.log_extractor.ParserSectionDataState.WAIT_END_SECTION_DATA"><code class="docutils literal notranslate"><span class="pre">ParserSectionDataState.WAIT_END_SECTION_DATA</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#crash_prediction_log_extractor.log_extractor.ParserSectionDataState.DONE"><code class="docutils literal notranslate"><span class="pre">ParserSectionDataState.DONE</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#crash_prediction_log_extractor.log_extractor.ParserTableDataMarkerItem"><code class="docutils literal notranslate"><span class="pre">ParserTableDataMarkerItem</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#crash_prediction_log_extractor.log_extractor.ParserTableDataMarkerItem.data_type"><code class="docutils literal notranslate"><span class="pre">ParserTableDataMarkerItem.data_type</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#crash_prediction_log_extractor.log_extractor.ParserTableDataMarkerItem.section_data_type"><code class="docutils literal notranslate"><span class="pre">ParserTableDataMarkerItem.section_data_type</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#crash_prediction_log_extractor.log_extractor.ParserTableDataMarkerItem.data_collection"><code class="docutils literal notranslate"><span class="pre">ParserTableDataMarkerItem.data_collection</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#crash_prediction_log_extractor.log_extractor.SectionDataType"><code class="docutils literal notranslate"><span class="pre">SectionDataType</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#crash_prediction_log_extractor.log_extractor.SectionDataType.REAL"><code class="docutils literal notranslate"><span class="pre">SectionDataType.REAL</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#crash_prediction_log_extractor.log_extractor.SectionDataType.FORECASTED"><code class="docutils literal notranslate"><span class="pre">SectionDataType.FORECASTED</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="crash_prediction_log_extractor.step_logger.html">crash_prediction_log_extractor.step_logger module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="crash_prediction_log_extractor.step_logger.html#crash_prediction_log_extractor.step_logger.LogMode"><code class="docutils literal notranslate"><span class="pre">LogMode</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor.step_logger.html#crash_prediction_log_extractor.step_logger.LogMode.CRITICAL"><code class="docutils literal notranslate"><span class="pre">LogMode.CRITICAL</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor.step_logger.html#crash_prediction_log_extractor.step_logger.LogMode.ERROR"><code class="docutils literal notranslate"><span class="pre">LogMode.ERROR</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor.step_logger.html#crash_prediction_log_extractor.step_logger.LogMode.WARNING"><code class="docutils literal notranslate"><span class="pre">LogMode.WARNING</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor.step_logger.html#crash_prediction_log_extractor.step_logger.LogMode.INFO"><code class="docutils literal notranslate"><span class="pre">LogMode.INFO</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor.step_logger.html#crash_prediction_log_extractor.step_logger.LogMode.DEBUG"><code class="docutils literal notranslate"><span class="pre">LogMode.DEBUG</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor.step_logger.html#crash_prediction_log_extractor.step_logger.LogMode.to_logging_level"><code class="docutils literal notranslate"><span class="pre">LogMode.to_logging_level()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="crash_prediction_log_extractor.step_logger.html#crash_prediction_log_extractor.step_logger.UtcFormatter"><code class="docutils literal notranslate"><span class="pre">UtcFormatter</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="crash_prediction_log_extractor.step_logger.html#crash_prediction_log_extractor.step_logger.UtcFormatter.converter"><code class="docutils literal notranslate"><span class="pre">UtcFormatter.converter()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="crash_prediction_log_extractor.step_logger.html#crash_prediction_log_extractor.step_logger.get_logger"><code class="docutils literal notranslate"><span class="pre">get_logger()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="crash_prediction_log_extractor.step_logger.html#crash_prediction_log_extractor.step_logger.logger_force_write"><code class="docutils literal notranslate"><span class="pre">logger_force_write()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../test_rst/test.html">Unit Test package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../test_rst/test.html#subpackages">Subpackages</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../test_rst/file_compare/test.file_compare.html">test.file_compare package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/file_compare/test.file_compare.html#structure">Structure</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/file_compare/test.file_compare.html#subpackages">Subpackages</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/file_compare/schemas/test.file_compare.schemas.html">test.file_compare.schemas package</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/file_compare/examples/test.file_compare.examples.html">test.file_compare.examples package</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../test_rst/test.html#submodules">Submodules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../test_rst/test.test___init__.html">test.test___init__ module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___init__.html#test.test___init__.test_package_exports"><code class="docutils literal notranslate"><span class="pre">test_package_exports()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___init__.html#test.test___init__.test_release_date"><code class="docutils literal notranslate"><span class="pre">test_release_date()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___init__.html#test.test___init__.test_version"><code class="docutils literal notranslate"><span class="pre">test_version()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../test_rst/test.test_collections_points.html">test.test_collections_points module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_collections_points.html#test.test_collections_points.TestCollectionSections"><code class="docutils literal notranslate"><span class="pre">TestCollectionSections</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_collections_points.html#test.test_collections_points.TestCollectionSections.test_get_default"><code class="docutils literal notranslate"><span class="pre">TestCollectionSections.test_get_default()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_collections_points.html#test.test_collections_points.TestCollectionsPoints"><code class="docutils literal notranslate"><span class="pre">TestCollectionsPoints</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_collections_points.html#test.test_collections_points.TestCollectionsPoints.test_get_default"><code class="docutils literal notranslate"><span class="pre">TestCollectionsPoints.test_get_default()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_collections_points.html#test.test_collections_points.TestCollectionsPoints.test_print_example"><code class="docutils literal notranslate"><span class="pre">TestCollectionsPoints.test_print_example()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_collections_points.html#test.test_collections_points.TestCollectionsPoints.test_print_schema"><code class="docutils literal notranslate"><span class="pre">TestCollectionsPoints.test_print_schema()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_collections_points.html#test.test_collections_points.TestCollectionsPoints.test_print_to_file"><code class="docutils literal notranslate"><span class="pre">TestCollectionsPoints.test_print_to_file()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_collections_points.html#test.test_collections_points.TestCollectionsPointsDataModelVersion"><code class="docutils literal notranslate"><span class="pre">TestCollectionsPointsDataModelVersion</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_collections_points.html#test.test_collections_points.TestCollectionsPointsDataModelVersion.test_value"><code class="docutils literal notranslate"><span class="pre">TestCollectionsPointsDataModelVersion.test_value()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_collections_points.html#test.test_collections_points.TestConfigGenerateJsonSchema"><code class="docutils literal notranslate"><span class="pre">TestConfigGenerateJsonSchema</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_collections_points.html#test.test_collections_points.TestConfigGenerateJsonSchema.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestConfigGenerateJsonSchema.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_collections_points.html#test.test_collections_points.TestConfigGenerateJsonSchema.test_generate"><code class="docutils literal notranslate"><span class="pre">TestConfigGenerateJsonSchema.test_generate()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_collections_points.html#test.test_collections_points.TestCrashInfo"><code class="docutils literal notranslate"><span class="pre">TestCrashInfo</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_collections_points.html#test.test_collections_points.TestCrashInfo.test_get_default"><code class="docutils literal notranslate"><span class="pre">TestCrashInfo.test_get_default()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_collections_points.html#test.test_collections_points.TestCrashInfo.test_risk_rounding"><code class="docutils literal notranslate"><span class="pre">TestCrashInfo.test_risk_rounding()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_collections_points.html#test.test_collections_points.TestDataType"><code class="docutils literal notranslate"><span class="pre">TestDataType</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_collections_points.html#test.test_collections_points.TestDataType.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestDataType.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_collections_points.html#test.test_collections_points.TestDataType.test_value"><code class="docutils literal notranslate"><span class="pre">TestDataType.test_value()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_collections_points.html#test.test_collections_points.TestPosition"><code class="docutils literal notranslate"><span class="pre">TestPosition</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_collections_points.html#test.test_collections_points.TestPosition.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestPosition.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_collections_points.html#test.test_collections_points.TestPosition.test_get_default"><code class="docutils literal notranslate"><span class="pre">TestPosition.test_get_default()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_collections_points.html#test.test_collections_points.TestPosition.test_invalid_timestamp_raises"><code class="docutils literal notranslate"><span class="pre">TestPosition.test_invalid_timestamp_raises()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_collections_points.html#test.test_collections_points.TestPosition.test_model_dump_rounding"><code class="docutils literal notranslate"><span class="pre">TestPosition.test_model_dump_rounding()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_collections_points.html#test.test_collections_points.TestSessionData"><code class="docutils literal notranslate"><span class="pre">TestSessionData</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_collections_points.html#test.test_collections_points.TestSessionData.test_get_default"><code class="docutils literal notranslate"><span class="pre">TestSessionData.test_get_default()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Crash Prediction Log Extractor</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="crash_prediction_log_extractor.html">crash_prediction_log_extractor package</a></li>
+      <li class="breadcrumb-item active">crash_prediction_log_extractor.log_extractor module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/crash_prediction_log_extractor_rst/crash_prediction_log_extractor.log_extractor.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-crash_prediction_log_extractor.log_extractor">
+<span id="crash-prediction-log-extractor-log-extractor-module"></span><h1>crash_prediction_log_extractor.log_extractor module<a class="headerlink" href="#module-crash_prediction_log_extractor.log_extractor" title="Link to this heading"></a></h1>
+<p>Log extractor for crash prediction scenario data.</p>
+<p>This module parses structured log files produced by the <code class="docutils literal notranslate"><span class="pre">step_crash_prediction</span></code>
+service and assembles the extracted data into <code class="docutils literal notranslate"><span class="pre">CollectionsPoints</span></code> payloads.</p>
+<section id="log-file-format">
+<h2>Log file format<a class="headerlink" href="#log-file-format" title="Link to this heading"></a></h2>
+<p>Each line in the log file follows the standard Python logging layout:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">YYYY</span><span class="o">-</span><span class="n">MM</span><span class="o">-</span><span class="n">DD</span> <span class="n">HH</span><span class="p">:</span><span class="n">MM</span><span class="p">:</span><span class="n">SS</span><span class="o">.</span><span class="n">mmm</span> <span class="p">[</span><span class="n">LEVEL</span><span class="p">][</span><span class="n">pid</span><span class="o">=...</span><span class="p">][</span><span class="n">thread</span><span class="o">=...</span><span class="p">][</span><span class="n">module</span><span class="o">=...</span><span class="p">][</span><span class="n">function</span><span class="o">=...</span><span class="p">]:</span> <span class="o">&lt;</span><span class="n">marker</span><span class="o">&gt;</span>
+</pre></div>
+</div>
+<p>The extractor ignores regular log output and only reacts to <strong>marker</strong> lines
+embedded in the log. The markers delimit scenarios, section types (normalized /
+anomalous, real / forecasted), crash events, and individual data points.</p>
+<section id="marker-reference">
+<h3>Marker reference<a class="headerlink" href="#marker-reference" title="Link to this heading"></a></h3>
+<ul>
+<li><p>Scenario boundary:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">--</span><span class="n">Scenario</span> <span class="n">start</span><span class="o">--</span>
+<span class="o">--</span><span class="n">Scenario</span> <span class="n">end</span><span class="o">--</span>
+</pre></div>
+</div>
+</li>
+<li><p>Section data boundaries (cartesian product of <code class="docutils literal notranslate"><span class="pre">normalized|anomaly</span></code> and
+<code class="docutils literal notranslate"><span class="pre">real|forecasted</span></code>):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">--</span><span class="n">Section</span> <span class="n">normalized</span> <span class="n">real</span> <span class="n">start</span><span class="o">--</span>
+<span class="o">--</span><span class="n">Section</span> <span class="n">normalized</span> <span class="n">real</span> <span class="n">end</span><span class="o">--</span>
+<span class="o">--</span><span class="n">Section</span> <span class="n">normalized</span> <span class="n">forecasted</span> <span class="n">start</span><span class="o">--</span>
+<span class="o">--</span><span class="n">Section</span> <span class="n">normalized</span> <span class="n">forecasted</span> <span class="n">end</span><span class="o">--</span>
+<span class="o">--</span><span class="n">Section</span> <span class="n">anomaly</span> <span class="n">real</span> <span class="n">start</span><span class="o">--</span>
+<span class="o">--</span><span class="n">Section</span> <span class="n">anomaly</span> <span class="n">real</span> <span class="n">end</span><span class="o">--</span>
+<span class="o">--</span><span class="n">Section</span> <span class="n">anomaly</span> <span class="n">forecasted</span> <span class="n">start</span><span class="o">--</span>
+<span class="o">--</span><span class="n">Section</span> <span class="n">anomaly</span> <span class="n">forecasted</span> <span class="n">end</span><span class="o">--</span>
+</pre></div>
+</div>
+</li>
+<li><p>Actor identifier (inside a section data block):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">--</span><span class="n">Id</span><span class="p">:</span> <span class="n">sid</span> <span class="o">&lt;</span><span class="n">station_id</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">oid</span> <span class="o">&lt;</span><span class="n">object_id</span><span class="o">|</span><span class="kc">None</span><span class="o">&gt;--</span>
+
+<span class="n">Example</span><span class="p">:</span> <span class="o">--</span><span class="n">Id</span><span class="p">:</span> <span class="n">sid</span> <span class="mi">37</span><span class="p">,</span> <span class="n">oid</span> <span class="kc">None</span><span class="o">--</span>
+         <span class="o">--</span><span class="n">Id</span><span class="p">:</span> <span class="n">sid</span> <span class="mi">36</span><span class="p">,</span> <span class="n">oid</span> <span class="mi">5</span><span class="o">--</span>
+</pre></div>
+</div>
+</li>
+<li><p>Position data point (following an actor identifier):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">--</span><span class="n">t</span><span class="p">:</span> <span class="o">&lt;</span><span class="n">ISO8601</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">p</span><span class="p">:</span> <span class="p">(</span><span class="o">&lt;</span><span class="n">lat</span><span class="o">&gt;</span><span class="p">,</span> <span class="o">&lt;</span><span class="n">lon</span><span class="o">&gt;</span><span class="p">),</span> <span class="n">s</span><span class="p">:</span> <span class="o">&lt;</span><span class="n">speed</span><span class="o">|</span><span class="kc">None</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">h</span><span class="p">:</span> <span class="o">&lt;</span><span class="n">heading</span><span class="o">|</span><span class="kc">None</span><span class="o">&gt;--</span>
+
+<span class="n">Example</span> <span class="p">(</span><span class="n">real</span><span class="p">):</span>      <span class="o">--</span><span class="n">t</span><span class="p">:</span> <span class="mi">2026</span><span class="o">-</span><span class="mi">02</span><span class="o">-</span><span class="mi">24</span><span class="n">T05</span><span class="p">:</span><span class="mi">25</span><span class="p">:</span><span class="mf">51.339</span><span class="n">Z</span><span class="p">,</span> <span class="n">p</span><span class="p">:</span> <span class="p">(</span><span class="mf">45.610087</span><span class="p">,</span> <span class="mf">8.863476</span><span class="p">),</span> <span class="n">s</span><span class="p">:</span> <span class="mf">0.00</span><span class="p">,</span> <span class="n">h</span><span class="p">:</span> <span class="mf">21.10</span><span class="o">--</span>
+<span class="n">Example</span> <span class="p">(</span><span class="n">forecast</span><span class="p">):</span>  <span class="o">--</span><span class="n">t</span><span class="p">:</span> <span class="mi">2026</span><span class="o">-</span><span class="mi">02</span><span class="o">-</span><span class="mi">24</span><span class="n">T05</span><span class="p">:</span><span class="mi">26</span><span class="p">:</span><span class="mf">06.379</span><span class="n">Z</span><span class="p">,</span> <span class="n">p</span><span class="p">:</span> <span class="p">(</span><span class="mf">45.609514</span><span class="p">,</span> <span class="mf">8.863836</span><span class="p">),</span> <span class="n">s</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="n">h</span><span class="p">:</span> <span class="kc">None</span><span class="o">--</span>
+</pre></div>
+</div>
+</li>
+<li><p>Crash section boundaries:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">--</span><span class="n">Section</span> <span class="n">crash</span> <span class="n">start</span><span class="o">--</span>
+<span class="o">--</span><span class="n">Section</span> <span class="n">crash</span> <span class="n">end</span><span class="o">--</span>
+</pre></div>
+</div>
+</li>
+<li><p>Individual crash record (inside a crash section):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">--</span><span class="n">Crash</span> <span class="n">start</span><span class="o">--</span>
+<span class="o">--</span><span class="n">Risk</span><span class="p">:</span> <span class="o">&lt;</span><span class="mf">0.000</span><span class="o">-</span><span class="mf">1.000</span><span class="o">&gt;--</span>
+<span class="o">--</span><span class="n">Id</span><span class="p">:</span> <span class="n">sid</span> <span class="o">&lt;</span><span class="n">station_id</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">oid</span> <span class="o">&lt;</span><span class="n">object_id</span><span class="o">|</span><span class="kc">None</span><span class="o">&gt;--</span>
+<span class="o">...</span> <span class="p">(</span><span class="n">one</span> <span class="o">--</span><span class="n">Id</span><span class="p">:</span><span class="o">--</span> <span class="n">line</span> <span class="n">per</span> <span class="n">actor</span> <span class="n">involved</span><span class="p">)</span>
+<span class="o">--</span><span class="n">Crash</span> <span class="n">end</span><span class="o">--</span>
+
+<span class="n">Log</span> <span class="n">example</span><span class="p">::</span>
+
+    <span class="o">--</span><span class="n">Crash</span> <span class="n">start</span><span class="o">--</span>
+    <span class="o">--</span><span class="n">Risk</span><span class="p">:</span> <span class="mf">0.850</span><span class="o">--</span>
+    <span class="o">--</span><span class="n">Id</span><span class="p">:</span> <span class="n">sid</span> <span class="mi">36</span><span class="p">,</span> <span class="n">oid</span> <span class="kc">None</span><span class="o">--</span>
+    <span class="o">--</span><span class="n">Id</span><span class="p">:</span> <span class="n">sid</span> <span class="mi">37</span><span class="p">,</span> <span class="n">oid</span> <span class="kc">None</span><span class="o">--</span>
+    <span class="o">--</span><span class="n">Crash</span> <span class="n">end</span><span class="o">--</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</section>
+<section id="full-minimal-scenario-example">
+<h3>Full minimal scenario example<a class="headerlink" href="#full-minimal-scenario-example" title="Link to this heading"></a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">...</span> <span class="p">[</span><span class="n">INFO</span><span class="p">]</span><span class="o">...</span><span class="p">:</span> <span class="o">--</span><span class="n">Scenario</span> <span class="n">start</span><span class="o">--</span>
+<span class="o">...</span> <span class="p">[</span><span class="n">INFO</span><span class="p">]</span><span class="o">...</span><span class="p">:</span> <span class="o">--</span><span class="n">Section</span> <span class="n">normalized</span> <span class="n">real</span> <span class="n">start</span><span class="o">--</span>
+<span class="o">...</span> <span class="p">[</span><span class="n">INFO</span><span class="p">]</span><span class="o">...</span><span class="p">:</span> <span class="o">--</span><span class="n">Section</span> <span class="n">normalized</span> <span class="n">real</span> <span class="n">end</span><span class="o">--</span>
+<span class="o">...</span> <span class="p">[</span><span class="n">INFO</span><span class="p">]</span><span class="o">...</span><span class="p">:</span> <span class="o">--</span><span class="n">Section</span> <span class="n">normalized</span> <span class="n">forecasted</span> <span class="n">start</span><span class="o">--</span>
+<span class="o">...</span> <span class="p">[</span><span class="n">INFO</span><span class="p">]</span><span class="o">...</span><span class="p">:</span> <span class="o">--</span><span class="n">Section</span> <span class="n">normalized</span> <span class="n">forecasted</span> <span class="n">end</span><span class="o">--</span>
+<span class="o">...</span> <span class="p">[</span><span class="n">INFO</span><span class="p">]</span><span class="o">...</span><span class="p">:</span> <span class="o">--</span><span class="n">Section</span> <span class="n">anomaly</span> <span class="n">real</span> <span class="n">start</span><span class="o">--</span>
+<span class="o">...</span> <span class="p">[</span><span class="n">INFO</span><span class="p">]</span><span class="o">...</span><span class="p">:</span> <span class="o">--</span><span class="n">Id</span><span class="p">:</span> <span class="n">sid</span> <span class="mi">37</span><span class="p">,</span> <span class="n">oid</span> <span class="kc">None</span><span class="o">--</span>
+<span class="o">...</span> <span class="p">[</span><span class="n">INFO</span><span class="p">]</span><span class="o">...</span><span class="p">:</span> <span class="o">--</span><span class="n">t</span><span class="p">:</span> <span class="mi">2026</span><span class="o">-</span><span class="mi">02</span><span class="o">-</span><span class="mi">24</span><span class="n">T05</span><span class="p">:</span><span class="mi">25</span><span class="p">:</span><span class="mf">51.339</span><span class="n">Z</span><span class="p">,</span> <span class="n">p</span><span class="p">:</span> <span class="p">(</span><span class="mf">45.610087</span><span class="p">,</span> <span class="mf">8.863476</span><span class="p">),</span> <span class="n">s</span><span class="p">:</span> <span class="mf">0.00</span><span class="p">,</span> <span class="n">h</span><span class="p">:</span> <span class="mf">21.10</span><span class="o">--</span>
+<span class="o">...</span> <span class="p">[</span><span class="n">INFO</span><span class="p">]</span><span class="o">...</span><span class="p">:</span> <span class="o">--</span><span class="n">Section</span> <span class="n">anomaly</span> <span class="n">real</span> <span class="n">end</span><span class="o">--</span>
+<span class="o">...</span> <span class="p">[</span><span class="n">INFO</span><span class="p">]</span><span class="o">...</span><span class="p">:</span> <span class="o">--</span><span class="n">Section</span> <span class="n">anomaly</span> <span class="n">forecasted</span> <span class="n">start</span><span class="o">--</span>
+<span class="o">...</span> <span class="p">[</span><span class="n">INFO</span><span class="p">]</span><span class="o">...</span><span class="p">:</span> <span class="o">--</span><span class="n">Section</span> <span class="n">anomaly</span> <span class="n">forecasted</span> <span class="n">end</span><span class="o">--</span>
+<span class="o">...</span> <span class="p">[</span><span class="n">INFO</span><span class="p">]</span><span class="o">...</span><span class="p">:</span> <span class="o">--</span><span class="n">Section</span> <span class="n">crash</span> <span class="n">start</span><span class="o">--</span>
+<span class="o">...</span> <span class="p">[</span><span class="n">INFO</span><span class="p">]</span><span class="o">...</span><span class="p">:</span> <span class="o">--</span><span class="n">Crash</span> <span class="n">start</span><span class="o">--</span>
+<span class="o">...</span> <span class="p">[</span><span class="n">INFO</span><span class="p">]</span><span class="o">...</span><span class="p">:</span> <span class="o">--</span><span class="n">Risk</span><span class="p">:</span> <span class="mf">0.850</span><span class="o">--</span>
+<span class="o">...</span> <span class="p">[</span><span class="n">INFO</span><span class="p">]</span><span class="o">...</span><span class="p">:</span> <span class="o">--</span><span class="n">Id</span><span class="p">:</span> <span class="n">sid</span> <span class="mi">36</span><span class="p">,</span> <span class="n">oid</span> <span class="kc">None</span><span class="o">--</span>
+<span class="o">...</span> <span class="p">[</span><span class="n">INFO</span><span class="p">]</span><span class="o">...</span><span class="p">:</span> <span class="o">--</span><span class="n">Id</span><span class="p">:</span> <span class="n">sid</span> <span class="mi">37</span><span class="p">,</span> <span class="n">oid</span> <span class="kc">None</span><span class="o">--</span>
+<span class="o">...</span> <span class="p">[</span><span class="n">INFO</span><span class="p">]</span><span class="o">...</span><span class="p">:</span> <span class="o">--</span><span class="n">Crash</span> <span class="n">end</span><span class="o">--</span>
+<span class="o">...</span> <span class="p">[</span><span class="n">INFO</span><span class="p">]</span><span class="o">...</span><span class="p">:</span> <span class="o">--</span><span class="n">Section</span> <span class="n">crash</span> <span class="n">end</span><span class="o">--</span>
+<span class="o">...</span> <span class="p">[</span><span class="n">INFO</span><span class="p">]</span><span class="o">...</span><span class="p">:</span> <span class="o">--</span><span class="n">Scenario</span> <span class="n">end</span><span class="o">--</span>
+</pre></div>
+</div>
+</section>
+</section>
+<dl class="py class">
+<dt class="sig sig-object py" id="crash_prediction_log_extractor.log_extractor.LogExtractor">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">crash_prediction_log_extractor.log_extractor.</span></span><span class="sig-name descname"><span class="pre">LogExtractor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logger</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Logger</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/crash_prediction_log_extractor/log_extractor.html#LogExtractor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#crash_prediction_log_extractor.log_extractor.LogExtractor" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Parses a <code class="docutils literal notranslate"><span class="pre">step_crash_prediction</span></code> log file and builds a
+<code class="xref py py-class docutils literal notranslate"><span class="pre">CollectionsPoints</span></code> payload.</p>
+<p>The extractor reads the log file line by line and drives a hierarchy of
+finite-state machines to recognise structured marker lines embedded in the
+standard Python logging output.  A full scenario block looks like:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">--</span><span class="n">Scenario</span> <span class="n">start</span><span class="o">--</span>
+  <span class="o">--</span><span class="n">Section</span> <span class="n">normalized</span> <span class="n">real</span> <span class="n">start</span><span class="o">--</span>
+  <span class="o">--</span><span class="n">Id</span><span class="p">:</span> <span class="n">sid</span> <span class="mi">37</span><span class="p">,</span> <span class="n">oid</span> <span class="kc">None</span><span class="o">--</span>
+  <span class="o">--</span><span class="n">t</span><span class="p">:</span> <span class="mi">2026</span><span class="o">-</span><span class="mi">02</span><span class="o">-</span><span class="mi">24</span><span class="n">T05</span><span class="p">:</span><span class="mi">25</span><span class="p">:</span><span class="mf">51.339</span><span class="n">Z</span><span class="p">,</span> <span class="n">p</span><span class="p">:</span> <span class="p">(</span><span class="mf">45.610087</span><span class="p">,</span> <span class="mf">8.863476</span><span class="p">),</span> <span class="n">s</span><span class="p">:</span> <span class="mf">0.00</span><span class="p">,</span> <span class="n">h</span><span class="p">:</span> <span class="mf">21.10</span><span class="o">--</span>
+  <span class="o">--</span><span class="n">Section</span> <span class="n">normalized</span> <span class="n">real</span> <span class="n">end</span><span class="o">--</span>
+  <span class="o">--</span><span class="n">Section</span> <span class="n">normalized</span> <span class="n">forecasted</span> <span class="n">start</span><span class="o">--</span>
+  <span class="o">--</span><span class="n">t</span><span class="p">:</span> <span class="mi">2026</span><span class="o">-</span><span class="mi">02</span><span class="o">-</span><span class="mi">24</span><span class="n">T05</span><span class="p">:</span><span class="mi">26</span><span class="p">:</span><span class="mf">00.379</span><span class="n">Z</span><span class="p">,</span> <span class="n">p</span><span class="p">:</span> <span class="p">(</span><span class="mf">45.609514</span><span class="p">,</span> <span class="mf">8.863836</span><span class="p">),</span> <span class="n">s</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="n">h</span><span class="p">:</span> <span class="kc">None</span><span class="o">--</span>
+  <span class="o">--</span><span class="n">Section</span> <span class="n">normalized</span> <span class="n">forecasted</span> <span class="n">end</span><span class="o">--</span>
+  <span class="o">--</span><span class="n">Section</span> <span class="n">anomaly</span> <span class="n">real</span> <span class="n">start</span><span class="o">--</span>
+  <span class="o">--</span><span class="n">Section</span> <span class="n">anomaly</span> <span class="n">real</span> <span class="n">end</span><span class="o">--</span>
+  <span class="o">--</span><span class="n">Section</span> <span class="n">anomaly</span> <span class="n">forecasted</span> <span class="n">start</span><span class="o">--</span>
+  <span class="o">--</span><span class="n">Section</span> <span class="n">anomaly</span> <span class="n">forecasted</span> <span class="n">end</span><span class="o">--</span>
+  <span class="o">--</span><span class="n">Section</span> <span class="n">crash</span> <span class="n">start</span><span class="o">--</span>
+  <span class="o">--</span><span class="n">Crash</span> <span class="n">start</span><span class="o">--</span>
+  <span class="o">--</span><span class="n">Risk</span><span class="p">:</span> <span class="mf">0.850</span><span class="o">--</span>
+  <span class="o">--</span><span class="n">Id</span><span class="p">:</span> <span class="n">sid</span> <span class="mi">36</span><span class="p">,</span> <span class="n">oid</span> <span class="kc">None</span><span class="o">--</span>
+  <span class="o">--</span><span class="n">Id</span><span class="p">:</span> <span class="n">sid</span> <span class="mi">37</span><span class="p">,</span> <span class="n">oid</span> <span class="kc">None</span><span class="o">--</span>
+  <span class="o">--</span><span class="n">Crash</span> <span class="n">end</span><span class="o">--</span>
+  <span class="o">--</span><span class="n">Section</span> <span class="n">crash</span> <span class="n">end</span><span class="o">--</span>
+<span class="o">--</span><span class="n">Scenario</span> <span class="n">end</span><span class="o">--</span>
+</pre></div>
+</div>
+<p>Multiple scenarios may appear in one log file; each is processed
+independently and the results are merged into a single
+<code class="xref py py-class docutils literal notranslate"><span class="pre">CollectionsPoints</span></code> object available through the
+<a class="reference internal" href="#crash_prediction_log_extractor.log_extractor.LogExtractor.collections" title="crash_prediction_log_extractor.log_extractor.LogExtractor.collections"><code class="xref py py-attr docutils literal notranslate"><span class="pre">collections</span></code></a> property after <a class="reference internal" href="#crash_prediction_log_extractor.log_extractor.LogExtractor.extract" title="crash_prediction_log_extractor.log_extractor.LogExtractor.extract"><code class="xref py py-meth docutils literal notranslate"><span class="pre">extract()</span></code></a> has been called.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="crash_prediction_log_extractor.log_extractor.LogExtractor.SCENARIO_PATTERN">
+<span class="sig-name descname"><span class="pre">SCENARIO_PATTERN</span></span><a class="headerlink" href="#crash_prediction_log_extractor.log_extractor.LogExtractor.SCENARIO_PATTERN" title="Link to this definition"></a></dt>
+<dd><p>Compiled regex that matches
+<code class="docutils literal notranslate"><span class="pre">--Scenario</span> <span class="pre">(start|end)--</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Pattern[str]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="crash_prediction_log_extractor.log_extractor.LogExtractor.SECTION_DATA_PATTERN">
+<span class="sig-name descname"><span class="pre">SECTION_DATA_PATTERN</span></span><a class="headerlink" href="#crash_prediction_log_extractor.log_extractor.LogExtractor.SECTION_DATA_PATTERN" title="Link to this definition"></a></dt>
+<dd><p>Compiled regex that matches a
+section data boundary, e.g.
+<code class="docutils literal notranslate"><span class="pre">--Section</span> <span class="pre">anomaly</span> <span class="pre">real</span> <span class="pre">start--</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Pattern[str]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="crash_prediction_log_extractor.log_extractor.LogExtractor.SECTION_CRASH_PATTERN">
+<span class="sig-name descname"><span class="pre">SECTION_CRASH_PATTERN</span></span><a class="headerlink" href="#crash_prediction_log_extractor.log_extractor.LogExtractor.SECTION_CRASH_PATTERN" title="Link to this definition"></a></dt>
+<dd><p>Compiled regex that matches
+<code class="docutils literal notranslate"><span class="pre">--Section</span> <span class="pre">crash</span> <span class="pre">(start|end)--</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Pattern[str]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="crash_prediction_log_extractor.log_extractor.LogExtractor.CRASH_PATTERN">
+<span class="sig-name descname"><span class="pre">CRASH_PATTERN</span></span><a class="headerlink" href="#crash_prediction_log_extractor.log_extractor.LogExtractor.CRASH_PATTERN" title="Link to this definition"></a></dt>
+<dd><p>Compiled regex that matches
+<code class="docutils literal notranslate"><span class="pre">--Crash</span> <span class="pre">(start|end)--</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Pattern[str]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="crash_prediction_log_extractor.log_extractor.LogExtractor.CRASH_RISK_PATTERN">
+<span class="sig-name descname"><span class="pre">CRASH_RISK_PATTERN</span></span><a class="headerlink" href="#crash_prediction_log_extractor.log_extractor.LogExtractor.CRASH_RISK_PATTERN" title="Link to this definition"></a></dt>
+<dd><p>Compiled regex that matches
+<code class="docutils literal notranslate"><span class="pre">--Risk:</span> <span class="pre">&lt;value&gt;--</span></code> and captures the risk float string.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Pattern[str]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="crash_prediction_log_extractor.log_extractor.LogExtractor.ACTOR_ID_PATTERN">
+<span class="sig-name descname"><span class="pre">ACTOR_ID_PATTERN</span></span><a class="headerlink" href="#crash_prediction_log_extractor.log_extractor.LogExtractor.ACTOR_ID_PATTERN" title="Link to this definition"></a></dt>
+<dd><p>Compiled regex that matches
+<code class="docutils literal notranslate"><span class="pre">--Id:</span> <span class="pre">sid</span> <span class="pre">&lt;station_id&gt;,</span> <span class="pre">oid</span> <span class="pre">&lt;object_id|None&gt;--</span></code> and captures
+both groups.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Pattern[str]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="crash_prediction_log_extractor.log_extractor.LogExtractor.POINT_PATTERN">
+<span class="sig-name descname"><span class="pre">POINT_PATTERN</span></span><a class="headerlink" href="#crash_prediction_log_extractor.log_extractor.LogExtractor.POINT_PATTERN" title="Link to this definition"></a></dt>
+<dd><p>Compiled regex that matches a position
+data line and captures time, latitude, longitude, speed and heading.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Pattern[str]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="crash_prediction_log_extractor.log_extractor.LogExtractor.clear_table">
+<span class="sig-name descname"><span class="pre">clear_table</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/crash_prediction_log_extractor/log_extractor.html#LogExtractor.clear_table"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#crash_prediction_log_extractor.log_extractor.LogExtractor.clear_table" title="Link to this definition"></a></dt>
+<dd><p>Reset all in-memory session data buffers for the current scenario.</p>
+<p>Clears the four position dictionaries (normalized/anomaly x
+real/forecasted) and the crash info list so that a new scenario can be
+parsed from a clean state.  Called automatically by
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">_extract_section()</span></code> at the start of each scenario.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="crash_prediction_log_extractor.log_extractor.LogExtractor.collections">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">collections</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.CollectionsPoints" title="crash_prediction_log_extractor.collections_points.CollectionsPoints"><span class="pre">CollectionsPoints</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#crash_prediction_log_extractor.log_extractor.LogExtractor.collections" title="Link to this definition"></a></dt>
+<dd><p>Return the parsed collections payload.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The assembled <code class="xref py py-class docutils literal notranslate"><span class="pre">CollectionsPoints</span></code>
+object containing all actor sessions extracted from the log file, or
+<code class="docutils literal notranslate"><span class="pre">None</span></code> if <a class="reference internal" href="#crash_prediction_log_extractor.log_extractor.LogExtractor.extract" title="crash_prediction_log_extractor.log_extractor.LogExtractor.extract"><code class="xref py py-meth docutils literal notranslate"><span class="pre">extract()</span></code></a> has not been called yet.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>Optional[<a class="reference internal" href="crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.CollectionsPoints" title="crash_prediction_log_extractor.collections_points.CollectionsPoints">CollectionsPoints</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="crash_prediction_log_extractor.log_extractor.LogExtractor.extract">
+<span class="sig-name descname"><span class="pre">extract</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/crash_prediction_log_extractor/log_extractor.html#LogExtractor.extract"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#crash_prediction_log_extractor.log_extractor.LogExtractor.extract" title="Link to this definition"></a></dt>
+<dd><p>Parse the entire log file and populate <a class="reference internal" href="#crash_prediction_log_extractor.log_extractor.LogExtractor.collections" title="crash_prediction_log_extractor.log_extractor.LogExtractor.collections"><code class="xref py py-attr docutils literal notranslate"><span class="pre">collections</span></code></a>.</p>
+<p>Opens <code class="xref py py-attr docutils literal notranslate"><span class="pre">_input_file</span></code> in read mode and iteratively calls
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">_extract_section()</span></code> until the end of the file is reached or a
+<code class="xref py py-class docutils literal notranslate"><span class="pre">ValueError</span></code> is raised by a sub-parser (which is caught and
+logged, allowing partial results to be returned).</p>
+<p>After this method returns, <a class="reference internal" href="#crash_prediction_log_extractor.log_extractor.LogExtractor.collections" title="crash_prediction_log_extractor.log_extractor.LogExtractor.collections"><code class="xref py py-attr docutils literal notranslate"><span class="pre">collections</span></code></a> contains a
+<code class="xref py py-class docutils literal notranslate"><span class="pre">CollectionsPoints</span></code> payload with one <code class="xref py py-class docutils literal notranslate"><span class="pre">CollectionSections</span></code>
+entry per actor, each holding all <code class="xref py py-class docutils literal notranslate"><span class="pre">SessionData</span></code> instances
+extracted across every parsed scenario.</p>
+<p>The result is always a valid <code class="xref py py-class docutils literal notranslate"><span class="pre">CollectionsPoints</span></code> object (possibly
+with an empty <code class="docutils literal notranslate"><span class="pre">collections</span></code> list) even when parsing errors occur.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+<p>Example usage:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+
+<span class="n">extractor</span> <span class="o">=</span> <span class="n">LogExtractor</span><span class="p">(</span>
+    <span class="n">input_file</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;step_crash_prediction.txt&quot;</span><span class="p">),</span>
+    <span class="n">logger</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">extractor</span><span class="o">.</span><span class="n">extract</span><span class="p">()</span>
+<span class="n">payload</span> <span class="o">=</span> <span class="n">extractor</span><span class="o">.</span><span class="n">collections</span>
+<span class="k">if</span> <span class="n">payload</span><span class="p">:</span>
+    <span class="n">payload</span><span class="o">.</span><span class="n">print_to_file</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;output.json&quot;</span><span class="p">))</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="crash_prediction_log_extractor.log_extractor.ParserCrashState">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">crash_prediction_log_extractor.log_extractor.</span></span><span class="sig-name descname"><span class="pre">ParserCrashState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/crash_prediction_log_extractor/log_extractor.html#ParserCrashState"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#crash_prediction_log_extractor.log_extractor.ParserCrashState" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">StrEnum</span></code></p>
+<p>Finite-state machine states for a single crash record parser.</p>
+<p>Used by <code class="xref py py-meth docutils literal notranslate"><span class="pre">LogExtractor._extract_crash_data()</span></code> to parse one crash record
+of the form:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">--</span><span class="n">Crash</span> <span class="n">start</span><span class="o">--</span>
+<span class="o">--</span><span class="n">Risk</span><span class="p">:</span> <span class="mf">0.850</span><span class="o">--</span>
+<span class="o">--</span><span class="n">Id</span><span class="p">:</span> <span class="n">sid</span> <span class="mi">36</span><span class="p">,</span> <span class="n">oid</span> <span class="kc">None</span><span class="o">--</span>
+<span class="o">--</span><span class="n">Id</span><span class="p">:</span> <span class="n">sid</span> <span class="mi">37</span><span class="p">,</span> <span class="n">oid</span> <span class="kc">None</span><span class="o">--</span>
+<span class="o">--</span><span class="n">Crash</span> <span class="n">end</span><span class="o">--</span>
+</pre></div>
+</div>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="crash_prediction_log_extractor.log_extractor.ParserCrashState.WAIT_START_CRASH">
+<span class="sig-name descname"><span class="pre">WAIT_START_CRASH</span></span><a class="headerlink" href="#crash_prediction_log_extractor.log_extractor.ParserCrashState.WAIT_START_CRASH" title="Link to this definition"></a></dt>
+<dd><p>Initial state; awaiting a <code class="docutils literal notranslate"><span class="pre">--Crash</span> <span class="pre">start--</span></code>
+marker.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="crash_prediction_log_extractor.log_extractor.ParserCrashState.WAIT_RISK">
+<span class="sig-name descname"><span class="pre">WAIT_RISK</span></span><a class="headerlink" href="#crash_prediction_log_extractor.log_extractor.ParserCrashState.WAIT_RISK" title="Link to this definition"></a></dt>
+<dd><p>The crash has started; the next expected marker is a
+<code class="docutils literal notranslate"><span class="pre">--Risk:</span> <span class="pre">&lt;value&gt;--</span></code> line.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="crash_prediction_log_extractor.log_extractor.ParserCrashState.WAIT_END_CRASH">
+<span class="sig-name descname"><span class="pre">WAIT_END_CRASH</span></span><a class="headerlink" href="#crash_prediction_log_extractor.log_extractor.ParserCrashState.WAIT_END_CRASH" title="Link to this definition"></a></dt>
+<dd><p>Risk has been read; collecting actor IDs until the
+<code class="docutils literal notranslate"><span class="pre">--Crash</span> <span class="pre">end--</span></code> marker.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="crash_prediction_log_extractor.log_extractor.ParserCrashState.DONE">
+<span class="sig-name descname"><span class="pre">DONE</span></span><a class="headerlink" href="#crash_prediction_log_extractor.log_extractor.ParserCrashState.DONE" title="Link to this definition"></a></dt>
+<dd><p>The <code class="docutils literal notranslate"><span class="pre">--Crash</span> <span class="pre">end--</span></code> marker has been found.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="crash_prediction_log_extractor.log_extractor.ParserScenarioState">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">crash_prediction_log_extractor.log_extractor.</span></span><span class="sig-name descname"><span class="pre">ParserScenarioState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/crash_prediction_log_extractor/log_extractor.html#ParserScenarioState"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#crash_prediction_log_extractor.log_extractor.ParserScenarioState" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">StrEnum</span></code></p>
+<p>Finite-state machine states for the top-level scenario parser.</p>
+<p>Controls the outer parsing loop that looks for <code class="docutils literal notranslate"><span class="pre">--Scenario</span> <span class="pre">start--</span></code> /
+<code class="docutils literal notranslate"><span class="pre">--Scenario</span> <span class="pre">end--</span></code> markers in the log stream.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="crash_prediction_log_extractor.log_extractor.ParserScenarioState.WAIT_FOR_START_SCENARIO">
+<span class="sig-name descname"><span class="pre">WAIT_FOR_START_SCENARIO</span></span><a class="headerlink" href="#crash_prediction_log_extractor.log_extractor.ParserScenarioState.WAIT_FOR_START_SCENARIO" title="Link to this definition"></a></dt>
+<dd><p>Initial state; the parser is scanning for
+a <code class="docutils literal notranslate"><span class="pre">--Scenario</span> <span class="pre">start--</span></code> marker.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="crash_prediction_log_extractor.log_extractor.ParserScenarioState.WAIT_FOR_END_SCENARIO">
+<span class="sig-name descname"><span class="pre">WAIT_FOR_END_SCENARIO</span></span><a class="headerlink" href="#crash_prediction_log_extractor.log_extractor.ParserScenarioState.WAIT_FOR_END_SCENARIO" title="Link to this definition"></a></dt>
+<dd><p>A scenario has started; the parser waits
+for the matching <code class="docutils literal notranslate"><span class="pre">--Scenario</span> <span class="pre">end--</span></code> marker.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="crash_prediction_log_extractor.log_extractor.ParserScenarioState.DONE">
+<span class="sig-name descname"><span class="pre">DONE</span></span><a class="headerlink" href="#crash_prediction_log_extractor.log_extractor.ParserScenarioState.DONE" title="Link to this definition"></a></dt>
+<dd><p>Both markers have been found and the scenario is complete.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="crash_prediction_log_extractor.log_extractor.ParserSectionDataState">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">crash_prediction_log_extractor.log_extractor.</span></span><span class="sig-name descname"><span class="pre">ParserSectionDataState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/crash_prediction_log_extractor/log_extractor.html#ParserSectionDataState"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#crash_prediction_log_extractor.log_extractor.ParserSectionDataState" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">StrEnum</span></code></p>
+<p>Finite-state machine states for a single section-data block parser.</p>
+<p>Used by <code class="xref py py-meth docutils literal notranslate"><span class="pre">LogExtractor._extract_section_data()</span></code> to parse one of the four
+section data blocks delimited by:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">--</span><span class="n">Section</span> <span class="o">&lt;</span><span class="n">data_type</span><span class="o">&gt;</span> <span class="o">&lt;</span><span class="n">section_data_type</span><span class="o">&gt;</span> <span class="n">start</span><span class="o">--</span>
+<span class="o">--</span><span class="n">Section</span> <span class="o">&lt;</span><span class="n">data_type</span><span class="o">&gt;</span> <span class="o">&lt;</span><span class="n">section_data_type</span><span class="o">&gt;</span> <span class="n">end</span><span class="o">--</span>
+</pre></div>
+</div>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="crash_prediction_log_extractor.log_extractor.ParserSectionDataState.WAIT_START_SECTION_DATA">
+<span class="sig-name descname"><span class="pre">WAIT_START_SECTION_DATA</span></span><a class="headerlink" href="#crash_prediction_log_extractor.log_extractor.ParserSectionDataState.WAIT_START_SECTION_DATA" title="Link to this definition"></a></dt>
+<dd><p>Initial state; awaiting the opening
+<code class="docutils literal notranslate"><span class="pre">start</span></code> marker for the target section.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="crash_prediction_log_extractor.log_extractor.ParserSectionDataState.WAIT_END_SECTION_DATA">
+<span class="sig-name descname"><span class="pre">WAIT_END_SECTION_DATA</span></span><a class="headerlink" href="#crash_prediction_log_extractor.log_extractor.ParserSectionDataState.WAIT_END_SECTION_DATA" title="Link to this definition"></a></dt>
+<dd><p>Inside the section; collecting actor IDs
+and position data points until the <code class="docutils literal notranslate"><span class="pre">end</span></code> marker is found.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="crash_prediction_log_extractor.log_extractor.ParserSectionDataState.DONE">
+<span class="sig-name descname"><span class="pre">DONE</span></span><a class="headerlink" href="#crash_prediction_log_extractor.log_extractor.ParserSectionDataState.DONE" title="Link to this definition"></a></dt>
+<dd><p>The closing <code class="docutils literal notranslate"><span class="pre">end</span></code> marker has been found.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="crash_prediction_log_extractor.log_extractor.ParserTableDataMarkerItem">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">crash_prediction_log_extractor.log_extractor.</span></span><span class="sig-name descname"><span class="pre">ParserTableDataMarkerItem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.DataType" title="crash_prediction_log_extractor.collections_points.DataType"><span class="pre">DataType</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">section_data_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#crash_prediction_log_extractor.log_extractor.SectionDataType" title="crash_prediction_log_extractor.log_extractor.SectionDataType"><span class="pre">SectionDataType</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_collection</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">ActorId</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.Position" title="crash_prediction_log_extractor.collections_points.Position"><span class="pre">Position</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/crash_prediction_log_extractor/log_extractor.html#ParserTableDataMarkerItem"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#crash_prediction_log_extractor.log_extractor.ParserTableDataMarkerItem" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Associates parsing metadata with an in-memory position data collection.</p>
+<p>Used internally by <a class="reference internal" href="#crash_prediction_log_extractor.log_extractor.LogExtractor" title="crash_prediction_log_extractor.log_extractor.LogExtractor"><code class="xref py py-class docutils literal notranslate"><span class="pre">LogExtractor</span></code></a> to map each of the four section
+combinations (<code class="docutils literal notranslate"><span class="pre">normalized</span></code>/<code class="docutils literal notranslate"><span class="pre">anomaly</span></code> x <code class="docutils literal notranslate"><span class="pre">real</span></code>/<code class="docutils literal notranslate"><span class="pre">forecasted</span></code>) to the
+corresponding dictionary that accumulates parsed <code class="xref py py-class docutils literal notranslate"><span class="pre">Position</span></code> objects.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="crash_prediction_log_extractor.log_extractor.ParserTableDataMarkerItem.data_type">
+<span class="sig-name descname"><span class="pre">data_type</span></span><a class="headerlink" href="#crash_prediction_log_extractor.log_extractor.ParserTableDataMarkerItem.data_type" title="Link to this definition"></a></dt>
+<dd><p>Whether this item tracks <code class="docutils literal notranslate"><span class="pre">normalized</span></code> or
+<code class="docutils literal notranslate"><span class="pre">anomaly</span></code> data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.DataType" title="crash_prediction_log_extractor.collections_points.DataType">DataType</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="crash_prediction_log_extractor.log_extractor.ParserTableDataMarkerItem.section_data_type">
+<span class="sig-name descname"><span class="pre">section_data_type</span></span><a class="headerlink" href="#crash_prediction_log_extractor.log_extractor.ParserTableDataMarkerItem.section_data_type" title="Link to this definition"></a></dt>
+<dd><p>Whether this item tracks <code class="docutils literal notranslate"><span class="pre">real</span></code>
+or <code class="docutils literal notranslate"><span class="pre">forecasted</span></code> positions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#crash_prediction_log_extractor.log_extractor.SectionDataType" title="crash_prediction_log_extractor.log_extractor.SectionDataType">SectionDataType</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="crash_prediction_log_extractor.log_extractor.ParserTableDataMarkerItem.data_collection">
+<span class="sig-name descname"><span class="pre">data_collection</span></span><a class="headerlink" href="#crash_prediction_log_extractor.log_extractor.ParserTableDataMarkerItem.data_collection" title="Link to this definition"></a></dt>
+<dd><p>Mutable mapping from
+actor identifiers to the list of positions accumulated so far for
+the current scenario.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict[ActorId, list[<a class="reference internal" href="crash_prediction_log_extractor.collections_points.html#crash_prediction_log_extractor.collections_points.Position" title="crash_prediction_log_extractor.collections_points.Position">Position</a>]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="crash_prediction_log_extractor.log_extractor.SectionDataType">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">crash_prediction_log_extractor.log_extractor.</span></span><span class="sig-name descname"><span class="pre">SectionDataType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/crash_prediction_log_extractor/log_extractor.html#SectionDataType"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#crash_prediction_log_extractor.log_extractor.SectionDataType" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">StrEnum</span></code></p>
+<p>Type of measurements contained in a section data block.</p>
+<p>Corresponds to the second token of a section header marker, e.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">--</span><span class="n">Section</span> <span class="n">anomaly</span> <span class="n">real</span> <span class="n">start</span><span class="o">--</span>
+<span class="o">--</span><span class="n">Section</span> <span class="n">normalized</span> <span class="n">forecasted</span> <span class="n">start</span><span class="o">--</span>
+</pre></div>
+</div>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="crash_prediction_log_extractor.log_extractor.SectionDataType.REAL">
+<span class="sig-name descname"><span class="pre">REAL</span></span><a class="headerlink" href="#crash_prediction_log_extractor.log_extractor.SectionDataType.REAL" title="Link to this definition"></a></dt>
+<dd><p>The section contains real (observed) position data points.
+These points include speed and heading values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="crash_prediction_log_extractor.log_extractor.SectionDataType.FORECASTED">
+<span class="sig-name descname"><span class="pre">FORECASTED</span></span><a class="headerlink" href="#crash_prediction_log_extractor.log_extractor.SectionDataType.FORECASTED" title="Link to this definition"></a></dt>
+<dd><p>The section contains forecasted (predicted) position
+data points. Speed and heading are <code class="docutils literal notranslate"><span class="pre">None</span></code> for forecasted points.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="crash_prediction_log_extractor.collections_points.html" class="btn btn-neutral float-left" title="crash_prediction_log_extractor.collections_points module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="crash_prediction_log_extractor.step_logger.html" class="btn btn-neutral float-right" title="crash_prediction_log_extractor.step_logger module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, Vodafone Automotive.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

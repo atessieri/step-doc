@@ -1,0 +1,150 @@
+Crash Prediction Log Extractor Usage Guide
+==========================================
+
+Overview
+--------
+
+``crash_prediction_log_extractor`` is a command-line tool that parses
+``step_crash_prediction`` log files and produces a structured JSON payload
+(``CollectionsPoints``) containing:
+
+* per-actor trajectories,
+* separated into ``normalized`` and ``anomaly`` sessions,
+* with ``real`` and ``forecasted`` points,
+* and crash events (risk + involved actors).
+
+The executable command installed by the package is:
+
+.. code-block:: bash
+
+    crash_prediction_log_extractor
+
+
+What the program does
+---------------------
+
+The extractor reads a text log file line by line and processes only marker lines
+embedded in normal log output. A complete scenario block is expected in this order:
+
+#. ``--Scenario start--``
+#. 4 section data blocks:
+
+   * ``--Section normalized real start-- ... end--``
+   * ``--Section normalized forecasted start-- ... end--``
+   * ``--Section anomaly real start-- ... end--``
+   * ``--Section anomaly forecasted start-- ... end--``
+
+#. crash section: ``--Section crash start-- ... end--``
+#. ``--Scenario end--``
+
+Inside section blocks, it reads actor identifiers and points:
+
+* Actor: ``--Id: sid <station_id>, oid <object_id|None>--``
+* Point: ``--t: <ISO8601>, p: (<lat>, <lon>), s: <speed|None>, h: <heading|None>--``
+
+Inside crash blocks, it reads:
+
+* ``--Crash start--`` / ``--Crash end--``
+* ``--Risk: <0.000-1.000>--``
+* one or more actor ``--Id: ...--`` lines.
+
+All parsed scenarios are merged into one final ``CollectionsPoints`` object and,
+when extraction is requested, saved as JSON.
+
+
+CLI syntax
+----------
+
+.. code-block:: bash
+
+    crash_prediction_log_extractor [options]
+
+If run with no arguments, it prints help and exits with usage code ``1``.
+
+
+Command-line options
+--------------------
+
+``-h``, ``--help``
+    Show help and exit.
+
+``-v``, ``--version``
+    Show package version and exit.
+
+``-s <schema folder>``, ``--schema <schema folder>``
+    Generate ``CollectionsPoints`` JSON schema files in the target directory.
+    The directory is created if needed.
+
+``-e <example folder>``, ``--example <example folder>``
+    Generate example JSON files for ``CollectionsPoints`` in the target directory.
+    The directory is created if needed.
+
+``-i <input file>``, ``--input_file <input file>``
+    Parse the input log file and build extracted collections data.
+
+``-o <output file>``, ``--output_file <output file>``
+    Output JSON file path for extracted data.
+
+    If omitted, output is created in the **current working directory** using the
+    input filename stem and ``.json`` extension.
+
+``-f <log file>``, ``--log_file <log file>``
+    Write runtime logs to the specified log file (folder is created if needed).
+
+``-l <log level>``, ``--log_level <log level>``
+    Logging level for file logging when ``-f`` is used.
+    Accepted values are ``CRITICAL``, ``ERROR``, ``WARNING``, ``INFO``, ``DEBUG``
+    (case-insensitive). Invalid values fallback to ``WARNING``.
+
+
+Examples
+--------
+
+Generate schema artifacts:
+
+.. code-block:: bash
+
+    crash_prediction_log_extractor -s ./schemas
+
+Generate example JSON:
+
+.. code-block:: bash
+
+    crash_prediction_log_extractor -e ./examples
+
+Extract collections from a log file (explicit output):
+
+.. code-block:: bash
+
+    crash_prediction_log_extractor -i ./logs/crash_prediction.log -o ./out/collections.json
+
+Extract collections using default output name:
+
+.. code-block:: bash
+
+    crash_prediction_log_extractor -i ./logs/crash_prediction.log
+
+This creates ``./crash_prediction.json`` in the current working directory.
+
+Extract with file logging and debug level:
+
+.. code-block:: bash
+
+    crash_prediction_log_extractor -i ./logs/crash_prediction.log -o ./out/collections.json -f ./run/extractor.log -l DEBUG
+
+Combine operations in one run (schema + example + extraction):
+
+.. code-block:: bash
+
+    crash_prediction_log_extractor -s ./schemas -e ./examples -i ./logs/crash_prediction.log -o ./out/collections.json
+
+
+Exit codes
+----------
+
+The program returns these exit codes:
+
+* ``0`` (OK): successful execution.
+* ``1`` (USAGE): no arguments provided.
+* ``2`` (ERROR): unhandled exception.
+* ``3`` (ABORTED): interrupted (for example, ``Ctrl+C``).
