@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>test.test_collections_points &mdash; Crash Prediction Log Extractor 1.0.1 documentation</title>
+  <title>test.test_step_logger &mdash; Crash Prediction Log Extractor 1.0.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=4c969af8" />
@@ -447,7 +447,7 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
-      <li class="breadcrumb-item active">test.test_collections_points</li>
+      <li class="breadcrumb-item active">test.test_step_logger</li>
       <li class="wy-breadcrumbs-aside">
       </li>
   </ul>
@@ -456,457 +456,385 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <h1>Source code for test.test_collections_points</h1><div class="highlight"><pre>
-<span></span><span class="linenos">  1</span><span class="sd">&quot;&quot;&quot;Test module for collections points schema models.</span>
+  <h1>Source code for test.test_step_logger</h1><div class="highlight"><pre>
+<span></span><span class="linenos">  1</span><span class="sd">&quot;&quot;&quot;Unit tests for ``crash_prediction_log_extractor.step_logger``.</span>
 <span class="linenos">  2</span>
-<span class="linenos">  3</span><span class="sd">This module provides template-style unit tests for the</span>
-<span class="linenos">  4</span><span class="sd">``collections_points`` models.</span>
-<span class="linenos">  5</span><span class="sd">&quot;&quot;&quot;</span>
-<span class="linenos">  6</span>
-<span class="linenos">  7</span><span class="c1"># ruff: noqa: S101, PLR2004</span>
-<span class="linenos">  8</span>
-<span class="linenos">  9</span><span class="c1"># Standard Library Imports</span>
-<span class="linenos"> 10</span><span class="kn">from</span><span class="w"> </span><span class="nn">filecmp</span><span class="w"> </span><span class="kn">import</span> <span class="n">cmp</span> <span class="k">as</span> <span class="n">filecmp_cmp</span>
-<span class="linenos"> 11</span><span class="kn">from</span><span class="w"> </span><span class="nn">importlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">resources</span>
-<span class="linenos"> 12</span><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
-<span class="linenos"> 13</span><span class="kn">from</span><span class="w"> </span><span class="nn">tempfile</span><span class="w"> </span><span class="kn">import</span> <span class="n">TemporaryDirectory</span>
-<span class="linenos"> 14</span><span class="kn">from</span><span class="w"> </span><span class="nn">test.file_compare</span><span class="w"> </span><span class="kn">import</span> <span class="n">examples</span><span class="p">,</span> <span class="n">schemas</span>
-<span class="linenos"> 15</span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
+<span class="linenos">  3</span><span class="sd">This module validates the logging helpers used by the crash prediction log</span>
+<span class="linenos">  4</span><span class="sd">extractor package.</span>
+<span class="linenos">  5</span>
+<span class="linenos">  6</span><span class="sd">Covered behavior:</span>
+<span class="linenos">  7</span><span class="sd">    - ``LogMode`` enum values and conversion to stdlib logging levels.</span>
+<span class="linenos">  8</span><span class="sd">    - ``UtcFormatter.converter`` timestamp conversion via ``gmtime``.</span>
+<span class="linenos">  9</span><span class="sd">    - ``get_logger`` configuration for stdout and optional file logging,</span>
+<span class="linenos"> 10</span><span class="sd">      including handler levels and log directory creation.</span>
+<span class="linenos"> 11</span><span class="sd">    - ``logger_force_write`` temporary INFO-level override for logger and</span>
+<span class="linenos"> 12</span><span class="sd">      handlers, followed by restoration of original levels.</span>
+<span class="linenos"> 13</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="linenos"> 14</span>
+<span class="linenos"> 15</span><span class="c1"># ruff: noqa: S101</span>
 <span class="linenos"> 16</span>
-<span class="linenos"> 17</span><span class="c1"># Third Party Imports</span>
-<span class="linenos"> 18</span><span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
-<span class="linenos"> 19</span><span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">ValidationError</span>
-<span class="linenos"> 20</span><span class="kn">from</span><span class="w"> </span><span class="nn">step_cloud_schemas</span><span class="w"> </span><span class="kn">import</span> <span class="n">ActorId</span>
-<span class="linenos"> 21</span>
-<span class="linenos"> 22</span><span class="c1"># crash_prediction_log_extractor Package Imports</span>
-<span class="linenos"> 23</span><span class="kn">from</span><span class="w"> </span><span class="nn">crash_prediction_log_extractor</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-<span class="linenos"> 24</span>    <span class="n">CollectionSections</span><span class="p">,</span>
-<span class="linenos"> 25</span>    <span class="n">CollectionsPoints</span><span class="p">,</span>
-<span class="linenos"> 26</span>    <span class="n">CollectionsPointsDataModelVersion</span><span class="p">,</span>
-<span class="linenos"> 27</span>    <span class="n">CrashInfo</span><span class="p">,</span>
-<span class="linenos"> 28</span>    <span class="n">DataType</span><span class="p">,</span>
-<span class="linenos"> 29</span>    <span class="n">Position</span><span class="p">,</span>
-<span class="linenos"> 30</span>    <span class="n">SessionData</span><span class="p">,</span>
-<span class="linenos"> 31</span><span class="p">)</span>
-<span class="linenos"> 32</span><span class="kn">from</span><span class="w"> </span><span class="nn">crash_prediction_log_extractor.collections_points</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConfigGenerateJsonSchema</span>
-<span class="linenos"> 33</span>
-<span class="linenos"> 34</span>
-<div class="viewcode-block" id="TestCollectionsPointsDataModelVersion">
-<a class="viewcode-back" href="../../test_rst/test.test_collections_points.html#test.test_collections_points.TestCollectionsPointsDataModelVersion">[docs]</a>
-<span class="linenos"> 35</span><span class="k">class</span><span class="w"> </span><span class="nc">TestCollectionsPointsDataModelVersion</span><span class="p">:</span>
-<span class="linenos"> 36</span><span class="w">    </span><span class="sd">&quot;&quot;&quot;Tests for ``CollectionsPointsDataModelVersion`` enum.&quot;&quot;&quot;</span>
+<span class="linenos"> 17</span><span class="c1"># Standard Library Imports</span>
+<span class="linenos"> 18</span><span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="linenos"> 19</span><span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="linenos"> 20</span><span class="kn">from</span><span class="w"> </span><span class="nn">logging</span><span class="w"> </span><span class="kn">import</span> <span class="n">Handler</span><span class="p">,</span> <span class="n">Logger</span>
+<span class="linenos"> 21</span><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="linenos"> 22</span><span class="kn">from</span><span class="w"> </span><span class="nn">time</span><span class="w"> </span><span class="kn">import</span> <span class="n">struct_time</span>
+<span class="linenos"> 23</span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
+<span class="linenos"> 24</span>
+<span class="linenos"> 25</span><span class="c1"># Third Party Imports</span>
+<span class="linenos"> 26</span><span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
+<span class="linenos"> 27</span><span class="kn">from</span><span class="w"> </span><span class="nn">pytest_mock</span><span class="w"> </span><span class="kn">import</span> <span class="n">MockerFixture</span>
+<span class="linenos"> 28</span>
+<span class="linenos"> 29</span><span class="c1"># crash_prediction_log_extractor Package Imports</span>
+<span class="linenos"> 30</span><span class="kn">from</span><span class="w"> </span><span class="nn">crash_prediction_log_extractor.step_logger</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+<span class="linenos"> 31</span>    <span class="n">LogMode</span><span class="p">,</span>
+<span class="linenos"> 32</span>    <span class="n">UtcFormatter</span><span class="p">,</span>
+<span class="linenos"> 33</span>    <span class="n">get_logger</span><span class="p">,</span>
+<span class="linenos"> 34</span>    <span class="n">logger_force_write</span><span class="p">,</span>
+<span class="linenos"> 35</span><span class="p">)</span>
+<span class="linenos"> 36</span>
 <span class="linenos"> 37</span>
-<div class="viewcode-block" id="TestCollectionsPointsDataModelVersion.test_value">
-<a class="viewcode-back" href="../../test_rst/test.test_collections_points.html#test.test_collections_points.TestCollectionsPointsDataModelVersion.test_value">[docs]</a>
-<span class="linenos"> 38</span>    <span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">parametrize</span><span class="p">(</span>
-<span class="linenos"> 39</span>        <span class="n">argnames</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;enum_value&quot;</span><span class="p">,</span> <span class="s2">&quot;expected&quot;</span><span class="p">),</span>
-<span class="linenos"> 40</span>        <span class="n">argvalues</span><span class="o">=</span><span class="p">[(</span><span class="n">CollectionsPointsDataModelVersion</span><span class="o">.</span><span class="n">V1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)],</span>
-<span class="linenos"> 41</span>    <span class="p">)</span>
-<span class="linenos"> 42</span>    <span class="k">def</span><span class="w"> </span><span class="nf">test_value</span><span class="p">(</span>
-<span class="linenos"> 43</span>        <span class="bp">self</span><span class="p">,</span> <span class="n">enum_value</span><span class="p">:</span> <span class="n">CollectionsPointsDataModelVersion</span><span class="p">,</span> <span class="n">expected</span><span class="p">:</span> <span class="nb">int</span>
-<span class="linenos"> 44</span>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos"> 45</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Validate enum values.</span>
-<span class="linenos"> 46</span>
-<span class="linenos"> 47</span><span class="sd">        Returns:</span>
-<span class="linenos"> 48</span><span class="sd">            None.</span>
-<span class="linenos"> 49</span><span class="sd">        &quot;&quot;&quot;</span>
-<span class="linenos"> 50</span>        <span class="k">assert</span> <span class="n">enum_value</span><span class="o">.</span><span class="n">value</span> <span class="o">==</span> <span class="n">expected</span>
-<span class="linenos"> 51</span>        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">CollectionsPointsDataModelVersion</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span></div>
-</div>
+<div class="viewcode-block" id="TestLogMode">
+<a class="viewcode-back" href="../../test_rst/test.test_step_logger.html#test.test_step_logger.TestLogMode">[docs]</a>
+<span class="linenos"> 38</span><span class="k">class</span><span class="w"> </span><span class="nc">TestLogMode</span><span class="p">:</span>
+<span class="linenos"> 39</span><span class="w">    </span><span class="sd">&quot;&quot;&quot;Tests for the ``LogMode`` enumeration.</span>
+<span class="linenos"> 40</span>
+<span class="linenos"> 41</span><span class="sd">    Covers ``__slots__`` definition, string values of each member, correct</span>
+<span class="linenos"> 42</span><span class="sd">    mapping to stdlib logging levels, and ``ValueError`` on invalid input.</span>
+<span class="linenos"> 43</span><span class="sd">    &quot;&quot;&quot;</span>
+<span class="linenos"> 44</span>
+<div class="viewcode-block" id="TestLogMode.test___slots__">
+<a class="viewcode-back" href="../../test_rst/test.test_step_logger.html#test.test_step_logger.TestLogMode.test___slots__">[docs]</a>
+<span class="linenos"> 45</span>    <span class="k">def</span><span class="w"> </span><span class="nf">test___slots__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos"> 46</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Assert that ``LogMode.__slots__`` is an empty tuple.</span>
+<span class="linenos"> 47</span>
+<span class="linenos"> 48</span><span class="sd">        Returns:</span>
+<span class="linenos"> 49</span><span class="sd">            None</span>
+<span class="linenos"> 50</span><span class="sd">        &quot;&quot;&quot;</span>
+<span class="linenos"> 51</span>        <span class="k">assert</span> <span class="n">LogMode</span><span class="o">.</span><span class="vm">__slots__</span> <span class="o">==</span> <span class="p">()</span></div>
 
 <span class="linenos"> 52</span>
-<span class="linenos"> 53</span>
-<div class="viewcode-block" id="TestPosition">
-<a class="viewcode-back" href="../../test_rst/test.test_collections_points.html#test.test_collections_points.TestPosition">[docs]</a>
-<span class="linenos"> 54</span><span class="k">class</span><span class="w"> </span><span class="nc">TestPosition</span><span class="p">:</span>
-<span class="linenos"> 55</span><span class="w">    </span><span class="sd">&quot;&quot;&quot;Tests for ``Position`` model.&quot;&quot;&quot;</span>
-<span class="linenos"> 56</span>
-<div class="viewcode-block" id="TestPosition.test___slots__">
-<a class="viewcode-back" href="../../test_rst/test.test_collections_points.html#test.test_collections_points.TestPosition.test___slots__">[docs]</a>
-<span class="linenos"> 57</span>    <span class="k">def</span><span class="w"> </span><span class="nf">test___slots__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos"> 58</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Validate slots declaration.</span>
-<span class="linenos"> 59</span>
-<span class="linenos"> 60</span><span class="sd">        Returns:</span>
-<span class="linenos"> 61</span><span class="sd">            None.</span>
-<span class="linenos"> 62</span><span class="sd">        &quot;&quot;&quot;</span>
-<span class="linenos"> 63</span>        <span class="k">assert</span> <span class="n">Position</span><span class="o">.</span><span class="vm">__slots__</span></div>
+<div class="viewcode-block" id="TestLogMode.test_values">
+<a class="viewcode-back" href="../../test_rst/test.test_step_logger.html#test.test_step_logger.TestLogMode.test_values">[docs]</a>
+<span class="linenos"> 53</span>    <span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">parametrize</span><span class="p">(</span>
+<span class="linenos"> 54</span>        <span class="n">argnames</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;mode&quot;</span><span class="p">,</span> <span class="s2">&quot;expected_value&quot;</span><span class="p">),</span>
+<span class="linenos"> 55</span>        <span class="n">argvalues</span><span class="o">=</span><span class="p">[</span>
+<span class="linenos"> 56</span>            <span class="p">(</span><span class="n">LogMode</span><span class="o">.</span><span class="n">CRITICAL</span><span class="p">,</span> <span class="s2">&quot;CRITICAL&quot;</span><span class="p">),</span>
+<span class="linenos"> 57</span>            <span class="p">(</span><span class="n">LogMode</span><span class="o">.</span><span class="n">ERROR</span><span class="p">,</span> <span class="s2">&quot;ERROR&quot;</span><span class="p">),</span>
+<span class="linenos"> 58</span>            <span class="p">(</span><span class="n">LogMode</span><span class="o">.</span><span class="n">WARNING</span><span class="p">,</span> <span class="s2">&quot;WARNING&quot;</span><span class="p">),</span>
+<span class="linenos"> 59</span>            <span class="p">(</span><span class="n">LogMode</span><span class="o">.</span><span class="n">INFO</span><span class="p">,</span> <span class="s2">&quot;INFO&quot;</span><span class="p">),</span>
+<span class="linenos"> 60</span>            <span class="p">(</span><span class="n">LogMode</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">,</span> <span class="s2">&quot;DEBUG&quot;</span><span class="p">),</span>
+<span class="linenos"> 61</span>        <span class="p">],</span>
+<span class="linenos"> 62</span>        <span class="n">ids</span><span class="o">=</span><span class="p">[</span>
+<span class="linenos"> 63</span>            <span class="s2">&quot;CRITICAL value&quot;</span><span class="p">,</span>
+<span class="linenos"> 64</span>            <span class="s2">&quot;ERROR value&quot;</span><span class="p">,</span>
+<span class="linenos"> 65</span>            <span class="s2">&quot;WARNING value&quot;</span><span class="p">,</span>
+<span class="linenos"> 66</span>            <span class="s2">&quot;INFO value&quot;</span><span class="p">,</span>
+<span class="linenos"> 67</span>            <span class="s2">&quot;DEBUG value&quot;</span><span class="p">,</span>
+<span class="linenos"> 68</span>        <span class="p">],</span>
+<span class="linenos"> 69</span>    <span class="p">)</span>
+<span class="linenos"> 70</span>    <span class="k">def</span><span class="w"> </span><span class="nf">test_values</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mode</span><span class="p">:</span> <span class="n">LogMode</span><span class="p">,</span> <span class="n">expected_value</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos"> 71</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Assert each ``LogMode`` member&#39;s ``value`` matches its expected string.</span>
+<span class="linenos"> 72</span>
+<span class="linenos"> 73</span><span class="sd">        Args:</span>
+<span class="linenos"> 74</span><span class="sd">            mode: The ``LogMode`` member under test.</span>
+<span class="linenos"> 75</span><span class="sd">            expected_value: The expected string value of that member.</span>
+<span class="linenos"> 76</span>
+<span class="linenos"> 77</span><span class="sd">        Returns:</span>
+<span class="linenos"> 78</span><span class="sd">            None</span>
+<span class="linenos"> 79</span><span class="sd">        &quot;&quot;&quot;</span>
+<span class="linenos"> 80</span>        <span class="k">assert</span> <span class="n">mode</span><span class="o">.</span><span class="n">value</span> <span class="o">==</span> <span class="n">expected_value</span></div>
 
-<span class="linenos"> 64</span>
-<div class="viewcode-block" id="TestPosition.test_get_default">
-<a class="viewcode-back" href="../../test_rst/test.test_collections_points.html#test.test_collections_points.TestPosition.test_get_default">[docs]</a>
-<span class="linenos"> 65</span>    <span class="k">def</span><span class="w"> </span><span class="nf">test_get_default</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos"> 66</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Validate default values.</span>
-<span class="linenos"> 67</span>
-<span class="linenos"> 68</span><span class="sd">        Returns:</span>
-<span class="linenos"> 69</span><span class="sd">            None.</span>
-<span class="linenos"> 70</span><span class="sd">        &quot;&quot;&quot;</span>
-<span class="linenos"> 71</span>        <span class="n">result</span> <span class="o">=</span> <span class="n">Position</span><span class="o">.</span><span class="n">get_default</span><span class="p">()</span>
-<span class="linenos"> 72</span>        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">Position</span><span class="p">)</span>
-<span class="linenos"> 73</span>        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">time</span> <span class="o">==</span> <span class="s2">&quot;2018-04-05T17:31:00.000Z&quot;</span>
-<span class="linenos"> 74</span>        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">latitude</span> <span class="o">==</span> <span class="mf">45.587878</span>
-<span class="linenos"> 75</span>        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">longitude</span> <span class="o">==</span> <span class="mf">60.458789</span>
-<span class="linenos"> 76</span>        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">speed</span> <span class="o">==</span> <span class="mf">12.5</span>
-<span class="linenos"> 77</span>        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">heading</span> <span class="o">==</span> <span class="mf">90.0</span></div>
+<span class="linenos"> 81</span>
+<div class="viewcode-block" id="TestLogMode.test_to_logging_level_valid_modes">
+<a class="viewcode-back" href="../../test_rst/test.test_step_logger.html#test.test_step_logger.TestLogMode.test_to_logging_level_valid_modes">[docs]</a>
+<span class="linenos"> 82</span>    <span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">parametrize</span><span class="p">(</span>
+<span class="linenos"> 83</span>        <span class="n">argnames</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;mode&quot;</span><span class="p">,</span> <span class="s2">&quot;expected_level&quot;</span><span class="p">),</span>
+<span class="linenos"> 84</span>        <span class="n">argvalues</span><span class="o">=</span><span class="p">[</span>
+<span class="linenos"> 85</span>            <span class="p">(</span><span class="n">LogMode</span><span class="o">.</span><span class="n">CRITICAL</span><span class="p">,</span> <span class="n">logging</span><span class="o">.</span><span class="n">CRITICAL</span><span class="p">),</span>
+<span class="linenos"> 86</span>            <span class="p">(</span><span class="n">LogMode</span><span class="o">.</span><span class="n">ERROR</span><span class="p">,</span> <span class="n">logging</span><span class="o">.</span><span class="n">ERROR</span><span class="p">),</span>
+<span class="linenos"> 87</span>            <span class="p">(</span><span class="n">LogMode</span><span class="o">.</span><span class="n">WARNING</span><span class="p">,</span> <span class="n">logging</span><span class="o">.</span><span class="n">WARNING</span><span class="p">),</span>
+<span class="linenos"> 88</span>            <span class="p">(</span><span class="n">LogMode</span><span class="o">.</span><span class="n">INFO</span><span class="p">,</span> <span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">),</span>
+<span class="linenos"> 89</span>            <span class="p">(</span><span class="n">LogMode</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">,</span> <span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">),</span>
+<span class="linenos"> 90</span>        <span class="p">],</span>
+<span class="linenos"> 91</span>        <span class="n">ids</span><span class="o">=</span><span class="p">[</span>
+<span class="linenos"> 92</span>            <span class="s2">&quot;CRITICAL level&quot;</span><span class="p">,</span>
+<span class="linenos"> 93</span>            <span class="s2">&quot;ERROR level&quot;</span><span class="p">,</span>
+<span class="linenos"> 94</span>            <span class="s2">&quot;WARNING level&quot;</span><span class="p">,</span>
+<span class="linenos"> 95</span>            <span class="s2">&quot;INFO level&quot;</span><span class="p">,</span>
+<span class="linenos"> 96</span>            <span class="s2">&quot;DEBUG level&quot;</span><span class="p">,</span>
+<span class="linenos"> 97</span>        <span class="p">],</span>
+<span class="linenos"> 98</span>    <span class="p">)</span>
+<span class="linenos"> 99</span>    <span class="k">def</span><span class="w"> </span><span class="nf">test_to_logging_level_valid_modes</span><span class="p">(</span>
+<span class="linenos">100</span>        <span class="bp">self</span><span class="p">,</span> <span class="n">mode</span><span class="p">:</span> <span class="n">LogMode</span><span class="p">,</span> <span class="n">expected_level</span><span class="p">:</span> <span class="nb">int</span>
+<span class="linenos">101</span>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">102</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Assert ``to_logging_level`` returns the matching stdlib level constant.</span>
+<span class="linenos">103</span>
+<span class="linenos">104</span><span class="sd">        Args:</span>
+<span class="linenos">105</span><span class="sd">            mode: The ``LogMode`` value to convert.</span>
+<span class="linenos">106</span><span class="sd">            expected_level: The corresponding ``logging`` module constant.</span>
+<span class="linenos">107</span>
+<span class="linenos">108</span><span class="sd">        Returns:</span>
+<span class="linenos">109</span><span class="sd">            None</span>
+<span class="linenos">110</span><span class="sd">        &quot;&quot;&quot;</span>
+<span class="linenos">111</span>        <span class="k">assert</span> <span class="n">LogMode</span><span class="o">.</span><span class="n">to_logging_level</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">)</span> <span class="o">==</span> <span class="n">expected_level</span></div>
 
-<span class="linenos"> 78</span>
-<div class="viewcode-block" id="TestPosition.test_model_dump_rounding">
-<a class="viewcode-back" href="../../test_rst/test.test_collections_points.html#test.test_collections_points.TestPosition.test_model_dump_rounding">[docs]</a>
-<span class="linenos"> 79</span>    <span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">parametrize</span><span class="p">(</span>
-<span class="linenos"> 80</span>        <span class="n">argnames</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;time&quot;</span><span class="p">,</span> <span class="s2">&quot;latitude&quot;</span><span class="p">,</span> <span class="s2">&quot;longitude&quot;</span><span class="p">,</span> <span class="s2">&quot;speed&quot;</span><span class="p">,</span> <span class="s2">&quot;heading&quot;</span><span class="p">,</span> <span class="s2">&quot;expected&quot;</span><span class="p">),</span>
-<span class="linenos"> 81</span>        <span class="n">argvalues</span><span class="o">=</span><span class="p">[</span>
-<span class="linenos"> 82</span>            <span class="p">(</span>
-<span class="linenos"> 83</span>                <span class="s2">&quot;2018-04-05T17:31:00.000Z&quot;</span><span class="p">,</span>
-<span class="linenos"> 84</span>                <span class="mf">45.123456789</span><span class="p">,</span>
-<span class="linenos"> 85</span>                <span class="mf">9.123456789</span><span class="p">,</span>
-<span class="linenos"> 86</span>                <span class="mf">12.3456</span><span class="p">,</span>
-<span class="linenos"> 87</span>                <span class="mf">90.5678</span><span class="p">,</span>
-<span class="linenos"> 88</span>                <span class="n">Position</span><span class="p">(</span>
-<span class="linenos"> 89</span>                    <span class="n">time</span><span class="o">=</span><span class="s2">&quot;2018-04-05T17:31:00.000Z&quot;</span><span class="p">,</span>
-<span class="linenos"> 90</span>                    <span class="n">latitude</span><span class="o">=</span><span class="mf">45.1234568</span><span class="p">,</span>
-<span class="linenos"> 91</span>                    <span class="n">longitude</span><span class="o">=</span><span class="mf">9.1234568</span><span class="p">,</span>
-<span class="linenos"> 92</span>                    <span class="n">speed</span><span class="o">=</span><span class="mf">12.35</span><span class="p">,</span>
-<span class="linenos"> 93</span>                    <span class="n">heading</span><span class="o">=</span><span class="mf">90.57</span><span class="p">,</span>
-<span class="linenos"> 94</span>                <span class="p">),</span>
-<span class="linenos"> 95</span>            <span class="p">),</span>
-<span class="linenos"> 96</span>            <span class="p">(</span>
-<span class="linenos"> 97</span>                <span class="s2">&quot;2018-04-05T17:31:00.000Z&quot;</span><span class="p">,</span>
-<span class="linenos"> 98</span>                <span class="mf">45.12345678</span><span class="p">,</span>
-<span class="linenos"> 99</span>                <span class="mf">9.12345678</span><span class="p">,</span>
-<span class="linenos">100</span>                <span class="kc">None</span><span class="p">,</span>
-<span class="linenos">101</span>                <span class="kc">None</span><span class="p">,</span>
-<span class="linenos">102</span>                <span class="n">Position</span><span class="p">(</span>
-<span class="linenos">103</span>                    <span class="n">time</span><span class="o">=</span><span class="s2">&quot;2018-04-05T17:31:00.000Z&quot;</span><span class="p">,</span>
-<span class="linenos">104</span>                    <span class="n">latitude</span><span class="o">=</span><span class="mf">45.1234568</span><span class="p">,</span>
-<span class="linenos">105</span>                    <span class="n">longitude</span><span class="o">=</span><span class="mf">9.1234568</span><span class="p">,</span>
-<span class="linenos">106</span>                    <span class="n">speed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-<span class="linenos">107</span>                    <span class="n">heading</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-<span class="linenos">108</span>                <span class="p">),</span>
-<span class="linenos">109</span>            <span class="p">),</span>
-<span class="linenos">110</span>        <span class="p">],</span>
-<span class="linenos">111</span>    <span class="p">)</span>
-<span class="linenos">112</span>    <span class="k">def</span><span class="w"> </span><span class="nf">test_model_dump_rounding</span><span class="p">(</span>
-<span class="linenos">113</span>        <span class="bp">self</span><span class="p">,</span>
-<span class="linenos">114</span>        <span class="n">time</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-<span class="linenos">115</span>        <span class="n">latitude</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-<span class="linenos">116</span>        <span class="n">longitude</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-<span class="linenos">117</span>        <span class="n">speed</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
-<span class="linenos">118</span>        <span class="n">heading</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
-<span class="linenos">119</span>        <span class="n">expected</span><span class="p">:</span> <span class="n">Position</span><span class="p">,</span>
-<span class="linenos">120</span>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">121</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Validate serializer rounding behavior.</span>
-<span class="linenos">122</span>
-<span class="linenos">123</span><span class="sd">        Returns:</span>
-<span class="linenos">124</span><span class="sd">            None.</span>
-<span class="linenos">125</span><span class="sd">        &quot;&quot;&quot;</span>
-<span class="linenos">126</span>        <span class="n">result</span> <span class="o">=</span> <span class="n">Position</span><span class="p">(</span>
-<span class="linenos">127</span>            <span class="n">time</span><span class="o">=</span><span class="n">time</span><span class="p">,</span>
-<span class="linenos">128</span>            <span class="n">latitude</span><span class="o">=</span><span class="n">latitude</span><span class="p">,</span>
-<span class="linenos">129</span>            <span class="n">longitude</span><span class="o">=</span><span class="n">longitude</span><span class="p">,</span>
-<span class="linenos">130</span>            <span class="n">speed</span><span class="o">=</span><span class="n">speed</span><span class="p">,</span>
-<span class="linenos">131</span>            <span class="n">heading</span><span class="o">=</span><span class="n">heading</span><span class="p">,</span>
-<span class="linenos">132</span>        <span class="p">)</span>
-<span class="linenos">133</span>        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">model_dump</span><span class="p">()</span> <span class="o">==</span> <span class="n">expected</span><span class="o">.</span><span class="n">model_dump</span><span class="p">()</span></div>
-
-<span class="linenos">134</span>
-<div class="viewcode-block" id="TestPosition.test_invalid_timestamp_raises">
-<a class="viewcode-back" href="../../test_rst/test.test_collections_points.html#test.test_collections_points.TestPosition.test_invalid_timestamp_raises">[docs]</a>
-<span class="linenos">135</span>    <span class="k">def</span><span class="w"> </span><span class="nf">test_invalid_timestamp_raises</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">136</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Validate timestamp pattern check.</span>
-<span class="linenos">137</span>
-<span class="linenos">138</span><span class="sd">        Returns:</span>
-<span class="linenos">139</span><span class="sd">            None.</span>
-<span class="linenos">140</span><span class="sd">        &quot;&quot;&quot;</span>
-<span class="linenos">141</span>        <span class="k">with</span> <span class="n">pytest</span><span class="o">.</span><span class="n">raises</span><span class="p">(</span><span class="n">ValidationError</span><span class="p">):</span>
-<span class="linenos">142</span>            <span class="n">Position</span><span class="p">(</span><span class="n">time</span><span class="o">=</span><span class="s2">&quot;invalid-timestamp&quot;</span><span class="p">,</span> <span class="n">latitude</span><span class="o">=</span><span class="mf">45.0</span><span class="p">,</span> <span class="n">longitude</span><span class="o">=</span><span class="mf">9.0</span><span class="p">)</span></div>
+<span class="linenos">112</span>
+<div class="viewcode-block" id="TestLogMode.test_to_logging_level_invalid_mode">
+<a class="viewcode-back" href="../../test_rst/test.test_step_logger.html#test.test_step_logger.TestLogMode.test_to_logging_level_invalid_mode">[docs]</a>
+<span class="linenos">113</span>    <span class="k">def</span><span class="w"> </span><span class="nf">test_to_logging_level_invalid_mode</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">114</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Assert ``to_logging_level`` raises ``ValueError`` for a non-``LogMode``</span>
+<span class="linenos">115</span><span class="sd">        input.</span>
+<span class="linenos">116</span>
+<span class="linenos">117</span><span class="sd">        Returns:</span>
+<span class="linenos">118</span><span class="sd">            None</span>
+<span class="linenos">119</span><span class="sd">        &quot;&quot;&quot;</span>
+<span class="linenos">120</span>        <span class="k">with</span> <span class="n">pytest</span><span class="o">.</span><span class="n">raises</span><span class="p">(</span>
+<span class="linenos">121</span>            <span class="n">expected_exception</span><span class="o">=</span><span class="ne">ValueError</span><span class="p">,</span> <span class="n">match</span><span class="o">=</span><span class="s2">&quot;Invalid log mode: test&quot;</span>
+<span class="linenos">122</span>        <span class="p">):</span>
+<span class="linenos">123</span>            <span class="n">LogMode</span><span class="o">.</span><span class="n">to_logging_level</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">&quot;test&quot;</span><span class="p">)</span>  <span class="c1"># type: ignore[arg-type]</span></div>
 </div>
 
-<span class="linenos">143</span>
-<span class="linenos">144</span>
-<div class="viewcode-block" id="TestCrashInfo">
-<a class="viewcode-back" href="../../test_rst/test.test_collections_points.html#test.test_collections_points.TestCrashInfo">[docs]</a>
-<span class="linenos">145</span><span class="k">class</span><span class="w"> </span><span class="nc">TestCrashInfo</span><span class="p">:</span>
-<span class="linenos">146</span><span class="w">    </span><span class="sd">&quot;&quot;&quot;Tests for ``CrashInfo`` model.&quot;&quot;&quot;</span>
-<span class="linenos">147</span>
-<div class="viewcode-block" id="TestCrashInfo.test_get_default">
-<a class="viewcode-back" href="../../test_rst/test.test_collections_points.html#test.test_collections_points.TestCrashInfo.test_get_default">[docs]</a>
-<span class="linenos">148</span>    <span class="k">def</span><span class="w"> </span><span class="nf">test_get_default</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">149</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Validate default values.</span>
-<span class="linenos">150</span>
-<span class="linenos">151</span><span class="sd">        Returns:</span>
-<span class="linenos">152</span><span class="sd">            None.</span>
-<span class="linenos">153</span><span class="sd">        &quot;&quot;&quot;</span>
-<span class="linenos">154</span>        <span class="n">result</span> <span class="o">=</span> <span class="n">CrashInfo</span><span class="o">.</span><span class="n">get_default</span><span class="p">()</span>
-<span class="linenos">155</span>        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">CrashInfo</span><span class="p">)</span>
-<span class="linenos">156</span>        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">risk</span> <span class="o">==</span> <span class="mf">0.75</span>
-<span class="linenos">157</span>        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">actorsInvolved</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span></div>
+<span class="linenos">124</span>
+<span class="linenos">125</span>
+<div class="viewcode-block" id="TestUtcFormatter">
+<a class="viewcode-back" href="../../test_rst/test.test_step_logger.html#test.test_step_logger.TestUtcFormatter">[docs]</a>
+<span class="linenos">126</span><span class="k">class</span><span class="w"> </span><span class="nc">TestUtcFormatter</span><span class="p">:</span>
+<span class="linenos">127</span><span class="w">    </span><span class="sd">&quot;&quot;&quot;Tests for ``UtcFormatter``.</span>
+<span class="linenos">128</span>
+<span class="linenos">129</span><span class="sd">    Covers ``__slots__`` definition and ``converter`` UTC timestamp conversion</span>
+<span class="linenos">130</span><span class="sd">    for the Unix epoch, a concrete POSIX value, and ``None``.</span>
+<span class="linenos">131</span><span class="sd">    &quot;&quot;&quot;</span>
+<span class="linenos">132</span>
+<div class="viewcode-block" id="TestUtcFormatter.test___slots__">
+<a class="viewcode-back" href="../../test_rst/test.test_step_logger.html#test.test_step_logger.TestUtcFormatter.test___slots__">[docs]</a>
+<span class="linenos">133</span>    <span class="k">def</span><span class="w"> </span><span class="nf">test___slots__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">134</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Assert that ``UtcFormatter.__slots__`` is an empty tuple.</span>
+<span class="linenos">135</span>
+<span class="linenos">136</span><span class="sd">        Returns:</span>
+<span class="linenos">137</span><span class="sd">            None</span>
+<span class="linenos">138</span><span class="sd">        &quot;&quot;&quot;</span>
+<span class="linenos">139</span>        <span class="k">assert</span> <span class="n">UtcFormatter</span><span class="o">.</span><span class="vm">__slots__</span> <span class="o">==</span> <span class="p">()</span></div>
 
-<span class="linenos">158</span>
-<div class="viewcode-block" id="TestCrashInfo.test_estimated_latitude_rounding">
-<a class="viewcode-back" href="../../test_rst/test.test_collections_points.html#test.test_collections_points.TestCrashInfo.test_estimated_latitude_rounding">[docs]</a>
-<span class="linenos">159</span>    <span class="k">def</span><span class="w"> </span><span class="nf">test_estimated_latitude_rounding</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">160</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Validate serializer rounding behavior.</span>
-<span class="linenos">161</span>
-<span class="linenos">162</span><span class="sd">        Returns:</span>
-<span class="linenos">163</span><span class="sd">            None.</span>
-<span class="linenos">164</span><span class="sd">        &quot;&quot;&quot;</span>
-<span class="linenos">165</span>        <span class="n">result</span> <span class="o">=</span> <span class="n">CrashInfo</span><span class="p">(</span>
-<span class="linenos">166</span>            <span class="n">estimatedTimestamp</span><span class="o">=</span><span class="s2">&quot;2018-04-05T17:31:00.000Z&quot;</span><span class="p">,</span>
-<span class="linenos">167</span>            <span class="n">estimatedLatitude</span><span class="o">=</span><span class="mf">45.587878</span><span class="p">,</span>
-<span class="linenos">168</span>            <span class="n">estimatedLongitude</span><span class="o">=</span><span class="mf">60.458789</span><span class="p">,</span>
-<span class="linenos">169</span>            <span class="n">risk</span><span class="o">=</span><span class="mf">0.12345</span><span class="p">,</span>
-<span class="linenos">170</span>            <span class="n">actorsInvolved</span><span class="o">=</span><span class="p">[</span>
-<span class="linenos">171</span>                <span class="n">ActorId</span><span class="p">(</span><span class="n">station_id</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">object_id</span><span class="o">=</span><span class="mi">10</span><span class="p">),</span>
-<span class="linenos">172</span>                <span class="n">ActorId</span><span class="p">(</span><span class="n">station_id</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">object_id</span><span class="o">=</span><span class="mi">20</span><span class="p">),</span>
-<span class="linenos">173</span>            <span class="p">],</span>
-<span class="linenos">174</span>        <span class="p">)</span>
-<span class="linenos">175</span>        <span class="n">dump</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">model_dump</span><span class="p">()</span>
-<span class="linenos">176</span>        <span class="k">assert</span> <span class="n">dump</span><span class="p">[</span><span class="s2">&quot;risk&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mf">0.123</span></div>
-
-<span class="linenos">177</span>
-<div class="viewcode-block" id="TestCrashInfo.test_rounding">
-<a class="viewcode-back" href="../../test_rst/test.test_collections_points.html#test.test_collections_points.TestCrashInfo.test_rounding">[docs]</a>
-<span class="linenos">178</span>    <span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">parametrize</span><span class="p">(</span>
-<span class="linenos">179</span>        <span class="n">argnames</span><span class="o">=</span><span class="p">(</span>
-<span class="linenos">180</span>            <span class="s2">&quot;latitude&quot;</span><span class="p">,</span>
-<span class="linenos">181</span>            <span class="s2">&quot;longitude&quot;</span><span class="p">,</span>
-<span class="linenos">182</span>            <span class="s2">&quot;risk&quot;</span><span class="p">,</span>
-<span class="linenos">183</span>            <span class="s2">&quot;latitude_expected&quot;</span><span class="p">,</span>
-<span class="linenos">184</span>            <span class="s2">&quot;longitude_expected&quot;</span><span class="p">,</span>
-<span class="linenos">185</span>            <span class="s2">&quot;risk_expected&quot;</span><span class="p">,</span>
-<span class="linenos">186</span>        <span class="p">),</span>
-<span class="linenos">187</span>        <span class="n">argvalues</span><span class="o">=</span><span class="p">[(</span><span class="mf">45.58787856</span><span class="p">,</span> <span class="mf">60.45878976</span><span class="p">,</span> <span class="mf">0.1236</span><span class="p">,</span> <span class="mf">45.5878786</span><span class="p">,</span> <span class="mf">60.4587898</span><span class="p">,</span> <span class="mf">0.124</span><span class="p">)],</span>
-<span class="linenos">188</span>    <span class="p">)</span>
-<span class="linenos">189</span>    <span class="k">def</span><span class="w"> </span><span class="nf">test_rounding</span><span class="p">(</span>
-<span class="linenos">190</span>        <span class="bp">self</span><span class="p">,</span>
-<span class="linenos">191</span>        <span class="n">latitude</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-<span class="linenos">192</span>        <span class="n">longitude</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-<span class="linenos">193</span>        <span class="n">risk</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-<span class="linenos">194</span>        <span class="n">latitude_expected</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-<span class="linenos">195</span>        <span class="n">longitude_expected</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-<span class="linenos">196</span>        <span class="n">risk_expected</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-<span class="linenos">197</span>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">198</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Validate serializer rounding behavior.</span>
-<span class="linenos">199</span>
-<span class="linenos">200</span><span class="sd">        Args:</span>
-<span class="linenos">201</span><span class="sd">            latitude (float): Latitude value to test.</span>
-<span class="linenos">202</span><span class="sd">            longitude (float): Longitude value to test.</span>
-<span class="linenos">203</span><span class="sd">            risk (float): Risk value to test.</span>
-<span class="linenos">204</span><span class="sd">            latitude_expected (float): Expected rounded latitude value.</span>
-<span class="linenos">205</span><span class="sd">            longitude_expected (float): Expected rounded longitude value.</span>
-<span class="linenos">206</span><span class="sd">            risk_expected (float): Expected rounded risk value.</span>
-<span class="linenos">207</span>
-<span class="linenos">208</span><span class="sd">        Returns:</span>
-<span class="linenos">209</span><span class="sd">            None.</span>
-<span class="linenos">210</span><span class="sd">        &quot;&quot;&quot;</span>
-<span class="linenos">211</span>        <span class="n">result</span> <span class="o">=</span> <span class="n">CrashInfo</span><span class="p">(</span>
-<span class="linenos">212</span>            <span class="n">estimatedTimestamp</span><span class="o">=</span><span class="s2">&quot;2018-04-05T17:31:00.000Z&quot;</span><span class="p">,</span>
-<span class="linenos">213</span>            <span class="n">estimatedLatitude</span><span class="o">=</span><span class="n">latitude</span><span class="p">,</span>
-<span class="linenos">214</span>            <span class="n">estimatedLongitude</span><span class="o">=</span><span class="n">longitude</span><span class="p">,</span>
-<span class="linenos">215</span>            <span class="n">risk</span><span class="o">=</span><span class="n">risk</span><span class="p">,</span>
-<span class="linenos">216</span>            <span class="n">actorsInvolved</span><span class="o">=</span><span class="p">[</span>
-<span class="linenos">217</span>                <span class="n">ActorId</span><span class="p">(</span><span class="n">station_id</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">object_id</span><span class="o">=</span><span class="mi">10</span><span class="p">),</span>
-<span class="linenos">218</span>                <span class="n">ActorId</span><span class="p">(</span><span class="n">station_id</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">object_id</span><span class="o">=</span><span class="mi">20</span><span class="p">),</span>
-<span class="linenos">219</span>            <span class="p">],</span>
+<span class="linenos">140</span>
+<div class="viewcode-block" id="TestUtcFormatter.test_converter_returns_struct_time_for_given_timestamp">
+<a class="viewcode-back" href="../../test_rst/test.test_step_logger.html#test.test_step_logger.TestUtcFormatter.test_converter_returns_struct_time_for_given_timestamp">[docs]</a>
+<span class="linenos">141</span>    <span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">parametrize</span><span class="p">(</span>
+<span class="linenos">142</span>        <span class="n">argnames</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;timestamp&quot;</span><span class="p">,</span> <span class="s2">&quot;struct_expected&quot;</span><span class="p">),</span>
+<span class="linenos">143</span>        <span class="n">argvalues</span><span class="o">=</span><span class="p">[</span>
+<span class="linenos">144</span>            <span class="p">(</span>
+<span class="linenos">145</span>                <span class="mi">0</span><span class="p">,</span>
+<span class="linenos">146</span>                <span class="p">{</span>
+<span class="linenos">147</span>                    <span class="s2">&quot;tm_year&quot;</span><span class="p">:</span> <span class="mi">1970</span><span class="p">,</span>
+<span class="linenos">148</span>                    <span class="s2">&quot;tm_mon&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+<span class="linenos">149</span>                    <span class="s2">&quot;tm_mday&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+<span class="linenos">150</span>                    <span class="s2">&quot;tm_hour&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+<span class="linenos">151</span>                    <span class="s2">&quot;tm_min&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+<span class="linenos">152</span>                    <span class="s2">&quot;tm_sec&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+<span class="linenos">153</span>                    <span class="s2">&quot;tm_wday&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
+<span class="linenos">154</span>                    <span class="s2">&quot;tm_yday&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+<span class="linenos">155</span>                    <span class="s2">&quot;tm_isdst&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+<span class="linenos">156</span>                <span class="p">},</span>
+<span class="linenos">157</span>            <span class="p">),</span>
+<span class="linenos">158</span>            <span class="p">(</span>
+<span class="linenos">159</span>                <span class="mi">1680307200</span><span class="p">,</span>
+<span class="linenos">160</span>                <span class="p">{</span>
+<span class="linenos">161</span>                    <span class="s2">&quot;tm_year&quot;</span><span class="p">:</span> <span class="mi">2023</span><span class="p">,</span>
+<span class="linenos">162</span>                    <span class="s2">&quot;tm_mon&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>
+<span class="linenos">163</span>                    <span class="s2">&quot;tm_mday&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+<span class="linenos">164</span>                    <span class="s2">&quot;tm_hour&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+<span class="linenos">165</span>                    <span class="s2">&quot;tm_min&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+<span class="linenos">166</span>                    <span class="s2">&quot;tm_sec&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+<span class="linenos">167</span>                    <span class="s2">&quot;tm_wday&quot;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>
+<span class="linenos">168</span>                    <span class="s2">&quot;tm_yday&quot;</span><span class="p">:</span> <span class="mi">91</span><span class="p">,</span>
+<span class="linenos">169</span>                    <span class="s2">&quot;tm_isdst&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+<span class="linenos">170</span>                <span class="p">},</span>
+<span class="linenos">171</span>            <span class="p">),</span>
+<span class="linenos">172</span>            <span class="p">(</span>
+<span class="linenos">173</span>                <span class="kc">None</span><span class="p">,</span>
+<span class="linenos">174</span>                <span class="p">{</span>
+<span class="linenos">175</span>                    <span class="s2">&quot;tm_year&quot;</span><span class="p">:</span> <span class="mi">2023</span><span class="p">,</span>
+<span class="linenos">176</span>                    <span class="s2">&quot;tm_mon&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>
+<span class="linenos">177</span>                    <span class="s2">&quot;tm_mday&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+<span class="linenos">178</span>                    <span class="s2">&quot;tm_hour&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+<span class="linenos">179</span>                    <span class="s2">&quot;tm_min&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+<span class="linenos">180</span>                    <span class="s2">&quot;tm_sec&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+<span class="linenos">181</span>                    <span class="s2">&quot;tm_wday&quot;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>
+<span class="linenos">182</span>                    <span class="s2">&quot;tm_yday&quot;</span><span class="p">:</span> <span class="mi">91</span><span class="p">,</span>
+<span class="linenos">183</span>                    <span class="s2">&quot;tm_isdst&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+<span class="linenos">184</span>                <span class="p">},</span>
+<span class="linenos">185</span>            <span class="p">),</span>
+<span class="linenos">186</span>        <span class="p">],</span>
+<span class="linenos">187</span>        <span class="n">ids</span><span class="o">=</span><span class="p">[</span>
+<span class="linenos">188</span>            <span class="s2">&quot;Unix epoch timestamp&quot;</span><span class="p">,</span>
+<span class="linenos">189</span>            <span class="s2">&quot;Specific timestamp (2023-04-01 00:00:00 UTC)&quot;</span><span class="p">,</span>
+<span class="linenos">190</span>            <span class="s2">&quot;None timestamp (current time)&quot;</span><span class="p">,</span>
+<span class="linenos">191</span>        <span class="p">],</span>
+<span class="linenos">192</span>    <span class="p">)</span>
+<span class="linenos">193</span>    <span class="k">def</span><span class="w"> </span><span class="nf">test_converter_returns_struct_time_for_given_timestamp</span><span class="p">(</span>
+<span class="linenos">194</span>        <span class="bp">self</span><span class="p">,</span>
+<span class="linenos">195</span>        <span class="n">mocker</span><span class="p">:</span> <span class="n">MockerFixture</span><span class="p">,</span>
+<span class="linenos">196</span>        <span class="n">timestamp</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+<span class="linenos">197</span>        <span class="n">struct_expected</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
+<span class="linenos">198</span>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">199</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Assert ``converter`` calls ``gmtime(timestamp)`` and returns a matching</span>
+<span class="linenos">200</span><span class="sd">        ``struct_time``.</span>
+<span class="linenos">201</span>
+<span class="linenos">202</span><span class="sd">        Patches ``gmtime`` and verifies it is called exactly once with the given</span>
+<span class="linenos">203</span><span class="sd">        ``timestamp``. Asserts the return value is a ``struct_time`` instance whose</span>
+<span class="linenos">204</span><span class="sd">        fields all match ``struct_expected``.</span>
+<span class="linenos">205</span>
+<span class="linenos">206</span><span class="sd">        Args:</span>
+<span class="linenos">207</span><span class="sd">            mocker: pytest-mock fixture for patching.</span>
+<span class="linenos">208</span><span class="sd">            timestamp: POSIX timestamp forwarded to ``gmtime``, or ``None``.</span>
+<span class="linenos">209</span><span class="sd">            struct_expected: Expected field values for the returned ``struct_time``.</span>
+<span class="linenos">210</span>
+<span class="linenos">211</span><span class="sd">        Returns:</span>
+<span class="linenos">212</span><span class="sd">            None</span>
+<span class="linenos">213</span><span class="sd">        &quot;&quot;&quot;</span>
+<span class="linenos">214</span>        <span class="c1"># Arrange</span>
+<span class="linenos">215</span>        <span class="n">mock_gmtime</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span>
+<span class="linenos">216</span>            <span class="s2">&quot;crash_prediction_log_extractor.step_logger.gmtime&quot;</span><span class="p">,</span>
+<span class="linenos">217</span>            <span class="n">return_value</span><span class="o">=</span><span class="n">struct_time</span><span class="p">(</span>
+<span class="linenos">218</span>                <span class="n">sequence</span><span class="o">=</span><span class="p">(</span><span class="n">value</span> <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">struct_expected</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+<span class="linenos">219</span>            <span class="p">),</span>
 <span class="linenos">220</span>        <span class="p">)</span>
-<span class="linenos">221</span>        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">estimatedLatitude</span> <span class="o">==</span> <span class="n">pytest</span><span class="o">.</span><span class="n">approx</span><span class="p">(</span>
-<span class="linenos">222</span>            <span class="n">expected</span><span class="o">=</span><span class="n">latitude_expected</span><span class="p">,</span> <span class="nb">abs</span><span class="o">=</span><span class="mf">1e-7</span>
-<span class="linenos">223</span>        <span class="p">)</span>
-<span class="linenos">224</span>        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">estimatedLongitude</span> <span class="o">==</span> <span class="n">pytest</span><span class="o">.</span><span class="n">approx</span><span class="p">(</span>
-<span class="linenos">225</span>            <span class="n">expected</span><span class="o">=</span><span class="n">longitude_expected</span><span class="p">,</span> <span class="nb">abs</span><span class="o">=</span><span class="mf">1e-7</span>
-<span class="linenos">226</span>        <span class="p">)</span>
-<span class="linenos">227</span>        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">risk</span> <span class="o">==</span> <span class="n">pytest</span><span class="o">.</span><span class="n">approx</span><span class="p">(</span><span class="n">expected</span><span class="o">=</span><span class="n">risk_expected</span><span class="p">,</span> <span class="nb">abs</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span></div>
+<span class="linenos">221</span>        <span class="c1"># Act</span>
+<span class="linenos">222</span>        <span class="n">result</span> <span class="o">=</span> <span class="n">UtcFormatter</span><span class="o">.</span><span class="n">converter</span><span class="p">(</span><span class="n">timestamp</span><span class="o">=</span><span class="n">timestamp</span><span class="p">)</span>
+<span class="linenos">223</span>        <span class="c1"># Assert</span>
+<span class="linenos">224</span>        <span class="n">mock_gmtime</span><span class="o">.</span><span class="n">assert_called_once_with</span><span class="p">(</span><span class="n">timestamp</span><span class="p">)</span>
+<span class="linenos">225</span>        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">struct_time</span><span class="p">)</span>
+<span class="linenos">226</span>        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">tm_year</span> <span class="o">==</span> <span class="n">struct_expected</span><span class="p">[</span><span class="s2">&quot;tm_year&quot;</span><span class="p">]</span>
+<span class="linenos">227</span>        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">tm_mon</span> <span class="o">==</span> <span class="n">struct_expected</span><span class="p">[</span><span class="s2">&quot;tm_mon&quot;</span><span class="p">]</span>
+<span class="linenos">228</span>        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">tm_mday</span> <span class="o">==</span> <span class="n">struct_expected</span><span class="p">[</span><span class="s2">&quot;tm_mday&quot;</span><span class="p">]</span>
+<span class="linenos">229</span>        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">tm_hour</span> <span class="o">==</span> <span class="n">struct_expected</span><span class="p">[</span><span class="s2">&quot;tm_hour&quot;</span><span class="p">]</span>
+<span class="linenos">230</span>        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">tm_min</span> <span class="o">==</span> <span class="n">struct_expected</span><span class="p">[</span><span class="s2">&quot;tm_min&quot;</span><span class="p">]</span>
+<span class="linenos">231</span>        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">tm_sec</span> <span class="o">==</span> <span class="n">struct_expected</span><span class="p">[</span><span class="s2">&quot;tm_sec&quot;</span><span class="p">]</span>
+<span class="linenos">232</span>        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">tm_wday</span> <span class="o">==</span> <span class="n">struct_expected</span><span class="p">[</span><span class="s2">&quot;tm_wday&quot;</span><span class="p">]</span>
+<span class="linenos">233</span>        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">tm_yday</span> <span class="o">==</span> <span class="n">struct_expected</span><span class="p">[</span><span class="s2">&quot;tm_yday&quot;</span><span class="p">]</span>
+<span class="linenos">234</span>        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">tm_isdst</span> <span class="o">==</span> <span class="n">struct_expected</span><span class="p">[</span><span class="s2">&quot;tm_isdst&quot;</span><span class="p">]</span></div>
 </div>
 
-<span class="linenos">228</span>
-<span class="linenos">229</span>
-<div class="viewcode-block" id="TestDataType">
-<a class="viewcode-back" href="../../test_rst/test.test_collections_points.html#test.test_collections_points.TestDataType">[docs]</a>
-<span class="linenos">230</span><span class="k">class</span><span class="w"> </span><span class="nc">TestDataType</span><span class="p">:</span>
-<span class="linenos">231</span><span class="w">    </span><span class="sd">&quot;&quot;&quot;Tests for ``DataType`` enum.&quot;&quot;&quot;</span>
-<span class="linenos">232</span>
-<div class="viewcode-block" id="TestDataType.test___slots__">
-<a class="viewcode-back" href="../../test_rst/test.test_collections_points.html#test.test_collections_points.TestDataType.test___slots__">[docs]</a>
-<span class="linenos">233</span>    <span class="k">def</span><span class="w"> </span><span class="nf">test___slots__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">234</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Validate slots declaration.</span>
 <span class="linenos">235</span>
-<span class="linenos">236</span><span class="sd">        Returns:</span>
-<span class="linenos">237</span><span class="sd">            None.</span>
-<span class="linenos">238</span><span class="sd">        &quot;&quot;&quot;</span>
-<span class="linenos">239</span>        <span class="k">assert</span> <span class="n">DataType</span><span class="o">.</span><span class="vm">__slots__</span> <span class="o">==</span> <span class="p">()</span></div>
+<span class="linenos">236</span>
+<div class="viewcode-block" id="test_get_logger">
+<a class="viewcode-back" href="../../test_rst/test.test_step_logger.html#test.test_step_logger.test_get_logger">[docs]</a>
+<span class="linenos">237</span><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">parametrize</span><span class="p">(</span>
+<span class="linenos">238</span>    <span class="n">argnames</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;file_log&quot;</span><span class="p">,</span> <span class="s2">&quot;log_level&quot;</span><span class="p">),</span>
+<span class="linenos">239</span>    <span class="n">argvalues</span><span class="o">=</span><span class="p">[</span>
+<span class="linenos">240</span>        <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+<span class="linenos">241</span>        <span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;path/to/logfile.log&quot;</span><span class="p">),</span> <span class="kc">None</span><span class="p">),</span>
+<span class="linenos">242</span>        <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">LogMode</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">),</span>
+<span class="linenos">243</span>        <span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;path/to/logfile.log&quot;</span><span class="p">),</span> <span class="n">LogMode</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">),</span>
+<span class="linenos">244</span>    <span class="p">],</span>
+<span class="linenos">245</span><span class="p">)</span>
+<span class="linenos">246</span><span class="k">def</span><span class="w"> </span><span class="nf">test_get_logger</span><span class="p">(</span>
+<span class="linenos">247</span>    <span class="n">mocker</span><span class="p">:</span> <span class="n">MockerFixture</span><span class="p">,</span> <span class="n">file_log</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">],</span> <span class="n">log_level</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">LogMode</span><span class="p">]</span>
+<span class="linenos">248</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">249</span><span class="w">    </span><span class="sd">&quot;&quot;&quot;Assert ``get_logger`` wires up stream and optional file handlers correctly.</span>
+<span class="linenos">250</span>
+<span class="linenos">251</span><span class="sd">    Verifies that ``get_logger``:</span>
+<span class="linenos">252</span>
+<span class="linenos">253</span><span class="sd">    - Calls ``getLogger()`` once with no arguments and clears existing handlers.</span>
+<span class="linenos">254</span><span class="sd">    - Sets the logger level to ``log_level`` (defaults to ``ERROR`` when ``None``).</span>
+<span class="linenos">255</span><span class="sd">    - Creates a ``StreamHandler`` on ``sys.stdout`` fixed at ``ERROR`` level.</span>
+<span class="linenos">256</span><span class="sd">    - When ``file_log`` is given, creates the parent directory (``parents=True,</span>
+<span class="linenos">257</span><span class="sd">      exist_ok=True``) and attaches a ``FileHandler`` at the resolved log level.</span>
+<span class="linenos">258</span><span class="sd">    - Returns the configured logger instance.</span>
+<span class="linenos">259</span>
+<span class="linenos">260</span><span class="sd">    Args:</span>
+<span class="linenos">261</span><span class="sd">        mocker: pytest-mock fixture for patching dependencies.</span>
+<span class="linenos">262</span><span class="sd">        file_log: Path to the log file, or ``None`` for stream-only logging.</span>
+<span class="linenos">263</span><span class="sd">        log_level: Desired log level, or ``None`` to use the default (``ERROR``).</span>
+<span class="linenos">264</span>
+<span class="linenos">265</span><span class="sd">    Returns:</span>
+<span class="linenos">266</span><span class="sd">        None</span>
+<span class="linenos">267</span><span class="sd">    &quot;&quot;&quot;</span>
+<span class="linenos">268</span>    <span class="c1"># Arrange</span>
+<span class="linenos">269</span>    <span class="n">mock_logger</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">(</span><span class="n">spec</span><span class="o">=</span><span class="n">Logger</span><span class="p">)</span>
+<span class="linenos">270</span>    <span class="n">mock_logger</span><span class="o">.</span><span class="n">handlers</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">(</span><span class="n">spec</span><span class="o">=</span><span class="nb">list</span><span class="p">[</span><span class="n">Handler</span><span class="p">])</span>
+<span class="linenos">271</span>    <span class="n">mock_logger</span><span class="o">.</span><span class="n">handlers</span><span class="o">.</span><span class="n">clear</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">()</span>
+<span class="linenos">272</span>    <span class="n">mock_logger</span><span class="o">.</span><span class="n">setLevel</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">()</span>
+<span class="linenos">273</span>    <span class="n">mock_logger</span><span class="o">.</span><span class="n">addHandler</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">()</span>
+<span class="linenos">274</span>    <span class="n">mock_stream_handler</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">(</span><span class="n">spec</span><span class="o">=</span><span class="n">Handler</span><span class="p">)</span>
+<span class="linenos">275</span>    <span class="n">mock_stream_handler</span><span class="o">.</span><span class="n">setFormatter</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">()</span>
+<span class="linenos">276</span>    <span class="n">mock_stream_handler</span><span class="o">.</span><span class="n">setLevel</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">()</span>
+<span class="linenos">277</span>    <span class="n">mock_file_handler</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">(</span><span class="n">spec</span><span class="o">=</span><span class="n">Handler</span><span class="p">)</span>
+<span class="linenos">278</span>    <span class="n">mock_file_handler</span><span class="o">.</span><span class="n">setFormatter</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">()</span>
+<span class="linenos">279</span>    <span class="n">mock_file_handler</span><span class="o">.</span><span class="n">setLevel</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">()</span>
+<span class="linenos">280</span>    <span class="n">mock_get_logger</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span>
+<span class="linenos">281</span>        <span class="s2">&quot;crash_prediction_log_extractor.step_logger.getLogger&quot;</span><span class="p">,</span> <span class="n">return_value</span><span class="o">=</span><span class="n">mock_logger</span>
+<span class="linenos">282</span>    <span class="p">)</span>
+<span class="linenos">283</span>    <span class="n">mock_stream_handler_class</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span>
+<span class="linenos">284</span>        <span class="s2">&quot;crash_prediction_log_extractor.step_logger.StreamHandler&quot;</span><span class="p">,</span>
+<span class="linenos">285</span>        <span class="n">return_value</span><span class="o">=</span><span class="n">mock_stream_handler</span><span class="p">,</span>
+<span class="linenos">286</span>    <span class="p">)</span>
+<span class="linenos">287</span>    <span class="n">mock_file_handler_class</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span>
+<span class="linenos">288</span>        <span class="s2">&quot;crash_prediction_log_extractor.step_logger.FileHandler&quot;</span><span class="p">,</span>
+<span class="linenos">289</span>        <span class="n">return_value</span><span class="o">=</span><span class="n">mock_file_handler</span><span class="p">,</span>
+<span class="linenos">290</span>    <span class="p">)</span>
+<span class="linenos">291</span>    <span class="n">mocker</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span>
+<span class="linenos">292</span>        <span class="s2">&quot;crash_prediction_log_extractor.step_logger.UtcFormatter&quot;</span><span class="p">,</span>
+<span class="linenos">293</span>        <span class="n">return_value</span><span class="o">=</span><span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">(</span><span class="n">spec</span><span class="o">=</span><span class="n">UtcFormatter</span><span class="p">),</span>
+<span class="linenos">294</span>    <span class="p">)</span>
+<span class="linenos">295</span>    <span class="n">mock_mkdir</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">patch</span><span class="o">.</span><span class="n">object</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">Path</span><span class="p">,</span> <span class="n">attribute</span><span class="o">=</span><span class="s2">&quot;mkdir&quot;</span><span class="p">)</span>
+<span class="linenos">296</span>    <span class="c1"># Act</span>
+<span class="linenos">297</span>    <span class="n">result</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="n">file_log</span><span class="o">=</span><span class="n">file_log</span><span class="p">,</span> <span class="n">log_level</span><span class="o">=</span><span class="n">log_level</span><span class="p">)</span>
+<span class="linenos">298</span>    <span class="c1"># Assert</span>
+<span class="linenos">299</span>    <span class="n">mock_get_logger</span><span class="o">.</span><span class="n">assert_called_once_with</span><span class="p">()</span>
+<span class="linenos">300</span>    <span class="n">mock_logger</span><span class="o">.</span><span class="n">handlers</span><span class="o">.</span><span class="n">clear</span><span class="o">.</span><span class="n">assert_called_once</span><span class="p">()</span>
+<span class="linenos">301</span>    <span class="n">expected_log_level</span> <span class="o">=</span> <span class="n">LogMode</span><span class="o">.</span><span class="n">to_logging_level</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="n">log_level</span> <span class="ow">or</span> <span class="n">LogMode</span><span class="o">.</span><span class="n">ERROR</span><span class="p">)</span>
+<span class="linenos">302</span>    <span class="n">mock_logger</span><span class="o">.</span><span class="n">setLevel</span><span class="o">.</span><span class="n">assert_called_once_with</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">expected_log_level</span><span class="p">)</span>
+<span class="linenos">303</span>    <span class="n">mock_stream_handler_class</span><span class="o">.</span><span class="n">assert_called_once_with</span><span class="p">(</span><span class="n">stream</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="p">)</span>
+<span class="linenos">304</span>    <span class="n">mock_stream_handler</span><span class="o">.</span><span class="n">setLevel</span><span class="o">.</span><span class="n">assert_called_once_with</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">ERROR</span><span class="p">)</span>
+<span class="linenos">305</span>    <span class="n">mock_logger</span><span class="o">.</span><span class="n">addHandler</span><span class="o">.</span><span class="n">assert_any_call</span><span class="p">(</span><span class="n">hdlr</span><span class="o">=</span><span class="n">mock_stream_handler</span><span class="p">)</span>
+<span class="linenos">306</span>    <span class="k">if</span> <span class="n">file_log</span><span class="p">:</span>
+<span class="linenos">307</span>        <span class="n">mock_mkdir</span><span class="o">.</span><span class="n">assert_called_once</span><span class="p">()</span>
+<span class="linenos">308</span>        <span class="k">assert</span> <span class="n">mock_mkdir</span><span class="o">.</span><span class="n">call_args</span><span class="o">.</span><span class="n">kwargs</span> <span class="o">==</span> <span class="p">{</span><span class="s2">&quot;parents&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">&quot;exist_ok&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">}</span>
+<span class="linenos">309</span>        <span class="n">mock_file_handler_class</span><span class="o">.</span><span class="n">assert_called_once_with</span><span class="p">(</span>
+<span class="linenos">310</span>            <span class="n">filename</span><span class="o">=</span><span class="n">file_log</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">,</span> <span class="n">delay</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">errors</span><span class="o">=</span><span class="kc">None</span>
+<span class="linenos">311</span>        <span class="p">)</span>
+<span class="linenos">312</span>        <span class="n">mock_file_handler</span><span class="o">.</span><span class="n">setLevel</span><span class="o">.</span><span class="n">assert_called_once_with</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">expected_log_level</span><span class="p">)</span>
+<span class="linenos">313</span>        <span class="n">mock_logger</span><span class="o">.</span><span class="n">addHandler</span><span class="o">.</span><span class="n">assert_any_call</span><span class="p">(</span><span class="n">hdlr</span><span class="o">=</span><span class="n">mock_file_handler</span><span class="p">)</span>
+<span class="linenos">314</span>    <span class="k">assert</span> <span class="n">result</span> <span class="o">==</span> <span class="n">mock_logger</span></div>
 
-<span class="linenos">240</span>
-<div class="viewcode-block" id="TestDataType.test_value">
-<a class="viewcode-back" href="../../test_rst/test.test_collections_points.html#test.test_collections_points.TestDataType.test_value">[docs]</a>
-<span class="linenos">241</span>    <span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">parametrize</span><span class="p">(</span>
-<span class="linenos">242</span>        <span class="n">argnames</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;enum_value&quot;</span><span class="p">,</span> <span class="s2">&quot;expected&quot;</span><span class="p">),</span>
-<span class="linenos">243</span>        <span class="n">argvalues</span><span class="o">=</span><span class="p">[(</span><span class="n">DataType</span><span class="o">.</span><span class="n">NORMALIZED</span><span class="p">,</span> <span class="s2">&quot;normalized&quot;</span><span class="p">),</span> <span class="p">(</span><span class="n">DataType</span><span class="o">.</span><span class="n">ANOMALY</span><span class="p">,</span> <span class="s2">&quot;anomaly&quot;</span><span class="p">)],</span>
-<span class="linenos">244</span>    <span class="p">)</span>
-<span class="linenos">245</span>    <span class="k">def</span><span class="w"> </span><span class="nf">test_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">enum_value</span><span class="p">:</span> <span class="n">DataType</span><span class="p">,</span> <span class="n">expected</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">246</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Validate enum values.</span>
-<span class="linenos">247</span>
-<span class="linenos">248</span><span class="sd">        Returns:</span>
-<span class="linenos">249</span><span class="sd">            None.</span>
-<span class="linenos">250</span><span class="sd">        &quot;&quot;&quot;</span>
-<span class="linenos">251</span>        <span class="k">assert</span> <span class="n">enum_value</span><span class="o">.</span><span class="n">value</span> <span class="o">==</span> <span class="n">expected</span>
-<span class="linenos">252</span>        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">DataType</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span></div>
-</div>
-
-<span class="linenos">253</span>
-<span class="linenos">254</span>
-<div class="viewcode-block" id="TestSessionData">
-<a class="viewcode-back" href="../../test_rst/test.test_collections_points.html#test.test_collections_points.TestSessionData">[docs]</a>
-<span class="linenos">255</span><span class="k">class</span><span class="w"> </span><span class="nc">TestSessionData</span><span class="p">:</span>
-<span class="linenos">256</span><span class="w">    </span><span class="sd">&quot;&quot;&quot;Tests for ``SessionData`` model.&quot;&quot;&quot;</span>
-<span class="linenos">257</span>
-<div class="viewcode-block" id="TestSessionData.test_get_default">
-<a class="viewcode-back" href="../../test_rst/test.test_collections_points.html#test.test_collections_points.TestSessionData.test_get_default">[docs]</a>
-<span class="linenos">258</span>    <span class="k">def</span><span class="w"> </span><span class="nf">test_get_default</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">259</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Validate default values.</span>
-<span class="linenos">260</span>
-<span class="linenos">261</span><span class="sd">        Returns:</span>
-<span class="linenos">262</span><span class="sd">            None.</span>
-<span class="linenos">263</span><span class="sd">        &quot;&quot;&quot;</span>
-<span class="linenos">264</span>        <span class="n">result</span> <span class="o">=</span> <span class="n">SessionData</span><span class="o">.</span><span class="n">get_default</span><span class="p">()</span>
-<span class="linenos">265</span>        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">SessionData</span><span class="p">)</span>
-<span class="linenos">266</span>        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">lastRealTime</span> <span class="o">==</span> <span class="s2">&quot;2018-04-05T17:31:00.000Z&quot;</span>
-<span class="linenos">267</span>        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">dataType</span> <span class="o">==</span> <span class="n">DataType</span><span class="o">.</span><span class="n">NORMALIZED</span>
-<span class="linenos">268</span>        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">realPositions</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
-<span class="linenos">269</span>        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">forecastedPositions</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
-<span class="linenos">270</span>        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">crashInfo</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span></div>
-</div>
-
-<span class="linenos">271</span>
-<span class="linenos">272</span>
-<div class="viewcode-block" id="TestCollectionSections">
-<a class="viewcode-back" href="../../test_rst/test.test_collections_points.html#test.test_collections_points.TestCollectionSections">[docs]</a>
-<span class="linenos">273</span><span class="k">class</span><span class="w"> </span><span class="nc">TestCollectionSections</span><span class="p">:</span>
-<span class="linenos">274</span><span class="w">    </span><span class="sd">&quot;&quot;&quot;Tests for ``CollectionSections`` model.&quot;&quot;&quot;</span>
-<span class="linenos">275</span>
-<div class="viewcode-block" id="TestCollectionSections.test_get_default">
-<a class="viewcode-back" href="../../test_rst/test.test_collections_points.html#test.test_collections_points.TestCollectionSections.test_get_default">[docs]</a>
-<span class="linenos">276</span>    <span class="k">def</span><span class="w"> </span><span class="nf">test_get_default</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">277</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Validate default values.</span>
-<span class="linenos">278</span>
-<span class="linenos">279</span><span class="sd">        Returns:</span>
-<span class="linenos">280</span><span class="sd">            None.</span>
-<span class="linenos">281</span><span class="sd">        &quot;&quot;&quot;</span>
-<span class="linenos">282</span>        <span class="n">result</span> <span class="o">=</span> <span class="n">CollectionSections</span><span class="o">.</span><span class="n">get_default</span><span class="p">()</span>
-<span class="linenos">283</span>        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">CollectionSections</span><span class="p">)</span>
-<span class="linenos">284</span>        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">actorId</span><span class="o">.</span><span class="n">station_id</span> <span class="o">==</span> <span class="mi">1</span>
-<span class="linenos">285</span>        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">actorId</span><span class="o">.</span><span class="n">object_id</span> <span class="o">==</span> <span class="mi">10</span>
-<span class="linenos">286</span>        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">sessions</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span></div>
-</div>
-
-<span class="linenos">287</span>
-<span class="linenos">288</span>
-<div class="viewcode-block" id="TestConfigGenerateJsonSchema">
-<a class="viewcode-back" href="../../test_rst/test.test_collections_points.html#test.test_collections_points.TestConfigGenerateJsonSchema">[docs]</a>
-<span class="linenos">289</span><span class="k">class</span><span class="w"> </span><span class="nc">TestConfigGenerateJsonSchema</span><span class="p">:</span>
-<span class="linenos">290</span><span class="w">    </span><span class="sd">&quot;&quot;&quot;Tests for ``ConfigGenerateJsonSchema`` class.&quot;&quot;&quot;</span>
-<span class="linenos">291</span>
-<div class="viewcode-block" id="TestConfigGenerateJsonSchema.test___slots__">
-<a class="viewcode-back" href="../../test_rst/test.test_collections_points.html#test.test_collections_points.TestConfigGenerateJsonSchema.test___slots__">[docs]</a>
-<span class="linenos">292</span>    <span class="k">def</span><span class="w"> </span><span class="nf">test___slots__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">293</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Validate slots declaration.</span>
-<span class="linenos">294</span>
-<span class="linenos">295</span><span class="sd">        Returns:</span>
-<span class="linenos">296</span><span class="sd">            None.</span>
-<span class="linenos">297</span><span class="sd">        &quot;&quot;&quot;</span>
-<span class="linenos">298</span>        <span class="k">assert</span> <span class="n">ConfigGenerateJsonSchema</span><span class="o">.</span><span class="vm">__slots__</span> <span class="o">==</span> <span class="p">()</span></div>
-
-<span class="linenos">299</span>
-<div class="viewcode-block" id="TestConfigGenerateJsonSchema.test_generate">
-<a class="viewcode-back" href="../../test_rst/test.test_collections_points.html#test.test_collections_points.TestConfigGenerateJsonSchema.test_generate">[docs]</a>
-<span class="linenos">300</span>    <span class="k">def</span><span class="w"> </span><span class="nf">test_generate</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">301</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Validate custom schema generation keys.</span>
-<span class="linenos">302</span>
-<span class="linenos">303</span><span class="sd">        Returns:</span>
-<span class="linenos">304</span><span class="sd">            None.</span>
-<span class="linenos">305</span><span class="sd">        &quot;&quot;&quot;</span>
-<span class="linenos">306</span>        <span class="n">generator</span> <span class="o">=</span> <span class="n">ConfigGenerateJsonSchema</span><span class="p">()</span>
-<span class="linenos">307</span>        <span class="n">core_schema</span> <span class="o">=</span> <span class="n">CollectionsPoints</span><span class="o">.</span><span class="n">__pydantic_core_schema__</span>
-<span class="linenos">308</span>        <span class="n">result</span> <span class="o">=</span> <span class="n">generator</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="n">schema</span><span class="o">=</span><span class="n">core_schema</span><span class="p">)</span>
-<span class="linenos">309</span>
-<span class="linenos">310</span>        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span>
-<span class="linenos">311</span>        <span class="k">assert</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;$id&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">CollectionsPoints</span><span class="o">.</span><span class="n">COLLECTIONS_SCHEMA</span>
-<span class="linenos">312</span>        <span class="k">assert</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;$schema&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;https://json-schema.org/draft/2020-12/schema&quot;</span></div>
-</div>
-
-<span class="linenos">313</span>
-<span class="linenos">314</span>
-<div class="viewcode-block" id="TestCollectionsPoints">
-<a class="viewcode-back" href="../../test_rst/test.test_collections_points.html#test.test_collections_points.TestCollectionsPoints">[docs]</a>
-<span class="linenos">315</span><span class="k">class</span><span class="w"> </span><span class="nc">TestCollectionsPoints</span><span class="p">:</span>
-<span class="linenos">316</span><span class="w">    </span><span class="sd">&quot;&quot;&quot;Tests for ``CollectionsPoints`` root model.&quot;&quot;&quot;</span>
-<span class="linenos">317</span>
-<div class="viewcode-block" id="TestCollectionsPoints.test_get_default">
-<a class="viewcode-back" href="../../test_rst/test.test_collections_points.html#test.test_collections_points.TestCollectionsPoints.test_get_default">[docs]</a>
-<span class="linenos">318</span>    <span class="k">def</span><span class="w"> </span><span class="nf">test_get_default</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">319</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Validate default values.</span>
+<span class="linenos">315</span>
+<span class="linenos">316</span>
+<div class="viewcode-block" id="test_logger_force_write">
+<a class="viewcode-back" href="../../test_rst/test.test_step_logger.html#test.test_step_logger.test_logger_force_write">[docs]</a>
+<span class="linenos">317</span><span class="k">def</span><span class="w"> </span><span class="nf">test_logger_force_write</span><span class="p">(</span><span class="n">mocker</span><span class="p">:</span> <span class="n">MockerFixture</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">318</span><span class="w">    </span><span class="sd">&quot;&quot;&quot;Assert ``logger_force_write`` temporarily elevates levels to INFO, logs, then</span>
+<span class="linenos">319</span><span class="sd">    restores.</span>
 <span class="linenos">320</span>
-<span class="linenos">321</span><span class="sd">        Returns:</span>
-<span class="linenos">322</span><span class="sd">            None.</span>
-<span class="linenos">323</span><span class="sd">        &quot;&quot;&quot;</span>
-<span class="linenos">324</span>        <span class="n">result</span> <span class="o">=</span> <span class="n">CollectionsPoints</span><span class="o">.</span><span class="n">get_default</span><span class="p">()</span>
-<span class="linenos">325</span>        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">CollectionsPoints</span><span class="p">)</span>
-<span class="linenos">326</span>        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">formatVersion</span> <span class="o">==</span> <span class="n">CollectionsPointsDataModelVersion</span><span class="o">.</span><span class="n">V1</span>
-<span class="linenos">327</span>        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">collections</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span></div>
-
+<span class="linenos">321</span><span class="sd">    Sets up a mock logger at ``WARNING`` level with two handlers also at ``WARNING``.</span>
+<span class="linenos">322</span><span class="sd">    Verifies that ``logger_force_write`` raises both the logger and every handler to</span>
+<span class="linenos">323</span><span class="sd">    ``INFO`` before calling ``logger.info(msg=msg)``, and then restores each back to</span>
+<span class="linenos">324</span><span class="sd">    their original ``WARNING`` level.</span>
+<span class="linenos">325</span>
+<span class="linenos">326</span><span class="sd">    Args:</span>
+<span class="linenos">327</span><span class="sd">        mocker: pytest-mock fixture for creating mock objects.</span>
 <span class="linenos">328</span>
-<div class="viewcode-block" id="TestCollectionsPoints.test_print_to_file">
-<a class="viewcode-back" href="../../test_rst/test.test_collections_points.html#test.test_collections_points.TestCollectionsPoints.test_print_to_file">[docs]</a>
-<span class="linenos">329</span>    <span class="k">def</span><span class="w"> </span><span class="nf">test_print_to_file</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">330</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Validate payload export to file.</span>
-<span class="linenos">331</span>
-<span class="linenos">332</span><span class="sd">        Returns:</span>
-<span class="linenos">333</span><span class="sd">            None.</span>
-<span class="linenos">334</span><span class="sd">        &quot;&quot;&quot;</span>
-<span class="linenos">335</span>        <span class="k">with</span> <span class="n">TemporaryDirectory</span><span class="p">()</span> <span class="k">as</span> <span class="n">tmp_path</span><span class="p">:</span>
-<span class="linenos">336</span>            <span class="n">output_file</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">tmp_path</span><span class="p">)</span> <span class="o">/</span> <span class="s2">&quot;collections_points.json&quot;</span>
-<span class="linenos">337</span>            <span class="n">CollectionsPoints</span><span class="o">.</span><span class="n">get_default</span><span class="p">()</span><span class="o">.</span><span class="n">print_to_file</span><span class="p">(</span><span class="n">file_path</span><span class="o">=</span><span class="n">output_file</span><span class="p">)</span>
-<span class="linenos">338</span>            <span class="k">assert</span> <span class="n">output_file</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span>
-<span class="linenos">339</span>            <span class="k">assert</span> <span class="n">output_file</span><span class="o">.</span><span class="n">read_text</span><span class="p">(</span><span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span></div>
-
-<span class="linenos">340</span>
-<div class="viewcode-block" id="TestCollectionsPoints.test_print_schema">
-<a class="viewcode-back" href="../../test_rst/test.test_collections_points.html#test.test_collections_points.TestCollectionsPoints.test_print_schema">[docs]</a>
-<span class="linenos">341</span>    <span class="k">def</span><span class="w"> </span><span class="nf">test_print_schema</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">342</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Validate generated schema against reference fixture.</span>
-<span class="linenos">343</span>
-<span class="linenos">344</span><span class="sd">        Returns:</span>
-<span class="linenos">345</span><span class="sd">            None.</span>
-<span class="linenos">346</span><span class="sd">        &quot;&quot;&quot;</span>
-<span class="linenos">347</span>        <span class="k">with</span> <span class="p">(</span>
-<span class="linenos">348</span>            <span class="n">resources</span><span class="o">.</span><span class="n">as_file</span><span class="p">(</span><span class="n">resources</span><span class="o">.</span><span class="n">files</span><span class="p">(</span><span class="n">schemas</span><span class="p">))</span> <span class="k">as</span> <span class="n">resource_path</span><span class="p">,</span>
-<span class="linenos">349</span>            <span class="n">TemporaryDirectory</span><span class="p">()</span> <span class="k">as</span> <span class="n">tmp_path</span><span class="p">,</span>
-<span class="linenos">350</span>        <span class="p">):</span>
-<span class="linenos">351</span>            <span class="n">CollectionsPoints</span><span class="o">.</span><span class="n">print_schema</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="n">tmp_path</span><span class="p">))</span>
-<span class="linenos">352</span>            <span class="k">assert</span> <span class="n">filecmp_cmp</span><span class="p">(</span>
-<span class="linenos">353</span>                <span class="n">f1</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">tmp_path</span><span class="si">}</span><span class="s2">/collections_points_v1_schema.json&quot;</span><span class="p">,</span>
-<span class="linenos">354</span>                <span class="n">f2</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">resource_path</span><span class="si">}</span><span class="s2">/collections_points_v1_schema.json&quot;</span><span class="p">,</span>
-<span class="linenos">355</span>                <span class="n">shallow</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-<span class="linenos">356</span>            <span class="p">)</span></div>
-
-<span class="linenos">357</span>
-<div class="viewcode-block" id="TestCollectionsPoints.test_print_example">
-<a class="viewcode-back" href="../../test_rst/test.test_collections_points.html#test.test_collections_points.TestCollectionsPoints.test_print_example">[docs]</a>
-<span class="linenos">358</span>    <span class="k">def</span><span class="w"> </span><span class="nf">test_print_example</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">359</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Validate generated example against reference fixture.</span>
-<span class="linenos">360</span>
-<span class="linenos">361</span><span class="sd">        Returns:</span>
-<span class="linenos">362</span><span class="sd">            None.</span>
-<span class="linenos">363</span><span class="sd">        &quot;&quot;&quot;</span>
-<span class="linenos">364</span>        <span class="k">with</span> <span class="p">(</span>
-<span class="linenos">365</span>            <span class="n">resources</span><span class="o">.</span><span class="n">as_file</span><span class="p">(</span><span class="n">resources</span><span class="o">.</span><span class="n">files</span><span class="p">(</span><span class="n">examples</span><span class="p">))</span> <span class="k">as</span> <span class="n">resource_path</span><span class="p">,</span>
-<span class="linenos">366</span>            <span class="n">TemporaryDirectory</span><span class="p">()</span> <span class="k">as</span> <span class="n">tmp_path</span><span class="p">,</span>
-<span class="linenos">367</span>        <span class="p">):</span>
-<span class="linenos">368</span>            <span class="n">CollectionsPoints</span><span class="o">.</span><span class="n">print_example</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="n">tmp_path</span><span class="p">))</span>
-<span class="linenos">369</span>            <span class="k">assert</span> <span class="n">filecmp_cmp</span><span class="p">(</span>
-<span class="linenos">370</span>                <span class="n">f1</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">tmp_path</span><span class="si">}</span><span class="s2">/collections_points_v1_schema_example.json&quot;</span><span class="p">,</span>
-<span class="linenos">371</span>                <span class="n">f2</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">resource_path</span><span class="si">}</span><span class="s2">/collections_points_v1_schema_example.json&quot;</span><span class="p">,</span>
-<span class="linenos">372</span>                <span class="n">shallow</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-<span class="linenos">373</span>            <span class="p">)</span></div>
-</div>
+<span class="linenos">329</span><span class="sd">    Returns:</span>
+<span class="linenos">330</span><span class="sd">        None</span>
+<span class="linenos">331</span><span class="sd">    &quot;&quot;&quot;</span>
+<span class="linenos">332</span>    <span class="c1"># Arrange</span>
+<span class="linenos">333</span>    <span class="n">mock_logger</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">(</span><span class="n">spec</span><span class="o">=</span><span class="n">Logger</span><span class="p">)</span>
+<span class="linenos">334</span>    <span class="n">mock_logger</span><span class="o">.</span><span class="n">info</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">()</span>
+<span class="linenos">335</span>    <span class="n">mock_logger</span><span class="o">.</span><span class="n">level</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">WARNING</span>
+<span class="linenos">336</span>    <span class="n">mock_logger</span><span class="o">.</span><span class="n">setLevel</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">()</span>
+<span class="linenos">337</span>    <span class="n">mock_handler</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">(</span><span class="n">spec</span><span class="o">=</span><span class="n">Handler</span><span class="p">)</span>
+<span class="linenos">338</span>    <span class="n">mock_handler</span><span class="o">.</span><span class="n">level</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">WARNING</span>
+<span class="linenos">339</span>    <span class="n">mock_handler</span><span class="o">.</span><span class="n">setLevel</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">()</span>
+<span class="linenos">340</span>    <span class="n">mock_logger</span><span class="o">.</span><span class="n">handlers</span> <span class="o">=</span> <span class="p">[</span><span class="n">mock_handler</span><span class="p">,</span> <span class="n">mock_handler</span><span class="p">]</span>
+<span class="linenos">341</span>    <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Test message&quot;</span>
+<span class="linenos">342</span>    <span class="c1"># Act</span>
+<span class="linenos">343</span>    <span class="n">logger_force_write</span><span class="p">(</span><span class="n">logger</span><span class="o">=</span><span class="n">mock_logger</span><span class="p">,</span> <span class="n">msg</span><span class="o">=</span><span class="n">msg</span><span class="p">)</span>
+<span class="linenos">344</span>    <span class="c1"># Assert</span>
+<span class="linenos">345</span>    <span class="n">mock_logger</span><span class="o">.</span><span class="n">setLevel</span><span class="o">.</span><span class="n">assert_any_call</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">)</span>
+<span class="linenos">346</span>    <span class="n">mock_logger</span><span class="o">.</span><span class="n">setLevel</span><span class="o">.</span><span class="n">assert_any_call</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">WARNING</span><span class="p">)</span>
+<span class="linenos">347</span>    <span class="n">mock_handler</span><span class="o">.</span><span class="n">setLevel</span><span class="o">.</span><span class="n">assert_any_call</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">)</span>
+<span class="linenos">348</span>    <span class="n">mock_handler</span><span class="o">.</span><span class="n">setLevel</span><span class="o">.</span><span class="n">assert_any_call</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">WARNING</span><span class="p">)</span>
+<span class="linenos">349</span>    <span class="n">mock_logger</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">assert_called_once_with</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="n">msg</span><span class="p">)</span></div>
 
 </pre></div>
 
