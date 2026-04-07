@@ -123,40 +123,9 @@ The following component diagram shows the main flows of the system:
 
 .. container:: scrollable-diagram
 
-    .. plantuml::
+    .. image:: _static/images/diagram_pictures/step_diagram.png
+        :alt: STEP Architecture Diagram
         :align: center
-
-        interface "ASN.1 C-ITS" as messages
-
-        package "STEP Monitoring Streaming" {
-            [Monitoring\nStreaming] as monitoring
-        }
-
-        package "STEP Communication System" {
-            [STEP Broker] as step
-        }
-
-        package "STEP Elaboration System" {
-            [STEP Client] as client
-            [STEP Adapter] as adapter
-            [STEP Producer] as Producer
-            package "Crash Prediction" {
-                [Trajectory\nForecasting] as trajectory
-                [Avoidance\nCollision] as collision
-                [Data\nStorage] as data
-            }
-            client -left-> adapter: "3. CAM,CPM"
-            client -down-> Producer: "8. DENM"
-            adapter -left-> trajectory: "4. Position points\narray"
-            trajectory <-down-> data: "Query data"
-            data -left-> monitoring: "5. Trajectory forecasted data"
-            collision <-up-> data: "Query data"
-            collision -left-> Producer: "6. Event forecasted"
-            Producer -up-> client: "7. DENM"
-        }
-        step --right--( messages
-        step --down--> client: "1. ASN.1 ITS\nCAN,DENM,CPM"
-        client --up--> step: "2. ASN.1 ITS\nDENM"
 
 ----------------
 Flow Description
