@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>step_adapter.actor_dataset &mdash; STEP Adapter 1.1.7 documentation</title>
+  <title>step_adapter.actor_dataset &mdash; STEP Adapter 1.1.8 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=4c969af8" />
@@ -15,7 +15,7 @@
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=370aedac"></script>
+      <script src="../../_static/documentation_options.js?v=df104e6e"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/tabs.js?v=3ee01567"></script>
@@ -1688,181 +1688,178 @@
 <span class="linenos"> 831</span>            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">WARNING</span><span class="p">):</span>
 <span class="linenos"> 832</span>                <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;CamDataV1 </span><span class="si">{</span><span class="n">cam</span><span class="si">}</span><span class="s2"> has no position, skipped.&quot;</span><span class="p">)</span>
 <span class="linenos"> 833</span>            <span class="k">return</span> <span class="kc">None</span>
-<span class="linenos"> 834</span>        <span class="n">actor</span> <span class="o">=</span> <span class="n">ActorId</span><span class="p">(</span>
-<span class="linenos"> 835</span>            <span class="n">station_id</span><span class="o">=</span><span class="n">point</span><span class="o">.</span><span class="n">stationInfo</span><span class="o">.</span><span class="n">stationId</span><span class="p">,</span> <span class="n">object_id</span><span class="o">=</span><span class="n">point</span><span class="o">.</span><span class="n">objectId</span>
-<span class="linenos"> 836</span>        <span class="p">)</span>
-<span class="linenos"> 837</span>        <span class="n">positions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_insert_point_dataset</span><span class="p">(</span>
-<span class="linenos"> 838</span>            <span class="n">point</span><span class="o">=</span><span class="n">point</span><span class="p">,</span>
-<span class="linenos"> 839</span>            <span class="n">vehicle_length</span><span class="o">=</span><span class="n">cam</span><span class="o">.</span><span class="n">vehicleLength</span><span class="p">,</span>
-<span class="linenos"> 840</span>            <span class="n">vehicle_width</span><span class="o">=</span><span class="n">cam</span><span class="o">.</span><span class="n">vehicleWidth</span><span class="p">,</span>
-<span class="linenos"> 841</span>        <span class="p">)</span>
-<span class="linenos"> 842</span>        <span class="k">if</span> <span class="n">positions</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">positions</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-<span class="linenos"> 843</span>            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">):</span>
-<span class="linenos"> 844</span>                <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
-<span class="linenos"> 845</span>                    <span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;No interpolated points for actor </span><span class="si">{</span><span class="n">actor</span><span class="si">}</span><span class="s2"> after CAM insertion.&quot;</span>
-<span class="linenos"> 846</span>                <span class="p">)</span>
-<span class="linenos"> 847</span>            <span class="k">return</span> <span class="kc">None</span>
-<span class="linenos"> 848</span>        <span class="k">return</span> <span class="n">PositionArrayV1</span><span class="p">(</span>
-<span class="linenos"> 849</span>            <span class="n">sampleFrequency</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="o">.</span><span class="n">output_nominal_sample_frequency</span><span class="p">,</span>
-<span class="linenos"> 850</span>            <span class="n">vehicleLength</span><span class="o">=</span><span class="n">cam</span><span class="o">.</span><span class="n">vehicleLength</span><span class="p">,</span>
-<span class="linenos"> 851</span>            <span class="n">vehicleWidth</span><span class="o">=</span><span class="n">cam</span><span class="o">.</span><span class="n">vehicleWidth</span><span class="p">,</span>
-<span class="linenos"> 852</span>            <span class="n">points</span><span class="o">=</span><span class="n">positions</span><span class="p">,</span>
-<span class="linenos"> 853</span>        <span class="p">)</span></div>
+<span class="linenos"> 834</span>        <span class="n">positions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_insert_point_dataset</span><span class="p">(</span>
+<span class="linenos"> 835</span>            <span class="n">point</span><span class="o">=</span><span class="n">point</span><span class="p">,</span>
+<span class="linenos"> 836</span>            <span class="n">vehicle_length</span><span class="o">=</span><span class="n">cam</span><span class="o">.</span><span class="n">vehicleLength</span><span class="p">,</span>
+<span class="linenos"> 837</span>            <span class="n">vehicle_width</span><span class="o">=</span><span class="n">cam</span><span class="o">.</span><span class="n">vehicleWidth</span><span class="p">,</span>
+<span class="linenos"> 838</span>        <span class="p">)</span>
+<span class="linenos"> 839</span>        <span class="k">if</span> <span class="n">positions</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">positions</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+<span class="linenos"> 840</span>            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">):</span>
+<span class="linenos"> 841</span>                <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+<span class="linenos"> 842</span>                    <span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;No interpolated points for actor (</span><span class="si">{</span><span class="n">point</span><span class="o">.</span><span class="n">stationInfo</span><span class="o">.</span><span class="n">stationId</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">point</span><span class="o">.</span><span class="n">objectId</span><span class="si">}</span><span class="s2">) after CAM insertion.&quot;</span>
+<span class="linenos"> 843</span>                <span class="p">)</span>
+<span class="linenos"> 844</span>            <span class="k">return</span> <span class="kc">None</span>
+<span class="linenos"> 845</span>        <span class="k">return</span> <span class="n">PositionArrayV1</span><span class="p">(</span>
+<span class="linenos"> 846</span>            <span class="n">sampleFrequency</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="o">.</span><span class="n">output_nominal_sample_frequency</span><span class="p">,</span>
+<span class="linenos"> 847</span>            <span class="n">vehicleLength</span><span class="o">=</span><span class="n">cam</span><span class="o">.</span><span class="n">vehicleLength</span><span class="p">,</span>
+<span class="linenos"> 848</span>            <span class="n">vehicleWidth</span><span class="o">=</span><span class="n">cam</span><span class="o">.</span><span class="n">vehicleWidth</span><span class="p">,</span>
+<span class="linenos"> 849</span>            <span class="n">points</span><span class="o">=</span><span class="n">positions</span><span class="p">,</span>
+<span class="linenos"> 850</span>        <span class="p">)</span></div>
 
-<span class="linenos"> 854</span>
+<span class="linenos"> 851</span>
 <div class="viewcode-block" id="ActorDataset.clear_old_points">
 <a class="viewcode-back" href="../../step_adapter_rst/step_adapter.actor_dataset.html#step_adapter.actor_dataset.ActorDataset.clear_old_points">[docs]</a>
-<span class="linenos"> 855</span>    <span class="k">def</span><span class="w"> </span><span class="nf">clear_old_points</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos"> 856</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Remove expired actor datasets and their temporal tracking entries.</span>
-<span class="linenos"> 857</span>
-<span class="linenos"> 858</span><span class="sd">        This method performs comprehensive cleanup of outdated actor datasets by identifying</span>
-<span class="linenos"> 859</span><span class="sd">        and removing all entries whose last recorded timestamp exceeds the configured path</span>
-<span class="linenos"> 860</span><span class="sd">        length threshold. It serves as the primary garbage collection mechanism for the</span>
-<span class="linenos"> 861</span><span class="sd">        ActorDataset system, preventing memory accumulation and maintaining optimal</span>
-<span class="linenos"> 862</span><span class="sd">        performance characteristics during long-running telemetry processing operations.</span>
-<span class="linenos"> 863</span>
-<span class="linenos"> 864</span><span class="sd">        The method implements a two-phase cleanup process: first identifying expired entries</span>
-<span class="linenos"> 865</span><span class="sd">        through efficient range queries on the temporal index, then atomically removing both</span>
-<span class="linenos"> 866</span><span class="sd">        the actor dataset records and their corresponding temporal tracking entries. This</span>
-<span class="linenos"> 867</span><span class="sd">        ensures data consistency while minimizing lock contention in concurrent environments.</span>
-<span class="linenos"> 868</span>
-<span class="linenos"> 869</span><span class="sd">        Time Complexity Analysis:</span>
-<span class="linenos"> 870</span><span class="sd">            The complexity is dominated by SortedList operations and dictionary manipulations,</span>
-<span class="linenos"> 871</span><span class="sd">            with performance scaling based on the number of tracked actors and expired entries:</span>
+<span class="linenos"> 852</span>    <span class="k">def</span><span class="w"> </span><span class="nf">clear_old_points</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos"> 853</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Remove expired actor datasets and their temporal tracking entries.</span>
+<span class="linenos"> 854</span>
+<span class="linenos"> 855</span><span class="sd">        This method performs comprehensive cleanup of outdated actor datasets by identifying</span>
+<span class="linenos"> 856</span><span class="sd">        and removing all entries whose last recorded timestamp exceeds the configured path</span>
+<span class="linenos"> 857</span><span class="sd">        length threshold. It serves as the primary garbage collection mechanism for the</span>
+<span class="linenos"> 858</span><span class="sd">        ActorDataset system, preventing memory accumulation and maintaining optimal</span>
+<span class="linenos"> 859</span><span class="sd">        performance characteristics during long-running telemetry processing operations.</span>
+<span class="linenos"> 860</span>
+<span class="linenos"> 861</span><span class="sd">        The method implements a two-phase cleanup process: first identifying expired entries</span>
+<span class="linenos"> 862</span><span class="sd">        through efficient range queries on the temporal index, then atomically removing both</span>
+<span class="linenos"> 863</span><span class="sd">        the actor dataset records and their corresponding temporal tracking entries. This</span>
+<span class="linenos"> 864</span><span class="sd">        ensures data consistency while minimizing lock contention in concurrent environments.</span>
+<span class="linenos"> 865</span>
+<span class="linenos"> 866</span><span class="sd">        Time Complexity Analysis:</span>
+<span class="linenos"> 867</span><span class="sd">            The complexity is dominated by SortedList operations and dictionary manipulations,</span>
+<span class="linenos"> 868</span><span class="sd">            with performance scaling based on the number of tracked actors and expired entries:</span>
+<span class="linenos"> 869</span>
+<span class="linenos"> 870</span><span class="sd">            Empty Dataset Check:</span>
+<span class="linenos"> 871</span><span class="sd">                - O(1) - Length check on SortedList container</span>
 <span class="linenos"> 872</span>
-<span class="linenos"> 873</span><span class="sd">            Empty Dataset Check:</span>
-<span class="linenos"> 874</span><span class="sd">                - O(1) - Length check on SortedList container</span>
+<span class="linenos"> 873</span><span class="sd">            Expiration Threshold Calculation:</span>
+<span class="linenos"> 874</span><span class="sd">                - O(1) - Arithmetic operations for timestamp computation</span>
 <span class="linenos"> 875</span>
-<span class="linenos"> 876</span><span class="sd">            Expiration Threshold Calculation:</span>
-<span class="linenos"> 877</span><span class="sd">                - O(1) - Arithmetic operations for timestamp computation</span>
+<span class="linenos"> 876</span><span class="sd">            **Range Query Phase** (``SortedList.irange``) where m = number of tracked actors</span>
+<span class="linenos"> 877</span><span class="sd">            and r = is the number of expired entries:</span>
 <span class="linenos"> 878</span>
-<span class="linenos"> 879</span><span class="sd">            **Range Query Phase** (``SortedList.irange``) where m = number of tracked actors</span>
-<span class="linenos"> 880</span><span class="sd">            and r = is the number of expired entries:</span>
-<span class="linenos"> 881</span>
-<span class="linenos"> 882</span><span class="sd">                - **Best Case**: O(log(m)) where m is the number of tracked actors</span>
-<span class="linenos"> 883</span><span class="sd">                  (binary search to locate range boundaries, no expired entries)</span>
-<span class="linenos"> 884</span><span class="sd">                - **Average Case**: O(log(m) + r) where r is the number of expired entries</span>
-<span class="linenos"> 885</span><span class="sd">                  (binary search + linear iteration over expired range)</span>
-<span class="linenos"> 886</span><span class="sd">                - **Worst Case**: O(log(m) + m) when all actors have expired</span>
-<span class="linenos"> 887</span><span class="sd">                  (binary search + iteration over entire dataset)</span>
-<span class="linenos"> 888</span>
-<span class="linenos"> 889</span><span class="sd">            Cleanup Phase:</span>
-<span class="linenos"> 890</span><span class="sd">                - **Dictionary Deletion**: O(r) where r is expired entries count</span>
-<span class="linenos"> 891</span><span class="sd">                  (hash table deletions are O(1) each)</span>
-<span class="linenos"> 892</span><span class="sd">                - **SortedList Batch Removal**: O(r + log(m)) using slice deletion</span>
-<span class="linenos"> 893</span><span class="sd">                  (del self._last_ordered_recorded_time[:count] is optimized batch operation)</span>
-<span class="linenos"> 894</span>
-<span class="linenos"> 895</span><span class="sd">            Overall Complexity:</span>
-<span class="linenos"> 896</span><span class="sd">                - **Best Case**: O(log(m)) - No expired entries to remove (bisect_right only)</span>
-<span class="linenos"> 897</span><span class="sd">                - **Average Case**: O(r + log(m)) where r &lt;&lt; m for typical usage patterns</span>
-<span class="linenos"> 898</span><span class="sd">                - **Worst Case**: O(m + log(m)) ≈ O(m) when all actors have expired</span>
-<span class="linenos"> 899</span><span class="sd">                - **Amortized**: O(log(m)) for sustained operation with regular cleanup intervals</span>
-<span class="linenos"> 900</span>
-<span class="linenos"> 901</span><span class="sd">            Performance Characteristics:</span>
-<span class="linenos"> 902</span><span class="sd">                - Logarithmic scaling with total number of tracked actors</span>
-<span class="linenos"> 903</span><span class="sd">                - Linear scaling with number of expired entries (unavoidable)</span>
-<span class="linenos"> 904</span><span class="sd">                - Predictable performance for real-time telemetry applications</span>
-<span class="linenos"> 905</span><span class="sd">                - Sub-millisecond execution for typical fleet tracking scenarios (&lt;1000 actors)</span>
-<span class="linenos"> 906</span>
-<span class="linenos"> 907</span><span class="sd">        Space Complexity Analysis:</span>
-<span class="linenos"> 908</span><span class="sd">            Memory usage encompasses temporary storage for expired entry identification</span>
-<span class="linenos"> 909</span><span class="sd">            and the gradual release of actor dataset storage:</span>
-<span class="linenos"> 910</span>
-<span class="linenos"> 911</span><span class="sd">            Temporary Storage:</span>
-<span class="linenos"> 912</span><span class="sd">                - **Range Query Result**: O(r) where r is the number of expired entries</span>
-<span class="linenos"> 913</span><span class="sd">                  (materialized list of (timestamp, station_id, object_id) tuples)</span>
-<span class="linenos"> 914</span><span class="sd">                - **Loop Variables**: O(1) for iteration state and unpacking</span>
-<span class="linenos"> 915</span>
-<span class="linenos"> 916</span><span class="sd">            Released Storage (per cleanup operation):</span>
-<span class="linenos"> 917</span><span class="sd">                - **Actor Registry**: O(r) reduction in dictionary storage</span>
-<span class="linenos"> 918</span><span class="sd">                - **Temporal Index**: O(r) reduction in SortedList storage</span>
-<span class="linenos"> 919</span><span class="sd">                - **PointDataset Memory**: O(r * n) where n is average points per dataset</span>
-<span class="linenos"> 920</span><span class="sd">                  (each removed PointDataset releases its sliding window storage)</span>
-<span class="linenos"> 921</span>
-<span class="linenos"> 922</span><span class="sd">            Memory Efficiency Characteristics:</span>
-<span class="linenos"> 923</span><span class="sd">                - **Bounded Temporary Usage**: Range query materialization is the only</span>
-<span class="linenos"> 924</span><span class="sd">                  significant temporary allocation</span>
-<span class="linenos"> 925</span><span class="sd">                - **Progressive Cleanup**: Memory is released incrementally during the loop</span>
-<span class="linenos"> 926</span><span class="sd">                - **Garbage Collection Friendly**: Removes references to large PointDataset</span>
-<span class="linenos"> 927</span><span class="sd">                  objects, enabling immediate memory reclamation</span>
-<span class="linenos"> 928</span><span class="sd">                - **Predictable Release**: Total freed memory scales with expired entry count</span>
-<span class="linenos"> 929</span>
-<span class="linenos"> 930</span><span class="sd">            Real-world Impact:</span>
-<span class="linenos"> 931</span><span class="sd">                - Typical cleanup operations free 10-100MB for fleet tracking applications</span>
-<span class="linenos"> 932</span><span class="sd">                - Memory usage remains bounded regardless of operation duration</span>
-<span class="linenos"> 933</span><span class="sd">                - Prevents memory leaks in long-running telemetry processing systems</span>
-<span class="linenos"> 934</span>
-<span class="linenos"> 935</span><span class="sd">        Concurrency and Thread Safety:</span>
-<span class="linenos"> 936</span><span class="sd">            The method provides robust thread-safe operation through careful synchronization</span>
-<span class="linenos"> 937</span><span class="sd">            and atomic cleanup operations:</span>
-<span class="linenos"> 938</span>
-<span class="linenos"> 939</span><span class="sd">            Locking Strategy:</span>
-<span class="linenos"> 940</span><span class="sd">                - **Coarse-Grained Lock**: Single ``_lock`` protects all shared data structures</span>
-<span class="linenos"> 941</span><span class="sd">                - **Atomic Cleanup**: Complete cleanup process occurs within one lock acquisition</span>
-<span class="linenos"> 942</span><span class="sd">                - **Consistency Guarantee**: No partial cleanup states are observable by other</span>
-<span class="linenos"> 943</span><span class="sd">                  threads</span>
-<span class="linenos"> 944</span>
-<span class="linenos"> 945</span><span class="sd">            Performance Implications:</span>
-<span class="linenos"> 946</span><span class="sd">                - **Lock Hold Time**: Scales with O(r * log k) where r is expired entries</span>
-<span class="linenos"> 947</span><span class="sd">                - **Contention Characteristics**: May block other operations during large cleanups</span>
-<span class="linenos"> 948</span><span class="sd">                - **Deadlock Prevention**: No nested locking or complex synchronization patterns</span>
-<span class="linenos"> 949</span>
-<span class="linenos"> 950</span><span class="sd">            Design Considerations:</span>
-<span class="linenos"> 951</span><span class="sd">                - Range query materialization minimizes lock hold time compared to</span>
-<span class="linenos"> 952</span><span class="sd">                  iterator-based approaches</span>
-<span class="linenos"> 953</span><span class="sd">                - Atomic removal of both dataset and temporal entries prevents inconsistent states</span>
-<span class="linenos"> 954</span><span class="sd">                - Early returns for empty conditions reduce unnecessary lock acquisition</span>
+<span class="linenos"> 879</span><span class="sd">                - **Best Case**: O(log(m)) where m is the number of tracked actors</span>
+<span class="linenos"> 880</span><span class="sd">                  (binary search to locate range boundaries, no expired entries)</span>
+<span class="linenos"> 881</span><span class="sd">                - **Average Case**: O(log(m) + r) where r is the number of expired entries</span>
+<span class="linenos"> 882</span><span class="sd">                  (binary search + linear iteration over expired range)</span>
+<span class="linenos"> 883</span><span class="sd">                - **Worst Case**: O(log(m) + m) when all actors have expired</span>
+<span class="linenos"> 884</span><span class="sd">                  (binary search + iteration over entire dataset)</span>
+<span class="linenos"> 885</span>
+<span class="linenos"> 886</span><span class="sd">            Cleanup Phase:</span>
+<span class="linenos"> 887</span><span class="sd">                - **Dictionary Deletion**: O(r) where r is expired entries count</span>
+<span class="linenos"> 888</span><span class="sd">                  (hash table deletions are O(1) each)</span>
+<span class="linenos"> 889</span><span class="sd">                - **SortedList Batch Removal**: O(r + log(m)) using slice deletion</span>
+<span class="linenos"> 890</span><span class="sd">                  (del self._last_ordered_recorded_time[:count] is optimized batch operation)</span>
+<span class="linenos"> 891</span>
+<span class="linenos"> 892</span><span class="sd">            Overall Complexity:</span>
+<span class="linenos"> 893</span><span class="sd">                - **Best Case**: O(log(m)) - No expired entries to remove (bisect_right only)</span>
+<span class="linenos"> 894</span><span class="sd">                - **Average Case**: O(r + log(m)) where r &lt;&lt; m for typical usage patterns</span>
+<span class="linenos"> 895</span><span class="sd">                - **Worst Case**: O(m + log(m)) ≈ O(m) when all actors have expired</span>
+<span class="linenos"> 896</span><span class="sd">                - **Amortized**: O(log(m)) for sustained operation with regular cleanup intervals</span>
+<span class="linenos"> 897</span>
+<span class="linenos"> 898</span><span class="sd">            Performance Characteristics:</span>
+<span class="linenos"> 899</span><span class="sd">                - Logarithmic scaling with total number of tracked actors</span>
+<span class="linenos"> 900</span><span class="sd">                - Linear scaling with number of expired entries (unavoidable)</span>
+<span class="linenos"> 901</span><span class="sd">                - Predictable performance for real-time telemetry applications</span>
+<span class="linenos"> 902</span><span class="sd">                - Sub-millisecond execution for typical fleet tracking scenarios (&lt;1000 actors)</span>
+<span class="linenos"> 903</span>
+<span class="linenos"> 904</span><span class="sd">        Space Complexity Analysis:</span>
+<span class="linenos"> 905</span><span class="sd">            Memory usage encompasses temporary storage for expired entry identification</span>
+<span class="linenos"> 906</span><span class="sd">            and the gradual release of actor dataset storage:</span>
+<span class="linenos"> 907</span>
+<span class="linenos"> 908</span><span class="sd">            Temporary Storage:</span>
+<span class="linenos"> 909</span><span class="sd">                - **Range Query Result**: O(r) where r is the number of expired entries</span>
+<span class="linenos"> 910</span><span class="sd">                  (materialized list of (timestamp, station_id, object_id) tuples)</span>
+<span class="linenos"> 911</span><span class="sd">                - **Loop Variables**: O(1) for iteration state and unpacking</span>
+<span class="linenos"> 912</span>
+<span class="linenos"> 913</span><span class="sd">            Released Storage (per cleanup operation):</span>
+<span class="linenos"> 914</span><span class="sd">                - **Actor Registry**: O(r) reduction in dictionary storage</span>
+<span class="linenos"> 915</span><span class="sd">                - **Temporal Index**: O(r) reduction in SortedList storage</span>
+<span class="linenos"> 916</span><span class="sd">                - **PointDataset Memory**: O(r * n) where n is average points per dataset</span>
+<span class="linenos"> 917</span><span class="sd">                  (each removed PointDataset releases its sliding window storage)</span>
+<span class="linenos"> 918</span>
+<span class="linenos"> 919</span><span class="sd">            Memory Efficiency Characteristics:</span>
+<span class="linenos"> 920</span><span class="sd">                - **Bounded Temporary Usage**: Range query materialization is the only</span>
+<span class="linenos"> 921</span><span class="sd">                  significant temporary allocation</span>
+<span class="linenos"> 922</span><span class="sd">                - **Progressive Cleanup**: Memory is released incrementally during the loop</span>
+<span class="linenos"> 923</span><span class="sd">                - **Garbage Collection Friendly**: Removes references to large PointDataset</span>
+<span class="linenos"> 924</span><span class="sd">                  objects, enabling immediate memory reclamation</span>
+<span class="linenos"> 925</span><span class="sd">                - **Predictable Release**: Total freed memory scales with expired entry count</span>
+<span class="linenos"> 926</span>
+<span class="linenos"> 927</span><span class="sd">            Real-world Impact:</span>
+<span class="linenos"> 928</span><span class="sd">                - Typical cleanup operations free 10-100MB for fleet tracking applications</span>
+<span class="linenos"> 929</span><span class="sd">                - Memory usage remains bounded regardless of operation duration</span>
+<span class="linenos"> 930</span><span class="sd">                - Prevents memory leaks in long-running telemetry processing systems</span>
+<span class="linenos"> 931</span>
+<span class="linenos"> 932</span><span class="sd">        Concurrency and Thread Safety:</span>
+<span class="linenos"> 933</span><span class="sd">            The method provides robust thread-safe operation through careful synchronization</span>
+<span class="linenos"> 934</span><span class="sd">            and atomic cleanup operations:</span>
+<span class="linenos"> 935</span>
+<span class="linenos"> 936</span><span class="sd">            Locking Strategy:</span>
+<span class="linenos"> 937</span><span class="sd">                - **Coarse-Grained Lock**: Single ``_lock`` protects all shared data structures</span>
+<span class="linenos"> 938</span><span class="sd">                - **Atomic Cleanup**: Complete cleanup process occurs within one lock acquisition</span>
+<span class="linenos"> 939</span><span class="sd">                - **Consistency Guarantee**: No partial cleanup states are observable by other</span>
+<span class="linenos"> 940</span><span class="sd">                  threads</span>
+<span class="linenos"> 941</span>
+<span class="linenos"> 942</span><span class="sd">            Performance Implications:</span>
+<span class="linenos"> 943</span><span class="sd">                - **Lock Hold Time**: Scales with O(r * log k) where r is expired entries</span>
+<span class="linenos"> 944</span><span class="sd">                - **Contention Characteristics**: May block other operations during large cleanups</span>
+<span class="linenos"> 945</span><span class="sd">                - **Deadlock Prevention**: No nested locking or complex synchronization patterns</span>
+<span class="linenos"> 946</span>
+<span class="linenos"> 947</span><span class="sd">            Design Considerations:</span>
+<span class="linenos"> 948</span><span class="sd">                - Range query materialization minimizes lock hold time compared to</span>
+<span class="linenos"> 949</span><span class="sd">                  iterator-based approaches</span>
+<span class="linenos"> 950</span><span class="sd">                - Atomic removal of both dataset and temporal entries prevents inconsistent states</span>
+<span class="linenos"> 951</span><span class="sd">                - Early returns for empty conditions reduce unnecessary lock acquisition</span>
+<span class="linenos"> 952</span>
+<span class="linenos"> 953</span><span class="sd">        Cleanup Efficiency and Timing:</span>
+<span class="linenos"> 954</span><span class="sd">            The method is designed for periodic invocation with optimal cleanup intervals:</span>
 <span class="linenos"> 955</span>
-<span class="linenos"> 956</span><span class="sd">        Cleanup Efficiency and Timing:</span>
-<span class="linenos"> 957</span><span class="sd">            The method is designed for periodic invocation with optimal cleanup intervals:</span>
-<span class="linenos"> 958</span>
-<span class="linenos"> 959</span><span class="sd">            Recommended Usage Patterns:</span>
-<span class="linenos"> 960</span><span class="sd">                - **Periodic Cleanup**: Call every max_actor_history_length_sec / 2 for balanced performance</span>
-<span class="linenos"> 961</span><span class="sd">                - **Load-Based Cleanup**: Trigger when actor count exceeds threshold</span>
-<span class="linenos"> 962</span><span class="sd">                - **Memory-Pressure Cleanup**: Invoke during memory allocation failures</span>
-<span class="linenos"> 963</span>
-<span class="linenos"> 964</span><span class="sd">            Efficiency Characteristics:</span>
-<span class="linenos"> 965</span><span class="sd">                - **Batch Processing**: Single cleanup operation handles all expired entries</span>
-<span class="linenos"> 966</span><span class="sd">                - **Threshold-Based**: Only processes actors beyond configured path length</span>
-<span class="linenos"> 967</span><span class="sd">                - **Selective Removal**: Preserves active datasets while removing stale ones</span>
+<span class="linenos"> 956</span><span class="sd">            Recommended Usage Patterns:</span>
+<span class="linenos"> 957</span><span class="sd">                - **Periodic Cleanup**: Call every max_actor_history_length_sec / 2 for balanced performance</span>
+<span class="linenos"> 958</span><span class="sd">                - **Load-Based Cleanup**: Trigger when actor count exceeds threshold</span>
+<span class="linenos"> 959</span><span class="sd">                - **Memory-Pressure Cleanup**: Invoke during memory allocation failures</span>
+<span class="linenos"> 960</span>
+<span class="linenos"> 961</span><span class="sd">            Efficiency Characteristics:</span>
+<span class="linenos"> 962</span><span class="sd">                - **Batch Processing**: Single cleanup operation handles all expired entries</span>
+<span class="linenos"> 963</span><span class="sd">                - **Threshold-Based**: Only processes actors beyond configured path length</span>
+<span class="linenos"> 964</span><span class="sd">                - **Selective Removal**: Preserves active datasets while removing stale ones</span>
+<span class="linenos"> 965</span>
+<span class="linenos"> 966</span><span class="sd">        Returns:</span>
+<span class="linenos"> 967</span><span class="sd">            None</span>
 <span class="linenos"> 968</span>
-<span class="linenos"> 969</span><span class="sd">        Returns:</span>
-<span class="linenos"> 970</span><span class="sd">            None</span>
-<span class="linenos"> 971</span>
-<span class="linenos"> 972</span><span class="sd">        Note:</span>
-<span class="linenos"> 973</span><span class="sd">            - The method uses the current ITS timestamp (``ItsTime().epoch_ms``) as the</span>
-<span class="linenos"> 974</span><span class="sd">              reference point for expiration calculations</span>
-<span class="linenos"> 975</span><span class="sd">            - Expiration threshold is calculated as current_time - (max_actor_history_length_sec * 1000)</span>
-<span class="linenos"> 976</span><span class="sd">            - Both actor dataset registry and temporal index are updated atomically</span>
-<span class="linenos"> 977</span><span class="sd">            - The method is thread-safe and can be called concurrently with other operations</span>
-<span class="linenos"> 978</span><span class="sd">            - Performance scales logarithmically with the number of tracked actors</span>
-<span class="linenos"> 979</span><span class="sd">            - Memory cleanup is immediate due to removal of PointDataset references</span>
-<span class="linenos"> 980</span><span class="sd">            - Debug logging provides visibility into cleanup operations for monitoring</span>
-<span class="linenos"> 981</span><span class="sd">            - Early termination optimizes performance when no cleanup is needed</span>
-<span class="linenos"> 982</span><span class="sd">        &quot;&quot;&quot;</span>
-<span class="linenos"> 983</span>        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_last_ordered_recorded_time</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-<span class="linenos"> 984</span>            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">):</span>
-<span class="linenos"> 985</span>                <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;No points in the dataset&quot;</span><span class="p">)</span>
-<span class="linenos"> 986</span>            <span class="k">return</span>
-<span class="linenos"> 987</span>        <span class="n">range_limit</span> <span class="o">=</span> <span class="n">ItsTime</span><span class="p">()</span>
-<span class="linenos"> 988</span>        <span class="n">range_limit</span> <span class="o">-=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="o">.</span><span class="n">input_oldest_allowed_time_ms</span>
-<span class="linenos"> 989</span>        <span class="c1"># Count how many items are too old</span>
-<span class="linenos"> 990</span>        <span class="n">count</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_last_ordered_recorded_time</span><span class="o">.</span><span class="n">bisect_right</span><span class="p">(</span>
-<span class="linenos"> 991</span>            <span class="n">value</span><span class="o">=</span><span class="p">(</span><span class="n">range_limit</span><span class="p">,</span> <span class="n">ActorId</span><span class="p">(</span><span class="n">station_id</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">object_id</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span>
-<span class="linenos"> 992</span>        <span class="p">)</span>
-<span class="linenos"> 993</span>        <span class="k">if</span> <span class="n">count</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-<span class="linenos"> 994</span>            <span class="k">return</span>
-<span class="linenos"> 995</span>        <span class="c1"># Get items to remove</span>
-<span class="linenos"> 996</span>        <span class="n">items_to_remove</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_last_ordered_recorded_time</span><span class="p">[:</span><span class="n">count</span><span class="p">]</span>
-<span class="linenos"> 997</span>        <span class="c1"># Remove from dictionary</span>
-<span class="linenos"> 998</span>        <span class="k">for</span> <span class="n">time</span><span class="p">,</span> <span class="n">actor</span> <span class="ow">in</span> <span class="n">items_to_remove</span><span class="p">:</span>
-<span class="linenos"> 999</span>            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">):</span>
-<span class="linenos">1000</span>                <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
-<span class="linenos">1001</span>                    <span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Removing old point dataset: </span><span class="si">{</span><span class="n">actor</span><span class="si">}</span><span class="s2"> at time </span><span class="si">{</span><span class="n">time</span><span class="si">}</span><span class="s2">&quot;</span>
-<span class="linenos">1002</span>                <span class="p">)</span>
-<span class="linenos">1003</span>            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_actor_dataset</span><span class="p">[</span><span class="n">actor</span><span class="p">]</span>
-<span class="linenos">1004</span>        <span class="c1"># Batch remove from SortedList</span>
-<span class="linenos">1005</span>        <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_last_ordered_recorded_time</span><span class="p">[:</span><span class="n">count</span><span class="p">]</span></div>
+<span class="linenos"> 969</span><span class="sd">        Note:</span>
+<span class="linenos"> 970</span><span class="sd">            - The method uses the current ITS timestamp (``ItsTime().epoch_ms``) as the</span>
+<span class="linenos"> 971</span><span class="sd">              reference point for expiration calculations</span>
+<span class="linenos"> 972</span><span class="sd">            - Expiration threshold is calculated as current_time - (max_actor_history_length_sec * 1000)</span>
+<span class="linenos"> 973</span><span class="sd">            - Both actor dataset registry and temporal index are updated atomically</span>
+<span class="linenos"> 974</span><span class="sd">            - The method is thread-safe and can be called concurrently with other operations</span>
+<span class="linenos"> 975</span><span class="sd">            - Performance scales logarithmically with the number of tracked actors</span>
+<span class="linenos"> 976</span><span class="sd">            - Memory cleanup is immediate due to removal of PointDataset references</span>
+<span class="linenos"> 977</span><span class="sd">            - Debug logging provides visibility into cleanup operations for monitoring</span>
+<span class="linenos"> 978</span><span class="sd">            - Early termination optimizes performance when no cleanup is needed</span>
+<span class="linenos"> 979</span><span class="sd">        &quot;&quot;&quot;</span>
+<span class="linenos"> 980</span>        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_last_ordered_recorded_time</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+<span class="linenos"> 981</span>            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">):</span>
+<span class="linenos"> 982</span>                <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;No points in the dataset&quot;</span><span class="p">)</span>
+<span class="linenos"> 983</span>            <span class="k">return</span>
+<span class="linenos"> 984</span>        <span class="n">range_limit</span> <span class="o">=</span> <span class="n">ItsTime</span><span class="p">()</span>
+<span class="linenos"> 985</span>        <span class="n">range_limit</span> <span class="o">-=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="o">.</span><span class="n">input_oldest_allowed_time_ms</span>
+<span class="linenos"> 986</span>        <span class="c1"># Count how many items are too old</span>
+<span class="linenos"> 987</span>        <span class="n">count</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_last_ordered_recorded_time</span><span class="o">.</span><span class="n">bisect_right</span><span class="p">(</span>
+<span class="linenos"> 988</span>            <span class="n">value</span><span class="o">=</span><span class="p">(</span><span class="n">range_limit</span><span class="p">,</span> <span class="n">ActorId</span><span class="p">(</span><span class="n">station_id</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">object_id</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span>
+<span class="linenos"> 989</span>        <span class="p">)</span>
+<span class="linenos"> 990</span>        <span class="k">if</span> <span class="n">count</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+<span class="linenos"> 991</span>            <span class="k">return</span>
+<span class="linenos"> 992</span>        <span class="c1"># Get items to remove</span>
+<span class="linenos"> 993</span>        <span class="n">items_to_remove</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_last_ordered_recorded_time</span><span class="p">[:</span><span class="n">count</span><span class="p">]</span>
+<span class="linenos"> 994</span>        <span class="c1"># Remove from dictionary</span>
+<span class="linenos"> 995</span>        <span class="k">for</span> <span class="n">time</span><span class="p">,</span> <span class="n">actor</span> <span class="ow">in</span> <span class="n">items_to_remove</span><span class="p">:</span>
+<span class="linenos"> 996</span>            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">):</span>
+<span class="linenos"> 997</span>                <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+<span class="linenos"> 998</span>                    <span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Removing old point dataset: </span><span class="si">{</span><span class="n">actor</span><span class="si">}</span><span class="s2"> at time </span><span class="si">{</span><span class="n">time</span><span class="si">}</span><span class="s2">&quot;</span>
+<span class="linenos"> 999</span>                <span class="p">)</span>
+<span class="linenos">1000</span>            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_actor_dataset</span><span class="p">[</span><span class="n">actor</span><span class="p">]</span>
+<span class="linenos">1001</span>        <span class="c1"># Batch remove from SortedList</span>
+<span class="linenos">1002</span>        <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_last_ordered_recorded_time</span><span class="p">[:</span><span class="n">count</span><span class="p">]</span></div>
 </div>
 
 </pre></div>
