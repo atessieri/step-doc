@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>test.test_log_extractor module &mdash; Crash Prediction Log Extractor 1.0.2 documentation</title>
+  <title>test.test_log_extractor module &mdash; Crash Prediction Log Extractor 1.0.3 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/tabs.css?v=4c969af8" />
@@ -16,7 +16,7 @@
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=1ed6394b"></script>
+      <script src="../_static/documentation_options.js?v=baaebd52"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/tabs.js?v=3ee01567"></script>
@@ -377,6 +377,7 @@
 <li class="toctree-l5"><a class="reference internal" href="#test.test_log_extractor.TestLogExtractor.test__extract_section_data"><code class="docutils literal notranslate"><span class="pre">TestLogExtractor.test__extract_section_data()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#test.test_log_extractor.TestLogExtractor.test__extract_section_data_invalid_state"><code class="docutils literal notranslate"><span class="pre">TestLogExtractor.test__extract_section_data_invalid_state()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#test.test_log_extractor.TestLogExtractor.test__extract_section_data_wrong_section"><code class="docutils literal notranslate"><span class="pre">TestLogExtractor.test__extract_section_data_wrong_section()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#test.test_log_extractor.TestLogExtractor.test__extract_section_invalid_state"><code class="docutils literal notranslate"><span class="pre">TestLogExtractor.test__extract_section_invalid_state()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#test.test_log_extractor.TestLogExtractor.test__get_actor_id"><code class="docutils literal notranslate"><span class="pre">TestLogExtractor.test__get_actor_id()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#test.test_log_extractor.TestLogExtractor.test__insert_position_data"><code class="docutils literal notranslate"><span class="pre">TestLogExtractor.test__insert_position_data()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#test.test_log_extractor.TestLogExtractor.test__merge_session_data"><code class="docutils literal notranslate"><span class="pre">TestLogExtractor.test__merge_session_data()</span></code></a></li>
@@ -384,6 +385,7 @@
 <li class="toctree-l5"><a class="reference internal" href="#test.test_log_extractor.TestLogExtractor.test_clear_table"><code class="docutils literal notranslate"><span class="pre">TestLogExtractor.test_clear_table()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#test.test_log_extractor.TestLogExtractor.test_collections"><code class="docutils literal notranslate"><span class="pre">TestLogExtractor.test_collections()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#test.test_log_extractor.TestLogExtractor.test_extract"><code class="docutils literal notranslate"><span class="pre">TestLogExtractor.test_extract()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#test.test_log_extractor.TestLogExtractor.test_extract_value_error_logged"><code class="docutils literal notranslate"><span class="pre">TestLogExtractor.test_extract_value_error_logged()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l4"><a class="reference internal" href="#test.test_log_extractor.TestParserCrashState"><code class="docutils literal notranslate"><span class="pre">TestParserCrashState</span></code></a><ul>
@@ -480,11 +482,11 @@
 <dd><p>Validate attribute initialization performed by <code class="docutils literal notranslate"><span class="pre">__init__</span></code>.</p>
 <p>Checks that every slot-backed attribute is set to its expected initial
 value immediately after construction: <code class="docutils literal notranslate"><span class="pre">_input_file</span></code> stores the
-supplied path, <code class="docutils literal notranslate"><span class="pre">_collections</span></code> is <code class="docutils literal notranslate"><span class="pre">None</span></code>, all four session data
+supplied path, <code class="docutils literal notranslate"><span class="pre">_collections</span></code> is <code class="docutils literal notranslate"><span class="pre">None</span></code>, all three session data
 dicts are empty, <code class="docutils literal notranslate"><span class="pre">_session_crash_data</span></code> is an empty list, and
-<code class="docutils literal notranslate"><span class="pre">_tables_data_markers</span></code> contains exactly four
-<code class="docutils literal notranslate"><span class="pre">ParserTableDataMarkerItem</span></code> entries in
-NORMALIZED/ANOMALY x REAL/FORECASTED order, each holding an identity
+<code class="docutils literal notranslate"><span class="pre">_tables_data_markers</span></code> contains exactly three
+<code class="docutils literal notranslate"><span class="pre">ParserTableDataMarkerItem</span></code> entries covering NORMALIZED/REAL,
+NORMALIZED/FORECASTED, and ANOMALY/REAL, each holding an identity
 reference to the corresponding session dict.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -554,6 +556,8 @@ through to <code class="docutils literal notranslate"><span class="pre">case</sp
 <span class="sig-name descname"><span class="pre">test__extract_section</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mocker</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MockerFixture</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">content</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expected_actor_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_log_extractor.html#TestLogExtractor.test__extract_section"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_log_extractor.TestLogExtractor.test__extract_section" title="Link to this definition"></a></dt>
 <dd><p><code class="docutils literal notranslate"><span class="pre">_extract_section</span></code> parses one complete scenario block from the stream.</p>
 <p>Cases: complete scenario returning one actor dict, incomplete log returning
+<code class="docutils literal notranslate"><span class="pre">None</span></code>, dummy lines skipped (<code class="docutils literal notranslate"><span class="pre">scenario_state_read</span></code> is <code class="docutils literal notranslate"><span class="pre">None</span></code>), and
+truncated crash section where <code class="docutils literal notranslate"><span class="pre">_extract_section_crash_data</span></code> returns
 <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -572,17 +576,20 @@ through to <code class="docutils literal notranslate"><span class="pre">case</sp
 
 <dl class="py method">
 <dt class="sig sig-object py" id="test.test_log_extractor.TestLogExtractor.test__extract_section_crash_data">
-<span class="sig-name descname"><span class="pre">test__extract_section_crash_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mocker</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MockerFixture</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">content</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expected_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_log_extractor.html#TestLogExtractor.test__extract_section_crash_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_log_extractor.TestLogExtractor.test__extract_section_crash_data" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">test__extract_section_crash_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mocker</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MockerFixture</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">content</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expected_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_log_extractor.html#TestLogExtractor.test__extract_section_crash_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_log_extractor.TestLogExtractor.test__extract_section_crash_data" title="Link to this definition"></a></dt>
 <dd><p><code class="docutils literal notranslate"><span class="pre">_extract_section_crash_data</span></code> accumulates <code class="docutils literal notranslate"><span class="pre">CrashInfo</span></code> from a crash
 section.</p>
 <p>Cases: section with one crash, empty crash section (start then end
-immediately), no section marker found (returns empty list).</p>
+immediately), no section marker found (returns empty list), and a
+truncated crash record where <code class="docutils literal notranslate"><span class="pre">_extract_crash_data</span></code> returns <code class="docutils literal notranslate"><span class="pre">None</span></code>
+causing the method to propagate <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>mocker</strong> (<em>MockerFixture</em>) – pytest-mock fixture.</p></li>
 <li><p><strong>content</strong> (<em>str</em>) – Simulated log content fed via <code class="docutils literal notranslate"><span class="pre">StringIO</span></code>.</p></li>
-<li><p><strong>expected_count</strong> (<em>int</em>) – Expected number of <code class="docutils literal notranslate"><span class="pre">CrashInfo</span></code> records returned.</p></li>
+<li><p><strong>expected_count</strong> (<em>Optional</em><em>[</em><em>int</em><em>]</em>) – Expected number of <code class="docutils literal notranslate"><span class="pre">CrashInfo</span></code> records
+returned, or <code class="docutils literal notranslate"><span class="pre">None</span></code> when the method is expected to return <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -652,6 +659,27 @@ passed to the method.</p></li>
 <li><p><strong>content</strong> (<em>str</em>) – Simulated log content fed via <code class="docutils literal notranslate"><span class="pre">StringIO</span></code>.</p></li>
 <li><p><strong>expected_match</strong> (<em>str</em>) – Substring expected in the <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> message.</p></li>
 </ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="test.test_log_extractor.TestLogExtractor.test__extract_section_invalid_state">
+<span class="sig-name descname"><span class="pre">test__extract_section_invalid_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mocker</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MockerFixture</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_log_extractor.html#TestLogExtractor.test__extract_section_invalid_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_log_extractor.TestLogExtractor.test__extract_section_invalid_state" title="Link to this definition"></a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">_extract_section</span></code> raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> on the <code class="docutils literal notranslate"><span class="pre">case</span> <span class="pre">_:</span></code> guard.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">case</span> <span class="pre">_:</span></code> branch is dead code under normal inputs because <code class="docutils literal notranslate"><span class="pre">state</span></code>
+is a local variable that can only hold <code class="docutils literal notranslate"><span class="pre">WAIT_FOR_START_SCENARIO</span></code>,
+<code class="docutils literal notranslate"><span class="pre">WAIT_FOR_END_SCENARIO</span></code>, or <code class="docutils literal notranslate"><span class="pre">DONE</span></code> (which breaks the loop).  The
+test reaches it by patching the module-level <code class="docutils literal notranslate"><span class="pre">ParserScenarioState</span></code>
+name with a fake class whose members define <code class="docutils literal notranslate"><span class="pre">__eq__</span></code> to always return
+<code class="docutils literal notranslate"><span class="pre">False</span></code>, so neither case arm matches and the match statement falls
+through to <code class="docutils literal notranslate"><span class="pre">case</span> <span class="pre">_:</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>mocker</strong> (<em>MockerFixture</em>) – pytest-mock fixture.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>None.</p>
@@ -781,6 +809,27 @@ no additional transformation.</p>
 <p>Feeds a single minimal scenario via a temporary file and verifies that
 the resulting <code class="docutils literal notranslate"><span class="pre">CollectionsPoints</span></code> contains exactly one
 <code class="docutils literal notranslate"><span class="pre">CollectionSections</span></code> entry for the expected actor.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mocker</strong> (<em>MockerFixture</em>) – pytest-mock fixture.</p></li>
+<li><p><strong>tmp_path</strong> (<em>Path</em>) – pytest temporary directory fixture.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="test.test_log_extractor.TestLogExtractor.test_extract_value_error_logged">
+<span class="sig-name descname"><span class="pre">test_extract_value_error_logged</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mocker</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MockerFixture</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tmp_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_log_extractor.html#TestLogExtractor.test_extract_value_error_logged"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_log_extractor.TestLogExtractor.test_extract_value_error_logged" title="Link to this definition"></a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">extract</span></code> catches <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> from <code class="docutils literal notranslate"><span class="pre">_extract_section</span></code> and logs it.</p>
+<p>Mocks <code class="docutils literal notranslate"><span class="pre">_extract_section</span></code> to raise a <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> on the first call,
+verifies that <code class="docutils literal notranslate"><span class="pre">logger.isEnabledFor</span></code> is called with <code class="docutils literal notranslate"><span class="pre">logging.ERROR</span></code>,
+that <code class="docutils literal notranslate"><span class="pre">logger.exception</span></code> is called with the expected message, and that
+<code class="docutils literal notranslate"><span class="pre">collections</span></code> is still populated (as an empty result).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">

@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>test.test_step_logger &mdash; Crash Prediction Log Extractor 1.0.2 documentation</title>
+  <title>test.test_step_logger &mdash; Crash Prediction Log Extractor 1.0.3 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=4c969af8" />
@@ -15,7 +15,7 @@
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=1ed6394b"></script>
+      <script src="../../_static/documentation_options.js?v=baaebd52"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/tabs.js?v=3ee01567"></script>
@@ -374,6 +374,7 @@
 <li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_log_extractor.html#test.test_log_extractor.TestLogExtractor.test__extract_section_data"><code class="docutils literal notranslate"><span class="pre">TestLogExtractor.test__extract_section_data()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_log_extractor.html#test.test_log_extractor.TestLogExtractor.test__extract_section_data_invalid_state"><code class="docutils literal notranslate"><span class="pre">TestLogExtractor.test__extract_section_data_invalid_state()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_log_extractor.html#test.test_log_extractor.TestLogExtractor.test__extract_section_data_wrong_section"><code class="docutils literal notranslate"><span class="pre">TestLogExtractor.test__extract_section_data_wrong_section()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_log_extractor.html#test.test_log_extractor.TestLogExtractor.test__extract_section_invalid_state"><code class="docutils literal notranslate"><span class="pre">TestLogExtractor.test__extract_section_invalid_state()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_log_extractor.html#test.test_log_extractor.TestLogExtractor.test__get_actor_id"><code class="docutils literal notranslate"><span class="pre">TestLogExtractor.test__get_actor_id()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_log_extractor.html#test.test_log_extractor.TestLogExtractor.test__insert_position_data"><code class="docutils literal notranslate"><span class="pre">TestLogExtractor.test__insert_position_data()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_log_extractor.html#test.test_log_extractor.TestLogExtractor.test__merge_session_data"><code class="docutils literal notranslate"><span class="pre">TestLogExtractor.test__merge_session_data()</span></code></a></li>
@@ -381,6 +382,7 @@
 <li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_log_extractor.html#test.test_log_extractor.TestLogExtractor.test_clear_table"><code class="docutils literal notranslate"><span class="pre">TestLogExtractor.test_clear_table()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_log_extractor.html#test.test_log_extractor.TestLogExtractor.test_collections"><code class="docutils literal notranslate"><span class="pre">TestLogExtractor.test_collections()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_log_extractor.html#test.test_log_extractor.TestLogExtractor.test_extract"><code class="docutils literal notranslate"><span class="pre">TestLogExtractor.test_extract()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_log_extractor.html#test.test_log_extractor.TestLogExtractor.test_extract_value_error_logged"><code class="docutils literal notranslate"><span class="pre">TestLogExtractor.test_extract_value_error_logged()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l4"><a class="reference internal" href="../../test_rst/test.test_log_extractor.html#test.test_log_extractor.TestParserCrashState"><code class="docutils literal notranslate"><span class="pre">TestParserCrashState</span></code></a><ul>
@@ -728,114 +730,120 @@
 <span class="linenos">242</span>        <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">LogMode</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">),</span>
 <span class="linenos">243</span>        <span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;path/to/logfile.log&quot;</span><span class="p">),</span> <span class="n">LogMode</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">),</span>
 <span class="linenos">244</span>    <span class="p">],</span>
-<span class="linenos">245</span><span class="p">)</span>
-<span class="linenos">246</span><span class="k">def</span><span class="w"> </span><span class="nf">test_get_logger</span><span class="p">(</span>
-<span class="linenos">247</span>    <span class="n">mocker</span><span class="p">:</span> <span class="n">MockerFixture</span><span class="p">,</span> <span class="n">file_log</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">],</span> <span class="n">log_level</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">LogMode</span><span class="p">]</span>
-<span class="linenos">248</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">249</span><span class="w">    </span><span class="sd">&quot;&quot;&quot;Assert ``get_logger`` wires up stream and optional file handlers correctly.</span>
-<span class="linenos">250</span>
-<span class="linenos">251</span><span class="sd">    Verifies that ``get_logger``:</span>
-<span class="linenos">252</span>
-<span class="linenos">253</span><span class="sd">    - Calls ``getLogger()`` once with no arguments and clears existing handlers.</span>
-<span class="linenos">254</span><span class="sd">    - Sets the logger level to ``log_level`` (defaults to ``ERROR`` when ``None``).</span>
-<span class="linenos">255</span><span class="sd">    - Creates a ``StreamHandler`` on ``sys.stdout`` fixed at ``ERROR`` level.</span>
-<span class="linenos">256</span><span class="sd">    - When ``file_log`` is given, creates the parent directory (``parents=True,</span>
-<span class="linenos">257</span><span class="sd">      exist_ok=True``) and attaches a ``FileHandler`` at the resolved log level.</span>
-<span class="linenos">258</span><span class="sd">    - Returns the configured logger instance.</span>
-<span class="linenos">259</span>
-<span class="linenos">260</span><span class="sd">    Args:</span>
-<span class="linenos">261</span><span class="sd">        mocker: pytest-mock fixture for patching dependencies.</span>
-<span class="linenos">262</span><span class="sd">        file_log: Path to the log file, or ``None`` for stream-only logging.</span>
-<span class="linenos">263</span><span class="sd">        log_level: Desired log level, or ``None`` to use the default (``ERROR``).</span>
-<span class="linenos">264</span>
-<span class="linenos">265</span><span class="sd">    Returns:</span>
-<span class="linenos">266</span><span class="sd">        None</span>
-<span class="linenos">267</span><span class="sd">    &quot;&quot;&quot;</span>
-<span class="linenos">268</span>    <span class="c1"># Arrange</span>
-<span class="linenos">269</span>    <span class="n">mock_logger</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">(</span><span class="n">spec</span><span class="o">=</span><span class="n">Logger</span><span class="p">)</span>
-<span class="linenos">270</span>    <span class="n">mock_logger</span><span class="o">.</span><span class="n">handlers</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">(</span><span class="n">spec</span><span class="o">=</span><span class="nb">list</span><span class="p">[</span><span class="n">Handler</span><span class="p">])</span>
-<span class="linenos">271</span>    <span class="n">mock_logger</span><span class="o">.</span><span class="n">handlers</span><span class="o">.</span><span class="n">clear</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">()</span>
-<span class="linenos">272</span>    <span class="n">mock_logger</span><span class="o">.</span><span class="n">setLevel</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">()</span>
-<span class="linenos">273</span>    <span class="n">mock_logger</span><span class="o">.</span><span class="n">addHandler</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">()</span>
-<span class="linenos">274</span>    <span class="n">mock_stream_handler</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">(</span><span class="n">spec</span><span class="o">=</span><span class="n">Handler</span><span class="p">)</span>
-<span class="linenos">275</span>    <span class="n">mock_stream_handler</span><span class="o">.</span><span class="n">setFormatter</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">()</span>
-<span class="linenos">276</span>    <span class="n">mock_stream_handler</span><span class="o">.</span><span class="n">setLevel</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">()</span>
-<span class="linenos">277</span>    <span class="n">mock_file_handler</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">(</span><span class="n">spec</span><span class="o">=</span><span class="n">Handler</span><span class="p">)</span>
-<span class="linenos">278</span>    <span class="n">mock_file_handler</span><span class="o">.</span><span class="n">setFormatter</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">()</span>
-<span class="linenos">279</span>    <span class="n">mock_file_handler</span><span class="o">.</span><span class="n">setLevel</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">()</span>
-<span class="linenos">280</span>    <span class="n">mock_get_logger</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span>
-<span class="linenos">281</span>        <span class="s2">&quot;crash_prediction_log_extractor.step_logger.getLogger&quot;</span><span class="p">,</span> <span class="n">return_value</span><span class="o">=</span><span class="n">mock_logger</span>
-<span class="linenos">282</span>    <span class="p">)</span>
-<span class="linenos">283</span>    <span class="n">mock_stream_handler_class</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span>
-<span class="linenos">284</span>        <span class="s2">&quot;crash_prediction_log_extractor.step_logger.StreamHandler&quot;</span><span class="p">,</span>
-<span class="linenos">285</span>        <span class="n">return_value</span><span class="o">=</span><span class="n">mock_stream_handler</span><span class="p">,</span>
-<span class="linenos">286</span>    <span class="p">)</span>
-<span class="linenos">287</span>    <span class="n">mock_file_handler_class</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span>
-<span class="linenos">288</span>        <span class="s2">&quot;crash_prediction_log_extractor.step_logger.FileHandler&quot;</span><span class="p">,</span>
-<span class="linenos">289</span>        <span class="n">return_value</span><span class="o">=</span><span class="n">mock_file_handler</span><span class="p">,</span>
-<span class="linenos">290</span>    <span class="p">)</span>
-<span class="linenos">291</span>    <span class="n">mocker</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span>
-<span class="linenos">292</span>        <span class="s2">&quot;crash_prediction_log_extractor.step_logger.UtcFormatter&quot;</span><span class="p">,</span>
-<span class="linenos">293</span>        <span class="n">return_value</span><span class="o">=</span><span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">(</span><span class="n">spec</span><span class="o">=</span><span class="n">UtcFormatter</span><span class="p">),</span>
-<span class="linenos">294</span>    <span class="p">)</span>
-<span class="linenos">295</span>    <span class="n">mock_mkdir</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">patch</span><span class="o">.</span><span class="n">object</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">Path</span><span class="p">,</span> <span class="n">attribute</span><span class="o">=</span><span class="s2">&quot;mkdir&quot;</span><span class="p">)</span>
-<span class="linenos">296</span>    <span class="c1"># Act</span>
-<span class="linenos">297</span>    <span class="n">result</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="n">file_log</span><span class="o">=</span><span class="n">file_log</span><span class="p">,</span> <span class="n">log_level</span><span class="o">=</span><span class="n">log_level</span><span class="p">)</span>
-<span class="linenos">298</span>    <span class="c1"># Assert</span>
-<span class="linenos">299</span>    <span class="n">mock_get_logger</span><span class="o">.</span><span class="n">assert_called_once_with</span><span class="p">()</span>
-<span class="linenos">300</span>    <span class="n">mock_logger</span><span class="o">.</span><span class="n">handlers</span><span class="o">.</span><span class="n">clear</span><span class="o">.</span><span class="n">assert_called_once</span><span class="p">()</span>
-<span class="linenos">301</span>    <span class="n">expected_log_level</span> <span class="o">=</span> <span class="n">LogMode</span><span class="o">.</span><span class="n">to_logging_level</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="n">log_level</span> <span class="ow">or</span> <span class="n">LogMode</span><span class="o">.</span><span class="n">ERROR</span><span class="p">)</span>
-<span class="linenos">302</span>    <span class="n">mock_logger</span><span class="o">.</span><span class="n">setLevel</span><span class="o">.</span><span class="n">assert_called_once_with</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">expected_log_level</span><span class="p">)</span>
-<span class="linenos">303</span>    <span class="n">mock_stream_handler_class</span><span class="o">.</span><span class="n">assert_called_once_with</span><span class="p">(</span><span class="n">stream</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="p">)</span>
-<span class="linenos">304</span>    <span class="n">mock_stream_handler</span><span class="o">.</span><span class="n">setLevel</span><span class="o">.</span><span class="n">assert_called_once_with</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">ERROR</span><span class="p">)</span>
-<span class="linenos">305</span>    <span class="n">mock_logger</span><span class="o">.</span><span class="n">addHandler</span><span class="o">.</span><span class="n">assert_any_call</span><span class="p">(</span><span class="n">hdlr</span><span class="o">=</span><span class="n">mock_stream_handler</span><span class="p">)</span>
-<span class="linenos">306</span>    <span class="k">if</span> <span class="n">file_log</span><span class="p">:</span>
-<span class="linenos">307</span>        <span class="n">mock_mkdir</span><span class="o">.</span><span class="n">assert_called_once</span><span class="p">()</span>
-<span class="linenos">308</span>        <span class="k">assert</span> <span class="n">mock_mkdir</span><span class="o">.</span><span class="n">call_args</span><span class="o">.</span><span class="n">kwargs</span> <span class="o">==</span> <span class="p">{</span><span class="s2">&quot;parents&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">&quot;exist_ok&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">}</span>
-<span class="linenos">309</span>        <span class="n">mock_file_handler_class</span><span class="o">.</span><span class="n">assert_called_once_with</span><span class="p">(</span>
-<span class="linenos">310</span>            <span class="n">filename</span><span class="o">=</span><span class="n">file_log</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">,</span> <span class="n">delay</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">errors</span><span class="o">=</span><span class="kc">None</span>
-<span class="linenos">311</span>        <span class="p">)</span>
-<span class="linenos">312</span>        <span class="n">mock_file_handler</span><span class="o">.</span><span class="n">setLevel</span><span class="o">.</span><span class="n">assert_called_once_with</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">expected_log_level</span><span class="p">)</span>
-<span class="linenos">313</span>        <span class="n">mock_logger</span><span class="o">.</span><span class="n">addHandler</span><span class="o">.</span><span class="n">assert_any_call</span><span class="p">(</span><span class="n">hdlr</span><span class="o">=</span><span class="n">mock_file_handler</span><span class="p">)</span>
-<span class="linenos">314</span>    <span class="k">assert</span> <span class="n">result</span> <span class="o">==</span> <span class="n">mock_logger</span></div>
+<span class="linenos">245</span>    <span class="n">ids</span><span class="o">=</span><span class="p">[</span>
+<span class="linenos">246</span>        <span class="s2">&quot;no_file_default_level&quot;</span><span class="p">,</span>
+<span class="linenos">247</span>        <span class="s2">&quot;with_file_default_level&quot;</span><span class="p">,</span>
+<span class="linenos">248</span>        <span class="s2">&quot;no_file_debug_level&quot;</span><span class="p">,</span>
+<span class="linenos">249</span>        <span class="s2">&quot;with_file_debug_level&quot;</span><span class="p">,</span>
+<span class="linenos">250</span>    <span class="p">],</span>
+<span class="linenos">251</span><span class="p">)</span>
+<span class="linenos">252</span><span class="k">def</span><span class="w"> </span><span class="nf">test_get_logger</span><span class="p">(</span>
+<span class="linenos">253</span>    <span class="n">mocker</span><span class="p">:</span> <span class="n">MockerFixture</span><span class="p">,</span> <span class="n">file_log</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">],</span> <span class="n">log_level</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">LogMode</span><span class="p">]</span>
+<span class="linenos">254</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">255</span><span class="w">    </span><span class="sd">&quot;&quot;&quot;Assert ``get_logger`` wires up stream and optional file handlers correctly.</span>
+<span class="linenos">256</span>
+<span class="linenos">257</span><span class="sd">    Verifies that ``get_logger``:</span>
+<span class="linenos">258</span>
+<span class="linenos">259</span><span class="sd">    - Calls ``getLogger()`` once with no arguments and clears existing handlers.</span>
+<span class="linenos">260</span><span class="sd">    - Sets the logger level to ``log_level`` (defaults to ``ERROR`` when ``None``).</span>
+<span class="linenos">261</span><span class="sd">    - Creates a ``StreamHandler`` on ``sys.stdout`` fixed at ``ERROR`` level.</span>
+<span class="linenos">262</span><span class="sd">    - When ``file_log`` is given, creates the parent directory (``parents=True,</span>
+<span class="linenos">263</span><span class="sd">      exist_ok=True``) and attaches a ``FileHandler`` at the resolved log level.</span>
+<span class="linenos">264</span><span class="sd">    - Returns the configured logger instance.</span>
+<span class="linenos">265</span>
+<span class="linenos">266</span><span class="sd">    Args:</span>
+<span class="linenos">267</span><span class="sd">        mocker: pytest-mock fixture for patching dependencies.</span>
+<span class="linenos">268</span><span class="sd">        file_log: Path to the log file, or ``None`` for stream-only logging.</span>
+<span class="linenos">269</span><span class="sd">        log_level: Desired log level, or ``None`` to use the default (``ERROR``).</span>
+<span class="linenos">270</span>
+<span class="linenos">271</span><span class="sd">    Returns:</span>
+<span class="linenos">272</span><span class="sd">        None</span>
+<span class="linenos">273</span><span class="sd">    &quot;&quot;&quot;</span>
+<span class="linenos">274</span>    <span class="c1"># Arrange</span>
+<span class="linenos">275</span>    <span class="n">mock_logger</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">(</span><span class="n">spec</span><span class="o">=</span><span class="n">Logger</span><span class="p">)</span>
+<span class="linenos">276</span>    <span class="n">mock_logger</span><span class="o">.</span><span class="n">handlers</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">(</span><span class="n">spec</span><span class="o">=</span><span class="nb">list</span><span class="p">[</span><span class="n">Handler</span><span class="p">])</span>
+<span class="linenos">277</span>    <span class="n">mock_logger</span><span class="o">.</span><span class="n">handlers</span><span class="o">.</span><span class="n">clear</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">()</span>
+<span class="linenos">278</span>    <span class="n">mock_logger</span><span class="o">.</span><span class="n">setLevel</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">()</span>
+<span class="linenos">279</span>    <span class="n">mock_logger</span><span class="o">.</span><span class="n">addHandler</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">()</span>
+<span class="linenos">280</span>    <span class="n">mock_stream_handler</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">(</span><span class="n">spec</span><span class="o">=</span><span class="n">Handler</span><span class="p">)</span>
+<span class="linenos">281</span>    <span class="n">mock_stream_handler</span><span class="o">.</span><span class="n">setFormatter</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">()</span>
+<span class="linenos">282</span>    <span class="n">mock_stream_handler</span><span class="o">.</span><span class="n">setLevel</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">()</span>
+<span class="linenos">283</span>    <span class="n">mock_file_handler</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">(</span><span class="n">spec</span><span class="o">=</span><span class="n">Handler</span><span class="p">)</span>
+<span class="linenos">284</span>    <span class="n">mock_file_handler</span><span class="o">.</span><span class="n">setFormatter</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">()</span>
+<span class="linenos">285</span>    <span class="n">mock_file_handler</span><span class="o">.</span><span class="n">setLevel</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">()</span>
+<span class="linenos">286</span>    <span class="n">mock_get_logger</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span>
+<span class="linenos">287</span>        <span class="s2">&quot;crash_prediction_log_extractor.step_logger.getLogger&quot;</span><span class="p">,</span> <span class="n">return_value</span><span class="o">=</span><span class="n">mock_logger</span>
+<span class="linenos">288</span>    <span class="p">)</span>
+<span class="linenos">289</span>    <span class="n">mock_stream_handler_class</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span>
+<span class="linenos">290</span>        <span class="s2">&quot;crash_prediction_log_extractor.step_logger.StreamHandler&quot;</span><span class="p">,</span>
+<span class="linenos">291</span>        <span class="n">return_value</span><span class="o">=</span><span class="n">mock_stream_handler</span><span class="p">,</span>
+<span class="linenos">292</span>    <span class="p">)</span>
+<span class="linenos">293</span>    <span class="n">mock_file_handler_class</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span>
+<span class="linenos">294</span>        <span class="s2">&quot;crash_prediction_log_extractor.step_logger.FileHandler&quot;</span><span class="p">,</span>
+<span class="linenos">295</span>        <span class="n">return_value</span><span class="o">=</span><span class="n">mock_file_handler</span><span class="p">,</span>
+<span class="linenos">296</span>    <span class="p">)</span>
+<span class="linenos">297</span>    <span class="n">mocker</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span>
+<span class="linenos">298</span>        <span class="s2">&quot;crash_prediction_log_extractor.step_logger.UtcFormatter&quot;</span><span class="p">,</span>
+<span class="linenos">299</span>        <span class="n">return_value</span><span class="o">=</span><span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">(</span><span class="n">spec</span><span class="o">=</span><span class="n">UtcFormatter</span><span class="p">),</span>
+<span class="linenos">300</span>    <span class="p">)</span>
+<span class="linenos">301</span>    <span class="n">mock_mkdir</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">patch</span><span class="o">.</span><span class="n">object</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">Path</span><span class="p">,</span> <span class="n">attribute</span><span class="o">=</span><span class="s2">&quot;mkdir&quot;</span><span class="p">)</span>
+<span class="linenos">302</span>    <span class="c1"># Act</span>
+<span class="linenos">303</span>    <span class="n">result</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="n">file_log</span><span class="o">=</span><span class="n">file_log</span><span class="p">,</span> <span class="n">log_level</span><span class="o">=</span><span class="n">log_level</span><span class="p">)</span>
+<span class="linenos">304</span>    <span class="c1"># Assert</span>
+<span class="linenos">305</span>    <span class="n">mock_get_logger</span><span class="o">.</span><span class="n">assert_called_once_with</span><span class="p">()</span>
+<span class="linenos">306</span>    <span class="n">mock_logger</span><span class="o">.</span><span class="n">handlers</span><span class="o">.</span><span class="n">clear</span><span class="o">.</span><span class="n">assert_called_once</span><span class="p">()</span>
+<span class="linenos">307</span>    <span class="n">expected_log_level</span> <span class="o">=</span> <span class="n">LogMode</span><span class="o">.</span><span class="n">to_logging_level</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="n">log_level</span> <span class="ow">or</span> <span class="n">LogMode</span><span class="o">.</span><span class="n">ERROR</span><span class="p">)</span>
+<span class="linenos">308</span>    <span class="n">mock_logger</span><span class="o">.</span><span class="n">setLevel</span><span class="o">.</span><span class="n">assert_called_once_with</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">expected_log_level</span><span class="p">)</span>
+<span class="linenos">309</span>    <span class="n">mock_stream_handler_class</span><span class="o">.</span><span class="n">assert_called_once_with</span><span class="p">(</span><span class="n">stream</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="p">)</span>
+<span class="linenos">310</span>    <span class="n">mock_stream_handler</span><span class="o">.</span><span class="n">setLevel</span><span class="o">.</span><span class="n">assert_called_once_with</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">ERROR</span><span class="p">)</span>
+<span class="linenos">311</span>    <span class="n">mock_logger</span><span class="o">.</span><span class="n">addHandler</span><span class="o">.</span><span class="n">assert_any_call</span><span class="p">(</span><span class="n">hdlr</span><span class="o">=</span><span class="n">mock_stream_handler</span><span class="p">)</span>
+<span class="linenos">312</span>    <span class="k">if</span> <span class="n">file_log</span><span class="p">:</span>
+<span class="linenos">313</span>        <span class="n">mock_mkdir</span><span class="o">.</span><span class="n">assert_called_once</span><span class="p">()</span>
+<span class="linenos">314</span>        <span class="k">assert</span> <span class="n">mock_mkdir</span><span class="o">.</span><span class="n">call_args</span><span class="o">.</span><span class="n">kwargs</span> <span class="o">==</span> <span class="p">{</span><span class="s2">&quot;parents&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">&quot;exist_ok&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">}</span>
+<span class="linenos">315</span>        <span class="n">mock_file_handler_class</span><span class="o">.</span><span class="n">assert_called_once_with</span><span class="p">(</span>
+<span class="linenos">316</span>            <span class="n">filename</span><span class="o">=</span><span class="n">file_log</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">,</span> <span class="n">delay</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">errors</span><span class="o">=</span><span class="kc">None</span>
+<span class="linenos">317</span>        <span class="p">)</span>
+<span class="linenos">318</span>        <span class="n">mock_file_handler</span><span class="o">.</span><span class="n">setLevel</span><span class="o">.</span><span class="n">assert_called_once_with</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">expected_log_level</span><span class="p">)</span>
+<span class="linenos">319</span>        <span class="n">mock_logger</span><span class="o">.</span><span class="n">addHandler</span><span class="o">.</span><span class="n">assert_any_call</span><span class="p">(</span><span class="n">hdlr</span><span class="o">=</span><span class="n">mock_file_handler</span><span class="p">)</span>
+<span class="linenos">320</span>    <span class="k">assert</span> <span class="n">result</span> <span class="o">==</span> <span class="n">mock_logger</span></div>
 
-<span class="linenos">315</span>
-<span class="linenos">316</span>
+<span class="linenos">321</span>
+<span class="linenos">322</span>
 <div class="viewcode-block" id="test_logger_force_write">
 <a class="viewcode-back" href="../../test_rst/test.test_step_logger.html#test.test_step_logger.test_logger_force_write">[docs]</a>
-<span class="linenos">317</span><span class="k">def</span><span class="w"> </span><span class="nf">test_logger_force_write</span><span class="p">(</span><span class="n">mocker</span><span class="p">:</span> <span class="n">MockerFixture</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">318</span><span class="w">    </span><span class="sd">&quot;&quot;&quot;Assert ``logger_force_write`` temporarily elevates levels to INFO, logs, then</span>
-<span class="linenos">319</span><span class="sd">    restores.</span>
-<span class="linenos">320</span>
-<span class="linenos">321</span><span class="sd">    Sets up a mock logger at ``WARNING`` level with two handlers also at ``WARNING``.</span>
-<span class="linenos">322</span><span class="sd">    Verifies that ``logger_force_write`` raises both the logger and every handler to</span>
-<span class="linenos">323</span><span class="sd">    ``INFO`` before calling ``logger.info(msg=msg)``, and then restores each back to</span>
-<span class="linenos">324</span><span class="sd">    their original ``WARNING`` level.</span>
-<span class="linenos">325</span>
-<span class="linenos">326</span><span class="sd">    Args:</span>
-<span class="linenos">327</span><span class="sd">        mocker: pytest-mock fixture for creating mock objects.</span>
-<span class="linenos">328</span>
-<span class="linenos">329</span><span class="sd">    Returns:</span>
-<span class="linenos">330</span><span class="sd">        None</span>
-<span class="linenos">331</span><span class="sd">    &quot;&quot;&quot;</span>
-<span class="linenos">332</span>    <span class="c1"># Arrange</span>
-<span class="linenos">333</span>    <span class="n">mock_logger</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">(</span><span class="n">spec</span><span class="o">=</span><span class="n">Logger</span><span class="p">)</span>
-<span class="linenos">334</span>    <span class="n">mock_logger</span><span class="o">.</span><span class="n">info</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">()</span>
-<span class="linenos">335</span>    <span class="n">mock_logger</span><span class="o">.</span><span class="n">level</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">WARNING</span>
-<span class="linenos">336</span>    <span class="n">mock_logger</span><span class="o">.</span><span class="n">setLevel</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">()</span>
-<span class="linenos">337</span>    <span class="n">mock_handler</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">(</span><span class="n">spec</span><span class="o">=</span><span class="n">Handler</span><span class="p">)</span>
-<span class="linenos">338</span>    <span class="n">mock_handler</span><span class="o">.</span><span class="n">level</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">WARNING</span>
-<span class="linenos">339</span>    <span class="n">mock_handler</span><span class="o">.</span><span class="n">setLevel</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">()</span>
-<span class="linenos">340</span>    <span class="n">mock_logger</span><span class="o">.</span><span class="n">handlers</span> <span class="o">=</span> <span class="p">[</span><span class="n">mock_handler</span><span class="p">,</span> <span class="n">mock_handler</span><span class="p">]</span>
-<span class="linenos">341</span>    <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Test message&quot;</span>
-<span class="linenos">342</span>    <span class="c1"># Act</span>
-<span class="linenos">343</span>    <span class="n">logger_force_write</span><span class="p">(</span><span class="n">logger</span><span class="o">=</span><span class="n">mock_logger</span><span class="p">,</span> <span class="n">msg</span><span class="o">=</span><span class="n">msg</span><span class="p">)</span>
-<span class="linenos">344</span>    <span class="c1"># Assert</span>
-<span class="linenos">345</span>    <span class="n">mock_logger</span><span class="o">.</span><span class="n">setLevel</span><span class="o">.</span><span class="n">assert_any_call</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">)</span>
-<span class="linenos">346</span>    <span class="n">mock_logger</span><span class="o">.</span><span class="n">setLevel</span><span class="o">.</span><span class="n">assert_any_call</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">WARNING</span><span class="p">)</span>
-<span class="linenos">347</span>    <span class="n">mock_handler</span><span class="o">.</span><span class="n">setLevel</span><span class="o">.</span><span class="n">assert_any_call</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">)</span>
-<span class="linenos">348</span>    <span class="n">mock_handler</span><span class="o">.</span><span class="n">setLevel</span><span class="o">.</span><span class="n">assert_any_call</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">WARNING</span><span class="p">)</span>
-<span class="linenos">349</span>    <span class="n">mock_logger</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">assert_called_once_with</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="n">msg</span><span class="p">)</span></div>
+<span class="linenos">323</span><span class="k">def</span><span class="w"> </span><span class="nf">test_logger_force_write</span><span class="p">(</span><span class="n">mocker</span><span class="p">:</span> <span class="n">MockerFixture</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">324</span><span class="w">    </span><span class="sd">&quot;&quot;&quot;Assert ``logger_force_write`` temporarily elevates levels to INFO, logs, then</span>
+<span class="linenos">325</span><span class="sd">    restores.</span>
+<span class="linenos">326</span>
+<span class="linenos">327</span><span class="sd">    Sets up a mock logger at ``WARNING`` level with two handlers also at ``WARNING``.</span>
+<span class="linenos">328</span><span class="sd">    Verifies that ``logger_force_write`` raises both the logger and every handler to</span>
+<span class="linenos">329</span><span class="sd">    ``INFO`` before calling ``logger.info(msg=msg)``, and then restores each back to</span>
+<span class="linenos">330</span><span class="sd">    their original ``WARNING`` level.</span>
+<span class="linenos">331</span>
+<span class="linenos">332</span><span class="sd">    Args:</span>
+<span class="linenos">333</span><span class="sd">        mocker: pytest-mock fixture for creating mock objects.</span>
+<span class="linenos">334</span>
+<span class="linenos">335</span><span class="sd">    Returns:</span>
+<span class="linenos">336</span><span class="sd">        None</span>
+<span class="linenos">337</span><span class="sd">    &quot;&quot;&quot;</span>
+<span class="linenos">338</span>    <span class="c1"># Arrange</span>
+<span class="linenos">339</span>    <span class="n">mock_logger</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">(</span><span class="n">spec</span><span class="o">=</span><span class="n">Logger</span><span class="p">)</span>
+<span class="linenos">340</span>    <span class="n">mock_logger</span><span class="o">.</span><span class="n">info</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">()</span>
+<span class="linenos">341</span>    <span class="n">mock_logger</span><span class="o">.</span><span class="n">level</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">WARNING</span>
+<span class="linenos">342</span>    <span class="n">mock_logger</span><span class="o">.</span><span class="n">setLevel</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">()</span>
+<span class="linenos">343</span>    <span class="n">mock_handler</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">(</span><span class="n">spec</span><span class="o">=</span><span class="n">Handler</span><span class="p">)</span>
+<span class="linenos">344</span>    <span class="n">mock_handler</span><span class="o">.</span><span class="n">level</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">WARNING</span>
+<span class="linenos">345</span>    <span class="n">mock_handler</span><span class="o">.</span><span class="n">setLevel</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">()</span>
+<span class="linenos">346</span>    <span class="n">mock_logger</span><span class="o">.</span><span class="n">handlers</span> <span class="o">=</span> <span class="p">[</span><span class="n">mock_handler</span><span class="p">,</span> <span class="n">mock_handler</span><span class="p">]</span>
+<span class="linenos">347</span>    <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Test message&quot;</span>
+<span class="linenos">348</span>    <span class="c1"># Act</span>
+<span class="linenos">349</span>    <span class="n">logger_force_write</span><span class="p">(</span><span class="n">logger</span><span class="o">=</span><span class="n">mock_logger</span><span class="p">,</span> <span class="n">msg</span><span class="o">=</span><span class="n">msg</span><span class="p">)</span>
+<span class="linenos">350</span>    <span class="c1"># Assert</span>
+<span class="linenos">351</span>    <span class="n">mock_logger</span><span class="o">.</span><span class="n">setLevel</span><span class="o">.</span><span class="n">assert_any_call</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">)</span>
+<span class="linenos">352</span>    <span class="n">mock_logger</span><span class="o">.</span><span class="n">setLevel</span><span class="o">.</span><span class="n">assert_any_call</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">WARNING</span><span class="p">)</span>
+<span class="linenos">353</span>    <span class="n">mock_handler</span><span class="o">.</span><span class="n">setLevel</span><span class="o">.</span><span class="n">assert_any_call</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">)</span>
+<span class="linenos">354</span>    <span class="n">mock_handler</span><span class="o">.</span><span class="n">setLevel</span><span class="o">.</span><span class="n">assert_any_call</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">WARNING</span><span class="p">)</span>
+<span class="linenos">355</span>    <span class="n">mock_logger</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">assert_called_once_with</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="n">msg</span><span class="p">)</span></div>
 
 </pre></div>
 

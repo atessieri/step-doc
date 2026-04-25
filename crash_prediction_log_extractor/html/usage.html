@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Crash Prediction Log Extractor Usage Guide &mdash; Crash Prediction Log Extractor 1.0.2 documentation</title>
+  <title>Crash Prediction Log Extractor Usage Guide &mdash; Crash Prediction Log Extractor 1.0.3 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="_static/tabs.css?v=4c969af8" />
@@ -16,7 +16,7 @@
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=1ed6394b"></script>
+      <script src="_static/documentation_options.js?v=baaebd52"></script>
       <script src="_static/doctools.js?v=fd6eb6e6"></script>
       <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="_static/tabs.js?v=3ee01567"></script>
@@ -377,6 +377,7 @@
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_log_extractor.html#test.test_log_extractor.TestLogExtractor.test__extract_section_data"><code class="docutils literal notranslate"><span class="pre">TestLogExtractor.test__extract_section_data()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_log_extractor.html#test.test_log_extractor.TestLogExtractor.test__extract_section_data_invalid_state"><code class="docutils literal notranslate"><span class="pre">TestLogExtractor.test__extract_section_data_invalid_state()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_log_extractor.html#test.test_log_extractor.TestLogExtractor.test__extract_section_data_wrong_section"><code class="docutils literal notranslate"><span class="pre">TestLogExtractor.test__extract_section_data_wrong_section()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_log_extractor.html#test.test_log_extractor.TestLogExtractor.test__extract_section_invalid_state"><code class="docutils literal notranslate"><span class="pre">TestLogExtractor.test__extract_section_invalid_state()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_log_extractor.html#test.test_log_extractor.TestLogExtractor.test__get_actor_id"><code class="docutils literal notranslate"><span class="pre">TestLogExtractor.test__get_actor_id()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_log_extractor.html#test.test_log_extractor.TestLogExtractor.test__insert_position_data"><code class="docutils literal notranslate"><span class="pre">TestLogExtractor.test__insert_position_data()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_log_extractor.html#test.test_log_extractor.TestLogExtractor.test__merge_session_data"><code class="docutils literal notranslate"><span class="pre">TestLogExtractor.test__merge_session_data()</span></code></a></li>
@@ -384,6 +385,7 @@
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_log_extractor.html#test.test_log_extractor.TestLogExtractor.test_clear_table"><code class="docutils literal notranslate"><span class="pre">TestLogExtractor.test_clear_table()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_log_extractor.html#test.test_log_extractor.TestLogExtractor.test_collections"><code class="docutils literal notranslate"><span class="pre">TestLogExtractor.test_collections()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_log_extractor.html#test.test_log_extractor.TestLogExtractor.test_extract"><code class="docutils literal notranslate"><span class="pre">TestLogExtractor.test_extract()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_log_extractor.html#test.test_log_extractor.TestLogExtractor.test_extract_value_error_logged"><code class="docutils literal notranslate"><span class="pre">TestLogExtractor.test_extract_value_error_logged()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_log_extractor.html#test.test_log_extractor.TestParserCrashState"><code class="docutils literal notranslate"><span class="pre">TestParserCrashState</span></code></a><ul>
@@ -470,7 +472,7 @@
 <ul class="simple">
 <li><p>per-actor trajectories,</p></li>
 <li><p>separated into <code class="docutils literal notranslate"><span class="pre">normalized</span></code> and <code class="docutils literal notranslate"><span class="pre">anomaly</span></code> sessions,</p></li>
-<li><p>with <code class="docutils literal notranslate"><span class="pre">real</span></code> and <code class="docutils literal notranslate"><span class="pre">forecasted</span></code> points,</p></li>
+<li><p>with <code class="docutils literal notranslate"><span class="pre">real</span></code> points (and <code class="docutils literal notranslate"><span class="pre">forecasted</span></code> points for <code class="docutils literal notranslate"><span class="pre">normalized</span></code> sessions),</p></li>
 <li><p>and crash events (risk + involved actors).</p></li>
 </ul>
 <p>The executable command installed by the package is:</p>
@@ -484,12 +486,11 @@
 embedded in normal log output. A complete scenario block is expected in this order:</p>
 <ol class="arabic simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">--Scenario</span> <span class="pre">start--</span></code></p></li>
-<li><p>4 section data blocks:</p>
+<li><p>3 section data blocks:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">--Section</span> <span class="pre">normalized</span> <span class="pre">real</span> <span class="pre">start--</span> <span class="pre">...</span> <span class="pre">end--</span></code></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--Section</span> <span class="pre">normalized</span> <span class="pre">forecasted</span> <span class="pre">start--</span> <span class="pre">...</span> <span class="pre">end--</span></code></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--Section</span> <span class="pre">anomaly</span> <span class="pre">real</span> <span class="pre">start--</span> <span class="pre">...</span> <span class="pre">end--</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--Section</span> <span class="pre">anomaly</span> <span class="pre">forecasted</span> <span class="pre">start--</span> <span class="pre">...</span> <span class="pre">end--</span></code></p></li>
 </ul>
 </li>
 <li><p>crash section: <code class="docutils literal notranslate"><span class="pre">--Section</span> <span class="pre">crash</span> <span class="pre">start--</span> <span class="pre">...</span> <span class="pre">end--</span></code></p></li>
