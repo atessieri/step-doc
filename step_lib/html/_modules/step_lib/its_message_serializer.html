@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>step_lib.its_message_serializer &mdash; STEP Library 1.5.24 documentation</title>
+  <title>step_lib.its_message_serializer &mdash; STEP Library 1.5.25 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=4c969af8" />
@@ -15,7 +15,7 @@
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=3f81d0a9"></script>
+      <script src="../../_static/documentation_options.js?v=9bf954b0"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/tabs.js?v=3ee01567"></script>
@@ -965,7 +965,7 @@
 <span class="linenos">109</span><span class="sd">        &gt;&gt;&gt; geonet_msg, btp_msg, facility_msg = serializer.deserialize(message_bytes)</span>
 <span class="linenos">110</span><span class="sd">    &quot;&quot;&quot;</span>
 <span class="linenos">111</span>
-<span class="linenos">112</span>    <span class="vm">__slots__</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;_its_facility_serializer&quot;</span><span class="p">,</span> <span class="s2">&quot;_logger&quot;</span><span class="p">)</span>
+<span class="linenos">112</span>    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;_its_facility_serializer&quot;</span><span class="p">,</span> <span class="s2">&quot;_logger&quot;</span><span class="p">)</span>
 <span class="linenos">113</span>
 <span class="linenos">114</span>    <span class="n">BASIC_HEADER</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="n">BasicHeader</span><span class="p">]</span> <span class="o">=</span> <span class="n">BasicHeader</span><span class="p">(</span>
 <span class="linenos">115</span>        <span class="n">version</span><span class="o">=</span><span class="n">GeonetVersion</span><span class="o">.</span><span class="n">V1</span><span class="p">,</span>
@@ -1200,265 +1200,262 @@
 <span class="linenos">335</span><span class="sd">                  and flags.</span>
 <span class="linenos">336</span><span class="sd">                - ExtendedHeader: Contains the SingleHopBroadcast with position vector of</span>
 <span class="linenos">337</span><span class="sd">                  the source.</span>
-<span class="linenos">338</span>
-<span class="linenos">339</span><span class="sd">        Note:</span>
-<span class="linenos">340</span><span class="sd">            The function assumes &#39;is_accurate&#39; is a predefined variable in the scope.</span>
-<span class="linenos">341</span><span class="sd">        &quot;&quot;&quot;</span>
-<span class="linenos">342</span>        <span class="k">return</span> <span class="p">(</span>
-<span class="linenos">343</span>            <span class="n">CommonHeader</span><span class="p">(</span>
-<span class="linenos">344</span>                <span class="n">next_header</span><span class="o">=</span><span class="n">next_header</span><span class="p">,</span>
-<span class="linenos">345</span>                <span class="n">header_type_subtype</span><span class="o">=</span><span class="n">HeaderTypeSubtype</span><span class="o">.</span><span class="n">SINGLE_HOP</span><span class="p">,</span>
-<span class="linenos">346</span>                <span class="n">traffic_class</span><span class="o">=</span><span class="n">TrafficClass</span><span class="p">(</span>
-<span class="linenos">347</span>                    <span class="n">must_buffered</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-<span class="linenos">348</span>                    <span class="n">identification</span><span class="o">=</span><span class="n">TrafficClassIdentifierKnown</span><span class="o">.</span><span class="n">TC_LTE_V2X_CAM</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
-<span class="linenos">349</span>                <span class="p">),</span>
-<span class="linenos">350</span>                <span class="n">flags</span><span class="o">=</span><span class="n">common_Flags</span><span class="p">(</span><span class="n">is_station_mobile</span><span class="o">=</span><span class="n">is_station_mobile</span><span class="p">),</span>
-<span class="linenos">351</span>                <span class="n">payload_length_after_geonet</span><span class="o">=</span><span class="n">payload_length</span><span class="p">,</span>
-<span class="linenos">352</span>                <span class="n">maximum_hop_limit</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-<span class="linenos">353</span>            <span class="p">),</span>
-<span class="linenos">354</span>            <span class="n">ExtendedHeader</span><span class="p">(</span>
-<span class="linenos">355</span>                <span class="n">packet_data</span><span class="o">=</span><span class="n">SingleHopBroadcast</span><span class="p">(</span>
-<span class="linenos">356</span>                    <span class="n">long_position_vector_source</span><span class="o">=</span><span class="n">PositionVector</span><span class="p">(</span>
-<span class="linenos">357</span>                        <span class="n">address</span><span class="o">=</span><span class="n">address</span><span class="p">,</span>
-<span class="linenos">358</span>                        <span class="n">time</span><span class="o">=</span><span class="n">current_position</span><span class="o">.</span><span class="n">time</span><span class="p">,</span>
-<span class="linenos">359</span>                        <span class="n">latitude</span><span class="o">=</span><span class="n">current_position</span><span class="o">.</span><span class="n">latitude</span><span class="p">,</span>
-<span class="linenos">360</span>                        <span class="n">longitude</span><span class="o">=</span><span class="n">current_position</span><span class="o">.</span><span class="n">longitude</span><span class="p">,</span>
-<span class="linenos">361</span>                        <span class="n">is_accurate</span><span class="o">=</span><span class="n">is_accurate</span><span class="p">,</span>
-<span class="linenos">362</span>                        <span class="n">speed</span><span class="o">=</span><span class="n">current_position</span><span class="o">.</span><span class="n">speed</span><span class="p">,</span>
-<span class="linenos">363</span>                        <span class="n">heading</span><span class="o">=</span><span class="n">current_position</span><span class="o">.</span><span class="n">heading</span><span class="p">,</span>
-<span class="linenos">364</span>                    <span class="p">)</span>
-<span class="linenos">365</span>                <span class="p">)</span>
-<span class="linenos">366</span>            <span class="p">),</span>
-<span class="linenos">367</span>        <span class="p">)</span>
-<span class="linenos">368</span>
-<span class="linenos">369</span>    <span class="k">def</span><span class="w"> </span><span class="nf">_create_common_extended_anycast_broadcast</span><span class="p">(</span>
-<span class="linenos">370</span>        <span class="bp">self</span><span class="p">,</span>
-<span class="linenos">371</span>        <span class="n">facility_message</span><span class="p">:</span> <span class="n">FacilityMessage</span><span class="p">,</span>
-<span class="linenos">372</span>        <span class="n">address</span><span class="p">:</span> <span class="n">GeoNetworkAddress</span><span class="p">,</span>
-<span class="linenos">373</span>        <span class="n">current_position</span><span class="p">:</span> <span class="n">GpsLocation</span><span class="p">,</span>
-<span class="linenos">374</span>        <span class="n">next_header</span><span class="p">:</span> <span class="n">common_NextHeader</span><span class="p">,</span>
-<span class="linenos">375</span>        <span class="n">payload_length</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-<span class="linenos">376</span>        <span class="n">header_type_subtype</span><span class="p">:</span> <span class="n">HeaderTypeSubtype</span><span class="p">,</span>
-<span class="linenos">377</span>        <span class="n">is_accurate</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
-<span class="linenos">378</span>        <span class="n">is_station_mobile</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
-<span class="linenos">379</span>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">CommonHeader</span><span class="p">,</span> <span class="n">ExtendedHeader</span><span class="p">]:</span>
-<span class="linenos">380</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Create common and extended headers for GeoAnycast and GeoBroadcast messages.</span>
+<span class="linenos">338</span><span class="sd">        &quot;&quot;&quot;</span>
+<span class="linenos">339</span>        <span class="k">return</span> <span class="p">(</span>
+<span class="linenos">340</span>            <span class="n">CommonHeader</span><span class="p">(</span>
+<span class="linenos">341</span>                <span class="n">next_header</span><span class="o">=</span><span class="n">next_header</span><span class="p">,</span>
+<span class="linenos">342</span>                <span class="n">header_type_subtype</span><span class="o">=</span><span class="n">HeaderTypeSubtype</span><span class="o">.</span><span class="n">SINGLE_HOP</span><span class="p">,</span>
+<span class="linenos">343</span>                <span class="n">traffic_class</span><span class="o">=</span><span class="n">TrafficClass</span><span class="p">(</span>
+<span class="linenos">344</span>                    <span class="n">must_buffered</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="linenos">345</span>                    <span class="n">identification</span><span class="o">=</span><span class="n">TrafficClassIdentifierKnown</span><span class="o">.</span><span class="n">TC_LTE_V2X_CAM</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+<span class="linenos">346</span>                <span class="p">),</span>
+<span class="linenos">347</span>                <span class="n">flags</span><span class="o">=</span><span class="n">common_Flags</span><span class="p">(</span><span class="n">is_station_mobile</span><span class="o">=</span><span class="n">is_station_mobile</span><span class="p">),</span>
+<span class="linenos">348</span>                <span class="n">payload_length_after_geonet</span><span class="o">=</span><span class="n">payload_length</span><span class="p">,</span>
+<span class="linenos">349</span>                <span class="n">maximum_hop_limit</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+<span class="linenos">350</span>            <span class="p">),</span>
+<span class="linenos">351</span>            <span class="n">ExtendedHeader</span><span class="p">(</span>
+<span class="linenos">352</span>                <span class="n">packet_data</span><span class="o">=</span><span class="n">SingleHopBroadcast</span><span class="p">(</span>
+<span class="linenos">353</span>                    <span class="n">long_position_vector_source</span><span class="o">=</span><span class="n">PositionVector</span><span class="p">(</span>
+<span class="linenos">354</span>                        <span class="n">address</span><span class="o">=</span><span class="n">address</span><span class="p">,</span>
+<span class="linenos">355</span>                        <span class="n">time</span><span class="o">=</span><span class="n">current_position</span><span class="o">.</span><span class="n">time</span><span class="p">,</span>
+<span class="linenos">356</span>                        <span class="n">latitude</span><span class="o">=</span><span class="n">current_position</span><span class="o">.</span><span class="n">latitude</span><span class="p">,</span>
+<span class="linenos">357</span>                        <span class="n">longitude</span><span class="o">=</span><span class="n">current_position</span><span class="o">.</span><span class="n">longitude</span><span class="p">,</span>
+<span class="linenos">358</span>                        <span class="n">is_accurate</span><span class="o">=</span><span class="n">is_accurate</span><span class="p">,</span>
+<span class="linenos">359</span>                        <span class="n">speed</span><span class="o">=</span><span class="n">current_position</span><span class="o">.</span><span class="n">speed</span><span class="p">,</span>
+<span class="linenos">360</span>                        <span class="n">heading</span><span class="o">=</span><span class="n">current_position</span><span class="o">.</span><span class="n">heading</span><span class="p">,</span>
+<span class="linenos">361</span>                    <span class="p">)</span>
+<span class="linenos">362</span>                <span class="p">)</span>
+<span class="linenos">363</span>            <span class="p">),</span>
+<span class="linenos">364</span>        <span class="p">)</span>
+<span class="linenos">365</span>
+<span class="linenos">366</span>    <span class="k">def</span><span class="w"> </span><span class="nf">_create_common_extended_anycast_broadcast</span><span class="p">(</span>
+<span class="linenos">367</span>        <span class="bp">self</span><span class="p">,</span>
+<span class="linenos">368</span>        <span class="n">facility_message</span><span class="p">:</span> <span class="n">FacilityMessage</span><span class="p">,</span>
+<span class="linenos">369</span>        <span class="n">address</span><span class="p">:</span> <span class="n">GeoNetworkAddress</span><span class="p">,</span>
+<span class="linenos">370</span>        <span class="n">current_position</span><span class="p">:</span> <span class="n">GpsLocation</span><span class="p">,</span>
+<span class="linenos">371</span>        <span class="n">next_header</span><span class="p">:</span> <span class="n">common_NextHeader</span><span class="p">,</span>
+<span class="linenos">372</span>        <span class="n">payload_length</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+<span class="linenos">373</span>        <span class="n">header_type_subtype</span><span class="p">:</span> <span class="n">HeaderTypeSubtype</span><span class="p">,</span>
+<span class="linenos">374</span>        <span class="n">is_accurate</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+<span class="linenos">375</span>        <span class="n">is_station_mobile</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+<span class="linenos">376</span>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">CommonHeader</span><span class="p">,</span> <span class="n">ExtendedHeader</span><span class="p">]:</span>
+<span class="linenos">377</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Create common and extended headers for GeoAnycast and GeoBroadcast messages.</span>
+<span class="linenos">378</span>
+<span class="linenos">379</span><span class="sd">        This method generates the headers required for geographic addressing messages,</span>
+<span class="linenos">380</span><span class="sd">        specifically for circle, rectangle, and ellipse shapes for both anycast and broadcast.</span>
 <span class="linenos">381</span>
-<span class="linenos">382</span><span class="sd">        This method generates the headers required for geographic addressing messages,</span>
-<span class="linenos">383</span><span class="sd">        specifically for circle, rectangle, and ellipse shapes for both anycast and broadcast.</span>
+<span class="linenos">382</span><span class="sd">        Note: Despite accepting different header types, this method currently forces the</span>
+<span class="linenos">383</span><span class="sd">        header type to GEOBROADCAST_CIRCLE.</span>
 <span class="linenos">384</span>
-<span class="linenos">385</span><span class="sd">        Note: Despite accepting different header types, this method currently forces the</span>
-<span class="linenos">386</span><span class="sd">        header type to GEOBROADCAST_CIRCLE.</span>
-<span class="linenos">387</span>
-<span class="linenos">388</span><span class="sd">        Args:</span>
-<span class="linenos">389</span><span class="sd">            facility_message: Contains the reference position for the destination</span>
-<span class="linenos">390</span><span class="sd">            address: GeoNetwork address used for the source position vector</span>
-<span class="linenos">391</span><span class="sd">            current_position: Current GPS location of the source</span>
-<span class="linenos">392</span><span class="sd">            next_header: The next header type according to the GeoNetworking protocol</span>
-<span class="linenos">393</span><span class="sd">            payload_length: Length of the payload after the GeoNetworking header</span>
-<span class="linenos">394</span><span class="sd">            header_type_subtype: Type and subtype of the GeoNetworking header (must be a</span>
-<span class="linenos">395</span><span class="sd">                GeoAnycast or GeoBroadcast type)</span>
-<span class="linenos">396</span><span class="sd">            is_accurate: Indicates if the position of the source is accurate</span>
-<span class="linenos">397</span><span class="sd">            is_station_mobile: Indicates if the station is mobile</span>
+<span class="linenos">385</span><span class="sd">        Args:</span>
+<span class="linenos">386</span><span class="sd">            facility_message (FacilityMessage): Contains the reference position for the destination</span>
+<span class="linenos">387</span><span class="sd">            address (GeoNetworkAddress): GeoNetwork address used for the source position vector</span>
+<span class="linenos">388</span><span class="sd">            current_position (GpsLocation): Current GPS location of the source</span>
+<span class="linenos">389</span><span class="sd">            next_header (common_NextHeader): The next header type according to the GeoNetworking protocol</span>
+<span class="linenos">390</span><span class="sd">            payload_length (int): Length of the payload after the GeoNetworking header</span>
+<span class="linenos">391</span><span class="sd">            header_type_subtype (HeaderTypeSubtype): Type and subtype of the GeoNetworking header (must be a</span>
+<span class="linenos">392</span><span class="sd">                GeoAnycast or GeoBroadcast type)</span>
+<span class="linenos">393</span><span class="sd">            is_accurate (bool): Indicates if the position of the source is accurate</span>
+<span class="linenos">394</span><span class="sd">            is_station_mobile (bool): Indicates if the station is mobile</span>
+<span class="linenos">395</span>
+<span class="linenos">396</span><span class="sd">        Returns:</span>
+<span class="linenos">397</span><span class="sd">            tuple[CommonHeader, ExtendedHeader]: A tuple containing:</span>
 <span class="linenos">398</span>
-<span class="linenos">399</span><span class="sd">        Returns:</span>
-<span class="linenos">400</span><span class="sd">            tuple[CommonHeader, ExtendedHeader]: A tuple containing:</span>
-<span class="linenos">401</span>
-<span class="linenos">402</span><span class="sd">                - CommonHeader: The common header for the GeoNetworking message</span>
-<span class="linenos">403</span><span class="sd">                - ExtendedHeader: The extended header specific to GeoAnycast/GeoBroadcast</span>
-<span class="linenos">404</span><span class="sd">                  messages</span>
-<span class="linenos">405</span>
-<span class="linenos">406</span><span class="sd">        Raises:</span>
-<span class="linenos">407</span><span class="sd">            ValueError: If an unsupported header_type_subtype is provided</span>
-<span class="linenos">408</span><span class="sd">        &quot;&quot;&quot;</span>
-<span class="linenos">409</span>        <span class="k">if</span> <span class="n">header_type_subtype</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span>
-<span class="linenos">410</span>            <span class="n">HeaderTypeSubtype</span><span class="o">.</span><span class="n">GEOANYCAST_CIRCLE</span><span class="p">,</span>
-<span class="linenos">411</span>            <span class="n">HeaderTypeSubtype</span><span class="o">.</span><span class="n">GEOANYCAST_RECTANGLE</span><span class="p">,</span>
-<span class="linenos">412</span>            <span class="n">HeaderTypeSubtype</span><span class="o">.</span><span class="n">GEOANYCAST_ELLIPSE</span><span class="p">,</span>
-<span class="linenos">413</span>            <span class="n">HeaderTypeSubtype</span><span class="o">.</span><span class="n">GEOBROADCAST_CIRCLE</span><span class="p">,</span>
-<span class="linenos">414</span>            <span class="n">HeaderTypeSubtype</span><span class="o">.</span><span class="n">GEOBROADCAST_RECTANGLE</span><span class="p">,</span>
-<span class="linenos">415</span>            <span class="n">HeaderTypeSubtype</span><span class="o">.</span><span class="n">GEOBROADCAST_ELLIPSE</span><span class="p">,</span>
-<span class="linenos">416</span>        <span class="p">):</span>
-<span class="linenos">417</span>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Wrong header type subtype: </span><span class="si">{</span><span class="n">header_type_subtype</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="linenos">418</span>        <span class="k">return</span> <span class="p">(</span>
-<span class="linenos">419</span>            <span class="n">CommonHeader</span><span class="p">(</span>
-<span class="linenos">420</span>                <span class="n">next_header</span><span class="o">=</span><span class="n">next_header</span><span class="p">,</span>
-<span class="linenos">421</span>                <span class="n">header_type_subtype</span><span class="o">=</span><span class="n">header_type_subtype</span><span class="p">,</span>
-<span class="linenos">422</span>                <span class="n">traffic_class</span><span class="o">=</span><span class="n">TrafficClass</span><span class="p">(</span>
-<span class="linenos">423</span>                    <span class="n">must_buffered</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-<span class="linenos">424</span>                    <span class="n">identification</span><span class="o">=</span><span class="n">TrafficClassIdentifierKnown</span><span class="o">.</span><span class="n">TC_LTE_V2X_HIGH_PRIORITY_DENM</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
-<span class="linenos">425</span>                <span class="p">),</span>
-<span class="linenos">426</span>                <span class="n">flags</span><span class="o">=</span><span class="n">common_Flags</span><span class="p">(</span><span class="n">is_station_mobile</span><span class="o">=</span><span class="n">is_station_mobile</span><span class="p">),</span>
-<span class="linenos">427</span>                <span class="n">payload_length_after_geonet</span><span class="o">=</span><span class="n">payload_length</span><span class="p">,</span>
-<span class="linenos">428</span>                <span class="n">maximum_hop_limit</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-<span class="linenos">429</span>            <span class="p">),</span>
-<span class="linenos">430</span>            <span class="n">ExtendedHeader</span><span class="p">(</span>
-<span class="linenos">431</span>                <span class="n">packet_data</span><span class="o">=</span><span class="n">GeoAnycastBroadcast</span><span class="p">(</span>
-<span class="linenos">432</span>                    <span class="n">long_position_vector_source</span><span class="o">=</span><span class="n">PositionVector</span><span class="p">(</span>
-<span class="linenos">433</span>                        <span class="n">address</span><span class="o">=</span><span class="n">address</span><span class="p">,</span>
-<span class="linenos">434</span>                        <span class="n">time</span><span class="o">=</span><span class="n">current_position</span><span class="o">.</span><span class="n">time</span><span class="p">,</span>
-<span class="linenos">435</span>                        <span class="n">latitude</span><span class="o">=</span><span class="n">current_position</span><span class="o">.</span><span class="n">latitude</span><span class="p">,</span>
-<span class="linenos">436</span>                        <span class="n">longitude</span><span class="o">=</span><span class="n">current_position</span><span class="o">.</span><span class="n">longitude</span><span class="p">,</span>
-<span class="linenos">437</span>                        <span class="n">is_accurate</span><span class="o">=</span><span class="n">is_accurate</span><span class="p">,</span>
-<span class="linenos">438</span>                        <span class="n">speed</span><span class="o">=</span><span class="n">current_position</span><span class="o">.</span><span class="n">speed</span><span class="p">,</span>
-<span class="linenos">439</span>                        <span class="n">heading</span><span class="o">=</span><span class="n">current_position</span><span class="o">.</span><span class="n">heading</span><span class="p">,</span>
-<span class="linenos">440</span>                    <span class="p">),</span>
-<span class="linenos">441</span>                    <span class="n">lat_destination</span><span class="o">=</span><span class="n">facility_message</span><span class="o">.</span><span class="n">reference_position</span><span class="o">.</span><span class="n">latitude</span><span class="p">,</span>
-<span class="linenos">442</span>                    <span class="n">lon_destination</span><span class="o">=</span><span class="n">facility_message</span><span class="o">.</span><span class="n">reference_position</span><span class="o">.</span><span class="n">longitude</span><span class="p">,</span>
-<span class="linenos">443</span>                    <span class="n">distance_a</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span>
-<span class="linenos">444</span>                    <span class="n">distance_b</span><span class="o">=</span><span class="p">(</span>
-<span class="linenos">445</span>                        <span class="mi">200</span>
-<span class="linenos">446</span>                        <span class="k">if</span> <span class="n">header_type_subtype</span>
-<span class="linenos">447</span>                        <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span>
-<span class="linenos">448</span>                            <span class="n">HeaderTypeSubtype</span><span class="o">.</span><span class="n">GEOBROADCAST_CIRCLE</span><span class="p">,</span>
-<span class="linenos">449</span>                            <span class="n">HeaderTypeSubtype</span><span class="o">.</span><span class="n">GEOANYCAST_CIRCLE</span><span class="p">,</span>
-<span class="linenos">450</span>                        <span class="p">)</span>
-<span class="linenos">451</span>                        <span class="k">else</span> <span class="mi">0</span>
-<span class="linenos">452</span>                    <span class="p">),</span>
-<span class="linenos">453</span>                    <span class="n">angle</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-<span class="linenos">454</span>                <span class="p">)</span>
-<span class="linenos">455</span>            <span class="p">),</span>
-<span class="linenos">456</span>        <span class="p">)</span>
-<span class="linenos">457</span>
-<span class="linenos">458</span>    <span class="k">def</span><span class="w"> </span><span class="nf">_create_geonet_message</span><span class="p">(</span>
-<span class="linenos">459</span>        <span class="bp">self</span><span class="p">,</span>
-<span class="linenos">460</span>        <span class="n">facility_message</span><span class="p">:</span> <span class="n">FacilityMessage</span><span class="p">,</span>
-<span class="linenos">461</span>        <span class="n">address</span><span class="p">:</span> <span class="n">GeoNetworkAddress</span><span class="p">,</span>
-<span class="linenos">462</span>        <span class="n">current_position</span><span class="p">:</span> <span class="n">GpsLocation</span><span class="p">,</span>
-<span class="linenos">463</span>        <span class="n">next_header</span><span class="p">:</span> <span class="n">common_NextHeader</span><span class="p">,</span>
-<span class="linenos">464</span>        <span class="n">payload_length</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-<span class="linenos">465</span>        <span class="n">is_station_mobile</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
-<span class="linenos">466</span>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">GeonetMessage</span><span class="p">:</span>
-<span class="linenos">467</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates a GeonetMessage based on the given facility message.</span>
+<span class="linenos">399</span><span class="sd">                - CommonHeader: The common header for the GeoNetworking message</span>
+<span class="linenos">400</span><span class="sd">                - ExtendedHeader: The extended header specific to GeoAnycast/GeoBroadcast</span>
+<span class="linenos">401</span><span class="sd">                  messages</span>
+<span class="linenos">402</span>
+<span class="linenos">403</span><span class="sd">        Raises:</span>
+<span class="linenos">404</span><span class="sd">            ValueError: If an unsupported header_type_subtype is provided</span>
+<span class="linenos">405</span><span class="sd">        &quot;&quot;&quot;</span>
+<span class="linenos">406</span>        <span class="k">if</span> <span class="n">header_type_subtype</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span>
+<span class="linenos">407</span>            <span class="n">HeaderTypeSubtype</span><span class="o">.</span><span class="n">GEOANYCAST_CIRCLE</span><span class="p">,</span>
+<span class="linenos">408</span>            <span class="n">HeaderTypeSubtype</span><span class="o">.</span><span class="n">GEOANYCAST_RECTANGLE</span><span class="p">,</span>
+<span class="linenos">409</span>            <span class="n">HeaderTypeSubtype</span><span class="o">.</span><span class="n">GEOANYCAST_ELLIPSE</span><span class="p">,</span>
+<span class="linenos">410</span>            <span class="n">HeaderTypeSubtype</span><span class="o">.</span><span class="n">GEOBROADCAST_CIRCLE</span><span class="p">,</span>
+<span class="linenos">411</span>            <span class="n">HeaderTypeSubtype</span><span class="o">.</span><span class="n">GEOBROADCAST_RECTANGLE</span><span class="p">,</span>
+<span class="linenos">412</span>            <span class="n">HeaderTypeSubtype</span><span class="o">.</span><span class="n">GEOBROADCAST_ELLIPSE</span><span class="p">,</span>
+<span class="linenos">413</span>        <span class="p">):</span>
+<span class="linenos">414</span>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Wrong header type subtype: </span><span class="si">{</span><span class="n">header_type_subtype</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="linenos">415</span>        <span class="k">return</span> <span class="p">(</span>
+<span class="linenos">416</span>            <span class="n">CommonHeader</span><span class="p">(</span>
+<span class="linenos">417</span>                <span class="n">next_header</span><span class="o">=</span><span class="n">next_header</span><span class="p">,</span>
+<span class="linenos">418</span>                <span class="n">header_type_subtype</span><span class="o">=</span><span class="n">header_type_subtype</span><span class="p">,</span>
+<span class="linenos">419</span>                <span class="n">traffic_class</span><span class="o">=</span><span class="n">TrafficClass</span><span class="p">(</span>
+<span class="linenos">420</span>                    <span class="n">must_buffered</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="linenos">421</span>                    <span class="n">identification</span><span class="o">=</span><span class="n">TrafficClassIdentifierKnown</span><span class="o">.</span><span class="n">TC_LTE_V2X_HIGH_PRIORITY_DENM</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+<span class="linenos">422</span>                <span class="p">),</span>
+<span class="linenos">423</span>                <span class="n">flags</span><span class="o">=</span><span class="n">common_Flags</span><span class="p">(</span><span class="n">is_station_mobile</span><span class="o">=</span><span class="n">is_station_mobile</span><span class="p">),</span>
+<span class="linenos">424</span>                <span class="n">payload_length_after_geonet</span><span class="o">=</span><span class="n">payload_length</span><span class="p">,</span>
+<span class="linenos">425</span>                <span class="n">maximum_hop_limit</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+<span class="linenos">426</span>            <span class="p">),</span>
+<span class="linenos">427</span>            <span class="n">ExtendedHeader</span><span class="p">(</span>
+<span class="linenos">428</span>                <span class="n">packet_data</span><span class="o">=</span><span class="n">GeoAnycastBroadcast</span><span class="p">(</span>
+<span class="linenos">429</span>                    <span class="n">long_position_vector_source</span><span class="o">=</span><span class="n">PositionVector</span><span class="p">(</span>
+<span class="linenos">430</span>                        <span class="n">address</span><span class="o">=</span><span class="n">address</span><span class="p">,</span>
+<span class="linenos">431</span>                        <span class="n">time</span><span class="o">=</span><span class="n">current_position</span><span class="o">.</span><span class="n">time</span><span class="p">,</span>
+<span class="linenos">432</span>                        <span class="n">latitude</span><span class="o">=</span><span class="n">current_position</span><span class="o">.</span><span class="n">latitude</span><span class="p">,</span>
+<span class="linenos">433</span>                        <span class="n">longitude</span><span class="o">=</span><span class="n">current_position</span><span class="o">.</span><span class="n">longitude</span><span class="p">,</span>
+<span class="linenos">434</span>                        <span class="n">is_accurate</span><span class="o">=</span><span class="n">is_accurate</span><span class="p">,</span>
+<span class="linenos">435</span>                        <span class="n">speed</span><span class="o">=</span><span class="n">current_position</span><span class="o">.</span><span class="n">speed</span><span class="p">,</span>
+<span class="linenos">436</span>                        <span class="n">heading</span><span class="o">=</span><span class="n">current_position</span><span class="o">.</span><span class="n">heading</span><span class="p">,</span>
+<span class="linenos">437</span>                    <span class="p">),</span>
+<span class="linenos">438</span>                    <span class="n">lat_destination</span><span class="o">=</span><span class="n">facility_message</span><span class="o">.</span><span class="n">reference_position</span><span class="o">.</span><span class="n">latitude</span><span class="p">,</span>
+<span class="linenos">439</span>                    <span class="n">lon_destination</span><span class="o">=</span><span class="n">facility_message</span><span class="o">.</span><span class="n">reference_position</span><span class="o">.</span><span class="n">longitude</span><span class="p">,</span>
+<span class="linenos">440</span>                    <span class="n">distance_a</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span>
+<span class="linenos">441</span>                    <span class="n">distance_b</span><span class="o">=</span><span class="p">(</span>
+<span class="linenos">442</span>                        <span class="mi">200</span>
+<span class="linenos">443</span>                        <span class="k">if</span> <span class="n">header_type_subtype</span>
+<span class="linenos">444</span>                        <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span>
+<span class="linenos">445</span>                            <span class="n">HeaderTypeSubtype</span><span class="o">.</span><span class="n">GEOBROADCAST_CIRCLE</span><span class="p">,</span>
+<span class="linenos">446</span>                            <span class="n">HeaderTypeSubtype</span><span class="o">.</span><span class="n">GEOANYCAST_CIRCLE</span><span class="p">,</span>
+<span class="linenos">447</span>                        <span class="p">)</span>
+<span class="linenos">448</span>                        <span class="k">else</span> <span class="mi">0</span>
+<span class="linenos">449</span>                    <span class="p">),</span>
+<span class="linenos">450</span>                    <span class="n">angle</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+<span class="linenos">451</span>                <span class="p">)</span>
+<span class="linenos">452</span>            <span class="p">),</span>
+<span class="linenos">453</span>        <span class="p">)</span>
+<span class="linenos">454</span>
+<span class="linenos">455</span>    <span class="k">def</span><span class="w"> </span><span class="nf">_create_geonet_message</span><span class="p">(</span>
+<span class="linenos">456</span>        <span class="bp">self</span><span class="p">,</span>
+<span class="linenos">457</span>        <span class="n">facility_message</span><span class="p">:</span> <span class="n">FacilityMessage</span><span class="p">,</span>
+<span class="linenos">458</span>        <span class="n">address</span><span class="p">:</span> <span class="n">GeoNetworkAddress</span><span class="p">,</span>
+<span class="linenos">459</span>        <span class="n">current_position</span><span class="p">:</span> <span class="n">GpsLocation</span><span class="p">,</span>
+<span class="linenos">460</span>        <span class="n">next_header</span><span class="p">:</span> <span class="n">common_NextHeader</span><span class="p">,</span>
+<span class="linenos">461</span>        <span class="n">payload_length</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+<span class="linenos">462</span>        <span class="n">is_station_mobile</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+<span class="linenos">463</span>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">GeonetMessage</span><span class="p">:</span>
+<span class="linenos">464</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates a GeonetMessage based on the given facility message.</span>
+<span class="linenos">465</span>
+<span class="linenos">466</span><span class="sd">        This method constructs a GeonetMessage with appropriate headers depending</span>
+<span class="linenos">467</span><span class="sd">        on the message type.</span>
 <span class="linenos">468</span>
-<span class="linenos">469</span><span class="sd">        This method constructs a GeonetMessage with appropriate headers depending</span>
-<span class="linenos">470</span><span class="sd">        on the message type.</span>
-<span class="linenos">471</span>
-<span class="linenos">472</span><span class="sd">        Args:</span>
-<span class="linenos">473</span><span class="sd">            facility_message: The facility message containing the message type.</span>
-<span class="linenos">474</span><span class="sd">            address: The GeoNetwork address information.</span>
-<span class="linenos">475</span><span class="sd">            current_position: The current GPS location.</span>
-<span class="linenos">476</span><span class="sd">            next_header: The next header type for the common header.</span>
-<span class="linenos">477</span><span class="sd">            payload_length: Length of the payload in bytes.</span>
-<span class="linenos">478</span><span class="sd">            is_station_mobile: Boolean indicating if the station is mobile.</span>
-<span class="linenos">479</span>
-<span class="linenos">480</span><span class="sd">        Returns:</span>
-<span class="linenos">481</span><span class="sd">            GeonetMessage: A fully constructed GeonetMessage with basic, common,</span>
-<span class="linenos">482</span><span class="sd">                and extended headers.</span>
+<span class="linenos">469</span><span class="sd">        Args:</span>
+<span class="linenos">470</span><span class="sd">            facility_message (FacilityMessage): The facility message containing the message type.</span>
+<span class="linenos">471</span><span class="sd">            address (GeoNetworkAddress): The GeoNetwork address information.</span>
+<span class="linenos">472</span><span class="sd">            current_position (GpsLocation): The current GPS location.</span>
+<span class="linenos">473</span><span class="sd">            next_header (common_NextHeader): The next header type for the common header.</span>
+<span class="linenos">474</span><span class="sd">            payload_length (int): Length of the payload in bytes.</span>
+<span class="linenos">475</span><span class="sd">            is_station_mobile (bool): Boolean indicating if the station is mobile.</span>
+<span class="linenos">476</span>
+<span class="linenos">477</span><span class="sd">        Returns:</span>
+<span class="linenos">478</span><span class="sd">            GeonetMessage: A fully constructed GeonetMessage with basic, common,</span>
+<span class="linenos">479</span><span class="sd">                and extended headers.</span>
+<span class="linenos">480</span>
+<span class="linenos">481</span><span class="sd">        Raises:</span>
+<span class="linenos">482</span><span class="sd">            StepLibException: If the message type is not supported.</span>
 <span class="linenos">483</span>
-<span class="linenos">484</span><span class="sd">        Raises:</span>
-<span class="linenos">485</span><span class="sd">            StepLibException: If the message type is not supported.</span>
-<span class="linenos">486</span>
-<span class="linenos">487</span><span class="sd">        Note:</span>
-<span class="linenos">488</span><span class="sd">            Position accuracy is determined by comparing the GPS accuracy with</span>
-<span class="linenos">489</span><span class="sd">            ACCURATE_POSITION_MAX_ERROR.</span>
-<span class="linenos">490</span><span class="sd">            Different header combinations are created based on the message type:</span>
-<span class="linenos">491</span>
-<span class="linenos">492</span><span class="sd">                - CAM_PDU and CPM_PDU use single hop headers</span>
-<span class="linenos">493</span><span class="sd">                - DENM_PDU uses anycast broadcast headers</span>
-<span class="linenos">494</span><span class="sd">        &quot;&quot;&quot;</span>
-<span class="linenos">495</span>        <span class="n">is_accurate</span><span class="p">:</span> <span class="nb">bool</span>
-<span class="linenos">496</span>        <span class="k">if</span> <span class="n">current_position</span><span class="o">.</span><span class="n">accuracy</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">497</span>            <span class="n">is_accurate</span> <span class="o">=</span> <span class="kc">False</span>
-<span class="linenos">498</span>        <span class="k">elif</span> <span class="n">current_position</span><span class="o">.</span><span class="n">accuracy</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ACCURATE_POSITION_MAX_ERROR</span><span class="p">:</span>
-<span class="linenos">499</span>            <span class="n">is_accurate</span> <span class="o">=</span> <span class="kc">True</span>
-<span class="linenos">500</span>        <span class="k">else</span><span class="p">:</span>
-<span class="linenos">501</span>            <span class="n">is_accurate</span> <span class="o">=</span> <span class="kc">False</span>
-<span class="linenos">502</span>        <span class="k">match</span> <span class="n">facility_message</span><span class="o">.</span><span class="n">message_type</span><span class="p">:</span>
-<span class="linenos">503</span>            <span class="k">case</span> <span class="n">MessageId</span><span class="o">.</span><span class="n">CAM_PDU</span> <span class="o">|</span> <span class="n">MessageId</span><span class="o">.</span><span class="n">CPM_PDU</span> <span class="o">|</span> <span class="n">MessageId</span><span class="o">.</span><span class="n">CPM_PDU</span><span class="p">:</span>
-<span class="linenos">504</span>                <span class="p">(</span><span class="n">common_header</span><span class="p">,</span> <span class="n">extended_header</span><span class="p">)</span> <span class="o">=</span> <span class="p">(</span>
-<span class="linenos">505</span>                    <span class="bp">self</span><span class="o">.</span><span class="n">_create_common_extended_single_hop</span><span class="p">(</span>
-<span class="linenos">506</span>                        <span class="n">address</span><span class="o">=</span><span class="n">address</span><span class="p">,</span>
-<span class="linenos">507</span>                        <span class="n">current_position</span><span class="o">=</span><span class="n">current_position</span><span class="p">,</span>
-<span class="linenos">508</span>                        <span class="n">next_header</span><span class="o">=</span><span class="n">next_header</span><span class="p">,</span>
-<span class="linenos">509</span>                        <span class="n">payload_length</span><span class="o">=</span><span class="n">payload_length</span><span class="p">,</span>
-<span class="linenos">510</span>                        <span class="n">is_accurate</span><span class="o">=</span><span class="n">is_accurate</span><span class="p">,</span>
-<span class="linenos">511</span>                        <span class="n">is_station_mobile</span><span class="o">=</span><span class="n">is_station_mobile</span><span class="p">,</span>
-<span class="linenos">512</span>                    <span class="p">)</span>
-<span class="linenos">513</span>                <span class="p">)</span>
-<span class="linenos">514</span>            <span class="k">case</span> <span class="n">MessageId</span><span class="o">.</span><span class="n">DENM_PDU</span><span class="p">:</span>
-<span class="linenos">515</span>                <span class="p">(</span><span class="n">common_header</span><span class="p">,</span> <span class="n">extended_header</span><span class="p">)</span> <span class="o">=</span> <span class="p">(</span>
-<span class="linenos">516</span>                    <span class="bp">self</span><span class="o">.</span><span class="n">_create_common_extended_anycast_broadcast</span><span class="p">(</span>
-<span class="linenos">517</span>                        <span class="n">facility_message</span><span class="o">=</span><span class="n">facility_message</span><span class="p">,</span>
-<span class="linenos">518</span>                        <span class="n">address</span><span class="o">=</span><span class="n">address</span><span class="p">,</span>
-<span class="linenos">519</span>                        <span class="n">current_position</span><span class="o">=</span><span class="n">current_position</span><span class="p">,</span>
-<span class="linenos">520</span>                        <span class="n">next_header</span><span class="o">=</span><span class="n">next_header</span><span class="p">,</span>
-<span class="linenos">521</span>                        <span class="n">payload_length</span><span class="o">=</span><span class="n">payload_length</span><span class="p">,</span>
-<span class="linenos">522</span>                        <span class="n">header_type_subtype</span><span class="o">=</span><span class="n">HeaderTypeSubtype</span><span class="o">.</span><span class="n">GEOBROADCAST_CIRCLE</span><span class="p">,</span>
-<span class="linenos">523</span>                        <span class="n">is_accurate</span><span class="o">=</span><span class="n">is_accurate</span><span class="p">,</span>
-<span class="linenos">524</span>                        <span class="n">is_station_mobile</span><span class="o">=</span><span class="n">is_station_mobile</span><span class="p">,</span>
-<span class="linenos">525</span>                    <span class="p">)</span>
-<span class="linenos">526</span>                <span class="p">)</span>
-<span class="linenos">527</span>            <span class="k">case</span><span class="w"> </span><span class="k">_</span><span class="p">:</span>
-<span class="linenos">528</span>                <span class="k">raise</span> <span class="n">StepLibError</span><span class="p">(</span>
-<span class="linenos">529</span>                    <span class="sa">f</span><span class="s2">&quot;Unsupported message type: </span><span class="si">{</span><span class="n">facility_message</span><span class="o">.</span><span class="n">message_type</span><span class="si">}</span><span class="s2">&quot;</span>
-<span class="linenos">530</span>                <span class="p">)</span>
-<span class="linenos">531</span>        <span class="k">return</span> <span class="n">GeonetMessage</span><span class="p">(</span>
-<span class="linenos">532</span>            <span class="n">basic_header</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">BASIC_HEADER</span><span class="p">,</span>
-<span class="linenos">533</span>            <span class="n">common_header</span><span class="o">=</span><span class="n">common_header</span><span class="p">,</span>
-<span class="linenos">534</span>            <span class="n">extended_header</span><span class="o">=</span><span class="n">extended_header</span><span class="p">,</span>
-<span class="linenos">535</span>        <span class="p">)</span>
-<span class="linenos">536</span>
+<span class="linenos">484</span><span class="sd">        Note:</span>
+<span class="linenos">485</span><span class="sd">            Position accuracy is determined by comparing the GPS accuracy with</span>
+<span class="linenos">486</span><span class="sd">            ACCURATE_POSITION_MAX_ERROR.</span>
+<span class="linenos">487</span><span class="sd">            Different header combinations are created based on the message type:</span>
+<span class="linenos">488</span>
+<span class="linenos">489</span><span class="sd">                - CAM_PDU and CPM_PDU use single hop headers</span>
+<span class="linenos">490</span><span class="sd">                - DENM_PDU uses anycast broadcast headers</span>
+<span class="linenos">491</span><span class="sd">        &quot;&quot;&quot;</span>
+<span class="linenos">492</span>        <span class="n">is_accurate</span><span class="p">:</span> <span class="nb">bool</span>
+<span class="linenos">493</span>        <span class="k">if</span> <span class="n">current_position</span><span class="o">.</span><span class="n">accuracy</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">494</span>            <span class="n">is_accurate</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="linenos">495</span>        <span class="k">elif</span> <span class="n">current_position</span><span class="o">.</span><span class="n">accuracy</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ACCURATE_POSITION_MAX_ERROR</span><span class="p">:</span>
+<span class="linenos">496</span>            <span class="n">is_accurate</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="linenos">497</span>        <span class="k">else</span><span class="p">:</span>
+<span class="linenos">498</span>            <span class="n">is_accurate</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="linenos">499</span>        <span class="k">match</span> <span class="n">facility_message</span><span class="o">.</span><span class="n">message_type</span><span class="p">:</span>
+<span class="linenos">500</span>            <span class="k">case</span> <span class="n">MessageId</span><span class="o">.</span><span class="n">CAM_PDU</span> <span class="o">|</span> <span class="n">MessageId</span><span class="o">.</span><span class="n">CPM_PDU</span><span class="p">:</span>
+<span class="linenos">501</span>                <span class="p">(</span><span class="n">common_header</span><span class="p">,</span> <span class="n">extended_header</span><span class="p">)</span> <span class="o">=</span> <span class="p">(</span>
+<span class="linenos">502</span>                    <span class="bp">self</span><span class="o">.</span><span class="n">_create_common_extended_single_hop</span><span class="p">(</span>
+<span class="linenos">503</span>                        <span class="n">address</span><span class="o">=</span><span class="n">address</span><span class="p">,</span>
+<span class="linenos">504</span>                        <span class="n">current_position</span><span class="o">=</span><span class="n">current_position</span><span class="p">,</span>
+<span class="linenos">505</span>                        <span class="n">next_header</span><span class="o">=</span><span class="n">next_header</span><span class="p">,</span>
+<span class="linenos">506</span>                        <span class="n">payload_length</span><span class="o">=</span><span class="n">payload_length</span><span class="p">,</span>
+<span class="linenos">507</span>                        <span class="n">is_accurate</span><span class="o">=</span><span class="n">is_accurate</span><span class="p">,</span>
+<span class="linenos">508</span>                        <span class="n">is_station_mobile</span><span class="o">=</span><span class="n">is_station_mobile</span><span class="p">,</span>
+<span class="linenos">509</span>                    <span class="p">)</span>
+<span class="linenos">510</span>                <span class="p">)</span>
+<span class="linenos">511</span>            <span class="k">case</span> <span class="n">MessageId</span><span class="o">.</span><span class="n">DENM_PDU</span><span class="p">:</span>
+<span class="linenos">512</span>                <span class="p">(</span><span class="n">common_header</span><span class="p">,</span> <span class="n">extended_header</span><span class="p">)</span> <span class="o">=</span> <span class="p">(</span>
+<span class="linenos">513</span>                    <span class="bp">self</span><span class="o">.</span><span class="n">_create_common_extended_anycast_broadcast</span><span class="p">(</span>
+<span class="linenos">514</span>                        <span class="n">facility_message</span><span class="o">=</span><span class="n">facility_message</span><span class="p">,</span>
+<span class="linenos">515</span>                        <span class="n">address</span><span class="o">=</span><span class="n">address</span><span class="p">,</span>
+<span class="linenos">516</span>                        <span class="n">current_position</span><span class="o">=</span><span class="n">current_position</span><span class="p">,</span>
+<span class="linenos">517</span>                        <span class="n">next_header</span><span class="o">=</span><span class="n">next_header</span><span class="p">,</span>
+<span class="linenos">518</span>                        <span class="n">payload_length</span><span class="o">=</span><span class="n">payload_length</span><span class="p">,</span>
+<span class="linenos">519</span>                        <span class="n">header_type_subtype</span><span class="o">=</span><span class="n">HeaderTypeSubtype</span><span class="o">.</span><span class="n">GEOBROADCAST_CIRCLE</span><span class="p">,</span>
+<span class="linenos">520</span>                        <span class="n">is_accurate</span><span class="o">=</span><span class="n">is_accurate</span><span class="p">,</span>
+<span class="linenos">521</span>                        <span class="n">is_station_mobile</span><span class="o">=</span><span class="n">is_station_mobile</span><span class="p">,</span>
+<span class="linenos">522</span>                    <span class="p">)</span>
+<span class="linenos">523</span>                <span class="p">)</span>
+<span class="linenos">524</span>            <span class="k">case</span><span class="w"> </span><span class="k">_</span><span class="p">:</span>
+<span class="linenos">525</span>                <span class="k">raise</span> <span class="n">StepLibError</span><span class="p">(</span>
+<span class="linenos">526</span>                    <span class="sa">f</span><span class="s2">&quot;Unsupported message type: </span><span class="si">{</span><span class="n">facility_message</span><span class="o">.</span><span class="n">message_type</span><span class="si">}</span><span class="s2">&quot;</span>
+<span class="linenos">527</span>                <span class="p">)</span>
+<span class="linenos">528</span>        <span class="k">return</span> <span class="n">GeonetMessage</span><span class="p">(</span>
+<span class="linenos">529</span>            <span class="n">basic_header</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">BASIC_HEADER</span><span class="p">,</span>
+<span class="linenos">530</span>            <span class="n">common_header</span><span class="o">=</span><span class="n">common_header</span><span class="p">,</span>
+<span class="linenos">531</span>            <span class="n">extended_header</span><span class="o">=</span><span class="n">extended_header</span><span class="p">,</span>
+<span class="linenos">532</span>        <span class="p">)</span>
+<span class="linenos">533</span>
 <div class="viewcode-block" id="ItsMessageSerializer.serialize">
 <a class="viewcode-back" href="../../step_lib_rst/step_lib.its_message_serializer.html#step_lib.its_message_serializer.ItsMessageSerializer.serialize">[docs]</a>
-<span class="linenos">537</span>    <span class="k">def</span><span class="w"> </span><span class="nf">serialize</span><span class="p">(</span>
-<span class="linenos">538</span>        <span class="bp">self</span><span class="p">,</span>
-<span class="linenos">539</span>        <span class="n">facility_message</span><span class="p">:</span> <span class="n">FacilityMessage</span><span class="p">,</span>
-<span class="linenos">540</span>        <span class="n">address</span><span class="p">:</span> <span class="n">GeoNetworkAddress</span><span class="p">,</span>
-<span class="linenos">541</span>        <span class="n">current_position</span><span class="p">:</span> <span class="n">GpsLocation</span><span class="p">,</span>
-<span class="linenos">542</span>        <span class="n">is_station_mobile</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
-<span class="linenos">543</span>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
-<span class="linenos">544</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Serialize a facility message into bytes for transmission.</span>
-<span class="linenos">545</span>
-<span class="linenos">546</span><span class="sd">        This method serializes a facility message along with address, position,</span>
-<span class="linenos">547</span><span class="sd">        and mobility information into a complete ITS message byte structure.</span>
-<span class="linenos">548</span><span class="sd">        The serialization follows the ITS protocol stack</span>
-<span class="linenos">549</span><span class="sd">        by combining facility, BTP, and GeoNetworking layers.</span>
-<span class="linenos">550</span>
-<span class="linenos">551</span><span class="sd">        Args:</span>
-<span class="linenos">552</span><span class="sd">            facility_message (FacilityMessage): The facility layer message to be serialized.</span>
-<span class="linenos">553</span><span class="sd">            address (GeoNetworkAddress): The GeoNetworking address information.</span>
-<span class="linenos">554</span><span class="sd">            current_position (GpsLocation): The current GPS position of the station.</span>
-<span class="linenos">555</span><span class="sd">            is_station_mobile (bool): Flag indicating whether the station is mobile (True)</span>
-<span class="linenos">556</span><span class="sd">                or stationary (False).</span>
-<span class="linenos">557</span>
-<span class="linenos">558</span><span class="sd">        Returns:</span>
-<span class="linenos">559</span><span class="sd">            bytes: The complete serialized message as a byte array containing the GeoNetwork header,</span>
-<span class="linenos">560</span><span class="sd">            BTP header and facility message payload.</span>
-<span class="linenos">561</span>
-<span class="linenos">562</span><span class="sd">        Logging:</span>
-<span class="linenos">563</span><span class="sd">            Debug logs are generated for input parameters and the final serialized message.</span>
-<span class="linenos">564</span><span class="sd">        &quot;&quot;&quot;</span>
-<span class="linenos">565</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Serializing facility: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">facility_message</span><span class="p">)</span>
-<span class="linenos">566</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Address: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">address</span><span class="p">)</span>
-<span class="linenos">567</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Current position: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">current_position</span><span class="p">)</span>
-<span class="linenos">568</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Is station mobile: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">is_station_mobile</span><span class="p">)</span>
-<span class="linenos">569</span>        <span class="n">facility_message_bytes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_its_facility_serializer</span><span class="o">.</span><span class="n">serialize</span><span class="p">(</span>
-<span class="linenos">570</span>            <span class="n">message</span><span class="o">=</span><span class="n">facility_message</span>
-<span class="linenos">571</span>        <span class="p">)</span>
-<span class="linenos">572</span>        <span class="n">btp_message</span> <span class="o">=</span> <span class="n">BtpMessage</span><span class="p">(</span>
-<span class="linenos">573</span>            <span class="n">destination_port</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_facility_message_id_to_btp_port</span><span class="p">(</span>
-<span class="linenos">574</span>                <span class="n">message_type</span><span class="o">=</span><span class="n">facility_message</span><span class="o">.</span><span class="n">message_type</span>
-<span class="linenos">575</span>            <span class="p">),</span>
-<span class="linenos">576</span>            <span class="n">destination_port_info</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-<span class="linenos">577</span>        <span class="p">)</span>
-<span class="linenos">578</span>        <span class="n">btp_message_bytes</span> <span class="o">=</span> <span class="n">btp_message</span><span class="o">.</span><span class="n">to_bytes</span><span class="p">()</span>
-<span class="linenos">579</span>        <span class="n">geonet_message_bytes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_geonet_message</span><span class="p">(</span>
-<span class="linenos">580</span>            <span class="n">facility_message</span><span class="o">=</span><span class="n">facility_message</span><span class="p">,</span>
-<span class="linenos">581</span>            <span class="n">address</span><span class="o">=</span><span class="n">address</span><span class="p">,</span>
-<span class="linenos">582</span>            <span class="n">current_position</span><span class="o">=</span><span class="n">current_position</span><span class="p">,</span>
-<span class="linenos">583</span>            <span class="n">next_header</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_btp_type_to_common_next_header</span><span class="p">(</span>
-<span class="linenos">584</span>                <span class="n">btp_type</span><span class="o">=</span><span class="n">btp_message</span><span class="o">.</span><span class="n">get_btp_type</span><span class="p">()</span>
-<span class="linenos">585</span>            <span class="p">),</span>
-<span class="linenos">586</span>            <span class="n">payload_length</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">btp_message_bytes</span><span class="p">)</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">facility_message_bytes</span><span class="p">),</span>
-<span class="linenos">587</span>            <span class="n">is_station_mobile</span><span class="o">=</span><span class="n">is_station_mobile</span><span class="p">,</span>
-<span class="linenos">588</span>        <span class="p">)</span><span class="o">.</span><span class="n">to_bytes</span><span class="p">()</span>
-<span class="linenos">589</span>        <span class="c1"># Combine all bytes at once instead of multiple joins</span>
-<span class="linenos">590</span>        <span class="n">message</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="p">(</span><span class="n">geonet_message_bytes</span><span class="p">)</span>
-<span class="linenos">591</span>        <span class="n">message</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">btp_message_bytes</span><span class="p">)</span>
-<span class="linenos">592</span>        <span class="n">message</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">facility_message_bytes</span><span class="p">)</span>
-<span class="linenos">593</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Serialized message: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">(</span><span class="n">message</span><span class="p">)</span><span class="o">.</span><span class="n">hex</span><span class="p">())</span>
-<span class="linenos">594</span>        <span class="k">return</span> <span class="nb">bytes</span><span class="p">(</span><span class="n">message</span><span class="p">)</span></div>
+<span class="linenos">534</span>    <span class="k">def</span><span class="w"> </span><span class="nf">serialize</span><span class="p">(</span>
+<span class="linenos">535</span>        <span class="bp">self</span><span class="p">,</span>
+<span class="linenos">536</span>        <span class="n">facility_message</span><span class="p">:</span> <span class="n">FacilityMessage</span><span class="p">,</span>
+<span class="linenos">537</span>        <span class="n">address</span><span class="p">:</span> <span class="n">GeoNetworkAddress</span><span class="p">,</span>
+<span class="linenos">538</span>        <span class="n">current_position</span><span class="p">:</span> <span class="n">GpsLocation</span><span class="p">,</span>
+<span class="linenos">539</span>        <span class="n">is_station_mobile</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+<span class="linenos">540</span>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+<span class="linenos">541</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Serialize a facility message into bytes for transmission.</span>
+<span class="linenos">542</span>
+<span class="linenos">543</span><span class="sd">        This method serializes a facility message along with address, position,</span>
+<span class="linenos">544</span><span class="sd">        and mobility information into a complete ITS message byte structure.</span>
+<span class="linenos">545</span><span class="sd">        The serialization follows the ITS protocol stack</span>
+<span class="linenos">546</span><span class="sd">        by combining facility, BTP, and GeoNetworking layers.</span>
+<span class="linenos">547</span>
+<span class="linenos">548</span><span class="sd">        Args:</span>
+<span class="linenos">549</span><span class="sd">            facility_message (FacilityMessage): The facility layer message to be serialized.</span>
+<span class="linenos">550</span><span class="sd">            address (GeoNetworkAddress): The GeoNetworking address information.</span>
+<span class="linenos">551</span><span class="sd">            current_position (GpsLocation): The current GPS position of the station.</span>
+<span class="linenos">552</span><span class="sd">            is_station_mobile (bool): Flag indicating whether the station is mobile (True)</span>
+<span class="linenos">553</span><span class="sd">                or stationary (False).</span>
+<span class="linenos">554</span>
+<span class="linenos">555</span><span class="sd">        Returns:</span>
+<span class="linenos">556</span><span class="sd">            bytes: The complete serialized message as a byte array containing the GeoNetwork header,</span>
+<span class="linenos">557</span><span class="sd">            BTP header and facility message payload.</span>
+<span class="linenos">558</span>
+<span class="linenos">559</span><span class="sd">        Logging:</span>
+<span class="linenos">560</span><span class="sd">            Debug logs are generated for input parameters and the final serialized message.</span>
+<span class="linenos">561</span><span class="sd">        &quot;&quot;&quot;</span>
+<span class="linenos">562</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Serializing facility: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">facility_message</span><span class="p">)</span>
+<span class="linenos">563</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Address: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">address</span><span class="p">)</span>
+<span class="linenos">564</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Current position: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">current_position</span><span class="p">)</span>
+<span class="linenos">565</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Is station mobile: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">is_station_mobile</span><span class="p">)</span>
+<span class="linenos">566</span>        <span class="n">facility_message_bytes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_its_facility_serializer</span><span class="o">.</span><span class="n">serialize</span><span class="p">(</span>
+<span class="linenos">567</span>            <span class="n">message</span><span class="o">=</span><span class="n">facility_message</span>
+<span class="linenos">568</span>        <span class="p">)</span>
+<span class="linenos">569</span>        <span class="n">btp_message</span> <span class="o">=</span> <span class="n">BtpMessage</span><span class="p">(</span>
+<span class="linenos">570</span>            <span class="n">destination_port</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_facility_message_id_to_btp_port</span><span class="p">(</span>
+<span class="linenos">571</span>                <span class="n">message_type</span><span class="o">=</span><span class="n">facility_message</span><span class="o">.</span><span class="n">message_type</span>
+<span class="linenos">572</span>            <span class="p">),</span>
+<span class="linenos">573</span>            <span class="n">destination_port_info</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+<span class="linenos">574</span>        <span class="p">)</span>
+<span class="linenos">575</span>        <span class="n">btp_message_bytes</span> <span class="o">=</span> <span class="n">btp_message</span><span class="o">.</span><span class="n">to_bytes</span><span class="p">()</span>
+<span class="linenos">576</span>        <span class="n">geonet_message_bytes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_geonet_message</span><span class="p">(</span>
+<span class="linenos">577</span>            <span class="n">facility_message</span><span class="o">=</span><span class="n">facility_message</span><span class="p">,</span>
+<span class="linenos">578</span>            <span class="n">address</span><span class="o">=</span><span class="n">address</span><span class="p">,</span>
+<span class="linenos">579</span>            <span class="n">current_position</span><span class="o">=</span><span class="n">current_position</span><span class="p">,</span>
+<span class="linenos">580</span>            <span class="n">next_header</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_btp_type_to_common_next_header</span><span class="p">(</span>
+<span class="linenos">581</span>                <span class="n">btp_type</span><span class="o">=</span><span class="n">btp_message</span><span class="o">.</span><span class="n">get_btp_type</span><span class="p">()</span>
+<span class="linenos">582</span>            <span class="p">),</span>
+<span class="linenos">583</span>            <span class="n">payload_length</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">btp_message_bytes</span><span class="p">)</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">facility_message_bytes</span><span class="p">),</span>
+<span class="linenos">584</span>            <span class="n">is_station_mobile</span><span class="o">=</span><span class="n">is_station_mobile</span><span class="p">,</span>
+<span class="linenos">585</span>        <span class="p">)</span><span class="o">.</span><span class="n">to_bytes</span><span class="p">()</span>
+<span class="linenos">586</span>        <span class="c1"># Combine all bytes at once instead of multiple joins</span>
+<span class="linenos">587</span>        <span class="n">message</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="p">(</span><span class="n">geonet_message_bytes</span><span class="p">)</span>
+<span class="linenos">588</span>        <span class="n">message</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">btp_message_bytes</span><span class="p">)</span>
+<span class="linenos">589</span>        <span class="n">message</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">facility_message_bytes</span><span class="p">)</span>
+<span class="linenos">590</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Serialized message: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">(</span><span class="n">message</span><span class="p">)</span><span class="o">.</span><span class="n">hex</span><span class="p">())</span>
+<span class="linenos">591</span>        <span class="k">return</span> <span class="nb">bytes</span><span class="p">(</span><span class="n">message</span><span class="p">)</span></div>
 </div>
 
 </pre></div>
