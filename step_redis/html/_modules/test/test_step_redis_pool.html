@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>test.test_step_redis_pool &mdash; STEP Redis 1.2.3 documentation</title>
+  <title>test.test_step_redis_pool &mdash; STEP Redis 1.2.4 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=4c969af8" />
@@ -15,7 +15,7 @@
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=590429e0"></script>
+      <script src="../../_static/documentation_options.js?v=928db92d"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/tabs.js?v=3ee01567"></script>
@@ -255,7 +255,6 @@
 <li class="toctree-l7"><a class="reference internal" href="../../schemas_rst/cloud_events_step_monitoring_schema.html#position-type">Position Type</a></li>
 <li class="toctree-l7"><a class="reference internal" href="../../schemas_rst/cloud_events_step_monitoring_schema.html#cloudevents-specification-version">CloudEvents Specification Version</a></li>
 <li class="toctree-l7"><a class="reference internal" href="../../schemas_rst/cloud_events_step_monitoring_schema.html#speed">Speed</a></li>
-<li class="toctree-l7"><a class="reference internal" href="../../schemas_rst/cloud_events_step_monitoring_schema.html#trajectory-forecasted-type">Trajectory Forecasted Type</a></li>
 </ul>
 </li>
 </ul>
@@ -587,7 +586,7 @@
 <span class="linenos"> 13</span><span class="c1"># Standard Library Imports</span>
 <span class="linenos"> 14</span><span class="kn">from</span><span class="w"> </span><span class="nn">logging</span><span class="w"> </span><span class="kn">import</span> <span class="n">Logger</span>
 <span class="linenos"> 15</span><span class="kn">from</span><span class="w"> </span><span class="nn">socket</span><span class="w"> </span><span class="kn">import</span> <span class="n">TCP_KEEPCNT</span><span class="p">,</span> <span class="n">TCP_KEEPIDLE</span><span class="p">,</span> <span class="n">TCP_KEEPINTVL</span>
-<span class="linenos"> 16</span><span class="kn">from</span><span class="w"> </span><span class="nn">ssl</span><span class="w"> </span><span class="kn">import</span> <span class="n">PROTOCOL_TLSv1_2</span>
+<span class="linenos"> 16</span><span class="kn">from</span><span class="w"> </span><span class="nn">ssl</span><span class="w"> </span><span class="kn">import</span> <span class="n">TLSVersion</span>
 <span class="linenos"> 17</span>
 <span class="linenos"> 18</span><span class="c1"># Third Party Imports</span>
 <span class="linenos"> 19</span><span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
@@ -986,103 +985,113 @@
 <span class="linenos">381</span>                <span class="n">TCP_KEEPCNT</span><span class="p">:</span> <span class="n">redis_params_ssl</span><span class="o">.</span><span class="n">socket_keep_cnt</span><span class="p">,</span>
 <span class="linenos">382</span>            <span class="p">},</span>
 <span class="linenos">383</span>            <span class="n">ssl_keyfile</span><span class="o">=</span><span class="n">redis_params_ssl</span><span class="o">.</span><span class="n">ssl_client_key_file</span><span class="p">,</span>
-<span class="linenos">384</span>            <span class="n">ssl_certfile</span><span class="o">=</span><span class="n">redis_params_ssl</span><span class="o">.</span><span class="n">ssl_client_cert_file</span><span class="p">,</span>
-<span class="linenos">385</span>            <span class="n">ssl_cert_reqs</span><span class="o">=</span><span class="s2">&quot;required&quot;</span><span class="p">,</span>
-<span class="linenos">386</span>            <span class="n">ssl_ca_certs</span><span class="o">=</span><span class="n">redis_params_ssl</span><span class="o">.</span><span class="n">ssl_ca_certs_file</span><span class="p">,</span>
-<span class="linenos">387</span>            <span class="n">ssl_check_hostname</span><span class="o">=</span><span class="n">redis_params_ssl</span><span class="o">.</span><span class="n">ssl_cert_requested</span><span class="p">,</span>
-<span class="linenos">388</span>            <span class="n">ssl_min_version</span><span class="o">=</span><span class="n">PROTOCOL_TLSv1_2</span><span class="p">,</span>
-<span class="linenos">389</span>            <span class="n">max_connections</span><span class="o">=</span><span class="n">redis_params_ssl</span><span class="o">.</span><span class="n">max_connections</span><span class="p">,</span>
-<span class="linenos">390</span>            <span class="n">timeout</span><span class="o">=</span><span class="n">redis_params_ssl</span><span class="o">.</span><span class="n">connection_available_timeout</span><span class="p">,</span>
-<span class="linenos">391</span>            <span class="n">health_check_interval</span><span class="o">=</span><span class="n">redis_params_ssl</span><span class="o">.</span><span class="n">health_check_interval</span><span class="p">,</span>
-<span class="linenos">392</span>            <span class="n">protocol</span><span class="o">=</span><span class="n">redis_params_ssl</span><span class="o">.</span><span class="n">protocol</span><span class="p">,</span>
-<span class="linenos">393</span>            <span class="n">decode_responses</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-<span class="linenos">394</span>        <span class="p">)</span></div>
+<span class="linenos">384</span>            <span class="n">ssl_password</span><span class="o">=</span><span class="n">redis_params_ssl</span><span class="o">.</span><span class="n">ssl_client_key_file_password</span><span class="p">,</span>
+<span class="linenos">385</span>            <span class="n">ssl_certfile</span><span class="o">=</span><span class="n">redis_params_ssl</span><span class="o">.</span><span class="n">ssl_client_cert_file</span><span class="p">,</span>
+<span class="linenos">386</span>            <span class="n">ssl_cert_reqs</span><span class="o">=</span><span class="s2">&quot;required&quot;</span><span class="p">,</span>
+<span class="linenos">387</span>            <span class="n">ssl_ca_certs</span><span class="o">=</span><span class="n">redis_params_ssl</span><span class="o">.</span><span class="n">ssl_ca_certs_file</span><span class="p">,</span>
+<span class="linenos">388</span>            <span class="n">ssl_check_hostname</span><span class="o">=</span><span class="n">redis_params_ssl</span><span class="o">.</span><span class="n">ssl_cert_requested</span><span class="p">,</span>
+<span class="linenos">389</span>            <span class="n">ssl_min_version</span><span class="o">=</span><span class="n">TLSVersion</span><span class="o">.</span><span class="n">TLSv1_2</span><span class="p">,</span>
+<span class="linenos">390</span>            <span class="n">max_connections</span><span class="o">=</span><span class="n">redis_params_ssl</span><span class="o">.</span><span class="n">max_connections</span><span class="p">,</span>
+<span class="linenos">391</span>            <span class="n">timeout</span><span class="o">=</span><span class="n">redis_params_ssl</span><span class="o">.</span><span class="n">connection_available_timeout</span><span class="p">,</span>
+<span class="linenos">392</span>            <span class="n">health_check_interval</span><span class="o">=</span><span class="n">redis_params_ssl</span><span class="o">.</span><span class="n">health_check_interval</span><span class="p">,</span>
+<span class="linenos">393</span>            <span class="n">protocol</span><span class="o">=</span><span class="n">redis_params_ssl</span><span class="o">.</span><span class="n">protocol</span><span class="p">,</span>
+<span class="linenos">394</span>            <span class="n">decode_responses</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="linenos">395</span>        <span class="p">)</span></div>
 
-<span class="linenos">395</span>
+<span class="linenos">396</span>
 <div class="viewcode-block" id="TestStepRedisPool.test_init_without_ssl">
 <a class="viewcode-back" href="../../test_rst/test.test_step_redis_pool.html#test.test_step_redis_pool.TestStepRedisPool.test_init_without_ssl">[docs]</a>
-<span class="linenos">396</span>    <span class="k">def</span><span class="w"> </span><span class="nf">test_init_without_ssl</span><span class="p">(</span>
-<span class="linenos">397</span>        <span class="bp">self</span><span class="p">,</span> <span class="n">mocker</span><span class="p">:</span> <span class="n">MockerFixture</span><span class="p">,</span> <span class="n">redis_params_no_ssl</span><span class="p">:</span> <span class="n">StepRedisPoolParams</span>
-<span class="linenos">398</span>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">399</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Test initialization of StepRedisPool without SSL.</span>
-<span class="linenos">400</span>
-<span class="linenos">401</span><span class="sd">        This test verifies that StepRedisPool correctly initializes the parent</span>
-<span class="linenos">402</span><span class="sd">        BlockingConnectionPool class with the proper parameters when SSL is not used.</span>
-<span class="linenos">403</span>
-<span class="linenos">404</span><span class="sd">        Args:</span>
-<span class="linenos">405</span><span class="sd">            mocker (MockerFixture): Pytest fixture for mocking.</span>
-<span class="linenos">406</span><span class="sd">            redis_params_no_ssl (StepRedisPoolParams): Redis connection parameters without SSL configuration.</span>
-<span class="linenos">407</span>
-<span class="linenos">408</span><span class="sd">        Returns:</span>
-<span class="linenos">409</span><span class="sd">            None</span>
-<span class="linenos">410</span><span class="sd">        &quot;&quot;&quot;</span>
-<span class="linenos">411</span>        <span class="c1"># Create mock for BlockingConnectionPool.__init__</span>
-<span class="linenos">412</span>        <span class="n">mock_super_init</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">patch</span><span class="o">.</span><span class="n">object</span><span class="p">(</span>
-<span class="linenos">413</span>            <span class="n">BlockingConnectionPool</span><span class="p">,</span> <span class="s2">&quot;__init__&quot;</span><span class="p">,</span> <span class="n">return_value</span><span class="o">=</span><span class="kc">None</span>
-<span class="linenos">414</span>        <span class="p">)</span>
-<span class="linenos">415</span>        <span class="c1"># Create pool without SSL</span>
-<span class="linenos">416</span>        <span class="n">StepRedisPool</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="n">redis_params_no_ssl</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">(</span><span class="n">spec</span><span class="o">=</span><span class="n">Logger</span><span class="p">))</span>
-<span class="linenos">417</span>        <span class="c1"># Verify the parent class was initialized with the right parameters</span>
-<span class="linenos">418</span>        <span class="n">mock_super_init</span><span class="o">.</span><span class="n">assert_called_once_with</span><span class="p">(</span>
-<span class="linenos">419</span>            <span class="n">connection_class</span><span class="o">=</span><span class="n">Connection</span><span class="p">,</span>
-<span class="linenos">420</span>            <span class="n">host</span><span class="o">=</span><span class="n">redis_params_no_ssl</span><span class="o">.</span><span class="n">host</span><span class="p">,</span>
-<span class="linenos">421</span>            <span class="n">port</span><span class="o">=</span><span class="n">redis_params_no_ssl</span><span class="o">.</span><span class="n">port</span><span class="p">,</span>
-<span class="linenos">422</span>            <span class="n">db</span><span class="o">=</span><span class="n">redis_params_no_ssl</span><span class="o">.</span><span class="n">db</span><span class="p">,</span>
-<span class="linenos">423</span>            <span class="n">username</span><span class="o">=</span><span class="n">redis_params_no_ssl</span><span class="o">.</span><span class="n">username</span><span class="p">,</span>
-<span class="linenos">424</span>            <span class="n">password</span><span class="o">=</span><span class="n">redis_params_no_ssl</span><span class="o">.</span><span class="n">password</span><span class="p">,</span>
-<span class="linenos">425</span>            <span class="n">socket_timeout</span><span class="o">=</span><span class="n">redis_params_no_ssl</span><span class="o">.</span><span class="n">socket_timeout</span><span class="p">,</span>
-<span class="linenos">426</span>            <span class="n">socket_connect_timeout</span><span class="o">=</span><span class="n">redis_params_no_ssl</span><span class="o">.</span><span class="n">socket_connect_timeout</span><span class="p">,</span>
-<span class="linenos">427</span>            <span class="n">socket_keepalive</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-<span class="linenos">428</span>            <span class="n">socket_keepalive_options</span><span class="o">=</span><span class="p">{</span>
-<span class="linenos">429</span>                <span class="n">TCP_KEEPIDLE</span><span class="p">:</span> <span class="n">redis_params_no_ssl</span><span class="o">.</span><span class="n">socket_keep_idle</span><span class="p">,</span>
-<span class="linenos">430</span>                <span class="n">TCP_KEEPINTVL</span><span class="p">:</span> <span class="n">redis_params_no_ssl</span><span class="o">.</span><span class="n">socket_keep_alive</span><span class="p">,</span>
-<span class="linenos">431</span>                <span class="n">TCP_KEEPCNT</span><span class="p">:</span> <span class="n">redis_params_no_ssl</span><span class="o">.</span><span class="n">socket_keep_cnt</span><span class="p">,</span>
-<span class="linenos">432</span>            <span class="p">},</span>
-<span class="linenos">433</span>            <span class="n">max_connections</span><span class="o">=</span><span class="n">redis_params_no_ssl</span><span class="o">.</span><span class="n">max_connections</span><span class="p">,</span>
-<span class="linenos">434</span>            <span class="n">timeout</span><span class="o">=</span><span class="n">redis_params_no_ssl</span><span class="o">.</span><span class="n">connection_available_timeout</span><span class="p">,</span>
-<span class="linenos">435</span>            <span class="n">health_check_interval</span><span class="o">=</span><span class="n">redis_params_no_ssl</span><span class="o">.</span><span class="n">health_check_interval</span><span class="p">,</span>
-<span class="linenos">436</span>            <span class="n">protocol</span><span class="o">=</span><span class="n">redis_params_no_ssl</span><span class="o">.</span><span class="n">protocol</span><span class="p">,</span>
-<span class="linenos">437</span>            <span class="n">decode_responses</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-<span class="linenos">438</span>        <span class="p">)</span></div>
+<span class="linenos">397</span>    <span class="k">def</span><span class="w"> </span><span class="nf">test_init_without_ssl</span><span class="p">(</span>
+<span class="linenos">398</span>        <span class="bp">self</span><span class="p">,</span> <span class="n">mocker</span><span class="p">:</span> <span class="n">MockerFixture</span><span class="p">,</span> <span class="n">redis_params_no_ssl</span><span class="p">:</span> <span class="n">StepRedisPoolParams</span>
+<span class="linenos">399</span>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">400</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Test initialization of StepRedisPool without SSL.</span>
+<span class="linenos">401</span>
+<span class="linenos">402</span><span class="sd">        This test verifies that StepRedisPool correctly initializes the parent</span>
+<span class="linenos">403</span><span class="sd">        BlockingConnectionPool class with the proper parameters when SSL is not used.</span>
+<span class="linenos">404</span>
+<span class="linenos">405</span><span class="sd">        Args:</span>
+<span class="linenos">406</span><span class="sd">            mocker (MockerFixture): Pytest fixture for mocking.</span>
+<span class="linenos">407</span><span class="sd">            redis_params_no_ssl (StepRedisPoolParams): Redis connection parameters without SSL configuration.</span>
+<span class="linenos">408</span>
+<span class="linenos">409</span><span class="sd">        Returns:</span>
+<span class="linenos">410</span><span class="sd">            None</span>
+<span class="linenos">411</span><span class="sd">        &quot;&quot;&quot;</span>
+<span class="linenos">412</span>        <span class="c1"># Create mock for BlockingConnectionPool.__init__</span>
+<span class="linenos">413</span>        <span class="n">mock_super_init</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">patch</span><span class="o">.</span><span class="n">object</span><span class="p">(</span>
+<span class="linenos">414</span>            <span class="n">BlockingConnectionPool</span><span class="p">,</span> <span class="s2">&quot;__init__&quot;</span><span class="p">,</span> <span class="n">return_value</span><span class="o">=</span><span class="kc">None</span>
+<span class="linenos">415</span>        <span class="p">)</span>
+<span class="linenos">416</span>        <span class="c1"># Create pool without SSL</span>
+<span class="linenos">417</span>        <span class="n">StepRedisPool</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="n">redis_params_no_ssl</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">(</span><span class="n">spec</span><span class="o">=</span><span class="n">Logger</span><span class="p">))</span>
+<span class="linenos">418</span>        <span class="c1"># Verify the parent class was initialized with the right parameters</span>
+<span class="linenos">419</span>        <span class="n">mock_super_init</span><span class="o">.</span><span class="n">assert_called_once_with</span><span class="p">(</span>
+<span class="linenos">420</span>            <span class="n">connection_class</span><span class="o">=</span><span class="n">Connection</span><span class="p">,</span>
+<span class="linenos">421</span>            <span class="n">host</span><span class="o">=</span><span class="n">redis_params_no_ssl</span><span class="o">.</span><span class="n">host</span><span class="p">,</span>
+<span class="linenos">422</span>            <span class="n">port</span><span class="o">=</span><span class="n">redis_params_no_ssl</span><span class="o">.</span><span class="n">port</span><span class="p">,</span>
+<span class="linenos">423</span>            <span class="n">db</span><span class="o">=</span><span class="n">redis_params_no_ssl</span><span class="o">.</span><span class="n">db</span><span class="p">,</span>
+<span class="linenos">424</span>            <span class="n">username</span><span class="o">=</span><span class="n">redis_params_no_ssl</span><span class="o">.</span><span class="n">username</span><span class="p">,</span>
+<span class="linenos">425</span>            <span class="n">password</span><span class="o">=</span><span class="n">redis_params_no_ssl</span><span class="o">.</span><span class="n">password</span><span class="p">,</span>
+<span class="linenos">426</span>            <span class="n">socket_timeout</span><span class="o">=</span><span class="n">redis_params_no_ssl</span><span class="o">.</span><span class="n">socket_timeout</span><span class="p">,</span>
+<span class="linenos">427</span>            <span class="n">socket_connect_timeout</span><span class="o">=</span><span class="n">redis_params_no_ssl</span><span class="o">.</span><span class="n">socket_connect_timeout</span><span class="p">,</span>
+<span class="linenos">428</span>            <span class="n">socket_keepalive</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="linenos">429</span>            <span class="n">socket_keepalive_options</span><span class="o">=</span><span class="p">{</span>
+<span class="linenos">430</span>                <span class="n">TCP_KEEPIDLE</span><span class="p">:</span> <span class="n">redis_params_no_ssl</span><span class="o">.</span><span class="n">socket_keep_idle</span><span class="p">,</span>
+<span class="linenos">431</span>                <span class="n">TCP_KEEPINTVL</span><span class="p">:</span> <span class="n">redis_params_no_ssl</span><span class="o">.</span><span class="n">socket_keep_alive</span><span class="p">,</span>
+<span class="linenos">432</span>                <span class="n">TCP_KEEPCNT</span><span class="p">:</span> <span class="n">redis_params_no_ssl</span><span class="o">.</span><span class="n">socket_keep_cnt</span><span class="p">,</span>
+<span class="linenos">433</span>            <span class="p">},</span>
+<span class="linenos">434</span>            <span class="n">max_connections</span><span class="o">=</span><span class="n">redis_params_no_ssl</span><span class="o">.</span><span class="n">max_connections</span><span class="p">,</span>
+<span class="linenos">435</span>            <span class="n">timeout</span><span class="o">=</span><span class="n">redis_params_no_ssl</span><span class="o">.</span><span class="n">connection_available_timeout</span><span class="p">,</span>
+<span class="linenos">436</span>            <span class="n">health_check_interval</span><span class="o">=</span><span class="n">redis_params_no_ssl</span><span class="o">.</span><span class="n">health_check_interval</span><span class="p">,</span>
+<span class="linenos">437</span>            <span class="n">protocol</span><span class="o">=</span><span class="n">redis_params_no_ssl</span><span class="o">.</span><span class="n">protocol</span><span class="p">,</span>
+<span class="linenos">438</span>            <span class="n">decode_responses</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="linenos">439</span>        <span class="p">)</span></div>
 
-<span class="linenos">439</span>
+<span class="linenos">440</span>
 <div class="viewcode-block" id="TestStepRedisPool.test_async_context_manager">
 <a class="viewcode-back" href="../../test_rst/test.test_step_redis_pool.html#test.test_step_redis_pool.TestStepRedisPool.test_async_context_manager">[docs]</a>
-<span class="linenos">440</span>    <span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">asyncio</span>
-<span class="linenos">441</span>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">test_async_context_manager</span><span class="p">(</span>
-<span class="linenos">442</span>        <span class="bp">self</span><span class="p">,</span> <span class="n">mocker</span><span class="p">:</span> <span class="n">MockerFixture</span><span class="p">,</span> <span class="n">redis_params_no_ssl</span><span class="p">:</span> <span class="n">StepRedisPoolParams</span>
-<span class="linenos">443</span>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">444</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Test the async context manager functionality of StepRedisPool.</span>
-<span class="linenos">445</span>
-<span class="linenos">446</span><span class="sd">        This test verifies that:</span>
-<span class="linenos">447</span>
-<span class="linenos">448</span><span class="sd">            #. When used as an async context manager, the pool returns itself</span>
-<span class="linenos">449</span><span class="sd">            #. Appropriate debug logs are emitted when entering and exiting the context</span>
-<span class="linenos">450</span><span class="sd">            #. The aclose method is called when exiting the context</span>
-<span class="linenos">451</span>
-<span class="linenos">452</span><span class="sd">        Args:</span>
-<span class="linenos">453</span><span class="sd">            mocker (MockerFixture): PyTest fixture for mocking</span>
-<span class="linenos">454</span><span class="sd">            redis_params_no_ssl (StepRedisPoolParams): Fixture providing StepRedisPoolParams without SSL</span>
-<span class="linenos">455</span>
-<span class="linenos">456</span><span class="sd">        Returns:</span>
-<span class="linenos">457</span><span class="sd">            None</span>
-<span class="linenos">458</span><span class="sd">        &quot;&quot;&quot;</span>
-<span class="linenos">459</span>        <span class="n">mocker</span><span class="o">.</span><span class="n">patch</span><span class="o">.</span><span class="n">object</span><span class="p">(</span>
-<span class="linenos">460</span>            <span class="n">target</span><span class="o">=</span><span class="n">BlockingConnectionPool</span><span class="p">,</span> <span class="n">attribute</span><span class="o">=</span><span class="s2">&quot;__init__&quot;</span><span class="p">,</span> <span class="n">return_value</span><span class="o">=</span><span class="kc">None</span>
-<span class="linenos">461</span>        <span class="p">)</span>
-<span class="linenos">462</span>        <span class="n">mock_aclose</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">AsyncMock</span><span class="p">()</span>
-<span class="linenos">463</span>        <span class="n">mocker</span><span class="o">.</span><span class="n">patch</span><span class="o">.</span><span class="n">object</span><span class="p">(</span>
-<span class="linenos">464</span>            <span class="n">target</span><span class="o">=</span><span class="n">BlockingConnectionPool</span><span class="p">,</span> <span class="n">attribute</span><span class="o">=</span><span class="s2">&quot;aclose&quot;</span><span class="p">,</span> <span class="n">new</span><span class="o">=</span><span class="n">mock_aclose</span>
-<span class="linenos">465</span>        <span class="p">)</span>
-<span class="linenos">466</span>        <span class="n">mock_logger</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">(</span><span class="n">spec</span><span class="o">=</span><span class="n">Logger</span><span class="p">)</span>
-<span class="linenos">467</span>        <span class="n">mock_logger</span><span class="o">.</span><span class="n">debug</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">()</span>
-<span class="linenos">468</span>        <span class="c1"># Use as async context manager</span>
-<span class="linenos">469</span>        <span class="n">pool</span> <span class="o">=</span> <span class="n">StepRedisPool</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="n">redis_params_no_ssl</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">mock_logger</span><span class="p">)</span>
-<span class="linenos">470</span>        <span class="k">async</span> <span class="k">with</span> <span class="n">pool</span> <span class="k">as</span> <span class="n">context</span><span class="p">:</span>
-<span class="linenos">471</span>            <span class="k">assert</span> <span class="n">context</span> <span class="ow">is</span> <span class="n">pool</span>
-<span class="linenos">472</span>            <span class="n">mock_logger</span><span class="o">.</span><span class="n">debug</span><span class="o">.</span><span class="n">assert_called_with</span><span class="p">(</span><span class="s2">&quot;Redis pool context manager entered&quot;</span><span class="p">)</span>
-<span class="linenos">473</span>        <span class="c1"># Verify exit actions</span>
-<span class="linenos">474</span>        <span class="n">mock_aclose</span><span class="o">.</span><span class="n">assert_called_once</span><span class="p">()</span></div>
+<span class="linenos">441</span>    <span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">asyncio</span>
+<span class="linenos">442</span>    <span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">parametrize</span><span class="p">(</span><span class="n">argnames</span><span class="o">=</span><span class="s2">&quot;log_enabled&quot;</span><span class="p">,</span> <span class="n">argvalues</span><span class="o">=</span><span class="p">[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">])</span>
+<span class="linenos">443</span>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">test_async_context_manager</span><span class="p">(</span>
+<span class="linenos">444</span>        <span class="bp">self</span><span class="p">,</span>
+<span class="linenos">445</span>        <span class="n">mocker</span><span class="p">:</span> <span class="n">MockerFixture</span><span class="p">,</span>
+<span class="linenos">446</span>        <span class="n">redis_params_no_ssl</span><span class="p">:</span> <span class="n">StepRedisPoolParams</span><span class="p">,</span>
+<span class="linenos">447</span>        <span class="n">log_enabled</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+<span class="linenos">448</span>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">449</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Test the async context manager functionality of StepRedisPool.</span>
+<span class="linenos">450</span>
+<span class="linenos">451</span><span class="sd">        This test verifies that:</span>
+<span class="linenos">452</span>
+<span class="linenos">453</span><span class="sd">            #. When used as an async context manager, the pool returns itself</span>
+<span class="linenos">454</span><span class="sd">            #. Appropriate debug logs are emitted when entering and exiting the context</span>
+<span class="linenos">455</span><span class="sd">            #. The aclose method is called when exiting the context</span>
+<span class="linenos">456</span>
+<span class="linenos">457</span><span class="sd">        Args:</span>
+<span class="linenos">458</span><span class="sd">            mocker (MockerFixture): PyTest fixture for mocking</span>
+<span class="linenos">459</span><span class="sd">            redis_params_no_ssl (StepRedisPoolParams): Fixture providing StepRedisPoolParams without SSL</span>
+<span class="linenos">460</span><span class="sd">            log_enabled (bool): Flag to enable or disable logging.</span>
+<span class="linenos">461</span>
+<span class="linenos">462</span><span class="sd">        Returns:</span>
+<span class="linenos">463</span><span class="sd">            None</span>
+<span class="linenos">464</span><span class="sd">        &quot;&quot;&quot;</span>
+<span class="linenos">465</span>        <span class="n">mocker</span><span class="o">.</span><span class="n">patch</span><span class="o">.</span><span class="n">object</span><span class="p">(</span>
+<span class="linenos">466</span>            <span class="n">target</span><span class="o">=</span><span class="n">BlockingConnectionPool</span><span class="p">,</span> <span class="n">attribute</span><span class="o">=</span><span class="s2">&quot;__init__&quot;</span><span class="p">,</span> <span class="n">return_value</span><span class="o">=</span><span class="kc">None</span>
+<span class="linenos">467</span>        <span class="p">)</span>
+<span class="linenos">468</span>        <span class="n">mock_aclose</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">AsyncMock</span><span class="p">()</span>
+<span class="linenos">469</span>        <span class="n">mocker</span><span class="o">.</span><span class="n">patch</span><span class="o">.</span><span class="n">object</span><span class="p">(</span>
+<span class="linenos">470</span>            <span class="n">target</span><span class="o">=</span><span class="n">BlockingConnectionPool</span><span class="p">,</span> <span class="n">attribute</span><span class="o">=</span><span class="s2">&quot;aclose&quot;</span><span class="p">,</span> <span class="n">new</span><span class="o">=</span><span class="n">mock_aclose</span>
+<span class="linenos">471</span>        <span class="p">)</span>
+<span class="linenos">472</span>        <span class="n">mock_logger</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">(</span><span class="n">spec</span><span class="o">=</span><span class="n">Logger</span><span class="p">)</span>
+<span class="linenos">473</span>        <span class="n">mock_logger</span><span class="o">.</span><span class="n">debug</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">()</span>
+<span class="linenos">474</span>        <span class="n">mock_logger</span><span class="o">.</span><span class="n">isEnabledFor</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">(</span><span class="n">return_value</span><span class="o">=</span><span class="n">log_enabled</span><span class="p">)</span>
+<span class="linenos">475</span>        <span class="c1"># Use as async context manager</span>
+<span class="linenos">476</span>        <span class="n">pool</span> <span class="o">=</span> <span class="n">StepRedisPool</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="n">redis_params_no_ssl</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">mock_logger</span><span class="p">)</span>
+<span class="linenos">477</span>        <span class="k">async</span> <span class="k">with</span> <span class="n">pool</span> <span class="k">as</span> <span class="n">context</span><span class="p">:</span>
+<span class="linenos">478</span>            <span class="k">assert</span> <span class="n">context</span> <span class="ow">is</span> <span class="n">pool</span>
+<span class="linenos">479</span>            <span class="k">if</span> <span class="n">log_enabled</span><span class="p">:</span>
+<span class="linenos">480</span>                <span class="n">mock_logger</span><span class="o">.</span><span class="n">debug</span><span class="o">.</span><span class="n">assert_called_with</span><span class="p">(</span>
+<span class="linenos">481</span>                    <span class="n">msg</span><span class="o">=</span><span class="s2">&quot;Redis pool context manager entered&quot;</span>
+<span class="linenos">482</span>                <span class="p">)</span>
+<span class="linenos">483</span>        <span class="c1"># Verify exit actions</span>
+<span class="linenos">484</span>        <span class="n">mock_aclose</span><span class="o">.</span><span class="n">assert_called_once</span><span class="p">()</span></div>
 </div>
 
 </pre></div>

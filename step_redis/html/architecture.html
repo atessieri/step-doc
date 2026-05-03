@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Architecture &mdash; STEP Redis 1.2.3 documentation</title>
+  <title>Architecture &mdash; STEP Redis 1.2.4 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="_static/tabs.css?v=4c969af8" />
@@ -16,7 +16,7 @@
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=590429e0"></script>
+      <script src="_static/documentation_options.js?v=928db92d"></script>
       <script src="_static/doctools.js?v=fd6eb6e6"></script>
       <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="_static/tabs.js?v=3ee01567"></script>
@@ -258,7 +258,6 @@
 <li class="toctree-l7"><a class="reference internal" href="schemas_rst/cloud_events_step_monitoring_schema.html#position-type">Position Type</a></li>
 <li class="toctree-l7"><a class="reference internal" href="schemas_rst/cloud_events_step_monitoring_schema.html#cloudevents-specification-version">CloudEvents Specification Version</a></li>
 <li class="toctree-l7"><a class="reference internal" href="schemas_rst/cloud_events_step_monitoring_schema.html#speed">Speed</a></li>
-<li class="toctree-l7"><a class="reference internal" href="schemas_rst/cloud_events_step_monitoring_schema.html#trajectory-forecasted-type">Trajectory Forecasted Type</a></li>
 </ul>
 </li>
 </ul>
@@ -612,7 +611,7 @@ for stream processing, connection management, and reliable message handling.</p>
 <h2>Key Components<a class="headerlink" href="#key-components" title="Link to this heading"></a></h2>
 <p>The package consists of the following main components:</p>
 <ol class="arabic simple">
-<li><p><strong>StepRedisPool</strong>: An extended Redis connection pool with asyncio support</p></li>
+<li><p><strong>StepRedisPool</strong>: An extended Redis connection pool with <code class="docutils literal notranslate"><span class="pre">asyncio</span></code> support</p></li>
 <li><p><strong>StepRedisStream</strong>: A base comprehensive interface for Redis Streams operations</p></li>
 <li><p><strong>StepAdapterRedisStream</strong>: Specialized stream handler for STEP Adapter messages (CAM data)</p></li>
 <li><p><strong>StepClientRedisStream</strong>: Specialized stream handler for STEP Client messages (DENM data)</p></li>
@@ -701,6 +700,15 @@ for Redis stream operations. It enforces validation on all fields to ensure corr
 <p><code class="docutils literal notranslate"><span class="pre">StepRedisStream</span></code> provides a comprehensive base interface for Redis Streams that enables creating,
 managing, and utilizing Redis streams with consumer groups for reliable message processing. This class
 is designed to be extended by specialized stream handlers for different STEP components.</p>
+<p>The publisher sends messages to the Redis stream using the a specific stream ID, while consumers read
+messages from the stream using a consumer group. The package ensures that messages are automatically
+acknowledged upon delivery (<code class="docutils literal notranslate"><span class="pre">noack=True</span></code>) for maximum throughput, and it provides mechanisms for
+stream trimming and TTL management to maintain performance and resource efficiency.</p>
+<div class="scrollable-diagram docutils container">
+<img alt="Redis Stream Architecture" class="align-center" src="_images/redis_stream.png" />
+</div>
+<p>The class diagram below illustrates the architecture of the <code class="docutils literal notranslate"><span class="pre">StepRedisStream</span></code> class and
+its relationships with other components in the package.</p>
 <div class="scrollable-diagram docutils container">
 <figure class="align-center">
 <p class="plantuml">
