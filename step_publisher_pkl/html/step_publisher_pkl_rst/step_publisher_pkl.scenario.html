@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>step_publisher_pkl.scenario module &mdash; STEP Publisher Pickle 1.0.10 documentation</title>
+  <title>step_publisher_pkl.scenario module &mdash; STEP Publisher Pickle 1.0.11 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/tabs.css?v=4c969af8" />
@@ -16,7 +16,7 @@
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=377e76b0"></script>
+      <script src="../_static/documentation_options.js?v=9306f2a9"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/tabs.js?v=3ee01567"></script>
@@ -390,7 +390,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_step_broker.html#test.test_step_broker.TestStepBroker"><code class="docutils literal notranslate"><span class="pre">TestStepBroker</span></code></a><ul>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_broker.html#test.test_step_broker.TestStepBroker.test___aenter__"><code class="docutils literal notranslate"><span class="pre">TestStepBroker.test___aenter__()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_broker.html#test.test_step_broker.TestStepBroker.test_client_publish_its_message"><code class="docutils literal notranslate"><span class="pre">TestStepBroker.test_client_publish_its_message()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_broker.html#test.test_step_broker.TestStepBroker.test_init_with_ssl_enabled"><code class="docutils literal notranslate"><span class="pre">TestStepBroker.test_init_with_ssl_enabled()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_broker.html#test.test_step_broker.TestStepBroker.test_init_ssl_configuration"><code class="docutils literal notranslate"><span class="pre">TestStepBroker.test_init_ssl_configuration()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_broker.html#test.test_step_broker.TestStepBroker.test_step_broker_slots"><code class="docutils literal notranslate"><span class="pre">TestStepBroker.test_step_broker_slots()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_broker.html#test.test_step_broker.TestStepBroker.test_subscribe_execution_empty_subscription_topics"><code class="docutils literal notranslate"><span class="pre">TestStepBroker.test_subscribe_execution_empty_subscription_topics()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_broker.html#test.test_step_broker.TestStepBroker.test_subscribe_execution_exception"><code class="docutils literal notranslate"><span class="pre">TestStepBroker.test_subscribe_execution_exception()</span></code></a></li>
@@ -490,21 +490,19 @@
 <span id="step-publisher-pkl-scenario-module"></span><h1>step_publisher_pkl.scenario module<a class="headerlink" href="#module-step_publisher_pkl.scenario" title="Link to this heading"></a></h1>
 <p>Vehicle Trajectory Scenario Management Module.</p>
 <p>This module provides functionality for managing and processing vehicle trajectory data
-for crash prediction analysis. It handles loading trajectory data from pickle files,
-processing the data through sliding windows, and generating standardized position
-arrays compatible with the STEP cloud schemas.</p>
+for crash prediction analysis. It handles loading trajectory data from pickle files
+and generating standardized CAM messages compatible with the STEP cloud schemas.</p>
 <p>The module is primarily designed for use in crash prediction scenarios where vehicle
-trajectory data needs to be processed in real-time or near-real-time fashion using
-sliding window techniques. It supports loading multiple vehicle trajectories from
-pickle files and converting them into PositionArrayV1 objects for further analysis.</p>
+trajectory data needs to be published in real-time or near-real-time fashion.
+It supports loading multiple vehicle trajectories from pickle files and converting
+them into CamDataV1 objects for further analysis.</p>
 <dl class="simple">
 <dt>Key Features:</dt><dd><ul class="simple">
 <li><p>Loading vehicle trajectory data from pickle files</p></li>
-<li><p>Sliding window processing of trajectory data</p></li>
-<li><p>Conversion to standardized STEP cloud schema position arrays</p></li>
+<li><p>Conversion to standardized STEP cloud schema CAM messages</p></li>
 <li><p>Memory-efficient data handling using deque</p></li>
 <li><p>Support for multiple vehicles in a single scenario</p></li>
-<li><p>Configurable sampling frequency and window parameters</p></li>
+<li><p>Scenario-to-real-time timestamp alignment</p></li>
 </ul>
 </dd>
 </dl>
@@ -512,16 +510,11 @@ pickle files and converting them into PositionArrayV1 objects for further analys
 <p class="admonition-title">Example</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">logging</span><span class="w"> </span><span class="kn">import</span> <span class="n">Logger</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">logger</span> <span class="o">=</span> <span class="n">Logger</span><span class="p">(</span><span class="s2">&quot;demo&quot;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">scenario</span> <span class="o">=</span> <span class="n">Scenario</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="n">sample_frequency_param</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
-<span class="gp">... </span>    <span class="n">window_size_param</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
-<span class="gp">... </span>    <span class="n">points_to_remove_param</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
-<span class="gp">... </span>    <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span>
-<span class="gp">... </span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">scenario</span><span class="o">.</span><span class="n">load_data</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">scenario</span> <span class="o">=</span> <span class="n">Scenario</span><span class="p">(</span><span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">scenario</span><span class="o">.</span><span class="n">load_data</span><span class="p">(</span><span class="n">input_pkl_files</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;/path/to/scenario.pkl&quot;</span><span class="p">])</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">vehicle_id</span> <span class="ow">in</span> <span class="n">scenario</span><span class="o">.</span><span class="n">get_vehicle_ids</span><span class="p">():</span>
-<span class="gp">... </span>    <span class="k">for</span> <span class="n">position_array</span> <span class="ow">in</span> <span class="n">scenario</span><span class="o">.</span><span class="n">get_position_arrays</span><span class="p">(</span><span class="n">vehicle_id</span><span class="p">):</span>
-<span class="gp">... </span>        <span class="c1"># Process position array for crash prediction analysis</span>
+<span class="gp">... </span>    <span class="k">for</span> <span class="n">position_result</span> <span class="ow">in</span> <span class="n">scenario</span><span class="o">.</span><span class="n">pop_position_arrays</span><span class="p">(</span><span class="n">vehicle_id</span><span class="p">):</span>
+<span class="gp">... </span>        <span class="c1"># Process position result for crash prediction analysis</span>
 <span class="gp">... </span>        <span class="k">pass</span>
 </pre></div>
 </div>
@@ -605,8 +598,8 @@ consumed via pop_position_arrays(), it is removed from internal storage.</p>
 <dt class="sig sig-object py" id="step_publisher_pkl.scenario.Scenario.load_data">
 <span class="sig-name descname"><span class="pre">load_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_pkl_files</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/step_publisher_pkl/scenario.html#Scenario.load_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#step_publisher_pkl.scenario.Scenario.load_data" title="Link to this definition"></a></dt>
 <dd><p>Load vehicle trajectory data from pickle files.</p>
-<p>This method scans for all .pkl files in the configured data folder and loads
-vehicle trajectory data from each file. The data is expected to contain a
+<p>This method loads vehicle trajectory data from the specified pickle files.
+Each file is expected to contain a
 <code class="docutils literal notranslate"><span class="pre">trajectories</span></code> dictionary with a <code class="docutils literal notranslate"><span class="pre">vehicles</span></code> key that maps vehicle IDs to
 lists of trajectory points.</p>
 <p>For each file, a time reference is established mapping scenario timestamps to
@@ -638,14 +631,14 @@ minimum start time across all vehicles in each file as the reference</p></li>
 <span class="sig-name descname"><span class="pre">pop_position_arrays</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vehicle_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Generator</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#step_publisher_pkl.scenario.StationPositionResult" title="step_publisher_pkl.scenario.StationPositionResult"><span class="pre">StationPositionResult</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/step_publisher_pkl/scenario.html#Scenario.pop_position_arrays"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#step_publisher_pkl.scenario.Scenario.pop_position_arrays" title="Link to this definition"></a></dt>
 <dd><p>Pop and yield vehicle position results for a specific vehicle.</p>
 <p>Iteratively removes vehicle points from the internal collection for the specified
-vehicle and converts them to VehiclePositionResult objects. Each result includes
+vehicle and converts them to StationPositionResult objects. Each result includes
 the current position and the next position (if available) for trajectory calculations.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>vehicle_id</strong> (<em>int</em>) – The unique identifier of the vehicle whose positions to pop.</p>
 </dd>
 <dt class="field-even">Yields<span class="colon">:</span></dt>
-<dd class="field-even"><p><em>VehiclePositionResult</em> – Vehicle position data including current and next points.</p>
+<dd class="field-even"><p><em>StationPositionResult</em> – Vehicle position data including current and next points.</p>
 </dd>
 </dl>
 <div class="admonition note">

@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>step_publisher_pkl.scenario &mdash; STEP Publisher Pickle 1.0.10 documentation</title>
+  <title>step_publisher_pkl.scenario &mdash; STEP Publisher Pickle 1.0.11 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=4c969af8" />
@@ -15,7 +15,7 @@
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=377e76b0"></script>
+      <script src="../../_static/documentation_options.js?v=9306f2a9"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/tabs.js?v=3ee01567"></script>
@@ -387,7 +387,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../test_rst/test.test_step_broker.html#test.test_step_broker.TestStepBroker"><code class="docutils literal notranslate"><span class="pre">TestStepBroker</span></code></a><ul>
 <li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_step_broker.html#test.test_step_broker.TestStepBroker.test___aenter__"><code class="docutils literal notranslate"><span class="pre">TestStepBroker.test___aenter__()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_step_broker.html#test.test_step_broker.TestStepBroker.test_client_publish_its_message"><code class="docutils literal notranslate"><span class="pre">TestStepBroker.test_client_publish_its_message()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_step_broker.html#test.test_step_broker.TestStepBroker.test_init_with_ssl_enabled"><code class="docutils literal notranslate"><span class="pre">TestStepBroker.test_init_with_ssl_enabled()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_step_broker.html#test.test_step_broker.TestStepBroker.test_init_ssl_configuration"><code class="docutils literal notranslate"><span class="pre">TestStepBroker.test_init_ssl_configuration()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_step_broker.html#test.test_step_broker.TestStepBroker.test_step_broker_slots"><code class="docutils literal notranslate"><span class="pre">TestStepBroker.test_step_broker_slots()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_step_broker.html#test.test_step_broker.TestStepBroker.test_subscribe_execution_empty_subscription_topics"><code class="docutils literal notranslate"><span class="pre">TestStepBroker.test_subscribe_execution_empty_subscription_topics()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_step_broker.html#test.test_step_broker.TestStepBroker.test_subscribe_execution_exception"><code class="docutils literal notranslate"><span class="pre">TestStepBroker.test_subscribe_execution_exception()</span></code></a></li>
@@ -486,441 +486,452 @@
 <span></span><span class="linenos">  1</span><span class="sd">&quot;&quot;&quot;Vehicle Trajectory Scenario Management Module.</span>
 <span class="linenos">  2</span>
 <span class="linenos">  3</span><span class="sd">This module provides functionality for managing and processing vehicle trajectory data</span>
-<span class="linenos">  4</span><span class="sd">for crash prediction analysis. It handles loading trajectory data from pickle files,</span>
-<span class="linenos">  5</span><span class="sd">processing the data through sliding windows, and generating standardized position</span>
-<span class="linenos">  6</span><span class="sd">arrays compatible with the STEP cloud schemas.</span>
-<span class="linenos">  7</span>
-<span class="linenos">  8</span><span class="sd">The module is primarily designed for use in crash prediction scenarios where vehicle</span>
-<span class="linenos">  9</span><span class="sd">trajectory data needs to be processed in real-time or near-real-time fashion using</span>
-<span class="linenos"> 10</span><span class="sd">sliding window techniques. It supports loading multiple vehicle trajectories from</span>
-<span class="linenos"> 11</span><span class="sd">pickle files and converting them into PositionArrayV1 objects for further analysis.</span>
-<span class="linenos"> 12</span>
-<span class="linenos"> 13</span><span class="sd">Key Features:</span>
-<span class="linenos"> 14</span><span class="sd">    - Loading vehicle trajectory data from pickle files</span>
-<span class="linenos"> 15</span><span class="sd">    - Sliding window processing of trajectory data</span>
-<span class="linenos"> 16</span><span class="sd">    - Conversion to standardized STEP cloud schema position arrays</span>
-<span class="linenos"> 17</span><span class="sd">    - Memory-efficient data handling using deque</span>
-<span class="linenos"> 18</span><span class="sd">    - Support for multiple vehicles in a single scenario</span>
-<span class="linenos"> 19</span><span class="sd">    - Configurable sampling frequency and window parameters</span>
-<span class="linenos"> 20</span>
-<span class="linenos"> 21</span><span class="sd">Example:</span>
-<span class="linenos"> 22</span><span class="sd">    &gt;&gt;&gt; from logging import Logger</span>
-<span class="linenos"> 23</span><span class="sd">    &gt;&gt;&gt; logger = Logger(&quot;demo&quot;)</span>
-<span class="linenos"> 24</span><span class="sd">    &gt;&gt;&gt; scenario = Scenario(</span>
-<span class="linenos"> 25</span><span class="sd">    ...     sample_frequency_param=10,</span>
-<span class="linenos"> 26</span><span class="sd">    ...     window_size_param=50,</span>
-<span class="linenos"> 27</span><span class="sd">    ...     points_to_remove_param=5,</span>
-<span class="linenos"> 28</span><span class="sd">    ...     logger=logger,</span>
-<span class="linenos"> 29</span><span class="sd">    ... )</span>
-<span class="linenos"> 30</span><span class="sd">    &gt;&gt;&gt; scenario.load_data()</span>
-<span class="linenos"> 31</span><span class="sd">    &gt;&gt;&gt; for vehicle_id in scenario.get_vehicle_ids():</span>
-<span class="linenos"> 32</span><span class="sd">    ...     for position_array in scenario.get_position_arrays(vehicle_id):</span>
-<span class="linenos"> 33</span><span class="sd">    ...         # Process position array for crash prediction analysis</span>
-<span class="linenos"> 34</span><span class="sd">    ...         pass</span>
+<span class="linenos">  4</span><span class="sd">for crash prediction analysis. It handles loading trajectory data from pickle files</span>
+<span class="linenos">  5</span><span class="sd">and generating standardized CAM messages compatible with the STEP cloud schemas.</span>
+<span class="linenos">  6</span>
+<span class="linenos">  7</span><span class="sd">The module is primarily designed for use in crash prediction scenarios where vehicle</span>
+<span class="linenos">  8</span><span class="sd">trajectory data needs to be published in real-time or near-real-time fashion.</span>
+<span class="linenos">  9</span><span class="sd">It supports loading multiple vehicle trajectories from pickle files and converting</span>
+<span class="linenos"> 10</span><span class="sd">them into CamDataV1 objects for further analysis.</span>
+<span class="linenos"> 11</span>
+<span class="linenos"> 12</span><span class="sd">Key Features:</span>
+<span class="linenos"> 13</span><span class="sd">    - Loading vehicle trajectory data from pickle files</span>
+<span class="linenos"> 14</span><span class="sd">    - Conversion to standardized STEP cloud schema CAM messages</span>
+<span class="linenos"> 15</span><span class="sd">    - Memory-efficient data handling using deque</span>
+<span class="linenos"> 16</span><span class="sd">    - Support for multiple vehicles in a single scenario</span>
+<span class="linenos"> 17</span><span class="sd">    - Scenario-to-real-time timestamp alignment</span>
+<span class="linenos"> 18</span>
+<span class="linenos"> 19</span><span class="sd">Example:</span>
+<span class="linenos"> 20</span><span class="sd">    &gt;&gt;&gt; from logging import Logger</span>
+<span class="linenos"> 21</span><span class="sd">    &gt;&gt;&gt; logger = Logger(&quot;demo&quot;)</span>
+<span class="linenos"> 22</span><span class="sd">    &gt;&gt;&gt; scenario = Scenario(logger=logger)</span>
+<span class="linenos"> 23</span><span class="sd">    &gt;&gt;&gt; scenario.load_data(input_pkl_files=[&quot;/path/to/scenario.pkl&quot;])</span>
+<span class="linenos"> 24</span><span class="sd">    &gt;&gt;&gt; for vehicle_id in scenario.get_vehicle_ids():</span>
+<span class="linenos"> 25</span><span class="sd">    ...     for position_result in scenario.pop_position_arrays(vehicle_id):</span>
+<span class="linenos"> 26</span><span class="sd">    ...         # Process position result for crash prediction analysis</span>
+<span class="linenos"> 27</span><span class="sd">    ...         pass</span>
+<span class="linenos"> 28</span>
+<span class="linenos"> 29</span><span class="sd">Note:</span>
+<span class="linenos"> 30</span><span class="sd">    - Vehicle trajectory data is expected to be in pickle format</span>
+<span class="linenos"> 31</span><span class="sd">    - Data structure should contain &#39;trajectories&#39;[&#39;vehicles&#39;] dictionary</span>
+<span class="linenos"> 32</span><span class="sd">    - GNSS coordinates, speed, and heading data are required for each trajectory point</span>
+<span class="linenos"> 33</span><span class="sd">    - All measurements are converted to appropriate units (cm, cm/s, degrees)</span>
+<span class="linenos"> 34</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="linenos"> 35</span>
-<span class="linenos"> 36</span><span class="sd">Note:</span>
-<span class="linenos"> 37</span><span class="sd">    - Vehicle trajectory data is expected to be in pickle format</span>
-<span class="linenos"> 38</span><span class="sd">    - Data structure should contain &#39;trajectories&#39;[&#39;vehicles&#39;] dictionary</span>
-<span class="linenos"> 39</span><span class="sd">    - GNSS coordinates, speed, and heading data are required for each trajectory point</span>
-<span class="linenos"> 40</span><span class="sd">    - All measurements are converted to appropriate units (cm, cm/s, degrees)</span>
-<span class="linenos"> 41</span><span class="sd">&quot;&quot;&quot;</span>
-<span class="linenos"> 42</span>
-<span class="linenos"> 43</span><span class="c1"># Standard Library Imports</span>
-<span class="linenos"> 44</span><span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">deque</span>
-<span class="linenos"> 45</span><span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Generator</span>
-<span class="linenos"> 46</span><span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
-<span class="linenos"> 47</span><span class="kn">from</span><span class="w"> </span><span class="nn">logging</span><span class="w"> </span><span class="kn">import</span> <span class="n">Logger</span>
-<span class="linenos"> 48</span><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
-<span class="linenos"> 49</span><span class="kn">from</span><span class="w"> </span><span class="nn">pickle</span><span class="w"> </span><span class="kn">import</span> <span class="n">load</span> <span class="k">as</span> <span class="n">pickle_load</span>
-<span class="linenos"> 50</span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">cast</span>
-<span class="linenos"> 51</span>
-<span class="linenos"> 52</span><span class="c1"># Third Party Imports</span>
-<span class="linenos"> 53</span><span class="kn">from</span><span class="w"> </span><span class="nn">step_cloud_schemas</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-<span class="linenos"> 54</span>    <span class="n">Altitude</span><span class="p">,</span>
-<span class="linenos"> 55</span>    <span class="n">CamDataV1</span><span class="p">,</span>
-<span class="linenos"> 56</span>    <span class="n">Heading</span><span class="p">,</span>
-<span class="linenos"> 57</span>    <span class="n">Identification</span><span class="p">,</span>
-<span class="linenos"> 58</span>    <span class="n">ItsTime</span><span class="p">,</span>
-<span class="linenos"> 59</span>    <span class="n">ReferencePosition</span><span class="p">,</span>
-<span class="linenos"> 60</span>    <span class="n">Speed</span><span class="p">,</span>
-<span class="linenos"> 61</span>    <span class="n">TrafficParticipantType</span><span class="p">,</span>
-<span class="linenos"> 62</span><span class="p">)</span>
-<span class="linenos"> 63</span>
-<span class="linenos"> 64</span><span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
-<span class="linenos"> 65</span>    <span class="c1"># Standard Library Imports</span>
-<span class="linenos"> 66</span>    <span class="kn">import</span><span class="w"> </span><span class="nn">datetime</span>
-<span class="linenos"> 67</span>
-<span class="linenos"> 68</span>
+<span class="linenos"> 36</span><span class="c1"># Standard Library Imports</span>
+<span class="linenos"> 37</span><span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="linenos"> 38</span><span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">deque</span>
+<span class="linenos"> 39</span><span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Generator</span>
+<span class="linenos"> 40</span><span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+<span class="linenos"> 41</span><span class="kn">from</span><span class="w"> </span><span class="nn">logging</span><span class="w"> </span><span class="kn">import</span> <span class="n">Logger</span>
+<span class="linenos"> 42</span><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="linenos"> 43</span><span class="kn">from</span><span class="w"> </span><span class="nn">pickle</span><span class="w"> </span><span class="kn">import</span> <span class="n">load</span> <span class="k">as</span> <span class="n">pickle_load</span>
+<span class="linenos"> 44</span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="linenos"> 45</span>
+<span class="linenos"> 46</span><span class="c1"># Third Party Imports</span>
+<span class="linenos"> 47</span><span class="kn">from</span><span class="w"> </span><span class="nn">step_cloud_schemas</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+<span class="linenos"> 48</span>    <span class="n">Altitude</span><span class="p">,</span>
+<span class="linenos"> 49</span>    <span class="n">CamDataV1</span><span class="p">,</span>
+<span class="linenos"> 50</span>    <span class="n">Heading</span><span class="p">,</span>
+<span class="linenos"> 51</span>    <span class="n">Identification</span><span class="p">,</span>
+<span class="linenos"> 52</span>    <span class="n">ItsTime</span><span class="p">,</span>
+<span class="linenos"> 53</span>    <span class="n">ReferencePosition</span><span class="p">,</span>
+<span class="linenos"> 54</span>    <span class="n">Speed</span><span class="p">,</span>
+<span class="linenos"> 55</span>    <span class="n">TrafficParticipantType</span><span class="p">,</span>
+<span class="linenos"> 56</span><span class="p">)</span>
+<span class="linenos"> 57</span>
+<span class="linenos"> 58</span><span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+<span class="linenos"> 59</span>    <span class="c1"># Standard Library Imports</span>
+<span class="linenos"> 60</span>    <span class="kn">import</span><span class="w"> </span><span class="nn">datetime</span>
+<span class="linenos"> 61</span>
+<span class="linenos"> 62</span>
 <div class="viewcode-block" id="TimeReference">
 <a class="viewcode-back" href="../../step_publisher_pkl_rst/step_publisher_pkl.scenario.html#step_publisher_pkl.scenario.TimeReference">[docs]</a>
-<span class="linenos"> 69</span><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">kw_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="linenos"> 70</span><span class="k">class</span><span class="w"> </span><span class="nc">TimeReference</span><span class="p">:</span>
-<span class="linenos"> 71</span><span class="w">    </span><span class="sd">&quot;&quot;&quot;Represents a mapping between scenario time and real-world time.</span>
-<span class="linenos"> 72</span>
-<span class="linenos"> 73</span><span class="sd">    This dataclass establishes a time reference that enables conversion between</span>
-<span class="linenos"> 74</span><span class="sd">    timestamps in the scenario data and actual real-world time during playback.</span>
-<span class="linenos"> 75</span>
-<span class="linenos"> 76</span><span class="sd">    Attributes:</span>
-<span class="linenos"> 77</span><span class="sd">        start_scenario_time (ItsTime): The timestamp of the first trajectory point</span>
-<span class="linenos"> 78</span><span class="sd">            in the scenario data, serving as the reference point for scenario time.</span>
-<span class="linenos"> 79</span><span class="sd">        start_real_time (ItsTime): The real-world timestamp when the scenario</span>
-<span class="linenos"> 80</span><span class="sd">            playback begins, serving as the reference point for real time.</span>
-<span class="linenos"> 81</span><span class="sd">    &quot;&quot;&quot;</span>
-<span class="linenos"> 82</span>
-<span class="linenos"> 83</span>    <span class="n">start_scenario_time</span><span class="p">:</span> <span class="n">ItsTime</span>
-<span class="linenos"> 84</span>    <span class="n">start_real_time</span><span class="p">:</span> <span class="n">ItsTime</span></div>
+<span class="linenos"> 63</span><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">kw_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="linenos"> 64</span><span class="k">class</span><span class="w"> </span><span class="nc">TimeReference</span><span class="p">:</span>
+<span class="linenos"> 65</span><span class="w">    </span><span class="sd">&quot;&quot;&quot;Represents a mapping between scenario time and real-world time.</span>
+<span class="linenos"> 66</span>
+<span class="linenos"> 67</span><span class="sd">    This dataclass establishes a time reference that enables conversion between</span>
+<span class="linenos"> 68</span><span class="sd">    timestamps in the scenario data and actual real-world time during playback.</span>
+<span class="linenos"> 69</span>
+<span class="linenos"> 70</span><span class="sd">    Attributes:</span>
+<span class="linenos"> 71</span><span class="sd">        start_scenario_time (ItsTime): The timestamp of the first trajectory point</span>
+<span class="linenos"> 72</span><span class="sd">            in the scenario data, serving as the reference point for scenario time.</span>
+<span class="linenos"> 73</span><span class="sd">        start_real_time (ItsTime): The real-world timestamp when the scenario</span>
+<span class="linenos"> 74</span><span class="sd">            playback begins, serving as the reference point for real time.</span>
+<span class="linenos"> 75</span><span class="sd">    &quot;&quot;&quot;</span>
+<span class="linenos"> 76</span>
+<span class="linenos"> 77</span>    <span class="n">start_scenario_time</span><span class="p">:</span> <span class="n">ItsTime</span>
+<span class="linenos"> 78</span>    <span class="n">start_real_time</span><span class="p">:</span> <span class="n">ItsTime</span></div>
 
-<span class="linenos"> 85</span>
-<span class="linenos"> 86</span>
+<span class="linenos"> 79</span>
+<span class="linenos"> 80</span>
 <div class="viewcode-block" id="StationPositionResult">
 <a class="viewcode-back" href="../../step_publisher_pkl_rst/step_publisher_pkl.scenario.html#step_publisher_pkl.scenario.StationPositionResult">[docs]</a>
-<span class="linenos"> 87</span><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">kw_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="linenos"> 88</span><span class="k">class</span><span class="w"> </span><span class="nc">StationPositionResult</span><span class="p">:</span>
-<span class="linenos"> 89</span><span class="w">    </span><span class="sd">&quot;&quot;&quot;A result object containing station position data and timing information.</span>
-<span class="linenos"> 90</span>
-<span class="linenos"> 91</span><span class="sd">    This dataclass represents the outcome of a station position query, containing</span>
-<span class="linenos"> 92</span><span class="sd">    the current position data (as a CAM message) and an optional timestamp indicating</span>
-<span class="linenos"> 93</span><span class="sd">    when the next position update should occur.</span>
-<span class="linenos"> 94</span>
-<span class="linenos"> 95</span><span class="sd">    Attributes:</span>
-<span class="linenos"> 96</span><span class="sd">        position (Optional[CamDataV1]): The current station position as a Cooperative</span>
-<span class="linenos"> 97</span><span class="sd">            Awareness Message (CAM), or None if the position is not yet ready (e.g.,</span>
-<span class="linenos"> 98</span><span class="sd">            when the scenario time is ahead of real time).</span>
-<span class="linenos"> 99</span><span class="sd">        next_position_time (Optional[ItsTime]): The ITS timestamp when the next</span>
-<span class="linenos">100</span><span class="sd">            position update is expected, or None if no more positions are available</span>
-<span class="linenos">101</span><span class="sd">            for this station.</span>
-<span class="linenos">102</span><span class="sd">    &quot;&quot;&quot;</span>
-<span class="linenos">103</span>
-<span class="linenos">104</span>    <span class="n">position</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">CamDataV1</span><span class="p">]</span>
-<span class="linenos">105</span>    <span class="n">next_position_time</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ItsTime</span><span class="p">]</span></div>
+<span class="linenos"> 81</span><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">kw_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="linenos"> 82</span><span class="k">class</span><span class="w"> </span><span class="nc">StationPositionResult</span><span class="p">:</span>
+<span class="linenos"> 83</span><span class="w">    </span><span class="sd">&quot;&quot;&quot;A result object containing station position data and timing information.</span>
+<span class="linenos"> 84</span>
+<span class="linenos"> 85</span><span class="sd">    This dataclass represents the outcome of a station position query, containing</span>
+<span class="linenos"> 86</span><span class="sd">    the current position data (as a CAM message) and an optional timestamp indicating</span>
+<span class="linenos"> 87</span><span class="sd">    when the next position update should occur.</span>
+<span class="linenos"> 88</span>
+<span class="linenos"> 89</span><span class="sd">    Attributes:</span>
+<span class="linenos"> 90</span><span class="sd">        position (Optional[CamDataV1]): The current station position as a Cooperative</span>
+<span class="linenos"> 91</span><span class="sd">            Awareness Message (CAM), or None if the position is not yet ready (e.g.,</span>
+<span class="linenos"> 92</span><span class="sd">            when the scenario time is ahead of real time).</span>
+<span class="linenos"> 93</span><span class="sd">        next_position_time (Optional[ItsTime]): The ITS timestamp when the next</span>
+<span class="linenos"> 94</span><span class="sd">            position update is expected, or None if no more positions are available</span>
+<span class="linenos"> 95</span><span class="sd">            for this station.</span>
+<span class="linenos"> 96</span><span class="sd">    &quot;&quot;&quot;</span>
+<span class="linenos"> 97</span>
+<span class="linenos"> 98</span>    <span class="n">position</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">CamDataV1</span><span class="p">]</span>
+<span class="linenos"> 99</span>    <span class="n">next_position_time</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ItsTime</span><span class="p">]</span></div>
 
-<span class="linenos">106</span>
-<span class="linenos">107</span>
+<span class="linenos">100</span>
+<span class="linenos">101</span>
 <div class="viewcode-block" id="Scenario">
 <a class="viewcode-back" href="../../step_publisher_pkl_rst/step_publisher_pkl.scenario.html#step_publisher_pkl.scenario.Scenario">[docs]</a>
-<span class="linenos">108</span><span class="k">class</span><span class="w"> </span><span class="nc">Scenario</span><span class="p">:</span>
-<span class="linenos">109</span><span class="w">    </span><span class="sd">&quot;&quot;&quot;A scenario management class for vehicle trajectory simulation and real-time data</span>
-<span class="linenos">110</span><span class="sd">    processing.</span>
-<span class="linenos">111</span>
-<span class="linenos">112</span><span class="sd">    This class handles loading vehicle trajectory data from pickle files, managing time references</span>
-<span class="linenos">113</span><span class="sd">    for scenario-to-real-time conversion, and providing vehicle position data for simulation or</span>
-<span class="linenos">114</span><span class="sd">    analysis purposes. It serves as the main orchestrator for vehicle data processing in</span>
-<span class="linenos">115</span><span class="sd">    step-by-step scenario execution.</span>
-<span class="linenos">116</span><span class="sd">    The Scenario class maintains a collection of vehicle trajectories loaded from pickle files,</span>
-<span class="linenos">117</span><span class="sd">    each containing timestamped position data. It establishes a time reference that maps scenario</span>
-<span class="linenos">118</span><span class="sd">    time to real time, enabling synchronized playback of recorded vehicle movements.</span>
-<span class="linenos">119</span>
-<span class="linenos">120</span><span class="sd">    Key Features:</span>
-<span class="linenos">121</span><span class="sd">        - Loads vehicle trajectory data from multiple pickle files</span>
-<span class="linenos">122</span><span class="sd">        - Converts scenario timestamps to real-time for synchronized playback</span>
-<span class="linenos">123</span><span class="sd">        - Manages vehicle position data as queues for efficient sequential access</span>
-<span class="linenos">124</span><span class="sd">        - Converts raw trajectory data to structured CAM (Cooperative Awareness Message) format</span>
-<span class="linenos">125</span><span class="sd">        - Supports iterative consumption of vehicle positions through generators</span>
+<span class="linenos">102</span><span class="k">class</span><span class="w"> </span><span class="nc">Scenario</span><span class="p">:</span>
+<span class="linenos">103</span><span class="w">    </span><span class="sd">&quot;&quot;&quot;A scenario management class for vehicle trajectory simulation and real-time data</span>
+<span class="linenos">104</span><span class="sd">    processing.</span>
+<span class="linenos">105</span>
+<span class="linenos">106</span><span class="sd">    This class handles loading vehicle trajectory data from pickle files, managing time references</span>
+<span class="linenos">107</span><span class="sd">    for scenario-to-real-time conversion, and providing vehicle position data for simulation or</span>
+<span class="linenos">108</span><span class="sd">    analysis purposes. It serves as the main orchestrator for vehicle data processing in</span>
+<span class="linenos">109</span><span class="sd">    step-by-step scenario execution.</span>
+<span class="linenos">110</span><span class="sd">    The Scenario class maintains a collection of vehicle trajectories loaded from pickle files,</span>
+<span class="linenos">111</span><span class="sd">    each containing timestamped position data. It establishes a time reference that maps scenario</span>
+<span class="linenos">112</span><span class="sd">    time to real time, enabling synchronized playback of recorded vehicle movements.</span>
+<span class="linenos">113</span>
+<span class="linenos">114</span><span class="sd">    Key Features:</span>
+<span class="linenos">115</span><span class="sd">        - Loads vehicle trajectory data from multiple pickle files</span>
+<span class="linenos">116</span><span class="sd">        - Converts scenario timestamps to real-time for synchronized playback</span>
+<span class="linenos">117</span><span class="sd">        - Manages vehicle position data as queues for efficient sequential access</span>
+<span class="linenos">118</span><span class="sd">        - Converts raw trajectory data to structured CAM (Cooperative Awareness Message) format</span>
+<span class="linenos">119</span><span class="sd">        - Supports iterative consumption of vehicle positions through generators</span>
+<span class="linenos">120</span>
+<span class="linenos">121</span><span class="sd">    Attributes:</span>
+<span class="linenos">122</span><span class="sd">        logger (Logger): Logger instance for recording events and debugging information</span>
+<span class="linenos">123</span>
+<span class="linenos">124</span><span class="sd">    Usage:</span>
+<span class="linenos">125</span><span class="sd">        The typical workflow involves:</span>
 <span class="linenos">126</span>
-<span class="linenos">127</span><span class="sd">    Attributes:</span>
-<span class="linenos">128</span><span class="sd">        logger (Logger): Logger instance for recording events and debugging information</span>
-<span class="linenos">129</span>
-<span class="linenos">130</span><span class="sd">    Usage:</span>
-<span class="linenos">131</span><span class="sd">        The typical workflow involves:</span>
-<span class="linenos">132</span>
-<span class="linenos">133</span><span class="sd">            #. Initialize with a logger</span>
-<span class="linenos">134</span><span class="sd">            #. Call load_data() to populate vehicle trajectories from pickle files</span>
-<span class="linenos">135</span><span class="sd">            #. Use get_vehicle_ids() to enumerate available vehicles</span>
-<span class="linenos">136</span><span class="sd">            #. Call pop_position_arrays() to consume vehicle positions sequentially</span>
-<span class="linenos">137</span>
-<span class="linenos">138</span><span class="sd">        Vehicle trajectory data is expected to be in pickle format with a specific structure</span>
-<span class="linenos">139</span><span class="sd">        containing a &#39;trajectories&#39; dictionary with vehicle data. Once position data is</span>
-<span class="linenos">140</span><span class="sd">        consumed via pop_position_arrays(), it is removed from internal storage.</span>
-<span class="linenos">141</span><span class="sd">    &quot;&quot;&quot;</span>
-<span class="linenos">142</span>
-<span class="linenos">143</span>    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;_logger&quot;</span><span class="p">,</span> <span class="s2">&quot;_stations&quot;</span><span class="p">)</span>
-<span class="linenos">144</span>
-<span class="linenos">145</span>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">logger</span><span class="p">:</span> <span class="n">Logger</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">146</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the scenario with a logger.</span>
-<span class="linenos">147</span>
-<span class="linenos">148</span><span class="sd">        Args:</span>
-<span class="linenos">149</span><span class="sd">            logger (Logger): Logger instance for recording scenario events and debugging information.</span>
-<span class="linenos">150</span><span class="sd">        &quot;&quot;&quot;</span>
-<span class="linenos">151</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span> <span class="o">=</span> <span class="n">logger</span>
-<span class="linenos">152</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_stations</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">deque</span><span class="p">[</span><span class="n">CamDataV1</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
-<span class="linenos">153</span>
-<span class="linenos">154</span>    <span class="k">def</span><span class="w"> </span><span class="nf">_dict_to_cam_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vehicle_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">CamDataV1</span><span class="p">:</span>
-<span class="linenos">155</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Converts a dictionary containing vehicle and sensor data into a CamDataV1</span>
-<span class="linenos">156</span><span class="sd">        object.</span>
-<span class="linenos">157</span>
-<span class="linenos">158</span><span class="sd">        Args:</span>
-<span class="linenos">159</span><span class="sd">            vehicle_id (int): The unique identifier for the vehicle.</span>
-<span class="linenos">160</span><span class="sd">            data (dict[str, Any]): A dictionary containing vehicle data, including timestamp, geo_location, heading, and velocity.</span>
-<span class="linenos">161</span>
-<span class="linenos">162</span><span class="sd">        Returns:</span>
-<span class="linenos">163</span><span class="sd">            CamDataV1: An instance of CamDataV1 populated with the provided data.</span>
-<span class="linenos">164</span><span class="sd">        &quot;&quot;&quot;</span>
-<span class="linenos">165</span>        <span class="k">return</span> <span class="n">CamDataV1</span><span class="p">(</span>
-<span class="linenos">166</span>            <span class="n">creationTime</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span>
-<span class="linenos">167</span>                <span class="nb">object</span><span class="o">=</span><span class="n">ItsTime</span><span class="o">.</span><span class="n">create_from_datetime</span><span class="p">(</span>
-<span class="linenos">168</span>                    <span class="n">dt</span><span class="o">=</span><span class="n">cast</span><span class="p">(</span><span class="s2">&quot;datetime.datetime&quot;</span><span class="p">,</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;timestamp&quot;</span><span class="p">])</span>
-<span class="linenos">169</span>                <span class="p">)</span>
-<span class="linenos">170</span>            <span class="p">),</span>
-<span class="linenos">171</span>            <span class="n">stationInfo</span><span class="o">=</span><span class="n">Identification</span><span class="p">(</span>
-<span class="linenos">172</span>                <span class="n">stationId</span><span class="o">=</span><span class="n">vehicle_id</span><span class="p">,</span> <span class="n">stationType</span><span class="o">=</span><span class="n">TrafficParticipantType</span><span class="o">.</span><span class="n">PASSENGER_CAR</span>
-<span class="linenos">173</span>            <span class="p">),</span>
-<span class="linenos">174</span>            <span class="n">position</span><span class="o">=</span><span class="n">ReferencePosition</span><span class="p">(</span>
-<span class="linenos">175</span>                <span class="n">latitude</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;geo_location&quot;</span><span class="p">][</span><span class="s2">&quot;latitude&quot;</span><span class="p">]),</span>
-<span class="linenos">176</span>                <span class="n">longitude</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;geo_location&quot;</span><span class="p">][</span><span class="s2">&quot;longitude&quot;</span><span class="p">]),</span>
-<span class="linenos">177</span>                <span class="n">positionConfidence</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-<span class="linenos">178</span>                <span class="n">altitude</span><span class="o">=</span><span class="n">Altitude</span><span class="p">(</span>
-<span class="linenos">179</span>                    <span class="n">value</span><span class="o">=</span><span class="nb">round</span><span class="p">(</span>
-<span class="linenos">180</span>                        <span class="n">data</span><span class="p">[</span><span class="s2">&quot;geo_location&quot;</span><span class="p">][</span><span class="s2">&quot;altitude&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">Altitude</span><span class="o">.</span><span class="n">SCALE_FACTOR</span>
-<span class="linenos">181</span>                    <span class="p">),</span>
-<span class="linenos">182</span>                    <span class="n">confidence</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-<span class="linenos">183</span>                <span class="p">),</span>
-<span class="linenos">184</span>            <span class="p">),</span>
-<span class="linenos">185</span>            <span class="n">heading</span><span class="o">=</span><span class="n">Heading</span><span class="p">(</span>
-<span class="linenos">186</span>                <span class="n">value</span><span class="o">=</span><span class="nb">round</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;heading&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">Heading</span><span class="o">.</span><span class="n">SCALE_FACTOR</span><span class="p">),</span> <span class="n">confidence</span><span class="o">=</span><span class="kc">None</span>
-<span class="linenos">187</span>            <span class="p">),</span>
-<span class="linenos">188</span>            <span class="n">speed</span><span class="o">=</span><span class="n">Speed</span><span class="p">(</span>
-<span class="linenos">189</span>                <span class="n">value</span><span class="o">=</span><span class="nb">round</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;velocity&quot;</span><span class="p">][</span><span class="s2">&quot;speed&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">Speed</span><span class="o">.</span><span class="n">SCALE_FACTOR</span><span class="p">),</span>
-<span class="linenos">190</span>                <span class="n">confidence</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-<span class="linenos">191</span>            <span class="p">),</span>
-<span class="linenos">192</span>            <span class="n">driveDirection</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-<span class="linenos">193</span>            <span class="n">vehicleLength</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-<span class="linenos">194</span>            <span class="n">vehicleWidth</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-<span class="linenos">195</span>            <span class="n">longitudinalAcceleration</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-<span class="linenos">196</span>            <span class="n">curvature</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-<span class="linenos">197</span>            <span class="n">curvatureCalculationMode</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-<span class="linenos">198</span>            <span class="n">yawRate</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-<span class="linenos">199</span>            <span class="n">vehicleRole</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-<span class="linenos">200</span>        <span class="p">)</span>
-<span class="linenos">201</span>
-<span class="linenos">202</span>    <span class="k">def</span><span class="w"> </span><span class="nf">_scenario_time_to_real</span><span class="p">(</span>
-<span class="linenos">203</span>        <span class="bp">self</span><span class="p">,</span> <span class="n">scenario_time</span><span class="p">:</span> <span class="n">ItsTime</span><span class="p">,</span> <span class="n">time_reference</span><span class="p">:</span> <span class="n">TimeReference</span>
-<span class="linenos">204</span>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ItsTime</span><span class="p">:</span>
-<span class="linenos">205</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert scenario time to real time using the time reference.</span>
-<span class="linenos">206</span>
-<span class="linenos">207</span><span class="sd">        Args:</span>
-<span class="linenos">208</span><span class="sd">            scenario_time (ItsTime): The scenario time to convert.</span>
-<span class="linenos">209</span><span class="sd">            time_reference (TimeReference): The time reference mapping for conversion.</span>
+<span class="linenos">127</span><span class="sd">            #. Initialize with a logger</span>
+<span class="linenos">128</span><span class="sd">            #. Call load_data() to populate vehicle trajectories from pickle files</span>
+<span class="linenos">129</span><span class="sd">            #. Use get_vehicle_ids() to enumerate available vehicles</span>
+<span class="linenos">130</span><span class="sd">            #. Call pop_position_arrays() to consume vehicle positions sequentially</span>
+<span class="linenos">131</span>
+<span class="linenos">132</span><span class="sd">        Vehicle trajectory data is expected to be in pickle format with a specific structure</span>
+<span class="linenos">133</span><span class="sd">        containing a &#39;trajectories&#39; dictionary with vehicle data. Once position data is</span>
+<span class="linenos">134</span><span class="sd">        consumed via pop_position_arrays(), it is removed from internal storage.</span>
+<span class="linenos">135</span><span class="sd">    &quot;&quot;&quot;</span>
+<span class="linenos">136</span>
+<span class="linenos">137</span>    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;_logger&quot;</span><span class="p">,</span> <span class="s2">&quot;_stations&quot;</span><span class="p">,</span> <span class="s2">&quot;_time&quot;</span><span class="p">)</span>
+<span class="linenos">138</span>
+<span class="linenos">139</span>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">logger</span><span class="p">:</span> <span class="n">Logger</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">140</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the scenario with a logger.</span>
+<span class="linenos">141</span>
+<span class="linenos">142</span><span class="sd">        Args:</span>
+<span class="linenos">143</span><span class="sd">            logger (Logger): Logger instance for recording scenario events and debugging information.</span>
+<span class="linenos">144</span><span class="sd">        &quot;&quot;&quot;</span>
+<span class="linenos">145</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span> <span class="o">=</span> <span class="n">logger</span>
+<span class="linenos">146</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_stations</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">deque</span><span class="p">[</span><span class="n">CamDataV1</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="linenos">147</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_time</span> <span class="o">=</span> <span class="n">ItsTime</span><span class="p">(</span><span class="n">its_time_ms</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="linenos">148</span>
+<span class="linenos">149</span>    <span class="k">def</span><span class="w"> </span><span class="nf">_get_epoch_ms</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">time_str</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="linenos">150</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert an ISO-format time string to an epoch timestamp in milliseconds.</span>
+<span class="linenos">151</span>
+<span class="linenos">152</span><span class="sd">        Args:</span>
+<span class="linenos">153</span><span class="sd">            time_str (str): An ISO 8601 formatted time string to convert.</span>
+<span class="linenos">154</span>
+<span class="linenos">155</span><span class="sd">        Returns:</span>
+<span class="linenos">156</span><span class="sd">            int: The corresponding epoch timestamp in milliseconds.</span>
+<span class="linenos">157</span><span class="sd">        &quot;&quot;&quot;</span>
+<span class="linenos">158</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_time</span><span class="o">.</span><span class="n">iso_format</span> <span class="o">=</span> <span class="n">time_str</span>
+<span class="linenos">159</span>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_time</span><span class="o">.</span><span class="n">epoch_ms</span>
+<span class="linenos">160</span>
+<span class="linenos">161</span>    <span class="k">def</span><span class="w"> </span><span class="nf">_dict_to_cam_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vehicle_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">CamDataV1</span><span class="p">:</span>
+<span class="linenos">162</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Converts a dictionary containing vehicle and sensor data into a CamDataV1</span>
+<span class="linenos">163</span><span class="sd">        object.</span>
+<span class="linenos">164</span>
+<span class="linenos">165</span><span class="sd">        Args:</span>
+<span class="linenos">166</span><span class="sd">            vehicle_id (int): The unique identifier for the vehicle.</span>
+<span class="linenos">167</span><span class="sd">            data (dict[str, Any]): A dictionary containing vehicle data, including timestamp, geo_location, heading, and velocity.</span>
+<span class="linenos">168</span>
+<span class="linenos">169</span><span class="sd">        Returns:</span>
+<span class="linenos">170</span><span class="sd">            CamDataV1: An instance of CamDataV1 populated with the provided data.</span>
+<span class="linenos">171</span><span class="sd">        &quot;&quot;&quot;</span>
+<span class="linenos">172</span>        <span class="n">dt</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;timestamp&quot;</span><span class="p">]</span>
+<span class="linenos">173</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_time</span><span class="o">.</span><span class="n">dt</span> <span class="o">=</span> <span class="n">dt</span>
+<span class="linenos">174</span>        <span class="k">return</span> <span class="n">CamDataV1</span><span class="p">(</span>
+<span class="linenos">175</span>            <span class="n">creationTime</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="nb">object</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_time</span><span class="p">),</span>
+<span class="linenos">176</span>            <span class="n">stationInfo</span><span class="o">=</span><span class="n">Identification</span><span class="p">(</span>
+<span class="linenos">177</span>                <span class="n">stationId</span><span class="o">=</span><span class="n">vehicle_id</span><span class="p">,</span> <span class="n">stationType</span><span class="o">=</span><span class="n">TrafficParticipantType</span><span class="o">.</span><span class="n">PASSENGER_CAR</span>
+<span class="linenos">178</span>            <span class="p">),</span>
+<span class="linenos">179</span>            <span class="n">position</span><span class="o">=</span><span class="n">ReferencePosition</span><span class="p">(</span>
+<span class="linenos">180</span>                <span class="n">latitude</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;geo_location&quot;</span><span class="p">][</span><span class="s2">&quot;latitude&quot;</span><span class="p">]),</span>
+<span class="linenos">181</span>                <span class="n">longitude</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;geo_location&quot;</span><span class="p">][</span><span class="s2">&quot;longitude&quot;</span><span class="p">]),</span>
+<span class="linenos">182</span>                <span class="n">positionConfidence</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="linenos">183</span>                <span class="n">altitude</span><span class="o">=</span><span class="n">Altitude</span><span class="p">(</span>
+<span class="linenos">184</span>                    <span class="n">value</span><span class="o">=</span><span class="nb">round</span><span class="p">(</span>
+<span class="linenos">185</span>                        <span class="n">data</span><span class="p">[</span><span class="s2">&quot;geo_location&quot;</span><span class="p">][</span><span class="s2">&quot;altitude&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">Altitude</span><span class="o">.</span><span class="n">SCALE_FACTOR</span>
+<span class="linenos">186</span>                    <span class="p">),</span>
+<span class="linenos">187</span>                    <span class="n">confidence</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="linenos">188</span>                <span class="p">),</span>
+<span class="linenos">189</span>            <span class="p">),</span>
+<span class="linenos">190</span>            <span class="n">heading</span><span class="o">=</span><span class="n">Heading</span><span class="p">(</span>
+<span class="linenos">191</span>                <span class="n">value</span><span class="o">=</span><span class="nb">round</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;heading&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">Heading</span><span class="o">.</span><span class="n">SCALE_FACTOR</span><span class="p">),</span> <span class="n">confidence</span><span class="o">=</span><span class="kc">None</span>
+<span class="linenos">192</span>            <span class="p">)</span>
+<span class="linenos">193</span>            <span class="k">if</span> <span class="s2">&quot;heading&quot;</span> <span class="ow">in</span> <span class="n">data</span>
+<span class="linenos">194</span>            <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+<span class="linenos">195</span>            <span class="n">speed</span><span class="o">=</span><span class="n">Speed</span><span class="p">(</span>
+<span class="linenos">196</span>                <span class="n">value</span><span class="o">=</span><span class="nb">round</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;velocity&quot;</span><span class="p">][</span><span class="s2">&quot;speed&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">Speed</span><span class="o">.</span><span class="n">SCALE_FACTOR</span><span class="p">),</span>
+<span class="linenos">197</span>                <span class="n">confidence</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="linenos">198</span>            <span class="p">)</span>
+<span class="linenos">199</span>            <span class="k">if</span> <span class="s2">&quot;velocity&quot;</span> <span class="ow">in</span> <span class="n">data</span>
+<span class="linenos">200</span>            <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+<span class="linenos">201</span>            <span class="n">driveDirection</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="linenos">202</span>            <span class="n">vehicleLength</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="linenos">203</span>            <span class="n">vehicleWidth</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="linenos">204</span>            <span class="n">longitudinalAcceleration</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="linenos">205</span>            <span class="n">curvature</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="linenos">206</span>            <span class="n">curvatureCalculationMode</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="linenos">207</span>            <span class="n">yawRate</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="linenos">208</span>            <span class="n">vehicleRole</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="linenos">209</span>        <span class="p">)</span>
 <span class="linenos">210</span>
-<span class="linenos">211</span><span class="sd">        Returns:</span>
-<span class="linenos">212</span><span class="sd">            ItsTime: The corresponding real time.</span>
-<span class="linenos">213</span><span class="sd">        &quot;&quot;&quot;</span>
-<span class="linenos">214</span>        <span class="n">delta</span> <span class="o">=</span> <span class="n">scenario_time</span><span class="o">.</span><span class="n">time_difference</span><span class="p">(</span>
-<span class="linenos">215</span>            <span class="n">other_time</span><span class="o">=</span><span class="n">time_reference</span><span class="o">.</span><span class="n">start_scenario_time</span>
-<span class="linenos">216</span>        <span class="p">)</span>
-<span class="linenos">217</span>        <span class="k">return</span> <span class="n">time_reference</span><span class="o">.</span><span class="n">start_real_time</span> <span class="o">+</span> <span class="n">delta</span>
-<span class="linenos">218</span>
-<span class="linenos">219</span>    <span class="k">def</span><span class="w"> </span><span class="nf">_update_time_cam_data</span><span class="p">(</span>
-<span class="linenos">220</span>        <span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">CamDataV1</span><span class="p">,</span> <span class="n">time_reference</span><span class="p">:</span> <span class="n">TimeReference</span>
-<span class="linenos">221</span>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CamDataV1</span><span class="p">:</span>
-<span class="linenos">222</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Update the creation time of CAM (Cooperative Awareness Message) data from</span>
-<span class="linenos">223</span><span class="sd">        scenario time to real time.</span>
-<span class="linenos">224</span>
-<span class="linenos">225</span><span class="sd">        This method converts the scenario-relative creation time of a CAM data object to real-world time</span>
-<span class="linenos">226</span><span class="sd">        using the provided time reference, and returns a new CAM data object with the updated timestamp.</span>
+<span class="linenos">211</span>    <span class="k">def</span><span class="w"> </span><span class="nf">_scenario_time_to_real</span><span class="p">(</span>
+<span class="linenos">212</span>        <span class="bp">self</span><span class="p">,</span> <span class="n">scenario_time</span><span class="p">:</span> <span class="n">ItsTime</span><span class="p">,</span> <span class="n">time_reference</span><span class="p">:</span> <span class="n">TimeReference</span>
+<span class="linenos">213</span>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ItsTime</span><span class="p">:</span>
+<span class="linenos">214</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert scenario time to real time using the time reference.</span>
+<span class="linenos">215</span>
+<span class="linenos">216</span><span class="sd">        Args:</span>
+<span class="linenos">217</span><span class="sd">            scenario_time (ItsTime): The scenario time to convert.</span>
+<span class="linenos">218</span><span class="sd">            time_reference (TimeReference): The time reference mapping for conversion.</span>
+<span class="linenos">219</span>
+<span class="linenos">220</span><span class="sd">        Returns:</span>
+<span class="linenos">221</span><span class="sd">            ItsTime: The corresponding real time.</span>
+<span class="linenos">222</span><span class="sd">        &quot;&quot;&quot;</span>
+<span class="linenos">223</span>        <span class="n">delta</span> <span class="o">=</span> <span class="n">scenario_time</span><span class="o">.</span><span class="n">time_difference</span><span class="p">(</span>
+<span class="linenos">224</span>            <span class="n">other_time</span><span class="o">=</span><span class="n">time_reference</span><span class="o">.</span><span class="n">start_scenario_time</span>
+<span class="linenos">225</span>        <span class="p">)</span>
+<span class="linenos">226</span>        <span class="k">return</span> <span class="n">time_reference</span><span class="o">.</span><span class="n">start_real_time</span> <span class="o">+</span> <span class="n">delta</span>
 <span class="linenos">227</span>
-<span class="linenos">228</span><span class="sd">        Args:</span>
-<span class="linenos">229</span><span class="sd">            data (CamDataV1): The CAM data object containing the original scenario-relative creation time.</span>
-<span class="linenos">230</span><span class="sd">            time_reference (TimeReference): The time reference object used to convert scenario time to real time.</span>
-<span class="linenos">231</span>
-<span class="linenos">232</span><span class="sd">        Returns:</span>
-<span class="linenos">233</span><span class="sd">            CamDataV1: A new CAM data object with the creation time updated to real-world time as a string.</span>
-<span class="linenos">234</span>
-<span class="linenos">235</span><span class="sd">        Note:</span>
-<span class="linenos">236</span><span class="sd">            The method uses model_copy to create a new instance rather than modifying the original data object.</span>
-<span class="linenos">237</span><span class="sd">            The creation time is converted to a string representation in the returned object.</span>
-<span class="linenos">238</span><span class="sd">        &quot;&quot;&quot;</span>
-<span class="linenos">239</span>        <span class="k">return</span> <span class="n">data</span><span class="o">.</span><span class="n">model_copy</span><span class="p">(</span>
-<span class="linenos">240</span>            <span class="n">update</span><span class="o">=</span><span class="p">{</span>
-<span class="linenos">241</span>                <span class="s2">&quot;creationTime&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span>
-<span class="linenos">242</span>                    <span class="nb">object</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_scenario_time_to_real</span><span class="p">(</span>
-<span class="linenos">243</span>                        <span class="n">scenario_time</span><span class="o">=</span><span class="n">ItsTime</span><span class="o">.</span><span class="n">create_from_iso_time</span><span class="p">(</span>
-<span class="linenos">244</span>                            <span class="n">time_str</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">creationTime</span>
-<span class="linenos">245</span>                        <span class="p">),</span>
-<span class="linenos">246</span>                        <span class="n">time_reference</span><span class="o">=</span><span class="n">time_reference</span><span class="p">,</span>
-<span class="linenos">247</span>                    <span class="p">)</span>
-<span class="linenos">248</span>                <span class="p">)</span>
-<span class="linenos">249</span>            <span class="p">}</span>
-<span class="linenos">250</span>        <span class="p">)</span>
-<span class="linenos">251</span>
+<span class="linenos">228</span>    <span class="k">def</span><span class="w"> </span><span class="nf">_update_time_cam_data</span><span class="p">(</span>
+<span class="linenos">229</span>        <span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">CamDataV1</span><span class="p">,</span> <span class="n">time_reference</span><span class="p">:</span> <span class="n">TimeReference</span>
+<span class="linenos">230</span>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CamDataV1</span><span class="p">:</span>
+<span class="linenos">231</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Update the creation time of CAM (Cooperative Awareness Message) data from</span>
+<span class="linenos">232</span><span class="sd">        scenario time to real time.</span>
+<span class="linenos">233</span>
+<span class="linenos">234</span><span class="sd">        This method converts the scenario-relative creation time of a CAM data object to real-world time</span>
+<span class="linenos">235</span><span class="sd">        using the provided time reference, and returns a new CAM data object with the updated timestamp.</span>
+<span class="linenos">236</span>
+<span class="linenos">237</span><span class="sd">        Args:</span>
+<span class="linenos">238</span><span class="sd">            data (CamDataV1): The CAM data object containing the original scenario-relative creation time.</span>
+<span class="linenos">239</span><span class="sd">            time_reference (TimeReference): The time reference object used to convert scenario time to real time.</span>
+<span class="linenos">240</span>
+<span class="linenos">241</span><span class="sd">        Returns:</span>
+<span class="linenos">242</span><span class="sd">            CamDataV1: A new CAM data object with the creation time updated to real-world time as a string.</span>
+<span class="linenos">243</span>
+<span class="linenos">244</span><span class="sd">        Note:</span>
+<span class="linenos">245</span><span class="sd">            The method uses model_copy to create a new instance rather than modifying the original data object.</span>
+<span class="linenos">246</span><span class="sd">            The creation time is converted to a string representation in the returned object.</span>
+<span class="linenos">247</span><span class="sd">        &quot;&quot;&quot;</span>
+<span class="linenos">248</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_time</span><span class="o">.</span><span class="n">iso_format</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">creationTime</span>
+<span class="linenos">249</span>        <span class="k">return</span> <span class="n">data</span><span class="o">.</span><span class="n">model_copy</span><span class="p">(</span>
+<span class="linenos">250</span>            <span class="n">update</span><span class="o">=</span><span class="p">{</span>
+<span class="linenos">251</span>                <span class="s2">&quot;creationTime&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span>
+<span class="linenos">252</span>                    <span class="nb">object</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_scenario_time_to_real</span><span class="p">(</span>
+<span class="linenos">253</span>                        <span class="n">scenario_time</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_time</span><span class="p">,</span> <span class="n">time_reference</span><span class="o">=</span><span class="n">time_reference</span>
+<span class="linenos">254</span>                    <span class="p">)</span>
+<span class="linenos">255</span>                <span class="p">)</span>
+<span class="linenos">256</span>            <span class="p">}</span>
+<span class="linenos">257</span>        <span class="p">)</span>
+<span class="linenos">258</span>
 <div class="viewcode-block" id="Scenario.load_data">
 <a class="viewcode-back" href="../../step_publisher_pkl_rst/step_publisher_pkl.scenario.html#step_publisher_pkl.scenario.Scenario.load_data">[docs]</a>
-<span class="linenos">252</span>    <span class="k">def</span><span class="w"> </span><span class="nf">load_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_pkl_files</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># pylint: disable=too-many-locals</span>
-<span class="linenos">253</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Load vehicle trajectory data from pickle files.</span>
-<span class="linenos">254</span>
-<span class="linenos">255</span><span class="sd">        This method scans for all .pkl files in the configured data folder and loads</span>
-<span class="linenos">256</span><span class="sd">        vehicle trajectory data from each file. The data is expected to contain a</span>
-<span class="linenos">257</span><span class="sd">        ``trajectories`` dictionary with a ``vehicles`` key that maps vehicle IDs to</span>
-<span class="linenos">258</span><span class="sd">        lists of trajectory points.</span>
-<span class="linenos">259</span>
-<span class="linenos">260</span><span class="sd">        For each file, a time reference is established mapping scenario timestamps to</span>
-<span class="linenos">261</span><span class="sd">        real-world time. This allows synchronized playback of recorded trajectories</span>
-<span class="linenos">262</span><span class="sd">        by converting all position timestamps from scenario time to real time.</span>
-<span class="linenos">263</span>
-<span class="linenos">264</span><span class="sd">        Args:</span>
-<span class="linenos">265</span><span class="sd">            input_pkl_files (list[str]): List of paths to the pickle files to read and publish.</span>
+<span class="linenos">259</span>    <span class="k">def</span><span class="w"> </span><span class="nf">load_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_pkl_files</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># pylint: disable=too-many-locals</span>
+<span class="linenos">260</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Load vehicle trajectory data from pickle files.</span>
+<span class="linenos">261</span>
+<span class="linenos">262</span><span class="sd">        This method loads vehicle trajectory data from the specified pickle files.</span>
+<span class="linenos">263</span><span class="sd">        Each file is expected to contain a</span>
+<span class="linenos">264</span><span class="sd">        ``trajectories`` dictionary with a ``vehicles`` key that maps vehicle IDs to</span>
+<span class="linenos">265</span><span class="sd">        lists of trajectory points.</span>
 <span class="linenos">266</span>
-<span class="linenos">267</span><span class="sd">        Returns:</span>
-<span class="linenos">268</span><span class="sd">            None</span>
-<span class="linenos">269</span>
-<span class="linenos">270</span><span class="sd">        Note:</span>
-<span class="linenos">271</span><span class="sd">            - Vehicle IDs are converted to integers for storage</span>
-<span class="linenos">272</span><span class="sd">            - Progress information is logged for each file and vehicle loaded</span>
-<span class="linenos">273</span><span class="sd">            - Existing vehicle data will be overwritten if the same vehicle ID</span>
-<span class="linenos">274</span><span class="sd">              is found in multiple files</span>
-<span class="linenos">275</span><span class="sd">            - Timestamps are converted from scenario time to real time using the</span>
-<span class="linenos">276</span><span class="sd">              minimum start time across all vehicles in each file as the reference</span>
-<span class="linenos">277</span><span class="sd">        &quot;&quot;&quot;</span>
-<span class="linenos">278</span>        <span class="n">files_path</span> <span class="o">=</span> <span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">file</span><span class="p">)</span> <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">input_pkl_files</span><span class="p">)</span>
-<span class="linenos">279</span>        <span class="c1"># Load each pickle file and extract vehicle trajectory data</span>
-<span class="linenos">280</span>        <span class="k">for</span> <span class="n">file_path</span> <span class="ow">in</span> <span class="n">files_path</span><span class="p">:</span>
-<span class="linenos">281</span>            <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Loading data from </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">file_path</span><span class="p">)</span>
-<span class="linenos">282</span>            <span class="k">with</span> <span class="n">file_path</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
-<span class="linenos">283</span>                <span class="n">data</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="s2">&quot;dict[str, Any]&quot;</span><span class="p">,</span> <span class="n">pickle_load</span><span class="p">(</span><span class="n">file</span><span class="o">=</span><span class="n">file</span><span class="p">))</span>  <span class="c1"># noqa: S301</span>
-<span class="linenos">284</span>                <span class="n">vehicles_data</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span>
-<span class="linenos">285</span>                    <span class="s2">&quot;dict[str, list[Any]]&quot;</span><span class="p">,</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;trajectories&quot;</span><span class="p">][</span><span class="s2">&quot;vehicles&quot;</span><span class="p">]</span>
-<span class="linenos">286</span>                <span class="p">)</span>
-<span class="linenos">287</span>                <span class="c1"># Traverse all points of all vehicles creating a dictionary of deque</span>
-<span class="linenos">288</span>                <span class="n">vehicles_file</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
-<span class="linenos">289</span>                <span class="k">for</span> <span class="n">vehicle_id</span><span class="p">,</span> <span class="n">vehicle_points</span> <span class="ow">in</span> <span class="n">vehicles_data</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-<span class="linenos">290</span>                    <span class="n">vehicle_id_int</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">vehicle_id</span><span class="p">)</span>
-<span class="linenos">291</span>                    <span class="n">vehicle_deque</span> <span class="o">=</span> <span class="n">deque</span><span class="p">[</span><span class="n">CamDataV1</span><span class="p">]()</span>
-<span class="linenos">292</span>                    <span class="k">for</span> <span class="n">point</span> <span class="ow">in</span> <span class="n">vehicle_points</span><span class="p">:</span>
-<span class="linenos">293</span>                        <span class="n">vehicle_deque</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-<span class="linenos">294</span>                            <span class="bp">self</span><span class="o">.</span><span class="n">_dict_to_cam_data</span><span class="p">(</span>
-<span class="linenos">295</span>                                <span class="n">vehicle_id</span><span class="o">=</span><span class="n">vehicle_id_int</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">point</span>
-<span class="linenos">296</span>                            <span class="p">)</span>
-<span class="linenos">297</span>                        <span class="p">)</span>
-<span class="linenos">298</span>                    <span class="bp">self</span><span class="o">.</span><span class="n">_stations</span><span class="p">[</span><span class="n">vehicle_id_int</span><span class="p">]</span> <span class="o">=</span> <span class="n">vehicle_deque</span>
-<span class="linenos">299</span>                    <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-<span class="linenos">300</span>                        <span class="s2">&quot;Vehicle </span><span class="si">%s</span><span class="s2">: range </span><span class="si">%s</span><span class="s2"> - </span><span class="si">%s</span><span class="s2"> with </span><span class="si">%s</span><span class="s2"> points loaded&quot;</span><span class="p">,</span>
-<span class="linenos">301</span>                        <span class="n">vehicle_id_int</span><span class="p">,</span>
-<span class="linenos">302</span>                        <span class="n">vehicle_deque</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">creationTime</span><span class="p">,</span>
-<span class="linenos">303</span>                        <span class="n">vehicle_deque</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">creationTime</span><span class="p">,</span>
-<span class="linenos">304</span>                        <span class="nb">len</span><span class="p">(</span><span class="n">vehicle_deque</span><span class="p">),</span>
-<span class="linenos">305</span>                    <span class="p">)</span>
-<span class="linenos">306</span>                    <span class="n">vehicles_file</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">vehicle_id_int</span><span class="p">)</span>
-<span class="linenos">307</span>                <span class="c1"># Determine the minimum start time across all vehicles in the file</span>
-<span class="linenos">308</span>                <span class="n">vehicle_min_start_time</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span>
-<span class="linenos">309</span>                    <span class="n">vehicles_file</span><span class="p">,</span>
-<span class="linenos">310</span>                    <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">vehicle</span><span class="p">:</span> <span class="n">ItsTime</span><span class="o">.</span><span class="n">create_from_iso_time</span><span class="p">(</span>
-<span class="linenos">311</span>                        <span class="n">time_str</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_stations</span><span class="p">[</span><span class="n">vehicle</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">creationTime</span>
-<span class="linenos">312</span>                    <span class="p">),</span>
-<span class="linenos">313</span>                <span class="p">)</span>
-<span class="linenos">314</span>                <span class="n">time_reference</span> <span class="o">=</span> <span class="n">TimeReference</span><span class="p">(</span>
-<span class="linenos">315</span>                    <span class="n">start_scenario_time</span><span class="o">=</span><span class="n">ItsTime</span><span class="o">.</span><span class="n">create_from_iso_time</span><span class="p">(</span>
-<span class="linenos">316</span>                        <span class="n">time_str</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_stations</span><span class="p">[</span><span class="n">vehicle_min_start_time</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">creationTime</span>
-<span class="linenos">317</span>                    <span class="p">),</span>
-<span class="linenos">318</span>                    <span class="n">start_real_time</span><span class="o">=</span><span class="n">ItsTime</span><span class="p">(),</span>
-<span class="linenos">319</span>                <span class="p">)</span>
-<span class="linenos">320</span>                <span class="k">for</span> <span class="n">vehicle_id_int</span> <span class="ow">in</span> <span class="n">vehicles_file</span><span class="p">:</span>
-<span class="linenos">321</span>                    <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_stations</span><span class="p">[</span><span class="n">vehicle_id_int</span><span class="p">])):</span>
-<span class="linenos">322</span>                        <span class="bp">self</span><span class="o">.</span><span class="n">_stations</span><span class="p">[</span><span class="n">vehicle_id_int</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-<span class="linenos">323</span>                            <span class="bp">self</span><span class="o">.</span><span class="n">_update_time_cam_data</span><span class="p">(</span>
-<span class="linenos">324</span>                                <span class="n">data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_stations</span><span class="p">[</span><span class="n">vehicle_id_int</span><span class="p">][</span><span class="n">idx</span><span class="p">],</span>
-<span class="linenos">325</span>                                <span class="n">time_reference</span><span class="o">=</span><span class="n">time_reference</span><span class="p">,</span>
-<span class="linenos">326</span>                            <span class="p">)</span>
-<span class="linenos">327</span>                        <span class="p">)</span>
-<span class="linenos">328</span>                <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-<span class="linenos">329</span>                    <span class="s2">&quot;File </span><span class="si">%s</span><span class="s2"> complete. Time reference: </span><span class="si">%s</span><span class="s2">.&quot;</span><span class="p">,</span> <span class="n">file_path</span><span class="p">,</span> <span class="n">time_reference</span>
-<span class="linenos">330</span>                <span class="p">)</span></div>
-
-<span class="linenos">331</span>
-<div class="viewcode-block" id="Scenario.get_vehicle_ids">
-<a class="viewcode-back" href="../../step_publisher_pkl_rst/step_publisher_pkl.scenario.html#step_publisher_pkl.scenario.Scenario.get_vehicle_ids">[docs]</a>
-<span class="linenos">332</span>    <span class="k">def</span><span class="w"> </span><span class="nf">get_vehicle_ids</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Generator</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
-<span class="linenos">333</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Generator that yields vehicle IDs.</span>
-<span class="linenos">334</span>
-<span class="linenos">335</span><span class="sd">        Yields:</span>
-<span class="linenos">336</span><span class="sd">            int: Vehicle ID from the internal vehicles collection.</span>
-<span class="linenos">337</span>
-<span class="linenos">338</span><span class="sd">        Returns:</span>
-<span class="linenos">339</span><span class="sd">            Generator[int]: A generator that produces vehicle IDs one at a time.</span>
-<span class="linenos">340</span><span class="sd">        &quot;&quot;&quot;</span>
-<span class="linenos">341</span>        <span class="k">yield from</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stations</span></div>
+<span class="linenos">267</span><span class="sd">        For each file, a time reference is established mapping scenario timestamps to</span>
+<span class="linenos">268</span><span class="sd">        real-world time. This allows synchronized playback of recorded trajectories</span>
+<span class="linenos">269</span><span class="sd">        by converting all position timestamps from scenario time to real time.</span>
+<span class="linenos">270</span>
+<span class="linenos">271</span><span class="sd">        Args:</span>
+<span class="linenos">272</span><span class="sd">            input_pkl_files (list[str]): List of paths to the pickle files to read and publish.</span>
+<span class="linenos">273</span>
+<span class="linenos">274</span><span class="sd">        Returns:</span>
+<span class="linenos">275</span><span class="sd">            None</span>
+<span class="linenos">276</span>
+<span class="linenos">277</span><span class="sd">        Note:</span>
+<span class="linenos">278</span><span class="sd">            - Vehicle IDs are converted to integers for storage</span>
+<span class="linenos">279</span><span class="sd">            - Progress information is logged for each file and vehicle loaded</span>
+<span class="linenos">280</span><span class="sd">            - Existing vehicle data will be overwritten if the same vehicle ID</span>
+<span class="linenos">281</span><span class="sd">              is found in multiple files</span>
+<span class="linenos">282</span><span class="sd">            - Timestamps are converted from scenario time to real time using the</span>
+<span class="linenos">283</span><span class="sd">              minimum start time across all vehicles in each file as the reference</span>
+<span class="linenos">284</span><span class="sd">        &quot;&quot;&quot;</span>
+<span class="linenos">285</span>        <span class="n">files_path</span> <span class="o">=</span> <span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">file</span><span class="p">)</span> <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">input_pkl_files</span><span class="p">)</span>
+<span class="linenos">286</span>        <span class="c1"># Load each pickle file and extract vehicle trajectory data</span>
+<span class="linenos">287</span>        <span class="k">for</span> <span class="n">file_path</span> <span class="ow">in</span> <span class="n">files_path</span><span class="p">:</span>
+<span class="linenos">288</span>            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">):</span>
+<span class="linenos">289</span>                <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Loading data from </span><span class="si">{</span><span class="n">file_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="linenos">290</span>            <span class="k">with</span> <span class="n">file_path</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
+<span class="linenos">291</span>                <span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="n">pickle_load</span><span class="p">(</span><span class="n">file</span><span class="o">=</span><span class="n">file</span><span class="p">)</span>  <span class="c1"># noqa: S301</span>
+<span class="linenos">292</span>                <span class="n">vehicles_data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;trajectories&quot;</span><span class="p">][</span>
+<span class="linenos">293</span>                    <span class="s2">&quot;vehicles&quot;</span>
+<span class="linenos">294</span>                <span class="p">]</span>
+<span class="linenos">295</span>                <span class="c1"># Traverse all points of all vehicles creating a dictionary of deque</span>
+<span class="linenos">296</span>                <span class="n">vehicles_file</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="linenos">297</span>                <span class="k">for</span> <span class="n">vehicle_id</span><span class="p">,</span> <span class="n">vehicle_points</span> <span class="ow">in</span> <span class="n">vehicles_data</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+<span class="linenos">298</span>                    <span class="n">vehicle_id_int</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">vehicle_id</span><span class="p">)</span>
+<span class="linenos">299</span>                    <span class="n">vehicle_deque</span> <span class="o">=</span> <span class="n">deque</span><span class="p">[</span><span class="n">CamDataV1</span><span class="p">]()</span>
+<span class="linenos">300</span>                    <span class="k">for</span> <span class="n">point</span> <span class="ow">in</span> <span class="n">vehicle_points</span><span class="p">:</span>
+<span class="linenos">301</span>                        <span class="n">vehicle_deque</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+<span class="linenos">302</span>                            <span class="bp">self</span><span class="o">.</span><span class="n">_dict_to_cam_data</span><span class="p">(</span>
+<span class="linenos">303</span>                                <span class="n">vehicle_id</span><span class="o">=</span><span class="n">vehicle_id_int</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">point</span>
+<span class="linenos">304</span>                            <span class="p">)</span>
+<span class="linenos">305</span>                        <span class="p">)</span>
+<span class="linenos">306</span>                    <span class="bp">self</span><span class="o">.</span><span class="n">_stations</span><span class="p">[</span><span class="n">vehicle_id_int</span><span class="p">]</span> <span class="o">=</span> <span class="n">vehicle_deque</span>
+<span class="linenos">307</span>                    <span class="k">if</span> <span class="n">vehicle_deque</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">):</span>
+<span class="linenos">308</span>                        <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+<span class="linenos">309</span>                            <span class="n">msg</span><span class="o">=</span><span class="p">(</span>
+<span class="linenos">310</span>                                <span class="sa">f</span><span class="s2">&quot;Vehicle </span><span class="si">{</span><span class="n">vehicle_id_int</span><span class="si">}</span><span class="s2">: range </span><span class="si">{</span><span class="n">vehicle_deque</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">creationTime</span><span class="si">}</span><span class="s2"> - &quot;</span>
+<span class="linenos">311</span>                                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">vehicle_deque</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">creationTime</span><span class="si">}</span><span class="s2"> with </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">vehicle_deque</span><span class="p">)</span><span class="si">}</span><span class="s2"> points loaded&quot;</span>
+<span class="linenos">312</span>                            <span class="p">)</span>
+<span class="linenos">313</span>                        <span class="p">)</span>
+<span class="linenos">314</span>                    <span class="n">vehicles_file</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">vehicle_id_int</span><span class="p">)</span>
+<span class="linenos">315</span>                <span class="k">if</span> <span class="n">vehicles_file</span><span class="p">:</span>
+<span class="linenos">316</span>                    <span class="c1"># Determine the minimum start time across all vehicles in the file</span>
+<span class="linenos">317</span>                    <span class="n">vehicle_min_start_time</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span>
+<span class="linenos">318</span>                        <span class="n">vehicles_file</span><span class="p">,</span>
+<span class="linenos">319</span>                        <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">vehicle</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_epoch_ms</span><span class="p">(</span>
+<span class="linenos">320</span>                            <span class="n">time_str</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_stations</span><span class="p">[</span><span class="n">vehicle</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">creationTime</span>
+<span class="linenos">321</span>                        <span class="p">),</span>
+<span class="linenos">322</span>                    <span class="p">)</span>
+<span class="linenos">323</span>                    <span class="n">time_reference</span> <span class="o">=</span> <span class="n">TimeReference</span><span class="p">(</span>
+<span class="linenos">324</span>                        <span class="n">start_scenario_time</span><span class="o">=</span><span class="n">ItsTime</span><span class="o">.</span><span class="n">create_from_iso_time</span><span class="p">(</span>
+<span class="linenos">325</span>                            <span class="n">time_str</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_stations</span><span class="p">[</span><span class="n">vehicle_min_start_time</span><span class="p">][</span>
+<span class="linenos">326</span>                                <span class="mi">0</span>
+<span class="linenos">327</span>                            <span class="p">]</span><span class="o">.</span><span class="n">creationTime</span>
+<span class="linenos">328</span>                        <span class="p">),</span>
+<span class="linenos">329</span>                        <span class="n">start_real_time</span><span class="o">=</span><span class="n">ItsTime</span><span class="p">(),</span>
+<span class="linenos">330</span>                    <span class="p">)</span>
+<span class="linenos">331</span>                    <span class="k">for</span> <span class="n">vehicle_id_int</span> <span class="ow">in</span> <span class="n">vehicles_file</span><span class="p">:</span>
+<span class="linenos">332</span>                        <span class="bp">self</span><span class="o">.</span><span class="n">_stations</span><span class="p">[</span><span class="n">vehicle_id_int</span><span class="p">]</span> <span class="o">=</span> <span class="n">deque</span><span class="p">(</span>
+<span class="linenos">333</span>                            <span class="bp">self</span><span class="o">.</span><span class="n">_update_time_cam_data</span><span class="p">(</span>
+<span class="linenos">334</span>                                <span class="n">data</span><span class="o">=</span><span class="n">item</span><span class="p">,</span> <span class="n">time_reference</span><span class="o">=</span><span class="n">time_reference</span>
+<span class="linenos">335</span>                            <span class="p">)</span>
+<span class="linenos">336</span>                            <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stations</span><span class="p">[</span><span class="n">vehicle_id_int</span><span class="p">]</span>
+<span class="linenos">337</span>                        <span class="p">)</span>
+<span class="linenos">338</span>                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">):</span>
+<span class="linenos">339</span>                        <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+<span class="linenos">340</span>                            <span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;File </span><span class="si">{</span><span class="n">file_path</span><span class="si">}</span><span class="s2"> complete. Time reference: </span><span class="si">{</span><span class="n">time_reference</span><span class="si">}</span><span class="s2">.&quot;</span>
+<span class="linenos">341</span>                        <span class="p">)</span></div>
 
 <span class="linenos">342</span>
-<span class="linenos">343</span>    <span class="k">def</span><span class="w"> </span><span class="nf">_pop_vehicle_position</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vehicle_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StationPositionResult</span><span class="p">:</span>
-<span class="linenos">344</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Retrieve and remove the next vehicle position from the station queue.</span>
+<div class="viewcode-block" id="Scenario.get_vehicle_ids">
+<a class="viewcode-back" href="../../step_publisher_pkl_rst/step_publisher_pkl.scenario.html#step_publisher_pkl.scenario.Scenario.get_vehicle_ids">[docs]</a>
+<span class="linenos">343</span>    <span class="k">def</span><span class="w"> </span><span class="nf">get_vehicle_ids</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Generator</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+<span class="linenos">344</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Generator that yields vehicle IDs.</span>
 <span class="linenos">345</span>
-<span class="linenos">346</span><span class="sd">        This method pops the next position for a given vehicle from its station queue,</span>
-<span class="linenos">347</span><span class="sd">        ensuring the position&#39;s timestamp is not in the future. If the timestamp is in</span>
-<span class="linenos">348</span><span class="sd">        the future, it returns None for the position and schedules the next attempt.</span>
-<span class="linenos">349</span>
-<span class="linenos">350</span><span class="sd">        Args:</span>
-<span class="linenos">351</span><span class="sd">            vehicle_id (int): The unique identifier of the vehicle whose position</span>
-<span class="linenos">352</span><span class="sd">                is to be retrieved.</span>
+<span class="linenos">346</span><span class="sd">        Yields:</span>
+<span class="linenos">347</span><span class="sd">            int: Vehicle ID from the internal vehicles collection.</span>
+<span class="linenos">348</span>
+<span class="linenos">349</span><span class="sd">        Returns:</span>
+<span class="linenos">350</span><span class="sd">            Generator[int]: A generator that produces vehicle IDs one at a time.</span>
+<span class="linenos">351</span><span class="sd">        &quot;&quot;&quot;</span>
+<span class="linenos">352</span>        <span class="k">yield from</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stations</span></div>
+
 <span class="linenos">353</span>
-<span class="linenos">354</span><span class="sd">        Returns:</span>
-<span class="linenos">355</span><span class="sd">            StationPositionResult: A result object containing:</span>
+<span class="linenos">354</span>    <span class="k">def</span><span class="w"> </span><span class="nf">_pop_vehicle_position</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vehicle_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StationPositionResult</span><span class="p">:</span>
+<span class="linenos">355</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Retrieve and remove the next vehicle position from the station queue.</span>
 <span class="linenos">356</span>
-<span class="linenos">357</span><span class="sd">                - position: The current vehicle position data, or None if the timestamp</span>
-<span class="linenos">358</span><span class="sd">                  is in the future or no positions are available.</span>
-<span class="linenos">359</span><span class="sd">                - next_position_time: The timestamp of the next position in the queue,</span>
-<span class="linenos">360</span><span class="sd">                  or None if the queue is empty.</span>
-<span class="linenos">361</span>
-<span class="linenos">362</span><span class="sd">        Raises:</span>
-<span class="linenos">363</span><span class="sd">            KeyError: If the vehicle_id does not exist in the _stations dictionary.</span>
-<span class="linenos">364</span><span class="sd">            IndexError: If the station_positions deque is empty.</span>
-<span class="linenos">365</span>
-<span class="linenos">366</span><span class="sd">        Note:</span>
-<span class="linenos">367</span><span class="sd">            - Issues a warning if the vehicle&#39;s timestamp is in the future.</span>
-<span class="linenos">368</span><span class="sd">            - Logs debug information when a new message is created.</span>
-<span class="linenos">369</span><span class="sd">            - Modifies the internal state by removing the processed position from the queue.</span>
-<span class="linenos">370</span><span class="sd">        &quot;&quot;&quot;</span>
-<span class="linenos">371</span>        <span class="n">station_positions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stations</span><span class="p">[</span><span class="n">vehicle_id</span><span class="p">]</span>
-<span class="linenos">372</span>        <span class="n">current_vehicle_time</span> <span class="o">=</span> <span class="n">ItsTime</span><span class="o">.</span><span class="n">create_from_iso_time</span><span class="p">(</span>
-<span class="linenos">373</span>            <span class="n">time_str</span><span class="o">=</span><span class="n">station_positions</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">creationTime</span>
-<span class="linenos">374</span>        <span class="p">)</span>
-<span class="linenos">375</span>        <span class="n">now</span> <span class="o">=</span> <span class="n">ItsTime</span><span class="p">()</span>
-<span class="linenos">376</span>        <span class="k">if</span> <span class="n">current_vehicle_time</span> <span class="o">&gt;</span> <span class="n">now</span><span class="p">:</span>
-<span class="linenos">377</span>            <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-<span class="linenos">378</span>                <span class="s2">&quot;Station id </span><span class="si">%s</span><span class="s2">: current vehicle time </span><span class="si">%s</span><span class="s2"> is in the future compared to now </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
-<span class="linenos">379</span>                <span class="n">vehicle_id</span><span class="p">,</span>
-<span class="linenos">380</span>                <span class="n">current_vehicle_time</span><span class="p">,</span>
-<span class="linenos">381</span>                <span class="n">now</span><span class="p">,</span>
-<span class="linenos">382</span>            <span class="p">)</span>
-<span class="linenos">383</span>            <span class="k">return</span> <span class="n">StationPositionResult</span><span class="p">(</span>
-<span class="linenos">384</span>                <span class="n">position</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">next_position_time</span><span class="o">=</span><span class="n">current_vehicle_time</span>
-<span class="linenos">385</span>            <span class="p">)</span>
-<span class="linenos">386</span>        <span class="n">current_vehicle_point</span> <span class="o">=</span> <span class="n">station_positions</span><span class="o">.</span><span class="n">popleft</span><span class="p">()</span>
-<span class="linenos">387</span>        <span class="n">next_vehicle_point</span> <span class="o">=</span> <span class="n">station_positions</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">station_positions</span> <span class="k">else</span> <span class="kc">None</span>
-<span class="linenos">388</span>        <span class="n">next_vehicle_time</span> <span class="o">=</span> <span class="p">(</span>
-<span class="linenos">389</span>            <span class="n">ItsTime</span><span class="o">.</span><span class="n">create_from_iso_time</span><span class="p">(</span><span class="n">time_str</span><span class="o">=</span><span class="n">next_vehicle_point</span><span class="o">.</span><span class="n">creationTime</span><span class="p">)</span>
-<span class="linenos">390</span>            <span class="k">if</span> <span class="n">next_vehicle_point</span>
-<span class="linenos">391</span>            <span class="k">else</span> <span class="kc">None</span>
-<span class="linenos">392</span>        <span class="p">)</span>
-<span class="linenos">393</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
-<span class="linenos">394</span>            <span class="s2">&quot;Station id </span><span class="si">%s</span><span class="s2">: created new message time </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
-<span class="linenos">395</span>            <span class="n">vehicle_id</span><span class="p">,</span>
-<span class="linenos">396</span>            <span class="n">current_vehicle_time</span><span class="p">,</span>
-<span class="linenos">397</span>        <span class="p">)</span>
-<span class="linenos">398</span>        <span class="k">return</span> <span class="n">StationPositionResult</span><span class="p">(</span>
-<span class="linenos">399</span>            <span class="n">position</span><span class="o">=</span><span class="n">current_vehicle_point</span><span class="p">,</span> <span class="n">next_position_time</span><span class="o">=</span><span class="n">next_vehicle_time</span>
-<span class="linenos">400</span>        <span class="p">)</span>
-<span class="linenos">401</span>
+<span class="linenos">357</span><span class="sd">        This method pops the next position for a given vehicle from its station queue,</span>
+<span class="linenos">358</span><span class="sd">        ensuring the position&#39;s timestamp is not in the future. If the timestamp is in</span>
+<span class="linenos">359</span><span class="sd">        the future, it returns None for the position and schedules the next attempt.</span>
+<span class="linenos">360</span>
+<span class="linenos">361</span><span class="sd">        Args:</span>
+<span class="linenos">362</span><span class="sd">            vehicle_id (int): The unique identifier of the vehicle whose position</span>
+<span class="linenos">363</span><span class="sd">                is to be retrieved.</span>
+<span class="linenos">364</span>
+<span class="linenos">365</span><span class="sd">        Returns:</span>
+<span class="linenos">366</span><span class="sd">            StationPositionResult: A result object containing:</span>
+<span class="linenos">367</span>
+<span class="linenos">368</span><span class="sd">                - position: The current vehicle position data, or None if the timestamp</span>
+<span class="linenos">369</span><span class="sd">                  is in the future or no positions are available.</span>
+<span class="linenos">370</span><span class="sd">                - next_position_time: The timestamp of the next position in the queue,</span>
+<span class="linenos">371</span><span class="sd">                  or None if the queue is empty.</span>
+<span class="linenos">372</span>
+<span class="linenos">373</span><span class="sd">        Raises:</span>
+<span class="linenos">374</span><span class="sd">            KeyError: If the vehicle_id does not exist in the _stations dictionary.</span>
+<span class="linenos">375</span><span class="sd">            IndexError: If the station_positions deque is empty.</span>
+<span class="linenos">376</span>
+<span class="linenos">377</span><span class="sd">        Note:</span>
+<span class="linenos">378</span><span class="sd">            - Issues a warning if the vehicle&#39;s timestamp is in the future.</span>
+<span class="linenos">379</span><span class="sd">            - Logs debug information when a new message is created.</span>
+<span class="linenos">380</span><span class="sd">            - Modifies the internal state by removing the processed position from the queue.</span>
+<span class="linenos">381</span><span class="sd">        &quot;&quot;&quot;</span>
+<span class="linenos">382</span>        <span class="n">station_positions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stations</span><span class="p">[</span><span class="n">vehicle_id</span><span class="p">]</span>
+<span class="linenos">383</span>        <span class="n">current_vehicle_time</span> <span class="o">=</span> <span class="n">ItsTime</span><span class="o">.</span><span class="n">create_from_iso_time</span><span class="p">(</span>
+<span class="linenos">384</span>            <span class="n">time_str</span><span class="o">=</span><span class="n">station_positions</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">creationTime</span>
+<span class="linenos">385</span>        <span class="p">)</span>
+<span class="linenos">386</span>        <span class="n">now</span> <span class="o">=</span> <span class="n">ItsTime</span><span class="p">()</span>
+<span class="linenos">387</span>        <span class="k">if</span> <span class="n">current_vehicle_time</span> <span class="o">&gt;</span> <span class="n">now</span><span class="p">:</span>
+<span class="linenos">388</span>            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">WARNING</span><span class="p">):</span>
+<span class="linenos">389</span>                <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+<span class="linenos">390</span>                    <span class="n">msg</span><span class="o">=</span><span class="p">(</span>
+<span class="linenos">391</span>                        <span class="sa">f</span><span class="s2">&quot;Station id </span><span class="si">{</span><span class="n">vehicle_id</span><span class="si">}</span><span class="s2">: current vehicle time </span><span class="si">{</span><span class="n">current_vehicle_time</span><span class="si">}</span><span class="s2"> &quot;</span>
+<span class="linenos">392</span>                        <span class="sa">f</span><span class="s2">&quot;is in the future compared to now </span><span class="si">{</span><span class="n">now</span><span class="si">}</span><span class="s2">&quot;</span>
+<span class="linenos">393</span>                    <span class="p">)</span>
+<span class="linenos">394</span>                <span class="p">)</span>
+<span class="linenos">395</span>            <span class="k">return</span> <span class="n">StationPositionResult</span><span class="p">(</span>
+<span class="linenos">396</span>                <span class="n">position</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">next_position_time</span><span class="o">=</span><span class="n">current_vehicle_time</span>
+<span class="linenos">397</span>            <span class="p">)</span>
+<span class="linenos">398</span>        <span class="n">current_vehicle_point</span> <span class="o">=</span> <span class="n">station_positions</span><span class="o">.</span><span class="n">popleft</span><span class="p">()</span>
+<span class="linenos">399</span>        <span class="n">next_vehicle_point</span> <span class="o">=</span> <span class="n">station_positions</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">station_positions</span> <span class="k">else</span> <span class="kc">None</span>
+<span class="linenos">400</span>        <span class="n">next_vehicle_time</span> <span class="o">=</span> <span class="p">(</span>
+<span class="linenos">401</span>            <span class="n">ItsTime</span><span class="o">.</span><span class="n">create_from_iso_time</span><span class="p">(</span><span class="n">time_str</span><span class="o">=</span><span class="n">next_vehicle_point</span><span class="o">.</span><span class="n">creationTime</span><span class="p">)</span>
+<span class="linenos">402</span>            <span class="k">if</span> <span class="n">next_vehicle_point</span>
+<span class="linenos">403</span>            <span class="k">else</span> <span class="kc">None</span>
+<span class="linenos">404</span>        <span class="p">)</span>
+<span class="linenos">405</span>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">):</span>
+<span class="linenos">406</span>            <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+<span class="linenos">407</span>                <span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Station id </span><span class="si">{</span><span class="n">vehicle_id</span><span class="si">}</span><span class="s2">: created new message time </span><span class="si">{</span><span class="n">current_vehicle_time</span><span class="si">}</span><span class="s2">&quot;</span>
+<span class="linenos">408</span>            <span class="p">)</span>
+<span class="linenos">409</span>        <span class="k">return</span> <span class="n">StationPositionResult</span><span class="p">(</span>
+<span class="linenos">410</span>            <span class="n">position</span><span class="o">=</span><span class="n">current_vehicle_point</span><span class="p">,</span> <span class="n">next_position_time</span><span class="o">=</span><span class="n">next_vehicle_time</span>
+<span class="linenos">411</span>        <span class="p">)</span>
+<span class="linenos">412</span>
 <div class="viewcode-block" id="Scenario.pop_position_arrays">
 <a class="viewcode-back" href="../../step_publisher_pkl_rst/step_publisher_pkl.scenario.html#step_publisher_pkl.scenario.Scenario.pop_position_arrays">[docs]</a>
-<span class="linenos">402</span>    <span class="k">def</span><span class="w"> </span><span class="nf">pop_position_arrays</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vehicle_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Generator</span><span class="p">[</span><span class="n">StationPositionResult</span><span class="p">]:</span>
-<span class="linenos">403</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Pop and yield vehicle position results for a specific vehicle.</span>
-<span class="linenos">404</span>
-<span class="linenos">405</span><span class="sd">        Iteratively removes vehicle points from the internal collection for the specified</span>
-<span class="linenos">406</span><span class="sd">        vehicle and converts them to VehiclePositionResult objects. Each result includes</span>
-<span class="linenos">407</span><span class="sd">        the current position and the next position (if available) for trajectory calculations.</span>
-<span class="linenos">408</span>
-<span class="linenos">409</span><span class="sd">        Args:</span>
-<span class="linenos">410</span><span class="sd">            vehicle_id (int): The unique identifier of the vehicle whose positions to pop.</span>
-<span class="linenos">411</span>
-<span class="linenos">412</span><span class="sd">        Yields:</span>
-<span class="linenos">413</span><span class="sd">            VehiclePositionResult: Vehicle position data including current and next points.</span>
-<span class="linenos">414</span>
-<span class="linenos">415</span><span class="sd">        Note:</span>
-<span class="linenos">416</span><span class="sd">            This method modifies the internal vehicle points collection by removing elements.</span>
-<span class="linenos">417</span><span class="sd">            Once all points are popped, subsequent calls will yield nothing until new</span>
-<span class="linenos">418</span><span class="sd">            points are added for the vehicle.</span>
-<span class="linenos">419</span><span class="sd">        &quot;&quot;&quot;</span>
-<span class="linenos">420</span>        <span class="n">vehicle_points</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stations</span><span class="p">[</span><span class="n">vehicle_id</span><span class="p">]</span>
-<span class="linenos">421</span>        <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">vehicle_points</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-<span class="linenos">422</span>            <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pop_vehicle_position</span><span class="p">(</span><span class="n">vehicle_id</span><span class="o">=</span><span class="n">vehicle_id</span><span class="p">)</span></div>
+<span class="linenos">413</span>    <span class="k">def</span><span class="w"> </span><span class="nf">pop_position_arrays</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vehicle_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Generator</span><span class="p">[</span><span class="n">StationPositionResult</span><span class="p">]:</span>
+<span class="linenos">414</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Pop and yield vehicle position results for a specific vehicle.</span>
+<span class="linenos">415</span>
+<span class="linenos">416</span><span class="sd">        Iteratively removes vehicle points from the internal collection for the specified</span>
+<span class="linenos">417</span><span class="sd">        vehicle and converts them to StationPositionResult objects. Each result includes</span>
+<span class="linenos">418</span><span class="sd">        the current position and the next position (if available) for trajectory calculations.</span>
+<span class="linenos">419</span>
+<span class="linenos">420</span><span class="sd">        Args:</span>
+<span class="linenos">421</span><span class="sd">            vehicle_id (int): The unique identifier of the vehicle whose positions to pop.</span>
+<span class="linenos">422</span>
+<span class="linenos">423</span><span class="sd">        Yields:</span>
+<span class="linenos">424</span><span class="sd">            StationPositionResult: Vehicle position data including current and next points.</span>
+<span class="linenos">425</span>
+<span class="linenos">426</span><span class="sd">        Note:</span>
+<span class="linenos">427</span><span class="sd">            This method modifies the internal vehicle points collection by removing elements.</span>
+<span class="linenos">428</span><span class="sd">            Once all points are popped, subsequent calls will yield nothing until new</span>
+<span class="linenos">429</span><span class="sd">            points are added for the vehicle.</span>
+<span class="linenos">430</span><span class="sd">        &quot;&quot;&quot;</span>
+<span class="linenos">431</span>        <span class="n">vehicle_points</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stations</span><span class="p">[</span><span class="n">vehicle_id</span><span class="p">]</span>
+<span class="linenos">432</span>        <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">vehicle_points</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+<span class="linenos">433</span>            <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pop_vehicle_position</span><span class="p">(</span><span class="n">vehicle_id</span><span class="o">=</span><span class="n">vehicle_id</span><span class="p">)</span></div>
 </div>
 
 </pre></div>
