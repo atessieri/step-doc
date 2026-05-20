@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>step_lib.async_com_manager module &mdash; STEP Library 1.5.25 documentation</title>
+  <title>step_lib.async_com_manager module &mdash; STEP Library 1.5.26 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/tabs.css?v=4c969af8" />
@@ -16,7 +16,7 @@
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=9bf954b0"></script>
+      <script src="../_static/documentation_options.js?v=ac01deda"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/tabs.js?v=3ee01567"></script>
@@ -535,7 +535,6 @@
 <li class="toctree-l5"><a class="reference internal" href="#step_lib.async_com_manager.AsyncComManagerParams.bind_address"><code class="docutils literal notranslate"><span class="pre">AsyncComManagerParams.bind_address</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#step_lib.async_com_manager.AsyncComManagerParams.bind_port"><code class="docutils literal notranslate"><span class="pre">AsyncComManagerParams.bind_port</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#step_lib.async_com_manager.AsyncComManagerParams.clean_start"><code class="docutils literal notranslate"><span class="pre">AsyncComManagerParams.clean_start</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="#step_lib.async_com_manager.AsyncComManagerParams.no_local"><code class="docutils literal notranslate"><span class="pre">AsyncComManagerParams.no_local</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#step_lib.async_com_manager.AsyncComManagerParams.queue_type"><code class="docutils literal notranslate"><span class="pre">AsyncComManagerParams.queue_type</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#step_lib.async_com_manager.AsyncComManagerParams.max_queued_incoming_messages"><code class="docutils literal notranslate"><span class="pre">AsyncComManagerParams.max_queued_incoming_messages</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#step_lib.async_com_manager.AsyncComManagerParams.max_queued_outgoing_messages"><code class="docutils literal notranslate"><span class="pre">AsyncComManagerParams.max_queued_outgoing_messages</span></code></a></li>
@@ -591,6 +590,7 @@
 <li class="toctree-l4"><a class="reference internal" href="step_lib.exception.html#step_lib.exception.StepCliError"><code class="docutils literal notranslate"><span class="pre">StepCliError</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="step_lib.exception.html#step_lib.exception.StepLibEchoMessageError"><code class="docutils literal notranslate"><span class="pre">StepLibEchoMessageError</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="step_lib.exception.html#step_lib.exception.StepLibError"><code class="docutils literal notranslate"><span class="pre">StepLibError</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="step_lib.exception.html#step_lib.exception.StepLibFormatMessageError"><code class="docutils literal notranslate"><span class="pre">StepLibFormatMessageError</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="step_lib.exception.html#step_lib.exception.StepLibUnsupportedMessageError"><code class="docutils literal notranslate"><span class="pre">StepLibUnsupportedMessageError</span></code></a></li>
 </ul>
 </li>
@@ -923,12 +923,12 @@ broker support.</p>
 <dl class="py property">
 <dt class="sig sig-object py" id="step_lib.async_com_manager.AsyncComManager.its_messages">
 <span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">its_messages</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#step_lib.async_com_manager.ItsMessagesIterator" title="step_lib.async_com_manager.ItsMessagesIterator"><span class="pre">ItsMessagesIterator</span></a></span><a class="headerlink" href="#step_lib.async_com_manager.AsyncComManager.its_messages" title="Link to this definition"></a></dt>
-<dd><p>Returns an iterator over serialized messages.</p>
-<p>The iterator provides a way to access messages that can be serialized
-according to the configured message serializer.</p>
+<dd><p>Returns an iterator over deserialized ITS messages.</p>
+<p>The iterator wraps the underlying MQTT message stream and deserializes
+each raw message payload into an ITS facility-layer object.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>An iterator that yields serialized messages.</p>
+<dd class="field-odd"><p>An iterator that yields deserialized ITS messages.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><a class="reference internal" href="#step_lib.async_com_manager.ItsMessagesIterator" title="step_lib.async_com_manager.ItsMessagesIterator">ItsMessagesIterator</a></p>
@@ -1088,19 +1088,6 @@ messages. If None it isn’t used. Defaults to None.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>CleanStartOption</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="step_lib.async_com_manager.AsyncComManagerParams.no_local">
-<span class="sig-name descname"><span class="pre">no_local</span></span><a class="headerlink" href="#step_lib.async_com_manager.AsyncComManagerParams.no_local" title="Link to this definition"></a></dt>
-<dd><p>If the value is 1, Application Messages must not be forwarded to a
-connection with a ClientID equal to the ClientID of the publishing connection.
-Defaults to True.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>bool</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1477,7 +1464,7 @@ continues functioning even if individual messages cannot be properly deserialize
 <dt class="sig sig-object py" id="step_lib.async_com_manager.MqttQoS">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">step_lib.async_com_manager.</span></span><span class="sig-name descname"><span class="pre">MqttQoS</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/step_lib/async_com_manager.html#MqttQoS"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#step_lib.async_com_manager.MqttQoS" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">IntEnum</span></code></p>
-<p>MqttQoS: Enumeration class for MQTT Quality of Service levels.</p>
+<p>Enumeration for MQTT Quality of Service levels.</p>
 <p>The MQTT protocol provides three QoS levels for message delivery:</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="step_lib.async_com_manager.MqttQoS.QOS_0">
@@ -1554,13 +1541,14 @@ be published (e.g. CAM, DENM)</p>
 
 <div class="admonition-example admonition">
 <p class="admonition-title">Example</p>
-<dl class="simple">
-<dt>params = PublishTopicParams(</dt><dd><p>message_type=StepMessageType.CAM,
-header_topic=”v2x/cam/vehicle_1”,
-geohash_precision=8,
-qos=MqttQoS.QOS_1</p>
-</dd>
-</dl>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">params</span> <span class="o">=</span> <span class="n">PublishTopicParams</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">message_type</span><span class="o">=</span><span class="n">StepMessageType</span><span class="o">.</span><span class="n">CAM</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">header_topic</span><span class="o">=</span><span class="s2">&quot;v2x/cam/vehicle_1&quot;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">geohash_precision</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">qos</span><span class="o">=</span><span class="n">MqttQoS</span><span class="o">.</span><span class="n">QOS_1</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">)</span>
+</pre></div>
+</div>
 </div>
 </dd></dl>
 
