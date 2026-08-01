@@ -1,6 +1,10 @@
 STEP Redis: Overview
 ====================
 
+.. raw:: html
+
+   <a class="back-to-portal" href="../../index.html">Back to STEP Documentation</a>
+
 .. |DEV_STAT| image:: https://img.shields.io/badge/status-beta-yellow.svg
    :target: https://gitlab.automotive.vodafone.com/vfa-init/pnrr/step_redis
    :alt: Development Status
@@ -97,14 +101,26 @@ Key Features
 Purpose
 =======
 
-The STEP Redis module serves as a critical infrastructure component for real-time transport event 
-processing. Its main purposes include:
+STEP is a distributed platform in which independent services, vehicle and roadside adapters,
+clients, producers, crash prediction, and monitoring, must exchange Intelligent Transport
+Systems (ITS) messages such as DENM, CAM, CPM, station collision arrays, forecasted
+trajectories, and crash predictions in real time to support road-safety decisions.
+
+STEP Redis exists to decouple those services from one another and from the details of Redis
+itself. It supplies a single, reusable Redis Streams backbone that handles connection pooling,
+consumer-group based delivery, stream Time-To-Live (TTL), and CloudEvents-compliant message
+formatting, so that each STEP service can publish and consume ITS messages asynchronously and
+reliably without re-implementing connectivity or message-envelope logic.
+
+In practice, this means:
 
 * Enabling high-throughput, low-latency communication for transport events
-* Providing a reliable messaging backbone for distributed transportation applications
-* Supporting temporal analysis of transport data streams
-* Facilitating real-time decision making for intelligent transport systems
-* Bridging communication between various STEP ecosystem components
+* Providing a reliable, reusable messaging backbone shared by every STEP service, instead of
+  each one implementing its own Redis connectivity and message formatting
+* Guaranteeing at-least-once, acknowledged delivery through Redis consumer groups
+* Keeping streams bounded and self-expiring via configurable maximum length and TTL
+* Bridging communication between the adapter, client, producer, crash prediction, and
+  monitoring components of the STEP ecosystem using a common CloudEvents message envelope
 
 Getting Started
 ===============
