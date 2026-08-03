@@ -24,7 +24,7 @@ The main features of the STEP Library include:
     #. Publish ITS Etsi messages to the broker (STEP).
     #. Subscribe to the specific topics in order to receive ITS Etsi messages.
 
-The library supports CAM and DENM messages.
+The library supports CAM, CPM and DENM messages.
 
 The library provides two main approaches for MQTT communication:
 
@@ -80,7 +80,7 @@ The following snippet explains how to create the data-class of parameters.
             port=8883,
             username="your_username",
             password="your_password",
-            station_id=123
+            station_id=123,
             timeout=10,
             keepalive=30,
             bind_address="",
@@ -106,7 +106,13 @@ The following snippet explains how to create the data-class of parameters.
                     header_topic="v2x/cam/264421_4",
                     geohash_precision=8,
                     qos=0,
-                )
+                ),
+                PublishTopicParams(
+                    message_type=MessageType.CPM,
+                    header_topic="v2x/cpm/264421_4",
+                    geohash_precision=8,
+                    qos=0,
+                ),
             ],
             cache_dir="./.cache",
             logger=logger,
@@ -130,25 +136,58 @@ The following snippet of code:
     
     #. Creates a SyncComManager instance (client) managed by Context Manager
     #. Subscribes to the topics
-    #. Publishes a CAM message
+    #. Publishes CAM and CPM messages
     #. Processes the received messages in the queue
 
 .. code-block:: python
 
     # Use context manager for automatic resource cleanup
     with SyncComManager(params) as client:
-        
+
         # Subscribe to the topics
         client.subscribe(
-            topics=["v2x/cam/264421_4/g8/+/+/+/+/#", "v2x/denm/264421_4/g8/+/+/+/+/#"],
+            topics=[
+                "v2x/cam/264421_4/g8/+/+/+/+/#",
+                "v2x/cpm/264421_4/g8/+/+/+/+/#",
+                "v2x/denm/264421_4/g8/+/+/+/+/#",
+            ],
             max_qos=MqttQoS.QOS_1,
             no_local=True,
         )
-        
+
+        # Address and current position required by publish_its_message
+        current_position = GpsLocation(
+            time=ItsTime(),
+            latitude=50.123456,
+            longitude=8.123456,
+            accuracy=None,
+            speed=None,
+            heading=None,
+        )
+        address = GeoNetworkAddress(
+            is_manual_configured=True,
+            traffic_participant_type=TrafficParticipantType.PASSENGER_CAR,
+            mac_id=123,
+        )
+
         # Publish CAM message
         cam_message = CamMessageV1()  # Create your CAM message
-        client.publish_its_message(message=cam_message, is_station_mobile=True)
-        
+        client.publish_its_message(
+            message=cam_message,
+            address=address,
+            current_position=current_position,
+            is_station_mobile=True,
+        )
+
+        # Publish CPM message
+        cpm_message = CpmMessageV1()  # Create your CPM message
+        client.publish_its_message(
+            message=cpm_message,
+            address=address,
+            current_position=current_position,
+            is_station_mobile=True,
+        )
+
         # Process received messages
         for message in client.its_messages_received:
             print(f"Received message: {message}")
@@ -159,7 +198,7 @@ The following snippet of code:
 
         - True: The client will not receive messages that it has published.
         - False: The client will receive messages that it has published.
-    
+
     If the ``no_local`` field is True, the client isn't able to use shared subscription.
 
 Manual management
@@ -169,7 +208,7 @@ The following snippet of code:
 
     #. Creates a SyncComManager instance (client)
     #. Subscribes to the topics
-    #. Publishes a CAM message
+    #. Publishes CAM and CPM messages
     #. Processes the received messages in the queue
 
 .. code-block:: python
@@ -177,21 +216,54 @@ The following snippet of code:
     client = None
     try:
         client = SyncComManager(params)
-        
+
         # Start the client
         client.start()
-        
+
         # Subscribe to the topics
         client.subscribe(
-            topics=["v2x/cam/264421_4/g8/+/+/+/+/#", "v2x/denm/264421_4/g8/+/+/+/+/#"],
+            topics=[
+                "v2x/cam/264421_4/g8/+/+/+/+/#",
+                "v2x/cpm/264421_4/g8/+/+/+/+/#",
+                "v2x/denm/264421_4/g8/+/+/+/+/#",
+            ],
             max_qos=MqttQoS.QOS_1,
             no_local=True,
         )
 
+        # Address and current position required by publish_its_message
+        current_position = GpsLocation(
+            time=ItsTime(),
+            latitude=50.123456,
+            longitude=8.123456,
+            accuracy=None,
+            speed=None,
+            heading=None,
+        )
+        address = GeoNetworkAddress(
+            is_manual_configured=True,
+            traffic_participant_type=TrafficParticipantType.PASSENGER_CAR,
+            mac_id=123,
+        )
+
         # Publish CAM message
         cam_message = CamMessageV1()  # Create your CAM message
-        client.publish_its_message(message=cam_message, is_station_mobile=True)
-        
+        client.publish_its_message(
+            message=cam_message,
+            address=address,
+            current_position=current_position,
+            is_station_mobile=True,
+        )
+
+        # Publish CPM message
+        cpm_message = CpmMessageV1()  # Create your CPM message
+        client.publish_its_message(
+            message=cpm_message,
+            address=address,
+            current_position=current_position,
+            is_station_mobile=True,
+        )
+
         # Process received messages
         for message in client.its_messages_received:
             print(f"Received message: {message}")
@@ -236,7 +308,7 @@ The following snippet explains how to create the data-class of parameters.
 
 .. code-block:: python    
     
-    def create_async_com_manager(logger: logging.Logger) -> SyncComManager:
+    def create_async_com_manager(logger: logging.Logger) -> AsyncComManager:
         tls_params = TLSParameters(
             ca_certs=None,
             certfile=None,
@@ -252,7 +324,7 @@ The following snippet explains how to create the data-class of parameters.
             port=8883,
             username="your_username",
             password="your_password",
-            station_id=123
+            station_id=123,
             timeout=10,
             keepalive=30,
             bind_address="",
@@ -278,7 +350,13 @@ The following snippet explains how to create the data-class of parameters.
                     header_topic="v2x/cam/264421_4",
                     geohash_precision=8,
                     qos=0,
-                )
+                ),
+                PublishTopicParams(
+                    message_type=MessageType.CPM,
+                    header_topic="v2x/cpm/264421_4",
+                    geohash_precision=8,
+                    qos=0,
+                ),
             ],
             cache_dir="./.cache",
             logger=logger,
@@ -297,16 +375,20 @@ Using Context Manager
 The context manager can manage resource cleanup automatically.
 The following snippet of code:
     
-    #. Creates a SyncComManager instance (client) managed by Context Manager
+    #. Creates an AsyncComManager instance (client) managed by Context Manager
     #. Subscribes to the topics
-    #. Publishes a CAM message
+    #. Publishes CAM, CPM and DENM messages
     #. Processes the received messages in the queue
 
 .. code-block:: python
 
     # Use context manager for automatic resource cleanup
-    async with async_com_manager_create(logger=logger, station_id=None) as client:
-        topics = ["v2x/cam/264421_4/g8/+/+/+/+/#", "v2x/denm/264421_4/g8/+/+/+/+/#"]
+    async with create_async_com_manager(logger=logger) as client:
+        topics = [
+            "v2x/cam/264421_4/g8/+/+/+/+/#",
+            "v2x/cpm/264421_4/g8/+/+/+/+/#",
+            "v2x/denm/264421_4/g8/+/+/+/+/#",
+        ]
         sub_results = await client.subscribe(
             topic=[
                 (
@@ -329,15 +411,46 @@ The following snippet of code:
                 logger.info(msg=f"Subscribed to {topic}: {result}")
             else:
                 logger.error(msg=f"Error subscribing to {topic}: {result}")
+        # Address and current position required by publish_its_message
+        current_position = GpsLocation(
+            time=ItsTime(),
+            latitude=50.123456,
+            longitude=8.123456,
+            accuracy=None,
+            speed=None,
+            heading=None,
+        )
+        address = GeoNetworkAddress(
+            is_manual_configured=True,
+            traffic_participant_type=TrafficParticipantType.PASSENGER_CAR,
+            mac_id=123,
+        )
         async with TaskGroup() as tg:
             # Receive message task
             receive_message_task = tg.create_task(
                 coro=receive_messages(client=client, logger=logger)
             )
             # CAM message as ORM
-            await client.publish_its_message(message=create_cam_orm_message(), is_station_mobile=True)
+            await client.publish_its_message(
+                message=create_cam_orm_message(),
+                address=address,
+                current_position=current_position,
+                is_station_mobile=True,
+            )
+            # CPM message as ORM
+            await client.publish_its_message(
+                message=create_cpm_orm_message(),
+                address=address,
+                current_position=current_position,
+                is_station_mobile=True,
+            )
             # DENM message as ORM
-            await client.publish_its_message(message=create_denm_orm_message(), is_station_mobile=True)
+            await client.publish_its_message(
+                message=create_denm_orm_message(),
+                address=address,
+                current_position=current_position,
+                is_station_mobile=True,
+            )
             # Simulate other operations
             await asyncio_sleep(delay=2)
             # Cancel receive message task
@@ -367,8 +480,8 @@ The following example explains how to receive a message using the STEP Library.
 
 .. code-block:: python
 
-    async for message in client.messages:
-        orm_message: FacilityMessage = message.payload 
+    async for message in client.its_messages:
+        orm_message: FacilityMessage = message.its_payload
         logger.info(
             msg=f"Message(qos:{message.qos},topic:{message.topic}): {orm_message}",
         )

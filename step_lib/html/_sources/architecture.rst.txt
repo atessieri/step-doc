@@ -102,9 +102,9 @@ The following PlantUML diagram illustrates the main classes and their relationsh
                 - _message_serializer: ItsMessageSerializer
                 - _params: AsyncComManagerParams
                 + __init__(params: AsyncComManagerParams)
-                + connect() : AsyncContextManager
+                + __aenter__() : AsyncComManager
                 + publish_its_message(message, address, position, is_mobile)
-                + subscribe(topics, qos, no_local)
+                + subscribe(topic, qos, options) <<inherited from aiomqtt.Client>>
                 + {property} its_messages : ItsMessagesIterator
             }
             
@@ -118,7 +118,7 @@ The following PlantUML diagram illustrates the main classes and their relationsh
                 + __init__(params: SyncComManagerParams)
                 + start() : void
                 + stop() : void
-                + subscribe(topics, qos, no_local)
+                + subscribe(topics, max_qos, no_local)
                 + publish_its_message(message, address, position, is_mobile)
                 + get_its_message_received() : Optional[FacilityMessage]
                 - _run() : void
@@ -223,6 +223,12 @@ The following PlantUML diagram illustrates the main classes and their relationsh
                 - _message: Optional[DenmDataV1]
                 + {property} message : Optional[DenmDataV1]
                 + from_orm(data: DenmDataV1) : DenmMessageV1
+            }
+
+            class CpmMessageV1 {
+                - _message: Optional[CpmDataV1]
+                + {property} message : Optional[CpmDataV1]
+                + from_orm(data: CpmDataV1) : CpmMessageV1
             }
         }
         
@@ -339,11 +345,19 @@ The following PlantUML diagram illustrates the main classes and their relationsh
         package "Exceptions" {
             class StepLibError
             class StepLibUnsupportedMessageError
+            class StepLibMessageNoDataUsefulError
+            class StepLibValueError
+            class StepLibKeyError
             class StepLibEchoMessageError
+            class StepLibFormatMessageError
             class StepCliError
-            
+
             StepLibError <|-- StepLibUnsupportedMessageError
+            StepLibError <|-- StepLibMessageNoDataUsefulError
+            StepLibError <|-- StepLibValueError
+            StepLibError <|-- StepLibKeyError
             StepLibError <|-- StepLibEchoMessageError
+            StepLibError <|-- StepLibFormatMessageError
             StepLibError <|-- StepCliError
         }
         
@@ -369,10 +383,12 @@ The following PlantUML diagram illustrates the main classes and their relationsh
         ItsMessageSerializer ..> GeoNetworkAddress : uses
         
         FacilitySerializer ..> CamMessageV1 : creates
+        FacilitySerializer ..> CpmMessageV1 : creates
         FacilitySerializer ..> DenmMessageV1 : creates
-        
+
         ' Relationships - Facility Layer
         FacilityMessage <|-- CamMessageV1
+        FacilityMessage <|-- CpmMessageV1
         FacilityMessage <|-- DenmMessageV1
         
         ' Relationships - GeoNetworking
@@ -558,6 +574,8 @@ Publishing an ITS Message (Asynchronous)
         
         alt message_type == CAM_PDU
             FacSer -> FacSer: CamMessageV1().from_asn(dict)
+        else message_type == CPM_PDU
+            FacSer -> FacSer: CpmMessageV1().from_asn(dict)
         else message_type == DENM_PDU
             FacSer -> FacSer: DenmMessageV1().from_asn(dict)
         else unsupported
@@ -887,9 +905,19 @@ Asynchronous Pattern (Recommended for I/O-bound applications)
 
     .. code-block:: python
 
-        from step_lib import AsyncComManager, AsyncComManagerParams, CamMessageV1
         from logging import getLogger
-        
+
+        from paho.mqtt.subscribeoptions import SubscribeOptions
+        from step_cloud_schemas import ItsTime, TrafficParticipantType
+        from step_lib import (
+            AsyncComManager,
+            AsyncComManagerParams,
+            CamMessageV1,
+            GeoNetworkAddress,
+            GpsLocation,
+            MqttQoS,
+        )
+
         async def main():
             # Configure connection
             params = AsyncComManagerParams(
@@ -901,22 +929,41 @@ Asynchronous Pattern (Recommended for I/O-bound applications)
                 station_id=12345,
                 logger=getLogger(__name__)
             )
-            
+
             # Create and connect
             async with AsyncComManager(params) as client:
                 # Subscribe to topics
                 await client.subscribe(
-                    topics=["v2x/cam/#", "v2x/denm/#"],
-                    qos=MqttQoS.QOS_1
+                    topic=[
+                        (topic, SubscribeOptions(qos=MqttQoS.QOS_1.value))
+                        for topic in ("v2x/cam/#", "v2x/denm/#")
+                    ]
                 )
-                
+
+                # Address and current position required by publish_its_message
+                current_position = GpsLocation(
+                    time=ItsTime(),
+                    latitude=50.123456,
+                    longitude=8.123456,
+                    accuracy=None,
+                    speed=None,
+                    heading=None,
+                )
+                address = GeoNetworkAddress(
+                    is_manual_configured=True,
+                    traffic_participant_type=TrafficParticipantType.PASSENGER_CAR,
+                    mac_id=12345,
+                )
+
                 # Publish a message
                 cam_message = CamMessageV1(...)  # Your CAM data
                 await client.publish_its_message(
                     message=cam_message,
+                    address=address,
+                    current_position=current_position,
                     is_station_mobile=True
                 )
-                
+
                 # Receive messages
                 async for its_message in client.its_messages:
                     facility_msg = its_message.its_payload
@@ -930,9 +977,19 @@ Synchronous Pattern (Easier integration with legacy code)
     
     .. code-block:: python
 
-        from step_lib import SyncComManager, SyncComManagerParams, DenmMessageV1
         from logging import getLogger
-        
+        from time import sleep
+
+        from step_cloud_schemas import ItsTime, TrafficParticipantType
+        from step_lib import (
+            DenmMessageV1,
+            GeoNetworkAddress,
+            GpsLocation,
+            MqttQoS,
+            SyncComManager,
+            SyncComManagerParams,
+        )
+
         # Configure connection
         params = SyncComManagerParams(
             instance_name="roadside_unit_001",
@@ -944,30 +1001,48 @@ Synchronous Pattern (Easier integration with legacy code)
             reconnect_interval=2,
             logger=getLogger(__name__)
         )
-        
+
         # Use as context manager
         with SyncComManager(params) as manager:
             # Subscribe to topics
             manager.subscribe(
                 topics=["v2x/denm/#"],
-                qos=MqttQoS.QOS_2
+                max_qos=MqttQoS.QOS_2
             )
-            
+
+            # Address and current position required by publish_its_message
+            current_position = GpsLocation(
+                time=ItsTime(),
+                latitude=48.8566,
+                longitude=2.3522,
+                accuracy=None,
+                speed=None,
+                heading=None,
+            )
+            address = GeoNetworkAddress(
+                is_manual_configured=True,
+                traffic_participant_type=TrafficParticipantType.ROAD_SIDE_UNIT,
+                mac_id=54321,
+            )
+
             # Publish a hazard notification
             denm_message = DenmMessageV1(...)  # Your DENM data
             manager.publish_its_message(
                 message=denm_message,
+                address=address,
+                current_position=current_position,
                 is_station_mobile=False
             )
-            
-            # Receive messages with timeout
+
+            # get_its_message_received() is non-blocking; poll it periodically
             while True:
-                facility_msg = manager.get_its_message_received(timeout=1.0)
+                facility_msg = manager.get_its_message_received()
                 if facility_msg:
                     print(f"Received {facility_msg.message_type}")
                     # Process message
                 else:
-                    # No message received, continue or break
+                    # No message received yet, wait before polling again
+                    sleep(1.0)
 
 Design Principles
 -----------------
@@ -1005,7 +1080,11 @@ Custom exception hierarchy for specific error scenarios:
 
 - **StepLibError**: Base exception
 - **StepLibUnsupportedMessageError**: Unknown message type
+- **StepLibMessageNoDataUsefulError**: Decoded message carries no useful payload data
+- **StepLibValueError**: Invalid or out-of-range value
+- **StepLibKeyError**: Missing lookup key (message type, port, header value)
 - **StepLibEchoMessageError**: Own message received (filtered by station_id)
+- **StepLibFormatMessageError**: Error formatting a message
 - **StepCliError**: CLI-specific errors
 
 Performance Optimizations
@@ -1114,10 +1193,9 @@ ASN.1 Schema Files
 The package includes compiled ASN.1 schemas from ETSI:
 
 - CAM-PDU-Descriptions.asn
-- DENM-PDU-Descriptions.asn
+- DENM-PDU-Description.asn
 - CPM-PDU-Descriptions.asn (with sub-containers)
 - ETSI-ITS-CDD.asn (Common Data Dictionary)
-- VAM-PDU-Descriptions.asn
 
 Summary
 -------
