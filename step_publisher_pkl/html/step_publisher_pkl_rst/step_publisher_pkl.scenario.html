@@ -6,17 +6,17 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>step_publisher_pkl.scenario module &mdash; STEP Publisher Pickle 1.0.13 documentation</title>
+  <title>step_publisher_pkl.scenario module &mdash; STEP Publisher Pickle 1.1.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/tabs.css?v=4c969af8" />
-      <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=ca5f51dc" />
-      <link rel="stylesheet" type="text/css" href="../_static/css/sphinx_prompt_css.css?v=351d85e3" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-reports.089ed2e62f89368aa21ac7591d90c12a.css?v=83177741" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=578e62fd" />
 
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=0086fcda"></script>
+      <script src="../_static/documentation_options.js?v=fc837d61"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/tabs.js?v=3ee01567"></script>
@@ -128,6 +128,12 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../docstring_coverage_report.html">API Documentation Coverage Summary</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../docstring_coverage_report.html#step-publisher-pkl-coverage">STEP Publisher PKL coverage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docstring_coverage_report.html#test-coverage">Test coverage</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../coverage_report.html">Test Coverage Summary</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../schemas_rst/json_schemas.html">JSON Schemas</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../schemas_rst/json_schemas.html#its-message-schema">ITS Message Schema</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../schemas_rst/cam_message.html">CAM Message</a><ul>
@@ -591,6 +597,12 @@ consumed via pop_position_arrays(), it is removed from internal storage.</p>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Generator[int]</p>
 </dd>
+<dt class="field-even">Complexity<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>- Time</strong> – O(v) to exhaust, where v is the number of vehicles; O(1) per yield.</p></li>
+<li><p><strong>- Space</strong> – O(1) additional, excluding the already-held vehicle storage.</p></li>
+</ul>
+</dd>
 </dl>
 </dd></dl>
 
@@ -624,6 +636,16 @@ is found in multiple files</p></li>
 minimum start time across all vehicles in each file as the reference</p></li>
 </ul>
 </div>
+<dl class="field-list simple">
+<dt class="field-odd">Complexity<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>- Time</strong> – O(f + p), where f is the number of input files and p is the total
+number of trajectory points across all vehicles in all files; each point
+is converted once and each vehicle’s timestamps are rewritten once.</p></li>
+<li><p><strong>- Space</strong> – O(p), stores every loaded trajectory point in per-vehicle deques.</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
@@ -640,6 +662,13 @@ the current position and the next position (if available) for trajectory calcula
 <dt class="field-even">Yields<span class="colon">:</span></dt>
 <dd class="field-even"><p><em>StationPositionResult</em> – Vehicle position data including current and next points.</p>
 </dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A generator that produces the vehicle’s
+remaining position results one at a time.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>Generator[<a class="reference internal" href="#step_publisher_pkl.scenario.StationPositionResult" title="step_publisher_pkl.scenario.StationPositionResult">StationPositionResult</a>]</p>
+</dd>
 </dl>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -647,6 +676,15 @@ the current position and the next position (if available) for trajectory calcula
 Once all points are popped, subsequent calls will yield nothing until new
 points are added for the vehicle.</p>
 </div>
+<dl class="field-list simple">
+<dt class="field-odd">Complexity<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>- Time</strong> – O(n) to exhaust, where n is the number of remaining positions for
+the vehicle; O(1) per yield.</p></li>
+<li><p><strong>- Space</strong> – O(1) additional, excluding the already-held vehicle storage.</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
