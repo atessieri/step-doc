@@ -62,9 +62,10 @@ Main Components:
 
     #. **StepBroker**: Gateway class for MQTT communication with the STEP broker
     #. **StepClientConfig**: Configuration management for the client
-    #. **StepClientRedisPool/StepClientRedisStream**: Redis integration 
-       for message queuing
-    #. **StepLogger**: Logging utilities specific to the STEP client
+    #. **StepRedisPool/StepClientRedisStream**: Redis integration
+       for message queuing (from the ``step_redis`` library)
+    #. **StepLogger**: Logging utilities used by the STEP client (from the
+       ``step_cloud_schemas`` library)
     #. **StepException**: Custom exceptions for error handling
 
 StepBroker
@@ -83,9 +84,12 @@ Key responsibilities of ``StepBroker`` include:
        Quality of Service (QoS) levels to receive ITS messages from the STEP broker.
     #. **Message Publication**: Publishes ITS messages to the STEP broker with
        appropriate topic selection and message encoding.
-    #. **Message Conversion**: Handles bidirectional conversion between raw 
-       messages and CloudEventsItsMessage format.
-    #. **Integration with Redis**: Coordinates with ``StepClientRedisStream`` to queue 
+    #. **ITS Message Encoding/Decoding**: Encodes and decodes ITS messages to and from
+       ASN.1 wire format via ``step_lib.FacilityMessage``. CloudEvents envelope
+       conversion is handled separately, by ``StepClientRedisStream`` and the
+       application's message-dispatch logic in ``__main__.py``, not by ``StepBroker``
+       itself.
+    #. **Integration with Redis**: Coordinates with ``StepClientRedisStream`` to queue
        received messages in Redis streams and publish client-generated messages.
     #. **Context Management**: Implements asynchronous context management through 
        ``__aenter__`` and ``__aexit__`` methods for clean resource handling.
@@ -138,7 +142,7 @@ extended by multiple STEP components including ``step_client``, ``step_adapter``
 
 **Library Architecture**
 
-The step_redis library is organized around two core base classes and four specialized 
+The step_redis library is organized around two core base classes and five specialized
 implementations:
 
 **Base Classes:**
@@ -163,6 +167,9 @@ implementations:
        STEP Producer
     
     #. **StepCrashPredictionRedisStream**: Handles crash prediction data streams
+
+    #. **StepMonitoringRedisStream**: Publishes forecasted trajectory data and
+       receives monitoring messages for the STEP Monitoring service
 
 **StepRedisPool - Connection Management**
 
@@ -315,12 +322,12 @@ In ``_stream_receive_run()``:
 
 In ``_step_receive_run()``:
 
-    #. Creates ``StepAdapterRedisStream`` for CAM messages
+    #. Creates ``StepAdapterRedisStream`` for CAM and CPM messages
     #. Creates ``StepProducerRedisStream`` for DENM messages
     #. Receives ITS messages from ``step_broker.its_messages`` async generator
-    #. Pattern matches message type (CAM or DENM)
-    #. Publishes to appropriate stream using ``publish_cam_message()`` or 
-       ``publish_denm_message()``
+    #. Pattern matches message type (CAM, CPM, or DENM)
+    #. Publishes to appropriate stream using ``publish_cam_message()``,
+       ``publish_cpm_message()``, or ``publish_denm_message()``
 
 **Redis Connection Pool Setup:**
 
@@ -386,77 +393,69 @@ message processing, reliable delivery, and horizontal scalability through consum
 StepLogger
 ^^^^^^^^^^
 
-The ``StepLogger`` component provides specialized logging functionality for the STEP Client
-architecture, enabling comprehensive and configurable logging throughout the application. 
-It serves as a wrapper around Python's standard logging facilities with additional features 
-tailored to STEP Client's needs.
+``StepLogger`` is provided by the ``step_cloud_schemas`` library (not implemented within
+step_client itself) and is used by the STEP Client to build and configure its
+``logging.Logger`` instances. Today it is a thin factory built directly on top of
+Python's standard ``logging`` module; a future revision is expected to move the
+underlying implementation to the ``loguru`` library while keeping the same
+``StepLogger`` interface used by step_client.
 
 Key features of ``StepLogger`` include:
 
-    #. **Multi-destination Logging**: Supports logging to different output formats and 
-       destinations, including:
-       
-        * File-based logging for persistent records
-        * Standard output (console) for development and debugging
-        * Syslog integration for system monitoring
-        * Configurable log rotation based on size or time intervals
-    
-    #. **Log Level Management**: Provides fine-grained control over logging verbosity 
-       with standard log levels (DEBUG, INFO, WARNING, ERROR, CRITICAL).
-    #. **Structured Formatting**: Implements customizable log formats with timestamp, 
-       severity level, source component, and structured message content.
-    #. **Context-aware Logging**: Includes context information such as component IDs, 
-       transaction IDs, and operation details to facilitate troubleshooting.
-    #. **Configuration Integration**: Leverages the logging configuration section 
-       from ``StepClientConfig`` to enable consistent setup across components.
-    #. **Utility Methods**: Offers utility methods like ``setup_logging()`` for initial 
-       configuration and ``get_logger()`` for retrieving appropriately configured 
-       logger instances.
-    #. **Error Handling**: Includes robust error handling to prevent logging failures 
-       from impacting core application functionality.
+    #. **Multiple Handler Types**: Builds loggers with one or more of the following
+       handlers, each independently configurable via ``LogConfig``:
 
-The ``StepLogger`` component ensures that the STEP Client maintains comprehensive 
-logging capabilities to support monitoring, debugging, and operational insights 
-across all system components.
+        * ``stream``: writes to stderr
+        * ``null``: discards all log records
+        * ``file``: writes to a single log file (append or overwrite)
+        * ``sizeFileRotate``: rotates the log file once it exceeds a configured size
+        * ``timeFileRotate``: rotates the log file at a configured time interval
+
+       Rotated log files are automatically compressed with BZIP2. There is no syslog
+       handler.
+    #. **UTC Timestamp Formatting**: Uses a custom ``UtcFormatter`` so all log
+       timestamps are rendered in UTC regardless of the local system timezone.
+    #. **Log Level Management**: Supports the standard log levels (DEBUG, INFO,
+       WARNING, ERROR, CRITICAL) per handler and a global logger level, via
+       ``LogMode``.
+    #. **Configuration Integration**: Driven by the ``LogConfig``/``LogHandlerConfig``
+       models (from ``step_cloud_schemas``), which are carried inside
+       ``StepClientConfig.log``.
+    #. **Public API**: Exposes two classmethods:
+
+        * ``get_logger(name, config, instance_name)``: builds and returns a configured
+          ``Logger``. If ``config`` is ``None``, it falls back to a single stderr
+          stream handler at WARNING level with the logger itself at INFO. File-based
+          handlers require ``instance_name`` to build the log filename, and raise
+          ``ValueError`` if it is missing.
+        * ``logger_force_write(logger, msg)``: temporarily elevates the logger and all
+          its handlers to INFO to guarantee a message is emitted (used by step_client
+          for startup/version banners), then restores the original levels.
+
+There is currently no built-in support for syslog, or for attaching structured
+context such as component IDs or transaction IDs to log records beyond what the
+configured format string exposes (e.g. ``%(module)s``, ``%(funcName)s``).
 
 StepException
 ^^^^^^^^^^^^^
 
-The ``StepException`` component provides a structured exception handling mechanism 
-for the STEP Client architecture. It defines a hierarchy of custom exceptions tailored 
-to the specific error conditions that can occur during STEP Client operations.
+step_client defines a minimal exception hierarchy in ``step_exception.py``, used to
+distinguish STEP Client errors from other unhandled exceptions:
 
-Key aspects of ``StepException`` include:
+    #. **StepClientError**: Base exception for the STEP Client. A plain subclass of
+       ``Exception`` with no additional attributes; it is raised, for example, by
+       ``StepBroker.subscribe_execution()`` when a topic subscription fails or its
+       returned QoS doesn't match the configured one.
+    #. **StepCliError**: Subclass of ``StepClientError`` raised for CLI-specific
+       errors in ``main()`` — such as passing ``-c/--config`` without ``-i/--instance``
+       or vice versa.
 
-    #. **Exception Hierarchy**: Establishes a well-organized hierarchy of exception 
-       types that extend from a base ``StepException`` class, allowing for specific 
-       error handling based on exception types.
-    #. **Contextual Information**: Captures and preserves contextual information about 
-       errors, including:
-       
-        * Operation being performed when the error occurred
-        * Component that raised the exception
-        * Underlying system errors or exceptions
-        * Relevant configuration or state data
-    
-    #. **Error Classification**: Categorizes errors into distinct types such as:
-       
-        * Connection errors (MQTT broker or Redis connection failures)
-        * Configuration errors (missing or invalid configuration parameters)
-        * Protocol errors (malformed messages or protocol violations)
-        * Authentication errors (security or credential issues)
-        * Resource errors (unavailable streams or queues)
-    
-    #. **Error Reporting**: Provides formatted error messages with detailed diagnostics
-       to assist in troubleshooting.
-    #. **Recovery Hints**: Includes information about possible recovery strategies or 
-       corrective actions when appropriate.
-    #. **Integration with Logging**: Collaborates with the ``StepLogger`` component to 
-       ensure that exceptions are properly logged with appropriate severity levels.
-
-The ``StepException`` component enables robust error handling throughout the STEP Client, 
-allowing application code to catch and handle specific types of exceptions appropriately 
-while providing meaningful information for debugging and system monitoring.
+Both classes are message-only exceptions (the message is carried via the standard
+``Exception`` args, not a dedicated attribute); there is no structured error context,
+error-type classification, or recovery-hint mechanism beyond what the raised message
+string conveys. Callers catch and log these via the standard Python exception handling
+already used throughout ``__main__.py`` (e.g. the top-level ``except Exception`` in
+``main()`` and ``_main_async()``).
 
 Component Diagram
 ^^^^^^^^^^^^^^^^^
@@ -490,7 +489,7 @@ from StepLogger.
          [StepBroker] as GW
          [StepClientConfig] as Config
          [StepLogger] as Logger
-         [StepException] as Exception
+         [StepClientError] as Exception
          note left of GW
          Gateway for MQTT 
          communication
@@ -562,23 +561,27 @@ to the STEP Client.
          }
 
          class StepClientConfig {
-            +mqtt_client: MqttClientConfig
-            +mqtt_protocol: MqttProtocolConfig
-            +redis_client: RedisClientConfig
-            +logging: LoggingConfig
+            +stationId: int
+            +stepReceiverNumber: int
+            +latitude: float
+            +longitude: float
+            +reconnectInterval: int
+            +stepBroker: StepBrokerConfig
+            +redis: RedisClientConfig
+            +log: LogConfig
             +get_default()
             +model_validate()
             +model_validate_json()
          }
-         
+
          class StepLogger {
-            +setup_logging()
             +get_logger()
+            +logger_force_write()
          }
-         
-         class StepException {
-            +message: str
-         }
+
+         class StepClientError
+         class StepCliError
+         StepCliError --|> StepClientError
       }
       
       rectangle "step_redis" as StepRedis #LightGray {
@@ -596,7 +599,7 @@ to the STEP Client.
       StepBroker --> StepClientConfig : uses
       StepBroker --> StepRedis : uses
       StepBroker --> StepLogger : uses
-      StepBroker --> StepException : throws
+      StepBroker --> StepClientError : throws
       StepRedis --> StepLogger : logs to
       
       @enduml
@@ -707,6 +710,18 @@ type (CAM messages to StepAdapterRedisStream, DENM messages to StepProducerRedis
          AdapterStream -> RedisDB : XADD adapter_stream {payload: JSON}
          RedisDB --> AdapterStream : message_id
          
+         RedisDB -> Adapter : Consumer reads from stream
+      else CPM Message
+         Gateway -> Gateway : Extract CpmDataV1
+         Gateway -> AdapterStream : publish_cpm_message(CpmDataV1)
+         AdapterStream -> AdapterStream : Wrap in CloudEvents envelope
+         note over AdapterStream
+            AdapterCloudEventsCpmDataV1
+            with UUID, timestamp, schema
+         end note
+         AdapterStream -> RedisDB : XADD adapter_stream {payload: JSON}
+         RedisDB --> AdapterStream : message_id
+
          RedisDB -> Adapter : Consumer reads from stream
       else DENM Message
          Gateway -> Gateway : Extract DenmDataV1
