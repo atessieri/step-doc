@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>step_redis.step_redis_stream &mdash; STEP Redis 1.3.1 documentation</title>
+  <title>step_redis.step_redis_stream &mdash; STEP Redis 1.3.2 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=4c969af8" />
@@ -15,7 +15,7 @@
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=bb516dca"></script>
+      <script src="../../_static/documentation_options.js?v=8ca9e7a0"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/tabs.js?v=3ee01567"></script>
@@ -633,16 +633,16 @@
 <span class="linenos"> 43</span><span class="sd">    ... asyncio.run(main())</span>
 <span class="linenos"> 44</span>
 <span class="linenos"> 45</span><span class="sd">Complexity:</span>
-<span class="linenos"> 46</span><span class="sd">    Time: Setup operations (``__init__``, ``__aenter__``) run in O(1). Single-command</span>
-<span class="linenos"> 47</span><span class="sd">        stream management (``create_input_stream``, ``update_stream_ttl``,</span>
-<span class="linenos"> 48</span><span class="sd">        ``get_stream_ttl``, ``ping``) runs in O(1), each performing one Redis</span>
-<span class="linenos"> 49</span><span class="sd">        round-trip. Publishing (``publish_message``) runs in O(k), where k is the</span>
-<span class="linenos"> 50</span><span class="sd">        length of the message string, dominated by the Redis XADD round-trip.</span>
-<span class="linenos"> 51</span><span class="sd">        Receiving (``receive_message``) runs in O(m) per yielded message, where m is</span>
-<span class="linenos"> 52</span><span class="sd">        the received payload size, dominated by the XREADGROUP call and decoding.</span>
-<span class="linenos"> 53</span><span class="sd">    Space: O(1) for setup and single-command operations. O(k) per publish call and</span>
-<span class="linenos"> 54</span><span class="sd">        O(m) per received message, bounded by the size of the single message being</span>
-<span class="linenos"> 55</span><span class="sd">        sent or parsed at a time; no message history is retained in memory.</span>
+<span class="linenos"> 46</span><span class="sd">    - Time: Setup operations (``__init__``, ``__aenter__``) run in O(1). Single-command</span>
+<span class="linenos"> 47</span><span class="sd">      stream management (``create_input_stream``, ``update_stream_ttl``,</span>
+<span class="linenos"> 48</span><span class="sd">      ``get_stream_ttl``, ``ping``) runs in O(1), each performing one Redis round-trip.</span>
+<span class="linenos"> 49</span><span class="sd">      Publishing (``publish_message``) runs in O(k), where k is the length of the</span>
+<span class="linenos"> 50</span><span class="sd">      message string, dominated by the Redis XADD round-trip. Receiving</span>
+<span class="linenos"> 51</span><span class="sd">      (``receive_message``) runs in O(m) per yielded message, where m is the received</span>
+<span class="linenos"> 52</span><span class="sd">      payload size, dominated by the XREADGROUP call and decoding.</span>
+<span class="linenos"> 53</span><span class="sd">    - Space: O(1) for setup and single-command operations. O(k) per publish call and</span>
+<span class="linenos"> 54</span><span class="sd">      O(m) per received message, bounded by the size of the single message being sent or</span>
+<span class="linenos"> 55</span><span class="sd">      parsed at a time; no message history is retained in memory.</span>
 <span class="linenos"> 56</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="linenos"> 57</span>
 <span class="linenos"> 58</span><span class="c1"># Standard Library Imports</span>
@@ -709,8 +709,8 @@
 <span class="linenos">115</span><span class="sd">            None</span>
 <span class="linenos">116</span>
 <span class="linenos">117</span><span class="sd">        Complexity:</span>
-<span class="linenos">118</span><span class="sd">            Time: O(1), a fixed number of length checks and comparisons.</span>
-<span class="linenos">119</span><span class="sd">            Space: O(1), no additional data structures are allocated.</span>
+<span class="linenos">118</span><span class="sd">            - Time: O(1), a fixed number of length checks and comparisons.</span>
+<span class="linenos">119</span><span class="sd">            - Space: O(1), no additional data structures are allocated.</span>
 <span class="linenos">120</span><span class="sd">        &quot;&quot;&quot;</span>
 <span class="linenos">121</span>        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stream_id</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
 <span class="linenos">122</span>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;stream_id must be at least 1 character long&quot;</span><span class="p">)</span>
@@ -790,9 +790,9 @@
 <span class="linenos">192</span><span class="sd">            None</span>
 <span class="linenos">193</span>
 <span class="linenos">194</span><span class="sd">        Complexity:</span>
-<span class="linenos">195</span><span class="sd">            Time: O(1), stores references and wraps the pool in a Redis client</span>
-<span class="linenos">196</span><span class="sd">                without opening any connections.</span>
-<span class="linenos">197</span><span class="sd">            Space: O(1), no additional data structures are allocated.</span>
+<span class="linenos">195</span><span class="sd">            - Time: O(1), stores references and wraps the pool in a Redis client without</span>
+<span class="linenos">196</span><span class="sd">              opening any connections.</span>
+<span class="linenos">197</span><span class="sd">            - Space: O(1), no additional data structures are allocated.</span>
 <span class="linenos">198</span><span class="sd">        &quot;&quot;&quot;</span>
 <span class="linenos">199</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span> <span class="o">=</span> <span class="n">logger</span>
 <span class="linenos">200</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_config</span> <span class="o">=</span> <span class="n">config</span>
@@ -810,8 +810,8 @@
 <span class="linenos">210</span><span class="sd">            StepRedisStream: The current instance for use in the context.</span>
 <span class="linenos">211</span>
 <span class="linenos">212</span><span class="sd">        Complexity:</span>
-<span class="linenos">213</span><span class="sd">            Time: O(1), a single conditional log call and a reference return.</span>
-<span class="linenos">214</span><span class="sd">            Space: O(1), no additional data structures are allocated.</span>
+<span class="linenos">213</span><span class="sd">            - Time: O(1), a single conditional log call and a reference return.</span>
+<span class="linenos">214</span><span class="sd">            - Space: O(1), no additional data structures are allocated.</span>
 <span class="linenos">215</span><span class="sd">        &quot;&quot;&quot;</span>
 <span class="linenos">216</span>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">):</span>
 <span class="linenos">217</span>            <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;Redis stream context manager entered&quot;</span><span class="p">)</span>
@@ -846,8 +846,8 @@
 <span class="linenos">243</span><span class="sd">            This method logs a debug message and closes the Redis connection asynchronously.</span>
 <span class="linenos">244</span>
 <span class="linenos">245</span><span class="sd">        Complexity:</span>
-<span class="linenos">246</span><span class="sd">            Time: O(1), releases the single Redis client connection back to the pool.</span>
-<span class="linenos">247</span><span class="sd">            Space: O(1), no additional data structures are allocated.</span>
+<span class="linenos">246</span><span class="sd">            - Time: O(1), releases the single Redis client connection back to the pool.</span>
+<span class="linenos">247</span><span class="sd">            - Space: O(1), no additional data structures are allocated.</span>
 <span class="linenos">248</span><span class="sd">        &quot;&quot;&quot;</span>
 <span class="linenos">249</span>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">):</span>
 <span class="linenos">250</span>            <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;Redis stream context manager exited&quot;</span><span class="p">)</span>
@@ -870,9 +870,9 @@
 <span class="linenos">264</span><span class="sd">            None</span>
 <span class="linenos">265</span>
 <span class="linenos">266</span><span class="sd">        Complexity:</span>
-<span class="linenos">267</span><span class="sd">            Time: O(1), a single Redis XGROUP CREATE call plus, when a TTL is</span>
-<span class="linenos">268</span><span class="sd">                configured, one additional O(1) EXPIRE call.</span>
-<span class="linenos">269</span><span class="sd">            Space: O(1), no additional data structures are allocated.</span>
+<span class="linenos">267</span><span class="sd">            - Time: O(1), a single Redis XGROUP CREATE call plus, when a TTL is</span>
+<span class="linenos">268</span><span class="sd">              configured, one additional O(1) EXPIRE call.</span>
+<span class="linenos">269</span><span class="sd">            - Space: O(1), no additional data structures are allocated.</span>
 <span class="linenos">270</span><span class="sd">        &quot;&quot;&quot;</span>
 <span class="linenos">271</span>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="o">.</span><span class="n">group_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
 <span class="linenos">272</span>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;group_id must be provided to create a consumer group&quot;</span><span class="p">)</span>
@@ -916,8 +916,8 @@
 <span class="linenos">307</span><span class="sd">            bool: True if the TTL was successfully updated, False otherwise.</span>
 <span class="linenos">308</span>
 <span class="linenos">309</span><span class="sd">        Complexity:</span>
-<span class="linenos">310</span><span class="sd">            Time: O(1), a single Redis EXPIRE call.</span>
-<span class="linenos">311</span><span class="sd">            Space: O(1), no additional data structures are allocated.</span>
+<span class="linenos">310</span><span class="sd">            - Time: O(1), a single Redis EXPIRE call.</span>
+<span class="linenos">311</span><span class="sd">            - Space: O(1), no additional data structures are allocated.</span>
 <span class="linenos">312</span><span class="sd">        &quot;&quot;&quot;</span>
 <span class="linenos">313</span>        <span class="k">if</span> <span class="n">ttl_seconds</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
 <span class="linenos">314</span>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;TTL seconds must be a positive integer: </span><span class="si">{</span><span class="n">ttl_seconds</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -960,8 +960,8 @@
 <span class="linenos">348</span><span class="sd">            A return value of -1 indicates the stream exists but has no associated expiration.</span>
 <span class="linenos">349</span>
 <span class="linenos">350</span><span class="sd">        Complexity:</span>
-<span class="linenos">351</span><span class="sd">            Time: O(1), a single Redis TTL call.</span>
-<span class="linenos">352</span><span class="sd">            Space: O(1), no additional data structures are allocated.</span>
+<span class="linenos">351</span><span class="sd">            - Time: O(1), a single Redis TTL call.</span>
+<span class="linenos">352</span><span class="sd">            - Space: O(1), no additional data structures are allocated.</span>
 <span class="linenos">353</span><span class="sd">        &quot;&quot;&quot;</span>
 <span class="linenos">354</span>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">):</span>
 <span class="linenos">355</span>            <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Getting TTL for stream </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="o">.</span><span class="n">stream_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -999,8 +999,8 @@
 <span class="linenos">384</span><span class="sd">            that might occur during the operation.</span>
 <span class="linenos">385</span>
 <span class="linenos">386</span><span class="sd">        Complexity:</span>
-<span class="linenos">387</span><span class="sd">            Time: O(1), a single Redis PING call.</span>
-<span class="linenos">388</span><span class="sd">            Space: O(1), no additional data structures are allocated.</span>
+<span class="linenos">387</span><span class="sd">            - Time: O(1), a single Redis PING call.</span>
+<span class="linenos">388</span><span class="sd">            - Space: O(1), no additional data structures are allocated.</span>
 <span class="linenos">389</span><span class="sd">        &quot;&quot;&quot;</span>
 <span class="linenos">390</span>        <span class="n">response</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_redis_pool</span><span class="o">.</span><span class="n">ping</span><span class="p">()</span>
 <span class="linenos">391</span>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">):</span>
@@ -1027,10 +1027,10 @@
 <span class="linenos">409</span><span class="sd">            None</span>
 <span class="linenos">410</span>
 <span class="linenos">411</span><span class="sd">        Complexity:</span>
-<span class="linenos">412</span><span class="sd">            Time: O(k), where k is the length of ``message``; dominated by the</span>
-<span class="linenos">413</span><span class="sd">                network round-trip of the Redis XADD call (approximate trimming</span>
-<span class="linenos">414</span><span class="sd">                keeps the trim cost amortized O(1)).</span>
-<span class="linenos">415</span><span class="sd">            Space: O(k), for the message payload held in memory before being sent.</span>
+<span class="linenos">412</span><span class="sd">            - Time: O(k), where k is the length of ``message``; dominated by the network</span>
+<span class="linenos">413</span><span class="sd">              round-trip of the Redis XADD call (approximate trimming keeps the trim</span>
+<span class="linenos">414</span><span class="sd">              cost amortized O(1)).</span>
+<span class="linenos">415</span><span class="sd">            - Space: O(k), for the message payload held in memory before being sent.</span>
 <span class="linenos">416</span><span class="sd">        &quot;&quot;&quot;</span>
 <span class="linenos">417</span>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="o">.</span><span class="n">max_length</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
 <span class="linenos">418</span>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
@@ -1072,11 +1072,11 @@
 <span class="linenos">451</span><span class="sd">            upon delivery and not added to the pending entries list.</span>
 <span class="linenos">452</span>
 <span class="linenos">453</span><span class="sd">        Complexity:</span>
-<span class="linenos">454</span><span class="sd">            Time: O(m) per yielded message, where m is the byte length of the</span>
-<span class="linenos">455</span><span class="sd">                received message payload; dominated by the Redis XREADGROUP call</span>
-<span class="linenos">456</span><span class="sd">                and string decoding (the generator itself runs indefinitely).</span>
-<span class="linenos">457</span><span class="sd">            Space: O(m) per yielded message, for the single message payload held</span>
-<span class="linenos">458</span><span class="sd">                in memory; no message history is retained.</span>
+<span class="linenos">454</span><span class="sd">            - Time: O(m) per yielded message, where m is the byte length of the received</span>
+<span class="linenos">455</span><span class="sd">              message payload; dominated by the Redis XREADGROUP call and string</span>
+<span class="linenos">456</span><span class="sd">              decoding (the generator itself runs indefinitely).</span>
+<span class="linenos">457</span><span class="sd">            - Space: O(m) per yielded message, for the single message payload held in</span>
+<span class="linenos">458</span><span class="sd">              memory; no message history is retained.</span>
 <span class="linenos">459</span><span class="sd">        &quot;&quot;&quot;</span>
 <span class="linenos">460</span>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="o">.</span><span class="n">group_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
 <span class="linenos">461</span>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>

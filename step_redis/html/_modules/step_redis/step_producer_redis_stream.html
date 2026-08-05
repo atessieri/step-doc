@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>step_redis.step_producer_redis_stream &mdash; STEP Redis 1.3.1 documentation</title>
+  <title>step_redis.step_producer_redis_stream &mdash; STEP Redis 1.3.2 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=4c969af8" />
@@ -15,7 +15,7 @@
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=bb516dca"></script>
+      <script src="../../_static/documentation_options.js?v=8ca9e7a0"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/tabs.js?v=3ee01567"></script>
@@ -608,88 +608,88 @@
 <span class="linenos"> 18</span><span class="sd">    ...     message = await stream.receive_producer_message()</span>
 <span class="linenos"> 19</span>
 <span class="linenos"> 20</span><span class="sd">Complexity:</span>
-<span class="linenos"> 21</span><span class="sd">    Time: Setup operations (``__init__``, ``__aenter__``) run in O(1). Publishing</span>
-<span class="linenos"> 22</span><span class="sd">        (``publish_denm_message``, ``publish_station_collision_array``) runs in</span>
-<span class="linenos"> 23</span><span class="sd">        O(n), where n is the serialized message size, dominated by CloudEvents JSON</span>
-<span class="linenos"> 24</span><span class="sd">        serialization and the Redis XADD round-trip. Receiving</span>
-<span class="linenos"> 25</span><span class="sd">        (``receive_producer_message``) runs in O(m) per yielded message, where m is</span>
-<span class="linenos"> 26</span><span class="sd">        the received JSON payload size, dominated by JSON parsing and Pydantic</span>
-<span class="linenos"> 27</span><span class="sd">        validation.</span>
-<span class="linenos"> 28</span><span class="sd">    Space: O(1) for setup operations. O(n) per publish call and O(m) per received</span>
-<span class="linenos"> 29</span><span class="sd">        message, bounded by the size of the single message being serialized or</span>
-<span class="linenos"> 30</span><span class="sd">        parsed at a time; no message history is retained in memory.</span>
-<span class="linenos"> 31</span><span class="sd">&quot;&quot;&quot;</span>
-<span class="linenos"> 32</span>
-<span class="linenos"> 33</span><span class="c1"># Standard Library Imports</span>
-<span class="linenos"> 34</span><span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
-<span class="linenos"> 35</span><span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
-<span class="linenos"> 36</span><span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">AsyncGenerator</span>
-<span class="linenos"> 37</span><span class="kn">from</span><span class="w"> </span><span class="nn">logging</span><span class="w"> </span><span class="kn">import</span> <span class="n">Logger</span>
-<span class="linenos"> 38</span><span class="kn">from</span><span class="w"> </span><span class="nn">uuid</span><span class="w"> </span><span class="kn">import</span> <span class="n">uuid4</span>
-<span class="linenos"> 39</span>
-<span class="linenos"> 40</span><span class="c1"># Third Party Imports</span>
-<span class="linenos"> 41</span><span class="kn">from</span><span class="w"> </span><span class="nn">step_cloud_schemas</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-<span class="linenos"> 42</span>    <span class="n">DataContentType</span><span class="p">,</span>
-<span class="linenos"> 43</span>    <span class="n">DenmDataV1</span><span class="p">,</span>
-<span class="linenos"> 44</span>    <span class="n">ItsTime</span><span class="p">,</span>
-<span class="linenos"> 45</span>    <span class="n">ProducerCloudEventsDenmDataV1</span><span class="p">,</span>
-<span class="linenos"> 46</span>    <span class="n">ProducerCloudEventsJsonRoot</span><span class="p">,</span>
-<span class="linenos"> 47</span>    <span class="n">ProducerCloudEventsStationCollisionArrayV1</span><span class="p">,</span>
-<span class="linenos"> 48</span>    <span class="n">ProducerDataSchemaType</span><span class="p">,</span>
-<span class="linenos"> 49</span>    <span class="n">ProducerMessageType</span><span class="p">,</span>
-<span class="linenos"> 50</span>    <span class="n">SpecVersion</span><span class="p">,</span>
-<span class="linenos"> 51</span>    <span class="n">StationCollisionArrayV1</span><span class="p">,</span>
-<span class="linenos"> 52</span><span class="p">)</span>
-<span class="linenos"> 53</span>
-<span class="linenos"> 54</span><span class="c1"># step_redis Package Imports</span>
-<span class="linenos"> 55</span><span class="kn">from</span><span class="w"> </span><span class="nn">step_redis.step_redis_pool</span><span class="w"> </span><span class="kn">import</span> <span class="n">StepRedisPool</span>
-<span class="linenos"> 56</span><span class="kn">from</span><span class="w"> </span><span class="nn">step_redis.step_redis_stream</span><span class="w"> </span><span class="kn">import</span> <span class="n">StepRedisStream</span><span class="p">,</span> <span class="n">StepRedisStreamParams</span>
-<span class="linenos"> 57</span>
-<span class="linenos"> 58</span><span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">version_info</span> <span class="o">&gt;=</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">13</span><span class="p">):</span>
-<span class="linenos"> 59</span>    <span class="c1"># Standard Library Imports</span>
-<span class="linenos"> 60</span>    <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">override</span>
-<span class="linenos"> 61</span><span class="k">else</span><span class="p">:</span>
-<span class="linenos"> 62</span>    <span class="c1"># Third Party Imports</span>
-<span class="linenos"> 63</span>    <span class="kn">from</span><span class="w"> </span><span class="nn">typing_extensions</span><span class="w"> </span><span class="kn">import</span> <span class="n">override</span>
+<span class="linenos"> 21</span><span class="sd">    - Time: Setup operations (``__init__``, ``__aenter__``) run in O(1). Publishing</span>
+<span class="linenos"> 22</span><span class="sd">      (``publish_denm_message``, ``publish_station_collision_array``) runs in O(n),</span>
+<span class="linenos"> 23</span><span class="sd">      where n is the serialized message size, dominated by CloudEvents JSON</span>
+<span class="linenos"> 24</span><span class="sd">      serialization and the Redis XADD round-trip. Receiving</span>
+<span class="linenos"> 25</span><span class="sd">      (``receive_producer_message``) runs in O(m) per yielded message, where m is the</span>
+<span class="linenos"> 26</span><span class="sd">      received JSON payload size, dominated by JSON parsing and Pydantic validation.</span>
+<span class="linenos"> 27</span><span class="sd">    - Space: O(1) for setup operations. O(n) per publish call and O(m) per received</span>
+<span class="linenos"> 28</span><span class="sd">      message, bounded by the size of the single message being serialized or parsed at a</span>
+<span class="linenos"> 29</span><span class="sd">      time; no message history is retained in memory.</span>
+<span class="linenos"> 30</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="linenos"> 31</span>
+<span class="linenos"> 32</span><span class="c1"># Standard Library Imports</span>
+<span class="linenos"> 33</span><span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="linenos"> 34</span><span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="linenos"> 35</span><span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">AsyncGenerator</span>
+<span class="linenos"> 36</span><span class="kn">from</span><span class="w"> </span><span class="nn">logging</span><span class="w"> </span><span class="kn">import</span> <span class="n">Logger</span>
+<span class="linenos"> 37</span><span class="kn">from</span><span class="w"> </span><span class="nn">uuid</span><span class="w"> </span><span class="kn">import</span> <span class="n">uuid4</span>
+<span class="linenos"> 38</span>
+<span class="linenos"> 39</span><span class="c1"># Third Party Imports</span>
+<span class="linenos"> 40</span><span class="kn">from</span><span class="w"> </span><span class="nn">step_cloud_schemas</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+<span class="linenos"> 41</span>    <span class="n">DataContentType</span><span class="p">,</span>
+<span class="linenos"> 42</span>    <span class="n">DenmDataV1</span><span class="p">,</span>
+<span class="linenos"> 43</span>    <span class="n">ItsTime</span><span class="p">,</span>
+<span class="linenos"> 44</span>    <span class="n">ProducerCloudEventsDenmDataV1</span><span class="p">,</span>
+<span class="linenos"> 45</span>    <span class="n">ProducerCloudEventsJsonRoot</span><span class="p">,</span>
+<span class="linenos"> 46</span>    <span class="n">ProducerCloudEventsStationCollisionArrayV1</span><span class="p">,</span>
+<span class="linenos"> 47</span>    <span class="n">ProducerDataSchemaType</span><span class="p">,</span>
+<span class="linenos"> 48</span>    <span class="n">ProducerMessageType</span><span class="p">,</span>
+<span class="linenos"> 49</span>    <span class="n">SpecVersion</span><span class="p">,</span>
+<span class="linenos"> 50</span>    <span class="n">StationCollisionArrayV1</span><span class="p">,</span>
+<span class="linenos"> 51</span><span class="p">)</span>
+<span class="linenos"> 52</span>
+<span class="linenos"> 53</span><span class="c1"># step_redis Package Imports</span>
+<span class="linenos"> 54</span><span class="kn">from</span><span class="w"> </span><span class="nn">step_redis.step_redis_pool</span><span class="w"> </span><span class="kn">import</span> <span class="n">StepRedisPool</span>
+<span class="linenos"> 55</span><span class="kn">from</span><span class="w"> </span><span class="nn">step_redis.step_redis_stream</span><span class="w"> </span><span class="kn">import</span> <span class="n">StepRedisStream</span><span class="p">,</span> <span class="n">StepRedisStreamParams</span>
+<span class="linenos"> 56</span>
+<span class="linenos"> 57</span><span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">version_info</span> <span class="o">&gt;=</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">13</span><span class="p">):</span>
+<span class="linenos"> 58</span>    <span class="c1"># Standard Library Imports</span>
+<span class="linenos"> 59</span>    <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">override</span>
+<span class="linenos"> 60</span><span class="k">else</span><span class="p">:</span>
+<span class="linenos"> 61</span>    <span class="c1"># Third Party Imports</span>
+<span class="linenos"> 62</span>    <span class="kn">from</span><span class="w"> </span><span class="nn">typing_extensions</span><span class="w"> </span><span class="kn">import</span> <span class="n">override</span>
+<span class="linenos"> 63</span>
 <span class="linenos"> 64</span>
-<span class="linenos"> 65</span>
 <div class="viewcode-block" id="StepProducerRedisStream">
 <a class="viewcode-back" href="../../step_redis_rst/step_redis.step_producer_redis_stream.html#step_redis.step_producer_redis_stream.StepProducerRedisStream">[docs]</a>
-<span class="linenos"> 66</span><span class="k">class</span><span class="w"> </span><span class="nc">StepProducerRedisStream</span><span class="p">(</span><span class="n">StepRedisStream</span><span class="p">):</span>
-<span class="linenos"> 67</span><span class="w">    </span><span class="sd">&quot;&quot;&quot;Redis stream implementation for STEP Producer services.</span>
-<span class="linenos"> 68</span>
-<span class="linenos"> 69</span><span class="sd">    Extends StepRedisStream to provide methods for publishing DENM and station collision array</span>
-<span class="linenos"> 70</span><span class="sd">    messages in CloudEvents format to Redis streams, and for receiving and validating producer</span>
-<span class="linenos"> 71</span><span class="sd">    messages. Supports asynchronous context management for efficient resource handling.</span>
-<span class="linenos"> 72</span>
-<span class="linenos"> 73</span><span class="sd">    Attributes:</span>
-<span class="linenos"> 74</span><span class="sd">        pool (StepRedisPool): Redis connection pool for managing connections.</span>
-<span class="linenos"> 75</span><span class="sd">        config (RedisStreamConfiguration): Configuration object containing Redis stream settings.</span>
-<span class="linenos"> 76</span><span class="sd">        logger (Logger): Logger instance for logging operations.</span>
-<span class="linenos"> 77</span><span class="sd">    &quot;&quot;&quot;</span>
-<span class="linenos"> 78</span>
-<span class="linenos"> 79</span>    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">()</span>
-<span class="linenos"> 80</span>
-<span class="linenos"> 81</span>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
-<span class="linenos"> 82</span>        <span class="bp">self</span><span class="p">,</span> <span class="n">pool</span><span class="p">:</span> <span class="n">StepRedisPool</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">StepRedisStreamParams</span><span class="p">,</span> <span class="n">logger</span><span class="p">:</span> <span class="n">Logger</span>
-<span class="linenos"> 83</span>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos"> 84</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the Redis-based step producer.</span>
-<span class="linenos"> 85</span>
-<span class="linenos"> 86</span><span class="sd">        Args:</span>
-<span class="linenos"> 87</span><span class="sd">            pool (StepRedisPool): Redis connection pool for managing connections.</span>
-<span class="linenos"> 88</span><span class="sd">            config (RedisStreamConfiguration): Configuration object containing Redis stream settings.</span>
-<span class="linenos"> 89</span><span class="sd">            logger (Logger): Logger instance for logging operations.</span>
-<span class="linenos"> 90</span>
-<span class="linenos"> 91</span><span class="sd">        Returns:</span>
-<span class="linenos"> 92</span><span class="sd">            None</span>
-<span class="linenos"> 93</span>
-<span class="linenos"> 94</span><span class="sd">        Note:</span>
-<span class="linenos"> 95</span><span class="sd">            The stream TTL is automatically calculated as twice the input wait timeout</span>
-<span class="linenos"> 96</span><span class="sd">            converted from milliseconds to seconds.</span>
-<span class="linenos"> 97</span>
-<span class="linenos"> 98</span><span class="sd">        Complexity:</span>
-<span class="linenos"> 99</span><span class="sd">            Time: O(1), delegates directly to ``StepRedisStream.__init__``.</span>
-<span class="linenos">100</span><span class="sd">            Space: O(1), stores references only, no copies of ``pool``, ``config``, or ``logger``.</span>
+<span class="linenos"> 65</span><span class="k">class</span><span class="w"> </span><span class="nc">StepProducerRedisStream</span><span class="p">(</span><span class="n">StepRedisStream</span><span class="p">):</span>
+<span class="linenos"> 66</span><span class="w">    </span><span class="sd">&quot;&quot;&quot;Redis stream implementation for STEP Producer services.</span>
+<span class="linenos"> 67</span>
+<span class="linenos"> 68</span><span class="sd">    Extends StepRedisStream to provide methods for publishing DENM and station collision array</span>
+<span class="linenos"> 69</span><span class="sd">    messages in CloudEvents format to Redis streams, and for receiving and validating producer</span>
+<span class="linenos"> 70</span><span class="sd">    messages. Supports asynchronous context management for efficient resource handling.</span>
+<span class="linenos"> 71</span>
+<span class="linenos"> 72</span><span class="sd">    Attributes:</span>
+<span class="linenos"> 73</span><span class="sd">        pool (StepRedisPool): Redis connection pool for managing connections.</span>
+<span class="linenos"> 74</span><span class="sd">        config (RedisStreamConfiguration): Configuration object containing Redis stream settings.</span>
+<span class="linenos"> 75</span><span class="sd">        logger (Logger): Logger instance for logging operations.</span>
+<span class="linenos"> 76</span><span class="sd">    &quot;&quot;&quot;</span>
+<span class="linenos"> 77</span>
+<span class="linenos"> 78</span>    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">()</span>
+<span class="linenos"> 79</span>
+<span class="linenos"> 80</span>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+<span class="linenos"> 81</span>        <span class="bp">self</span><span class="p">,</span> <span class="n">pool</span><span class="p">:</span> <span class="n">StepRedisPool</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">StepRedisStreamParams</span><span class="p">,</span> <span class="n">logger</span><span class="p">:</span> <span class="n">Logger</span>
+<span class="linenos"> 82</span>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos"> 83</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the Redis-based step producer.</span>
+<span class="linenos"> 84</span>
+<span class="linenos"> 85</span><span class="sd">        Args:</span>
+<span class="linenos"> 86</span><span class="sd">            pool (StepRedisPool): Redis connection pool for managing connections.</span>
+<span class="linenos"> 87</span><span class="sd">            config (RedisStreamConfiguration): Configuration object containing Redis stream settings.</span>
+<span class="linenos"> 88</span><span class="sd">            logger (Logger): Logger instance for logging operations.</span>
+<span class="linenos"> 89</span>
+<span class="linenos"> 90</span><span class="sd">        Returns:</span>
+<span class="linenos"> 91</span><span class="sd">            None</span>
+<span class="linenos"> 92</span>
+<span class="linenos"> 93</span><span class="sd">        Note:</span>
+<span class="linenos"> 94</span><span class="sd">            The stream TTL is automatically calculated as twice the input wait timeout</span>
+<span class="linenos"> 95</span><span class="sd">            converted from milliseconds to seconds.</span>
+<span class="linenos"> 96</span>
+<span class="linenos"> 97</span><span class="sd">        Complexity:</span>
+<span class="linenos"> 98</span><span class="sd">            - Time: O(1), delegates directly to ``StepRedisStream.__init__``.</span>
+<span class="linenos"> 99</span><span class="sd">            - Space: O(1), stores references only, no copies of ``pool``, ``config``, or</span>
+<span class="linenos">100</span><span class="sd">              ``logger``.</span>
 <span class="linenos">101</span><span class="sd">        &quot;&quot;&quot;</span>
 <span class="linenos">102</span>        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">pool</span><span class="o">=</span><span class="n">pool</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span>
 <span class="linenos">103</span>
@@ -707,8 +707,8 @@
 <span class="linenos">113</span><span class="sd">            StepProducerRedisStream: The instance itself for use in the context manager.</span>
 <span class="linenos">114</span>
 <span class="linenos">115</span><span class="sd">        Complexity:</span>
-<span class="linenos">116</span><span class="sd">            Time: O(1), delegates to ``StepRedisStream.__aenter__``.</span>
-<span class="linenos">117</span><span class="sd">            Space: O(1), no additional data structures are allocated.</span>
+<span class="linenos">116</span><span class="sd">            - Time: O(1), delegates to ``StepRedisStream.__aenter__``.</span>
+<span class="linenos">117</span><span class="sd">            - Space: O(1), no additional data structures are allocated.</span>
 <span class="linenos">118</span><span class="sd">        &quot;&quot;&quot;</span>
 <span class="linenos">119</span>        <span class="k">await</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__aenter__</span><span class="p">()</span>
 <span class="linenos">120</span>        <span class="k">return</span> <span class="bp">self</span></div>
@@ -732,100 +732,99 @@
 <span class="linenos">135</span><span class="sd">            None</span>
 <span class="linenos">136</span>
 <span class="linenos">137</span><span class="sd">        Complexity:</span>
-<span class="linenos">138</span><span class="sd">            Time: O(n), where n is the size (field count/byte length) of the</span>
-<span class="linenos">139</span><span class="sd">                station collision array; dominated by CloudEvents JSON</span>
-<span class="linenos">140</span><span class="sd">                serialization plus the network round-trip of the underlying</span>
-<span class="linenos">141</span><span class="sd">                Redis XADD call.</span>
-<span class="linenos">142</span><span class="sd">            Space: O(n), for the serialized JSON payload held in memory before</span>
-<span class="linenos">143</span><span class="sd">                being sent to Redis.</span>
-<span class="linenos">144</span><span class="sd">        &quot;&quot;&quot;</span>
-<span class="linenos">145</span>        <span class="n">message</span> <span class="o">=</span> <span class="n">ProducerCloudEventsJsonRoot</span><span class="p">(</span>
-<span class="linenos">146</span>            <span class="n">root</span><span class="o">=</span><span class="n">ProducerCloudEventsStationCollisionArrayV1</span><span class="p">(</span>
-<span class="linenos">147</span>                <span class="nb">id</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="nb">object</span><span class="o">=</span><span class="n">uuid4</span><span class="p">()),</span>
-<span class="linenos">148</span>                <span class="n">source</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="o">.</span><span class="n">consumer_name</span><span class="p">,</span>
-<span class="linenos">149</span>                <span class="n">specversion</span><span class="o">=</span><span class="n">SpecVersion</span><span class="o">.</span><span class="n">V1_0</span><span class="p">,</span>
-<span class="linenos">150</span>                <span class="n">datacontenttype</span><span class="o">=</span><span class="n">DataContentType</span><span class="o">.</span><span class="n">APPLICATION_JSON</span><span class="p">,</span>
-<span class="linenos">151</span>                <span class="n">time</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="nb">object</span><span class="o">=</span><span class="n">ItsTime</span><span class="p">()),</span>
-<span class="linenos">152</span>                <span class="nb">type</span><span class="o">=</span><span class="n">ProducerMessageType</span><span class="o">.</span><span class="n">STATION_COLLISION_ARRAY</span><span class="p">,</span>
-<span class="linenos">153</span>                <span class="n">dataschema</span><span class="o">=</span><span class="n">ProducerDataSchemaType</span><span class="o">.</span><span class="n">STATION_COLLISION_ARRAY_V1_SCHEMA</span><span class="p">,</span>
-<span class="linenos">154</span>                <span class="n">data</span><span class="o">=</span><span class="n">station_collision_array</span><span class="p">,</span>
-<span class="linenos">155</span>            <span class="p">)</span>
-<span class="linenos">156</span>        <span class="p">)</span><span class="o">.</span><span class="n">model_dump_json</span><span class="p">()</span>
-<span class="linenos">157</span>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">):</span>
-<span class="linenos">158</span>            <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Publish message to STEP Producer: </span><span class="si">{</span><span class="n">message</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="linenos">159</span>        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">publish_message</span><span class="p">(</span><span class="n">message</span><span class="o">=</span><span class="n">message</span><span class="p">)</span></div>
+<span class="linenos">138</span><span class="sd">            - Time: O(n), where n is the size (field count/byte length) of the station</span>
+<span class="linenos">139</span><span class="sd">              collision array; dominated by CloudEvents JSON serialization plus the</span>
+<span class="linenos">140</span><span class="sd">              network round-trip of the underlying Redis XADD call.</span>
+<span class="linenos">141</span><span class="sd">            - Space: O(n), for the serialized JSON payload held in memory before being</span>
+<span class="linenos">142</span><span class="sd">              sent to Redis.</span>
+<span class="linenos">143</span><span class="sd">        &quot;&quot;&quot;</span>
+<span class="linenos">144</span>        <span class="n">message</span> <span class="o">=</span> <span class="n">ProducerCloudEventsJsonRoot</span><span class="p">(</span>
+<span class="linenos">145</span>            <span class="n">root</span><span class="o">=</span><span class="n">ProducerCloudEventsStationCollisionArrayV1</span><span class="p">(</span>
+<span class="linenos">146</span>                <span class="nb">id</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="nb">object</span><span class="o">=</span><span class="n">uuid4</span><span class="p">()),</span>
+<span class="linenos">147</span>                <span class="n">source</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="o">.</span><span class="n">consumer_name</span><span class="p">,</span>
+<span class="linenos">148</span>                <span class="n">specversion</span><span class="o">=</span><span class="n">SpecVersion</span><span class="o">.</span><span class="n">V1_0</span><span class="p">,</span>
+<span class="linenos">149</span>                <span class="n">datacontenttype</span><span class="o">=</span><span class="n">DataContentType</span><span class="o">.</span><span class="n">APPLICATION_JSON</span><span class="p">,</span>
+<span class="linenos">150</span>                <span class="n">time</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="nb">object</span><span class="o">=</span><span class="n">ItsTime</span><span class="p">()),</span>
+<span class="linenos">151</span>                <span class="nb">type</span><span class="o">=</span><span class="n">ProducerMessageType</span><span class="o">.</span><span class="n">STATION_COLLISION_ARRAY</span><span class="p">,</span>
+<span class="linenos">152</span>                <span class="n">dataschema</span><span class="o">=</span><span class="n">ProducerDataSchemaType</span><span class="o">.</span><span class="n">STATION_COLLISION_ARRAY_V1_SCHEMA</span><span class="p">,</span>
+<span class="linenos">153</span>                <span class="n">data</span><span class="o">=</span><span class="n">station_collision_array</span><span class="p">,</span>
+<span class="linenos">154</span>            <span class="p">)</span>
+<span class="linenos">155</span>        <span class="p">)</span><span class="o">.</span><span class="n">model_dump_json</span><span class="p">()</span>
+<span class="linenos">156</span>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">):</span>
+<span class="linenos">157</span>            <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Publish message to STEP Producer: </span><span class="si">{</span><span class="n">message</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="linenos">158</span>        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">publish_message</span><span class="p">(</span><span class="n">message</span><span class="o">=</span><span class="n">message</span><span class="p">)</span></div>
 
-<span class="linenos">160</span>
+<span class="linenos">159</span>
 <div class="viewcode-block" id="StepProducerRedisStream.publish_denm_message">
 <a class="viewcode-back" href="../../step_redis_rst/step_redis.step_producer_redis_stream.html#step_redis.step_producer_redis_stream.StepProducerRedisStream.publish_denm_message">[docs]</a>
-<span class="linenos">161</span>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">publish_denm_message</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="n">DenmDataV1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">162</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Publishes a DENM message to the STEP Producer stream.</span>
-<span class="linenos">163</span>
-<span class="linenos">164</span><span class="sd">        Creates a CloudEvents-compliant message containing the DENM data and publishes it</span>
-<span class="linenos">165</span><span class="sd">        to the configured STEP producer Redis stream.</span>
-<span class="linenos">166</span>
-<span class="linenos">167</span><span class="sd">        Args:</span>
-<span class="linenos">168</span><span class="sd">            message (DenmDataV1): The DENM (Decentralized Environmental Notification Message)</span>
-<span class="linenos">169</span><span class="sd">                data to be published.</span>
-<span class="linenos">170</span>
-<span class="linenos">171</span><span class="sd">        Returns:</span>
-<span class="linenos">172</span><span class="sd">            None</span>
-<span class="linenos">173</span>
-<span class="linenos">174</span><span class="sd">        Complexity:</span>
-<span class="linenos">175</span><span class="sd">            Time: O(n), where n is the size (field count/byte length) of the DENM</span>
-<span class="linenos">176</span><span class="sd">                message; dominated by CloudEvents JSON serialization plus the</span>
-<span class="linenos">177</span><span class="sd">                network round-trip of the underlying Redis XADD call.</span>
-<span class="linenos">178</span><span class="sd">            Space: O(n), for the serialized JSON payload held in memory before</span>
-<span class="linenos">179</span><span class="sd">                being sent to Redis.</span>
-<span class="linenos">180</span><span class="sd">        &quot;&quot;&quot;</span>
-<span class="linenos">181</span>        <span class="n">message_producer</span> <span class="o">=</span> <span class="n">ProducerCloudEventsJsonRoot</span><span class="p">(</span>
-<span class="linenos">182</span>            <span class="n">root</span><span class="o">=</span><span class="n">ProducerCloudEventsDenmDataV1</span><span class="p">(</span>
-<span class="linenos">183</span>                <span class="nb">id</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="nb">object</span><span class="o">=</span><span class="n">uuid4</span><span class="p">()),</span>
-<span class="linenos">184</span>                <span class="n">source</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="o">.</span><span class="n">consumer_name</span><span class="p">,</span>
-<span class="linenos">185</span>                <span class="n">specversion</span><span class="o">=</span><span class="n">SpecVersion</span><span class="o">.</span><span class="n">V1_0</span><span class="p">,</span>
-<span class="linenos">186</span>                <span class="nb">type</span><span class="o">=</span><span class="n">ProducerMessageType</span><span class="o">.</span><span class="n">DENM</span><span class="p">,</span>
-<span class="linenos">187</span>                <span class="n">dataschema</span><span class="o">=</span><span class="n">ProducerDataSchemaType</span><span class="o">.</span><span class="n">DENM_DATA_V1_SCHEMA</span><span class="p">,</span>
-<span class="linenos">188</span>                <span class="n">datacontenttype</span><span class="o">=</span><span class="n">DataContentType</span><span class="o">.</span><span class="n">APPLICATION_JSON</span><span class="p">,</span>
-<span class="linenos">189</span>                <span class="n">time</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="nb">object</span><span class="o">=</span><span class="n">message</span><span class="o">.</span><span class="n">managementContainer</span><span class="o">.</span><span class="n">referenceTime</span><span class="p">),</span>
-<span class="linenos">190</span>                <span class="n">data</span><span class="o">=</span><span class="n">message</span><span class="p">,</span>
-<span class="linenos">191</span>            <span class="p">)</span>
-<span class="linenos">192</span>        <span class="p">)</span><span class="o">.</span><span class="n">model_dump_json</span><span class="p">()</span>
-<span class="linenos">193</span>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">):</span>
-<span class="linenos">194</span>            <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-<span class="linenos">195</span>                <span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Publish message to STEP Producer: </span><span class="si">{</span><span class="n">message_producer</span><span class="si">}</span><span class="s2">&quot;</span>
-<span class="linenos">196</span>            <span class="p">)</span>
-<span class="linenos">197</span>        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">publish_message</span><span class="p">(</span><span class="n">message</span><span class="o">=</span><span class="n">message_producer</span><span class="p">)</span></div>
+<span class="linenos">160</span>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">publish_denm_message</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="n">DenmDataV1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">161</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Publishes a DENM message to the STEP Producer stream.</span>
+<span class="linenos">162</span>
+<span class="linenos">163</span><span class="sd">        Creates a CloudEvents-compliant message containing the DENM data and publishes it</span>
+<span class="linenos">164</span><span class="sd">        to the configured STEP producer Redis stream.</span>
+<span class="linenos">165</span>
+<span class="linenos">166</span><span class="sd">        Args:</span>
+<span class="linenos">167</span><span class="sd">            message (DenmDataV1): The DENM (Decentralized Environmental Notification Message)</span>
+<span class="linenos">168</span><span class="sd">                data to be published.</span>
+<span class="linenos">169</span>
+<span class="linenos">170</span><span class="sd">        Returns:</span>
+<span class="linenos">171</span><span class="sd">            None</span>
+<span class="linenos">172</span>
+<span class="linenos">173</span><span class="sd">        Complexity:</span>
+<span class="linenos">174</span><span class="sd">            - Time: O(n), where n is the size (field count/byte length) of the DENM</span>
+<span class="linenos">175</span><span class="sd">              message; dominated by CloudEvents JSON serialization plus the network</span>
+<span class="linenos">176</span><span class="sd">              round-trip of the underlying Redis XADD call.</span>
+<span class="linenos">177</span><span class="sd">            - Space: O(n), for the serialized JSON payload held in memory before being</span>
+<span class="linenos">178</span><span class="sd">              sent to Redis.</span>
+<span class="linenos">179</span><span class="sd">        &quot;&quot;&quot;</span>
+<span class="linenos">180</span>        <span class="n">message_producer</span> <span class="o">=</span> <span class="n">ProducerCloudEventsJsonRoot</span><span class="p">(</span>
+<span class="linenos">181</span>            <span class="n">root</span><span class="o">=</span><span class="n">ProducerCloudEventsDenmDataV1</span><span class="p">(</span>
+<span class="linenos">182</span>                <span class="nb">id</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="nb">object</span><span class="o">=</span><span class="n">uuid4</span><span class="p">()),</span>
+<span class="linenos">183</span>                <span class="n">source</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="o">.</span><span class="n">consumer_name</span><span class="p">,</span>
+<span class="linenos">184</span>                <span class="n">specversion</span><span class="o">=</span><span class="n">SpecVersion</span><span class="o">.</span><span class="n">V1_0</span><span class="p">,</span>
+<span class="linenos">185</span>                <span class="nb">type</span><span class="o">=</span><span class="n">ProducerMessageType</span><span class="o">.</span><span class="n">DENM</span><span class="p">,</span>
+<span class="linenos">186</span>                <span class="n">dataschema</span><span class="o">=</span><span class="n">ProducerDataSchemaType</span><span class="o">.</span><span class="n">DENM_DATA_V1_SCHEMA</span><span class="p">,</span>
+<span class="linenos">187</span>                <span class="n">datacontenttype</span><span class="o">=</span><span class="n">DataContentType</span><span class="o">.</span><span class="n">APPLICATION_JSON</span><span class="p">,</span>
+<span class="linenos">188</span>                <span class="n">time</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="nb">object</span><span class="o">=</span><span class="n">message</span><span class="o">.</span><span class="n">managementContainer</span><span class="o">.</span><span class="n">referenceTime</span><span class="p">),</span>
+<span class="linenos">189</span>                <span class="n">data</span><span class="o">=</span><span class="n">message</span><span class="p">,</span>
+<span class="linenos">190</span>            <span class="p">)</span>
+<span class="linenos">191</span>        <span class="p">)</span><span class="o">.</span><span class="n">model_dump_json</span><span class="p">()</span>
+<span class="linenos">192</span>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">):</span>
+<span class="linenos">193</span>            <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+<span class="linenos">194</span>                <span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Publish message to STEP Producer: </span><span class="si">{</span><span class="n">message_producer</span><span class="si">}</span><span class="s2">&quot;</span>
+<span class="linenos">195</span>            <span class="p">)</span>
+<span class="linenos">196</span>        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">publish_message</span><span class="p">(</span><span class="n">message</span><span class="o">=</span><span class="n">message_producer</span><span class="p">)</span></div>
 
-<span class="linenos">198</span>
+<span class="linenos">197</span>
 <div class="viewcode-block" id="StepProducerRedisStream.receive_producer_message">
 <a class="viewcode-back" href="../../step_redis_rst/step_redis.step_producer_redis_stream.html#step_redis.step_producer_redis_stream.StepProducerRedisStream.receive_producer_message">[docs]</a>
-<span class="linenos">199</span>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">receive_producer_message</span><span class="p">(</span>
-<span class="linenos">200</span>        <span class="bp">self</span><span class="p">,</span>
-<span class="linenos">201</span>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AsyncGenerator</span><span class="p">[</span><span class="n">ProducerCloudEventsJsonRoot</span><span class="p">]:</span>
-<span class="linenos">202</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Receives and validates Producer messages from the Redis stream.</span>
-<span class="linenos">203</span>
-<span class="linenos">204</span><span class="sd">        Asynchronously iterates over messages received from the configured Redis stream,</span>
-<span class="linenos">205</span><span class="sd">        logs each received message, and yields validated ProducerCloudEventsJsonRoot instances.</span>
-<span class="linenos">206</span>
-<span class="linenos">207</span><span class="sd">        Yields:</span>
-<span class="linenos">208</span><span class="sd">            ProducerCloudEventsJsonRoot: Validated Producer cloud event messages.</span>
-<span class="linenos">209</span>
-<span class="linenos">210</span><span class="sd">        Returns:</span>
-<span class="linenos">211</span><span class="sd">            None</span>
-<span class="linenos">212</span>
-<span class="linenos">213</span><span class="sd">        Complexity:</span>
-<span class="linenos">214</span><span class="sd">            Time: O(m) per yielded message, where m is the byte length of the</span>
-<span class="linenos">215</span><span class="sd">                received JSON payload; dominated by JSON parsing and Pydantic</span>
-<span class="linenos">216</span><span class="sd">                validation (the generator itself runs indefinitely).</span>
-<span class="linenos">217</span><span class="sd">            Space: O(m) per yielded message, for the parsed</span>
-<span class="linenos">218</span><span class="sd">                ``ProducerCloudEventsJsonRoot`` object held in memory.</span>
-<span class="linenos">219</span><span class="sd">        &quot;&quot;&quot;</span>
-<span class="linenos">220</span>        <span class="k">async</span> <span class="k">for</span> <span class="n">message_json</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">receive_message</span><span class="p">():</span>
-<span class="linenos">221</span>            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">):</span>
-<span class="linenos">222</span>                <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Received message: </span><span class="si">{</span><span class="n">message_json</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="linenos">223</span>            <span class="k">yield</span> <span class="n">ProducerCloudEventsJsonRoot</span><span class="o">.</span><span class="n">model_validate_json</span><span class="p">(</span>
-<span class="linenos">224</span>                <span class="n">json_data</span><span class="o">=</span><span class="n">message_json</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">True</span>
-<span class="linenos">225</span>            <span class="p">)</span></div>
+<span class="linenos">198</span>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">receive_producer_message</span><span class="p">(</span>
+<span class="linenos">199</span>        <span class="bp">self</span><span class="p">,</span>
+<span class="linenos">200</span>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AsyncGenerator</span><span class="p">[</span><span class="n">ProducerCloudEventsJsonRoot</span><span class="p">]:</span>
+<span class="linenos">201</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Receives and validates Producer messages from the Redis stream.</span>
+<span class="linenos">202</span>
+<span class="linenos">203</span><span class="sd">        Asynchronously iterates over messages received from the configured Redis stream,</span>
+<span class="linenos">204</span><span class="sd">        logs each received message, and yields validated ProducerCloudEventsJsonRoot instances.</span>
+<span class="linenos">205</span>
+<span class="linenos">206</span><span class="sd">        Yields:</span>
+<span class="linenos">207</span><span class="sd">            ProducerCloudEventsJsonRoot: Validated Producer cloud event messages.</span>
+<span class="linenos">208</span>
+<span class="linenos">209</span><span class="sd">        Returns:</span>
+<span class="linenos">210</span><span class="sd">            None</span>
+<span class="linenos">211</span>
+<span class="linenos">212</span><span class="sd">        Complexity:</span>
+<span class="linenos">213</span><span class="sd">            - Time: O(m) per yielded message, where m is the byte length of the received</span>
+<span class="linenos">214</span><span class="sd">              JSON payload; dominated by JSON parsing and Pydantic validation (the</span>
+<span class="linenos">215</span><span class="sd">              generator itself runs indefinitely).</span>
+<span class="linenos">216</span><span class="sd">            - Space: O(m) per yielded message, for the parsed</span>
+<span class="linenos">217</span><span class="sd">              ``ProducerCloudEventsJsonRoot`` object held in memory.</span>
+<span class="linenos">218</span><span class="sd">        &quot;&quot;&quot;</span>
+<span class="linenos">219</span>        <span class="k">async</span> <span class="k">for</span> <span class="n">message_json</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">receive_message</span><span class="p">():</span>
+<span class="linenos">220</span>            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">):</span>
+<span class="linenos">221</span>                <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Received message: </span><span class="si">{</span><span class="n">message_json</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="linenos">222</span>            <span class="k">yield</span> <span class="n">ProducerCloudEventsJsonRoot</span><span class="o">.</span><span class="n">model_validate_json</span><span class="p">(</span>
+<span class="linenos">223</span>                <span class="n">json_data</span><span class="o">=</span><span class="n">message_json</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">True</span>
+<span class="linenos">224</span>            <span class="p">)</span></div>
 </div>
 
 </pre></div>
