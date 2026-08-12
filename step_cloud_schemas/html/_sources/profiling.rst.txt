@@ -1,0 +1,328 @@
+Profiling
+=========
+
+The :mod:`step_cloud_schemas.profiling` subpackage provides lightweight,
+low-overhead utilities for instrumenting execution flow and measuring elapsed
+time in milliseconds across processing pipelines. It contains four building
+blocks:
+
+* :class:`~step_cloud_schemas.profiling.monotonic_timer.MonotonicTimer` — a
+  pure stopwatch built on ``time.monotonic_ns`` that measures elapsed time
+  between a start and a stop, usable explicitly or as a context manager, with
+  no logging concerns of its own.
+* :class:`~step_cloud_schemas.profiling.logging_timer.LoggingTimer` — a
+  context manager, built on ``MonotonicTimer.get_time_ms``, that times the
+  block it wraps and logs the elapsed time through a caller-supplied logger
+  when the block exits.
+* :func:`~step_cloud_schemas.profiling.logging_timer.log_execution_time` —
+  a decorator factory, built on top of ``LoggingTimer``, for the common case
+  of a logger fixed at decoration time.
+* :class:`~step_cloud_schemas.profiling.checkpoint.Checkpoint` — emits named
+  checkpoint log messages carrying a monotonic timestamp, useful for tracing
+  the progress of a pipeline stage by stage.
+
+All four tools use the monotonic clock (:func:`time.monotonic_ns`), which is
+unaffected by wall-clock adjustments (NTP sync, DST changes, manual clock
+changes), making measured intervals reliable even though the timestamp itself
+has no meaning outside the process that produced it.
+
+MonotonicTimer
+---------------
+
+``MonotonicTimer`` records a start timestamp and computes the elapsed
+interval, in milliseconds, once stopped. It can be driven explicitly with
+``start``/``stop`` or used as a context manager.
+
+Explicit start/stop usage:
+
+.. code-block:: python
+
+    from step_cloud_schemas.profiling.monotonic_timer import MonotonicTimer
+
+    timer = MonotonicTimer()
+    timer.start()
+    # ... timed code ...
+    timer.stop()
+    print(timer.interval_ms)
+    # 122.456
+
+Context-manager usage:
+
+.. code-block:: python
+
+    from step_cloud_schemas.profiling.monotonic_timer import MonotonicTimer
+
+    with MonotonicTimer() as timer:
+        # ... timed code ...
+        pass
+    print(timer.interval_ms)
+    # 122.456
+
+The timer also exposes ``get_time_ms``, a static method that returns the
+current monotonic time in milliseconds as a ``float`` with sub-millisecond
+precision, directly and without allocating an instance. This is convenient
+for hand-rolled interval measurements, and is what both ``LoggingTimer`` and
+``Checkpoint`` use internally to read the clock:
+
+.. code-block:: python
+
+    from step_cloud_schemas.profiling.monotonic_timer import MonotonicTimer
+
+    start = MonotonicTimer.get_time_ms()
+    # ... timed code ...
+    elapsed = MonotonicTimer.get_time_ms() - start
+
+LoggingTimer
+-------------
+
+``LoggingTimer`` is a context-manager-only utility that times a single,
+lexically scoped block of code and logs the elapsed time through a
+caller-supplied :class:`logging.Logger` when the block exits. It exists for
+cases where the logger to use is only known at the call site, e.g. an
+instance attribute such as ``self._logger``, which cannot be reached from a
+decorator argument evaluated at class-definition time. The elapsed time is
+logged even if the wrapped block raises, since ``__exit__`` always runs.
+
+The constructor takes four arguments, all but *logger* optional:
+
+* *func_name* (``str | None``) — name of the timed function or block,
+  embedded in the log message. May be supplied at construction time, left
+  unset and supplied later via ``__call__``, or both (a later ``__call__``
+  overrides it). Defaults to ``None``.
+* *prefix* (``str | None``) — optional context label prepended to the
+  message as a leading ``"[<prefix>] - "`` segment. Defaults to ``None``.
+* *log_level* (``LogMode``) — log mode used both to resolve the logging
+  level and to gate the timing measurement. Defaults to ``LogMode.INFO``.
+
+The sections below cover every supported way of using it.
+
+Fresh instance per block, *func_name* at construction
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The most common usage: build a new ``LoggingTimer`` for a single ``with``
+block, with *func_name* passed directly to the constructor.
+
+.. code-block:: python
+
+    import logging
+
+    from step_cloud_schemas.profiling.logging_timer import LoggingTimer
+
+    logger = logging.getLogger(__name__)
+
+    def serialize(self, ...):
+        with LoggingTimer(logger, func_name="serialize"):
+            # ... timed code ...
+            pass
+
+Example log line produced by the call above (using the default log format
+described in :mod:`step_cloud_schemas.logging.log_config`)::
+
+    2026-08-11 10:15:32.418Z [INFO][pid=25184][module=logging_timer][function=__exit__]: Execution time [serialize] - [3f2b9c1a-6e4d-4a2f-9c31-0a7e5b1d8f9c]: 122.456 ms
+
+Fresh instance per block, *func_name* via ``__call__``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Equivalent to the pattern above, but with *func_name* supplied inline via
+``__call__`` instead of as a constructor keyword — useful when the
+constructor call and the ``with`` usage are naturally written together:
+
+.. code-block:: python
+
+    with LoggingTimer(logger)("serialize"):
+        # ... timed code ...
+        pass
+
+This produces the same log line as above, since ``__call__`` sets
+*func_name* and returns the same instance, which is then used as the context
+manager.
+
+Reused instance across different functions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+*func_name* can be left unset at construction and supplied per use via
+``__call__``, so a single instance — e.g. stored once as an instance
+attribute — can be reused across different functions, each supplying its own
+name at the ``with`` usage site:
+
+.. code-block:: python
+
+    class TrajectoryService:
+        def __init__(self, logger: logging.Logger) -> None:
+            self._timer = LoggingTimer(logger)
+
+        def serialize(self, ...):
+            with self._timer("serialize"):
+                # ... timed code ...
+                pass
+
+        def parse(self, ...):
+            with self._timer("parse"):
+                # ... timed code ...
+                pass
+
+Each call to ``self._timer(...)`` overwrites the instance's stored
+*func_name* — including overriding one originally passed to the
+constructor, if any — so ``__exit__`` always logs whichever name was set
+most recently.
+
+.. warning::
+
+    A ``LoggingTimer`` reused this way is **not** safe to use concurrently or
+    reentrantly: ``__call__`` and ``__enter__`` mutate shared state on the
+    instance, so two overlapping ``with`` blocks on the same instance
+    (across threads, or nested/recursive calls) would clobber each other's
+    state. Build a fresh instance per call site instead when timings could
+    overlap — which is exactly why ``log_execution_time`` below always
+    builds one per call.
+
+With an optional prefix and log level
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+*prefix* and *log_level* apply the same way regardless of which pattern
+above is used for *func_name*:
+
+.. code-block:: python
+
+    from step_cloud_schemas.logging.log_config import LogMode
+
+    with LoggingTimer(
+        logger, func_name="forecast_trajectory", prefix="Trajectory forecast", log_level=LogMode.DEBUG
+    ):
+        # ... timed code ...
+        pass
+
+Example log line produced by the call above::
+
+    2026-08-11 10:15:32.418Z [DEBUG][pid=25184][module=logging_timer][function=__exit__]: [Trajectory forecast] - Execution time [forecast_trajectory] - [3f2b9c1a-6e4d-4a2f-9c31-0a7e5b1d8f9c]: 122.456 ms
+
+When *prefix* is omitted (``None``, the default), the leading
+``"[<prefix>] - "`` segment is dropped and only the standard execution-time
+text is logged, as in the earlier examples.
+
+Timing a block that raises
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The elapsed time is still logged if the wrapped block raises, since
+``__exit__`` always runs, and the exception is never suppressed —
+``LoggingTimer`` only observes it, it does not handle it:
+
+.. code-block:: python
+
+    with LoggingTimer(logger, func_name="parse_payload"):
+        raise ValueError("malformed payload")
+    # Logs the elapsed time up to the point of the exception, then the
+    # ValueError propagates unchanged to the caller.
+
+Common details across all usages
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``[<call id>]`` segment is a random UUID v4 generated fresh for every
+``with`` block, so concurrent or repeated timings can be told apart in the
+logs even when their execution times overlap, and the elapsed time is always
+formatted with exactly three decimal places.
+
+To keep overhead low when the target level is disabled,
+``logger.isEnabledFor`` is checked once in ``__enter__``, the clock is
+skipped entirely (in both ``__enter__`` and ``__exit__``) when the level is
+disabled, and the log message itself is only ever assembled in ``__exit__``
+when timing was enabled.
+
+log_execution_time
+-------------------
+
+``log_execution_time`` returns a decorator that wraps a function so every
+call is timed and logged through a given :class:`logging.Logger`, fixed at
+decoration time. It is built on top of ``LoggingTimer``: each call to the
+wrapped function constructs a fresh ``LoggingTimer`` scoped to that single
+call, rather than sharing one across calls, so that recursive or concurrent
+calls to the wrapped function each get their own independent timing state.
+It logs even when the wrapped function raises, so failing calls are still
+timed.
+
+.. code-block:: python
+
+    import logging
+
+    from step_cloud_schemas.logging.log_config import LogMode
+    from step_cloud_schemas.profiling.logging_timer import log_execution_time
+
+    logger = logging.getLogger(__name__)
+
+    @log_execution_time(logger, "Trajectory forecast", LogMode.INFO)
+    def forecast_trajectory(actor_id: str) -> None:
+        # ... trajectory forecasting code ...
+        pass
+
+    forecast_trajectory(actor_id="AB12CD34")
+
+Example log line produced by the call above (using the default log format
+described in :mod:`step_cloud_schemas.logging.log_config`)::
+
+    2026-08-11 10:15:32.418Z [INFO][pid=25184][module=logging_timer][function=__exit__]: [Trajectory forecast] - Execution time [forecast_trajectory] - [3f2b9c1a-6e4d-4a2f-9c31-0a7e5b1d8f9c]: 122.456 ms
+
+The ``[<call id>]`` segment is a random UUID v4 generated fresh for every
+call, so concurrent or repeated invocations of the same function can be told
+apart in the logs even when their execution times overlap, and the elapsed
+time is always formatted with exactly three decimal places. When *prefix* is
+omitted (``None``), the leading ``"[<prefix>] - "`` segment is dropped and only
+the standard execution-time text is logged::
+
+    2026-08-11 10:15:32.418Z [INFO][pid=25184][module=logging_timer][function=__exit__]: Execution time [forecast_trajectory] - [3f2b9c1a-6e4d-4a2f-9c31-0a7e5b1d8f9c]: 122.456 ms
+
+To keep overhead low when the target level is disabled, ``logger.isEnabledFor``
+is checked before the timer starts (inherited from the underlying
+``LoggingTimer``), and the log message itself is never built at all in that
+case — it is only assembled in ``LoggingTimer.__exit__``, and only when
+timing was enabled. *logger*, *prefix*, and *log_level* are fixed once, at
+decoration time; only the per-call ``LoggingTimer`` instance and, when
+enabled, its log message are built fresh on each call.
+
+Checkpoint
+----------
+
+``Checkpoint`` emits a standardized checkpoint marker through a configured
+logger, pairing a caller-supplied label with the current monotonic time in
+milliseconds. It is intended for coarse-grained tracing of a pipeline's
+progress across its stages, rather than measuring the duration of a single
+call.
+
+.. code-block:: python
+
+    import logging
+
+    from step_cloud_schemas.logging.log_config import LogMode
+    from step_cloud_schemas.profiling.checkpoint import Checkpoint
+
+    logger = logging.getLogger(__name__)
+    checkpoint = Checkpoint(logger=logger, log_level=LogMode.DEBUG)
+
+    checkpoint.print_log(checkpoint_name="message received")
+    # ... pipeline stage ...
+    checkpoint.print_log(checkpoint_name="message validated")
+    # ... pipeline stage ...
+    checkpoint.print_log(checkpoint_name="message forwarded")
+
+Example log lines produced by the calls above::
+
+    2026-08-11 10:15:32.401Z [DEBUG][pid=25184][module=checkpoint][function=print_log]: --Checkpoint: message received, timer: 118293471.203--
+    2026-08-11 10:15:32.418Z [DEBUG][pid=25184][module=checkpoint][function=print_log]: --Checkpoint: message validated, timer: 118293488.417--
+    2026-08-11 10:15:32.455Z [DEBUG][pid=25184][module=checkpoint][function=print_log]: --Checkpoint: message forwarded, timer: 118293525.884--
+
+The ``timer`` value is the raw monotonic timestamp in milliseconds (an
+arbitrary reference point, not wall-clock time), formatted with exactly
+three decimal places; comparing it across consecutive checkpoints gives the
+elapsed time between pipeline stages, here about 17.2 ms between the first
+two checkpoints and about 37.5 ms between the last two.
+
+The checkpoint message is only formatted and emitted when the logger is
+enabled for the configured level, so disabled checkpoints cost a single
+``isEnabledFor`` check.
+
+See Also
+--------
+
+* :doc:`step_cloud_schemas_rst/profiling/step_cloud_schemas.profiling` for
+  the full API reference.
+* :doc:`step_cloud_schemas_rst/logging/step_cloud_schemas.logging` for how
+  to configure loggers and log formats consumed by these utilities.
