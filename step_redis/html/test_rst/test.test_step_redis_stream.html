@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>test.test_step_redis_stream module &mdash; STEP Redis 1.3.2 documentation</title>
+  <title>test.test_step_redis_stream module &mdash; STEP Redis 1.3.3 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/tabs.css?v=4c969af8" />
@@ -16,7 +16,7 @@
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=8ca9e7a0"></script>
+      <script src="../_static/documentation_options.js?v=28d163b9"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/tabs.js?v=3ee01567"></script>
@@ -82,6 +82,13 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../package_script.html#pdf-conversion">PDF conversion</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../profiling.html">Profiling: Execution-Time Logging</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../profiling.html#introduction">Introduction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../profiling.html#log-message-format">Log Message Format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../profiling.html#usage-sites">Usage Sites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../profiling.html#consuming-these-logs-programmatically">Consuming These Logs Programmatically</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../architecture.html">Architecture</a><ul>
@@ -249,6 +256,7 @@
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_crash_prediction_schema.html#position-info">Position Info</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_crash_prediction_schema.html#position-type">Position Type</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_crash_prediction_schema.html#reference-position">Reference Position</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_crash_prediction_schema.html#source-type">Source Type</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_crash_prediction_schema.html#cloudevents-specification-version">CloudEvents Specification Version</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_crash_prediction_schema.html#speed">Speed</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cloud_events_step_crash_prediction_schema.html#traffic-participant-type">Traffic Participant Type</a></li>
@@ -270,6 +278,7 @@
 <li class="toctree-l7"><a class="reference internal" href="../schemas_rst/cloud_events_step_monitoring_schema.html#position-type">Position Type</a></li>
 <li class="toctree-l7"><a class="reference internal" href="../schemas_rst/cloud_events_step_monitoring_schema.html#cloudevents-specification-version">CloudEvents Specification Version</a></li>
 <li class="toctree-l7"><a class="reference internal" href="../schemas_rst/cloud_events_step_monitoring_schema.html#speed">Speed</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../schemas_rst/cloud_events_step_monitoring_schema.html#traffic-participant-type">Traffic Participant Type</a></li>
 </ul>
 </li>
 </ul>
@@ -714,7 +723,7 @@ the provided pool</p></li>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>mocker</strong> (<em>MockerFixture</em>) – Pytest fixture for mocking.</p></li>
 <li><p><strong>mock_pool</strong> (<em>MagicMock</em>) – Mock Redis connection pool.</p></li>
-<li><p><strong>ttl_seconds</strong> (<em>Optional</em><em>[</em><em>int</em><em>]</em>) – Time to live for the stream in seconds.</p></li>
+<li><p><strong>ttl_seconds</strong> (<em>int</em><em> | </em><em>None</em>) – Time to live for the stream in seconds.</p></li>
 <li><p><strong>log_enabled</strong> (<em>bool</em>) – Flag to enable or disable logging.</p></li>
 </ul>
 </dd>
@@ -943,8 +952,8 @@ invalid parameters (e.g., max_length is None).</p>
 <li><p><strong>mock_pool</strong> (<em>MagicMock</em>) – Mock Redis connection pool</p></li>
 <li><p><strong>stream_id</strong> (<em>str</em>) – The Redis stream ID to read from</p></li>
 <li><p><strong>responses</strong> (<em>list</em><em>[</em><em>dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em><em>]</em>) – Mocked responses from Redis xreadgroup</p></li>
-<li><p><strong>ttl_seconds</strong> (<em>Optional</em><em>[</em><em>int</em><em>]</em>) – Time to live for the stream in seconds</p></li>
-<li><p><strong>exception</strong> (<em>Optional</em><em>[</em><em>Exception</em><em>]</em>) – Exception to raise during the test, if any</p></li>
+<li><p><strong>ttl_seconds</strong> (<em>int</em><em> | </em><em>None</em>) – Time to live for the stream in seconds</p></li>
+<li><p><strong>exception</strong> (<em>Exception</em><em> | </em><em>None</em>) – Exception to raise during the test, if any</p></li>
 <li><p><strong>expected_message</strong> (<em>str</em>) – The expected message content to be returned</p></li>
 <li><p><strong>log_enabled</strong> (<em>bool</em>) – Flag to enable or disable logging</p></li>
 </ul>
@@ -1063,7 +1072,7 @@ attributes.</p>
 <li><p><strong>wait_timeout_ms</strong> (<em>int</em>) – The wait timeout in milliseconds.</p></li>
 <li><p><strong>max_length</strong> (<em>int</em>) – The maximum length of the stream.</p></li>
 <li><p><strong>consumer_name</strong> (<em>str</em>) – The name of the consumer.</p></li>
-<li><p><strong>ttl_seconds</strong> (<em>Optional</em><em>[</em><em>int</em><em>]</em>) – The time-to-live in seconds for the stream.</p></li>
+<li><p><strong>ttl_seconds</strong> (<em>int</em><em> | </em><em>None</em>) – The time-to-live in seconds for the stream.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -1085,7 +1094,7 @@ invalid parameter values.</p>
 <li><p><strong>wait_timeout_ms</strong> (<em>int</em>) – The wait timeout in milliseconds.</p></li>
 <li><p><strong>max_length</strong> (<em>int</em>) – The maximum length of the stream.</p></li>
 <li><p><strong>consumer_name</strong> (<em>str</em>) – The name of the consumer.</p></li>
-<li><p><strong>ttl_seconds</strong> (<em>Optional</em><em>[</em><em>int</em><em>]</em>) – The time-to-live in seconds for the stream.</p></li>
+<li><p><strong>ttl_seconds</strong> (<em>int</em><em> | </em><em>None</em>) – The time-to-live in seconds for the stream.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>

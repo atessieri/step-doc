@@ -1,0 +1,142 @@
+Profiling: Execution-Time Logging
+==================================
+
+Introduction
+------------
+
+The ``step_redis`` module measures the time it takes to build and publish each
+outbound message using ``LoggingTimer``, a context-manager utility provided by
+``step_cloud_schemas`` (``step_cloud_schemas.profiling.logging_timer``). Every
+stream class wraps its ``publish_*`` methods in a ``LoggingTimer`` block, so
+each publish call emits a single, uniformly formatted log line reporting how
+long CloudEvents serialization took, in milliseconds.
+
+This guide documents exactly where ``LoggingTimer`` is used in ``step_redis``
+and the precise shape of the log line it produces, so that the message can be
+parsed programmatically (e.g. by a log-scraping or metrics pipeline) without
+depending on this documentation staying in sync by hand.
+
+Log Message Format
+-------------------
+
+Each ``step_redis`` stream class constructs its timer once, in ``__init__``,
+with a fixed ``prefix="step_redis"`` and ``log_level=LogMode.INFO``, then
+reuses that single instance across its methods, supplying a different
+``func_name`` per call site via ``__call__``:
+
+.. code-block:: python
+
+    self._logging_timer = LoggingTimer(
+        logger=self._logger, prefix="step_redis", log_level=LogMode.INFO
+    )
+
+    async def publish_denm_message(self, message: DenmDataV1) -> None:
+        with self._logging_timer(func_name="client-publish_denm_message"):
+            ...
+
+On exit from the ``with`` block, ``LoggingTimer`` logs, at ``INFO`` level
+(only if ``INFO`` is enabled on the logger), a message with this exact
+template::
+
+    [<prefix>] - Execution time [<func_name>] - [<uuid>]: <elapsed_ms> ms
+
+Concretely, since every ``step_redis`` timer is constructed with
+``prefix="step_redis"``, every line takes this shape::
+
+    [step_redis] - Execution time [<func_name>] - [<uuid>]: <elapsed_ms> ms
+
+Where:
+
+* ``<func_name>`` -- one of the fixed strings listed in `Usage Sites`_ below,
+  identifying which publish method was timed.
+* ``<uuid>`` -- a fresh, random UUID4 generated on every log call (**not**
+  stable across calls for the same ``func_name``), useful for de-duplicating
+  or correlating a single measurement, not for grouping.
+* ``<elapsed_ms>`` -- the elapsed wall-clock time for the wrapped block,
+  formatted with exactly three decimal places (Python ``f"{elapsed_ms:.3f}"``),
+  e.g. ``12.457``.
+
+Regular expression for extraction:
+
+.. code-block:: python
+
+    import re
+
+    LOGGING_TIMER_RE = re.compile(
+        r"\[(?P<prefix>[^\]]+)\] - Execution time "
+        r"\[(?P<func_name>[^\]]+)\] - \[(?P<uuid>[0-9a-fA-F-]+)\]: "
+        r"(?P<elapsed_ms>\d+\.\d+) ms"
+    )
+
+    match = LOGGING_TIMER_RE.search(log_line)
+    if match:
+        prefix = match.group("prefix")          # "step_redis"
+        func_name = match.group("func_name")     # e.g. "adapter-publish_cam_message"
+        elapsed_ms = float(match.group("elapsed_ms"))
+
+Usage Sites
+-----------
+
+Every usage in ``step_redis`` lives in ``src/step_redis``. Each class builds
+its ``LoggingTimer`` the same way in ``__init__`` and times exactly the block
+that constructs the CloudEvents envelope and serializes it to JSON (the
+``model_dump_json()`` call), **not** the network round-trip of publishing the
+message to Redis, which happens after the ``with`` block exits.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 28 26 46
+
+   * - File
+     - ``func_name``
+     - Example log line
+   * - ``step_client_redis_stream.py``
+     - ``client-publish_denm_message``
+     - ``[step_redis] - Execution time [client-publish_denm_message] - [1f9d9c2a-6b3e-4b7a-9c1d-2e6a8f0b7c3d]: 3.214 ms``
+   * - ``step_adapter_redis_stream.py``
+     - ``adapter-publish_cam_message``
+     - ``[step_redis] - Execution time [adapter-publish_cam_message] - [7a2e5d10-4c8b-4f21-9e3a-0b6d1c5f8a92]: 2.871 ms``
+   * - ``step_adapter_redis_stream.py``
+     - ``adapter-publish_cpm_message``
+     - ``[step_redis] - Execution time [adapter-publish_cpm_message] - [c4b8e3f1-2a9d-4e6b-8f0c-3d7a1e9b5c62]: 4.038 ms``
+   * - ``step_producer_redis_stream.py``
+     - ``publish_station_collision_array``
+     - ``[step_redis] - Execution time [publish_station_collision_array] - [9e1a4d7c-3f6b-42a8-b0d5-8c2e6f9a1b34]: 5.602 ms``
+   * - ``step_producer_redis_stream.py``
+     - ``producer-publish_denm_message``
+     - ``[step_redis] - Execution time [producer-publish_denm_message] - [0d3c7b9a-5e2f-41c6-a8d9-7b4f1e0c3a56]: 3.789 ms``
+   * - ``step_monitoring_redis_stream.py``
+     - ``publish_forecasted_trajectory``
+     - ``[step_redis] - Execution time [publish_forecasted_trajectory] - [5b8f2e1d-9c4a-4d76-b3e0-1a6c9f7d2b45]: 6.915 ms``
+   * - ``step_crash_prediction_redis_stream.py``
+     - ``publish_position_array``
+     - ``[step_redis] - Execution time [publish_position_array] - [2c6e9a1f-7d3b-4a58-9e2c-4f8b1d6a3c70]: 4.472 ms``
+
+.. note::
+
+    The UUIDs and elapsed-time values in the example log lines above are
+    illustrative placeholders, not captured output. Every real invocation
+    generates a fresh UUID4 and reflects the actual measured duration for
+    that call.
+
+Consuming These Logs Programmatically
+--------------------------------------
+
+Because ``func_name`` is a small, fixed set of literal strings (one per
+publish method, listed above), a log-processing tool can:
+
+    #. Filter log lines for the literal substring ``Execution time [`` to find
+       every ``LoggingTimer`` measurement, regardless of source module.
+    #. Apply the regular expression from `Log Message Format`_ to extract
+       ``prefix``, ``func_name``, and ``elapsed_ms``.
+    #. Group extracted measurements by ``func_name`` to build per-operation
+       latency statistics (e.g. p50/p95/p99 publish latency per message
+       type), since ``func_name`` maps 1:1 to a specific stream class and
+       publish method as shown in `Usage Sites`_.
+    #. Treat the embedded ``uuid`` as an opaque, per-call identifier only --
+       it is not meant to correlate across log lines.
+
+Because every timer in ``step_redis`` is constructed with the same
+``prefix="step_redis"``, filtering on ``[step_redis] - Execution time`` is
+sufficient to isolate every timing measurement emitted by this module, as
+opposed to timers used by other STEP components with a different prefix.

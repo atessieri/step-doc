@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>test.test_step_redis_stream &mdash; STEP Redis 1.3.2 documentation</title>
+  <title>test.test_step_redis_stream &mdash; STEP Redis 1.3.3 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=4c969af8" />
@@ -15,7 +15,7 @@
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=8ca9e7a0"></script>
+      <script src="../../_static/documentation_options.js?v=28d163b9"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/tabs.js?v=3ee01567"></script>
@@ -80,6 +80,13 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../package_script.html#pdf-conversion">PDF conversion</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../profiling.html">Profiling: Execution-Time Logging</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../profiling.html#introduction">Introduction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../profiling.html#log-message-format">Log Message Format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../profiling.html#usage-sites">Usage Sites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../profiling.html#consuming-these-logs-programmatically">Consuming These Logs Programmatically</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../architecture.html">Architecture</a><ul>
@@ -247,6 +254,7 @@
 <li class="toctree-l6"><a class="reference internal" href="../../schemas_rst/cloud_events_step_crash_prediction_schema.html#position-info">Position Info</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../../schemas_rst/cloud_events_step_crash_prediction_schema.html#position-type">Position Type</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../../schemas_rst/cloud_events_step_crash_prediction_schema.html#reference-position">Reference Position</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../../schemas_rst/cloud_events_step_crash_prediction_schema.html#source-type">Source Type</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../../schemas_rst/cloud_events_step_crash_prediction_schema.html#cloudevents-specification-version">CloudEvents Specification Version</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../../schemas_rst/cloud_events_step_crash_prediction_schema.html#speed">Speed</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../../schemas_rst/cloud_events_step_crash_prediction_schema.html#traffic-participant-type">Traffic Participant Type</a></li>
@@ -268,6 +276,7 @@
 <li class="toctree-l7"><a class="reference internal" href="../../schemas_rst/cloud_events_step_monitoring_schema.html#position-type">Position Type</a></li>
 <li class="toctree-l7"><a class="reference internal" href="../../schemas_rst/cloud_events_step_monitoring_schema.html#cloudevents-specification-version">CloudEvents Specification Version</a></li>
 <li class="toctree-l7"><a class="reference internal" href="../../schemas_rst/cloud_events_step_monitoring_schema.html#speed">Speed</a></li>
+<li class="toctree-l7"><a class="reference internal" href="../../schemas_rst/cloud_events_step_monitoring_schema.html#traffic-participant-type">Traffic Participant Type</a></li>
 </ul>
 </li>
 </ul>
@@ -607,7 +616,7 @@
 <span class="linenos">  17</span>
 <span class="linenos">  18</span><span class="c1"># Standard Library Imports</span>
 <span class="linenos">  19</span><span class="kn">from</span><span class="w"> </span><span class="nn">logging</span><span class="w"> </span><span class="kn">import</span> <span class="n">Logger</span>
-<span class="linenos">  20</span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="linenos">  20</span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
 <span class="linenos">  21</span><span class="kn">from</span><span class="w"> </span><span class="nn">unittest.mock</span><span class="w"> </span><span class="kn">import</span> <span class="n">MagicMock</span>
 <span class="linenos">  22</span>
 <span class="linenos">  23</span><span class="c1"># Third Party Imports</span>
@@ -670,7 +679,7 @@
 <span class="linenos">  73</span>        <span class="n">max_length</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
 <span class="linenos">  74</span>        <span class="n">consumer_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
 <span class="linenos">  75</span>        <span class="o">*</span><span class="p">,</span>
-<span class="linenos">  76</span>        <span class="n">ttl_seconds</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+<span class="linenos">  76</span>        <span class="n">ttl_seconds</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
 <span class="linenos">  77</span>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="linenos">  78</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Test that StepRedisStreamParams correctly assigns boundary values to its</span>
 <span class="linenos">  79</span><span class="sd">        attributes.</span>
@@ -681,7 +690,7 @@
 <span class="linenos">  84</span><span class="sd">            wait_timeout_ms (int): The wait timeout in milliseconds.</span>
 <span class="linenos">  85</span><span class="sd">            max_length (int): The maximum length of the stream.</span>
 <span class="linenos">  86</span><span class="sd">            consumer_name (str): The name of the consumer.</span>
-<span class="linenos">  87</span><span class="sd">            ttl_seconds (Optional[int]): The time-to-live in seconds for the stream.</span>
+<span class="linenos">  87</span><span class="sd">            ttl_seconds (int | None): The time-to-live in seconds for the stream.</span>
 <span class="linenos">  88</span>
 <span class="linenos">  89</span><span class="sd">        Returns:</span>
 <span class="linenos">  90</span><span class="sd">            None</span>
@@ -730,7 +739,7 @@
 <span class="linenos"> 130</span>        <span class="n">max_length</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
 <span class="linenos"> 131</span>        <span class="n">consumer_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
 <span class="linenos"> 132</span>        <span class="o">*</span><span class="p">,</span>
-<span class="linenos"> 133</span>        <span class="n">ttl_seconds</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+<span class="linenos"> 133</span>        <span class="n">ttl_seconds</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
 <span class="linenos"> 134</span>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="linenos"> 135</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Test that StepRedisStreamParams raises a ValueError when initialized with</span>
 <span class="linenos"> 136</span><span class="sd">        invalid parameter values.</span>
@@ -741,7 +750,7 @@
 <span class="linenos"> 141</span><span class="sd">            wait_timeout_ms (int): The wait timeout in milliseconds.</span>
 <span class="linenos"> 142</span><span class="sd">            max_length (int): The maximum length of the stream.</span>
 <span class="linenos"> 143</span><span class="sd">            consumer_name (str): The name of the consumer.</span>
-<span class="linenos"> 144</span><span class="sd">            ttl_seconds (Optional[int]): The time-to-live in seconds for the stream.</span>
+<span class="linenos"> 144</span><span class="sd">            ttl_seconds (int | None): The time-to-live in seconds for the stream.</span>
 <span class="linenos"> 145</span>
 <span class="linenos"> 146</span><span class="sd">        Returns:</span>
 <span class="linenos"> 147</span><span class="sd">            None</span>
@@ -934,7 +943,7 @@
 <span class="linenos"> 316</span>        <span class="bp">self</span><span class="p">,</span>
 <span class="linenos"> 317</span>        <span class="n">mocker</span><span class="p">:</span> <span class="n">MockerFixture</span><span class="p">,</span>
 <span class="linenos"> 318</span>        <span class="n">mock_pool</span><span class="p">:</span> <span class="n">MagicMock</span><span class="p">,</span>
-<span class="linenos"> 319</span>        <span class="n">ttl_seconds</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+<span class="linenos"> 319</span>        <span class="n">ttl_seconds</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
 <span class="linenos"> 320</span>        <span class="n">log_enabled</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
 <span class="linenos"> 321</span>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="linenos"> 322</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Test successful creation of an input stream with or without TTL.</span>
@@ -947,7 +956,7 @@
 <span class="linenos"> 329</span><span class="sd">        Args:</span>
 <span class="linenos"> 330</span><span class="sd">            mocker (MockerFixture): Pytest fixture for mocking.</span>
 <span class="linenos"> 331</span><span class="sd">            mock_pool (MagicMock): Mock Redis connection pool.</span>
-<span class="linenos"> 332</span><span class="sd">            ttl_seconds (Optional[int]): Time to live for the stream in seconds.</span>
+<span class="linenos"> 332</span><span class="sd">            ttl_seconds (int | None): Time to live for the stream in seconds.</span>
 <span class="linenos"> 333</span><span class="sd">            log_enabled (bool): Flag to enable or disable logging.</span>
 <span class="linenos"> 334</span>
 <span class="linenos"> 335</span><span class="sd">        Returns:</span>
@@ -1692,9 +1701,9 @@
 <span class="linenos">1044</span>        <span class="n">mock_pool</span><span class="p">:</span> <span class="n">MagicMock</span><span class="p">,</span>
 <span class="linenos">1045</span>        <span class="n">stream_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
 <span class="linenos">1046</span>        <span class="n">responses</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
-<span class="linenos">1047</span>        <span class="n">ttl_seconds</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+<span class="linenos">1047</span>        <span class="n">ttl_seconds</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
 <span class="linenos">1048</span>        <span class="o">*</span><span class="p">,</span>
-<span class="linenos">1049</span>        <span class="n">exception</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="ne">Exception</span><span class="p">],</span>
+<span class="linenos">1049</span>        <span class="n">exception</span><span class="p">:</span> <span class="ne">Exception</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
 <span class="linenos">1050</span>        <span class="n">expected_message</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
 <span class="linenos">1051</span>        <span class="n">log_enabled</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
 <span class="linenos">1052</span>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -1711,8 +1720,8 @@
 <span class="linenos">1063</span><span class="sd">            mock_pool (MagicMock): Mock Redis connection pool</span>
 <span class="linenos">1064</span><span class="sd">            stream_id (str): The Redis stream ID to read from</span>
 <span class="linenos">1065</span><span class="sd">            responses (list[dict[str, Any]]): Mocked responses from Redis xreadgroup</span>
-<span class="linenos">1066</span><span class="sd">            ttl_seconds (Optional[int]): Time to live for the stream in seconds</span>
-<span class="linenos">1067</span><span class="sd">            exception (Optional[Exception]): Exception to raise during the test, if any</span>
+<span class="linenos">1066</span><span class="sd">            ttl_seconds (int | None): Time to live for the stream in seconds</span>
+<span class="linenos">1067</span><span class="sd">            exception (Exception | None): Exception to raise during the test, if any</span>
 <span class="linenos">1068</span><span class="sd">            expected_message (str): The expected message content to be returned</span>
 <span class="linenos">1069</span><span class="sd">            log_enabled (bool): Flag to enable or disable logging</span>
 <span class="linenos">1070</span>
