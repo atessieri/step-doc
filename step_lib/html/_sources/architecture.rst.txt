@@ -120,7 +120,7 @@ The following PlantUML diagram illustrates the main classes and their relationsh
                 + stop() : void
                 + subscribe(topics, max_qos, no_local)
                 + publish_its_message(message, address, position, is_mobile)
-                + get_its_message_received() : Optional[FacilityMessage]
+                + get_its_message_received() : FacilityMessage | None
                 - _run() : void
                 - _message_receive_thread(client)
                 - _message_send_thread(client)
@@ -148,11 +148,11 @@ The following PlantUML diagram illustrates the main classes and their relationsh
                 + port: int
                 + username: str
                 + password: str
-                + station_id: Optional[int]
+                + station_id: int | None
                 + timeout: int
                 + keepalive: int
-                + publish_topics_params: Optional[list[PublishTopicParams]]
-                + cache_dir: Optional[str]
+                + publish_topics_params: list[PublishTopicParams] | None
+                + cache_dir: str | None
                 + logger: Logger
             }
             
@@ -176,20 +176,19 @@ The following PlantUML diagram illustrates the main classes and their relationsh
                 - _its_facility_serializer: FacilitySerializer
                 - _logger: Logger
                 + serialize(facility_message, address, position, is_mobile) : bytes
-                + deserialize(message) : tuple[GeonetMessage, BtpMessage, dict]
-                + convert_to_facility_message(raw_message, type) : FacilityMessage
+                + deserialize(message) : ItsMessage
                 - _create_geonet_message(...) : GeonetMessage
                 - _create_common_extended_single_hop(...) : tuple
                 - _create_common_extended_anycast_broadcast(...) : tuple
             }
-            
+
             class FacilitySerializer {
                 - _message_ctx: Any
                 - _logger: Logger
-                - _station_id: Optional[int]
+                - _station_id: int | None
                 + serialize(message: FacilityMessage) : bytes
-                + deserialize(message: bytes, type: MessageId) : dict
-                + covert_to_facility_message(raw, type) : FacilityMessage
+                + deserialize(message: bytes, type: MessageCustomType) : FacilityMessage
+                - _to_facility_message(raw, type) : FacilityMessage
                 - _init_asn_context(cache_dir) : Any
             }
         }
@@ -200,7 +199,7 @@ The following PlantUML diagram illustrates the main classes and their relationsh
                 # _its_time: ItsTime
                 + {abstract} {property} message_type : MessageId
                 + {abstract} {property} data_schema : str
-                + {abstract} {property} station_id : Optional[int]
+                + {abstract} {property} station_id : int | None
                 + {abstract} {property} reference_position : ReferencePosition
                 + {property} its_time : ItsTime
                 + {abstract} is_message_present() : bool
@@ -214,20 +213,20 @@ The following PlantUML diagram illustrates the main classes and their relationsh
             }
             
             class CamMessageV1 {
-                - _message: Optional[CamDataV1]
-                + {property} message : Optional[CamDataV1]
+                - _message: CamDataV1 | None
+                + {property} message : CamDataV1 | None
                 + from_orm(data: CamDataV1) : CamMessageV1
             }
             
             class DenmMessageV1 {
-                - _message: Optional[DenmDataV1]
-                + {property} message : Optional[DenmDataV1]
+                - _message: DenmDataV1 | None
+                + {property} message : DenmDataV1 | None
                 + from_orm(data: DenmDataV1) : DenmMessageV1
             }
 
             class CpmMessageV1 {
-                - _message: Optional[CpmDataV1]
-                + {property} message : Optional[CpmDataV1]
+                - _message: CpmDataV1 | None
+                + {property} message : CpmDataV1 | None
                 + from_orm(data: CpmDataV1) : CpmMessageV1
             }
         }
@@ -276,8 +275,8 @@ The following PlantUML diagram illustrates the main classes and their relationsh
                 + latitude: float
                 + longitude: float
                 + is_accurate: bool
-                + speed: Optional[int]
-                + heading: Optional[int]
+                + speed: int | None
+                + heading: int | None
                 + {static} from_bytes_stream(stream, type) : PositionVector
                 + to_bytes(type) : bytes
             }
@@ -294,9 +293,9 @@ The following PlantUML diagram illustrates the main classes and their relationsh
         ' BTP Layer
         package "BTP Layer" {
             class BtpMessage {
-                + source_port: Optional[int]
+                + source_port: int | None
                 + destination_port: int
-                + destination_port_info: Optional[int]
+                + destination_port_info: int | None
                 + {static} from_bytes_stream(stream, type) : BtpMessage
                 + to_bytes() : bytes
                 + get_btp_type() : BtpMessageType
@@ -309,9 +308,9 @@ The following PlantUML diagram illustrates the main classes and their relationsh
                 + time: ItsTime
                 + latitude: float
                 + longitude: float
-                + accuracy: Optional[int]
-                + speed: Optional[int]
-                + heading: Optional[int]
+                + accuracy: int | None
+                + speed: int | None
+                + heading: int | None
             }
         }
         
@@ -513,17 +512,15 @@ Publishing an ITS Message (Asynchronous)
         
         ACM --> App: success
         deactivate ACM
-        
-        @enduml
 
-        Receiving an ITS Message (Asynchronous)
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Receiving an ITS Message (Asynchronous)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-        .. container:: scrollable-diagram
-        .. uml::
+.. container:: scrollable-diagram
 
-        @startuml
-        
+    .. plantuml::
+        :align: center
+
         actor "Application" as App
         participant "AsyncComManager" as ACM
         participant "ItsMessagesIterator" as Iterator
@@ -531,7 +528,7 @@ Publishing an ITS Message (Asynchronous)
         participant "FacilitySerializer" as FacSer
         participant "MQTT Broker" as Broker
         database "Message Queue" as Queue
-        
+
         App -> ACM: subscribe(topics, qos)
         activate ACM
         ACM -> Broker: subscribe(topics, qos)
@@ -540,62 +537,59 @@ Publishing an ITS Message (Asynchronous)
         deactivate Broker
         ACM --> App: success
         deactivate ACM
-        
+
         ... Messages arrive from broker ...
-        
+
         Broker -> Queue: incoming message
         activate Queue
-        
+
         App -> ACM: async for message in its_messages
         activate ACM
         ACM -> Iterator: __anext__()
         activate Iterator
-        
+
         Iterator -> Queue: get next message
         Queue --> Iterator: mqtt_message
         deactivate Queue
-        
+
         Iterator -> Serializer: deserialize(message_bytes)
         activate Serializer
-        
+
         Serializer -> Serializer: parse BasicHeader
-        activate Serializer
         Serializer -> Serializer: parse CommonHeader
         Serializer -> Serializer: parse ExtendedHeader
-        deactivate Serializer
-        Serializer --> Iterator: (geonet_msg, btp_msg, facility_dict)
-        
-        Iterator -> Serializer: btp_port_to_facility_message_id(port)
-        Serializer --> Iterator: message_type
-        
-        Iterator -> Serializer: convert_to_facility_message(dict, type)
-        Serializer -> FacSer: covert_to_facility_message(dict, type)
+
+        Serializer -> Serializer: btp_port_to_facility_message_custom_type(port)
+
+        Serializer -> FacSer: deserialize(payload, message_type)
         activate FacSer
-        
+        FacSer -> FacSer: ASN.1 decode(payload)
+        FacSer -> FacSer: _to_facility_message(raw_message, type)
+
         alt message_type == CAM_PDU
-            FacSer -> FacSer: CamMessageV1().from_asn(dict)
+            FacSer -> FacSer: CamMessageV1().from_asn(raw_message)
         else message_type == CPM_PDU
-            FacSer -> FacSer: CpmMessageV1().from_asn(dict)
+            FacSer -> FacSer: CpmMessageV1().from_asn(raw_message)
         else message_type == DENM_PDU
-            FacSer -> FacSer: DenmMessageV1().from_asn(dict)
+            FacSer -> FacSer: DenmMessageV1().from_asn(raw_message)
         else unsupported
             FacSer -> FacSer: raise StepLibUnsupportedMessageError
         end
-        
+
         FacSer --> Serializer: facility_message
         deactivate FacSer
-        Serializer --> Iterator: facility_message
+
+        Serializer --> Iterator: ItsMessage(geonet_msg, btp_msg, facility_message)
         deactivate Serializer
-        
-        Iterator -> Iterator: create ItsMessage(mqtt_msg, facility_message)
+
+        Iterator -> Iterator: build ItsMessage(mqtt fields, facility_message)
         Iterator --> ACM: its_message
         deactivate Iterator
-        
+
         ACM --> App: its_message
         deactivate ACM
-        
-        App -> App: process its_message.its_payload
 
+        App -> App: process its_message.its_payload
 
 Synchronous Communication Flow
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -623,7 +617,7 @@ Synchronous Communication Flow
         AsyncThread -> AsyncThread: setup event loop
         AsyncThread -> ACM: create client
         activate ACM
-        AsyncThread -> ACM: connect()
+        AsyncThread -> ACM: __aenter__()
         ACM -> Broker: connect
         activate Broker
         Broker --> ACM: connected
@@ -690,7 +684,7 @@ Synchronous Communication Flow
         InQueue --> AsyncThread: ExitThreadsCommand
         deactivate InQueue
         
-        AsyncThread -> ACM: disconnect
+        AsyncThread -> ACM: __aexit__()
         activate ACM
         ACM -> Broker: disconnect
         activate Broker
@@ -1108,7 +1102,7 @@ To add support for a new ITS message type (e.g., VAM - Vulnerable Road User Awar
 2. Add ASN.1 schema file to ``asn1_files/`` directory
 3. Update ``BtpWellKnownPort`` enumeration
 4. Add mapping in ``ItsMessageSerializer``
-5. Update ``FacilitySerializer.covert_to_facility_message()``
+5. Update ``FacilitySerializer.to_facility_message()``
 
 Custom Transport Layer
 ~~~~~~~~~~~~~~~~~~~~~~

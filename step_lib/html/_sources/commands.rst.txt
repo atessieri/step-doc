@@ -22,116 +22,138 @@ Example:
 .. code-block:: bash
 
     $step_lib -v
-    step_lib version: 1.5.1
+    step_lib version: 1.7.0
 
 ---------------------------
 Decode ITS facility packets
 ---------------------------
 
-The command is designed to decode the ITS facility from binary (hex format) to dictionary
-printed on the console.
+The command is designed to decode a complete ITS message (GeoNetworking + BTP + facility
+layers) from its binary (hex format) representation and print the decoded message to the
+console.
 
 .. code-block:: bash
 
-   $step_lib -d <hex_string> -m <message_type>
+   $step_lib -d <hex_string>
 
 The parameters are:
 
-- <hex_string> is the binary string in hex format.
+- <hex_string> is the ITS message in hex format.
 
 .. note::
-    Both of these are required.
+    <hex_string> is the only required parameter. The facility message type (CAM, CPM or
+    DENM) does not need to be specified separately: it is determined automatically from
+    the BTP destination port embedded in the message.
+
+Example (the hex string below is the exact output of the ``-e`` example further down,
+so decoding it reproduces the same JSON message that was encoded):
+
+.. code-block:: bash
+
+    $step_lib -d 11004c0120400080003a010000000000bc000000075bcd156735d5341905648d077170e53fff0e111905648d077170e500c800000000000007d200000201012fd537c78097ea9b81ed9f2ce6ba8767cb39aea1dceaa4d8d72bb42e617917900018b5010546001f3030cc200d9647e08cfc00
+
+Console output:
+
+.. code-block:: text
+
+    Decoded message: MessageCustomType(message_type=<MessageId.DENM_PDU: 'DENM'>, is_custom=False)
+    Creation time: <ISO-8601 timestamp of the GeoNetworking position vector>
+    Geonet: GeonetMessage(basic_header=..., common_header=..., extended_header=...)
+    BTP: BtpMessage(source_port=None, destination_port=2002, destination_port_info=0)
+    Facility in JSON: MessageCustomType(message_type=<MessageId.DENM_PDU: 'DENM'>, is_custom=False) message
+    {
+      "type": "DENM",
+      "stationId": 19911991,
+      "managementContainer": {
+        "actionId": {
+          "originatingStationId": 19911991,
+          "sequenceNumber": 987
+        },
+        "detectionTime": "2037-12-10T21:33:57.691Z",
+        "referenceTime": "2037-12-10T21:33:57.691Z",
+        "termination": null,
+        "eventPosition": {
+          "latitude": 41.9783821,
+          "longitude": 12.4874982,
+          "positionConfidence": {
+            "semiMajorAxisLengthConfidence": 3.77,
+            "semiMinorAxisLengthConfidence": 3.77,
+            "semiMajorAxisOrientation": 0.0
+          },
+          "altitude": {
+            "value": 12.0,
+            "confidence": 0.02
+          }
+        },
+        "awarenessDistance": 49,
+        "trafficDirection": "allTrafficDirections",
+        "validityDuration": 86400,
+        "transmissionInterval": 500,
+        "stationType": "moped",
+        "referenceStationId": null,
+        "referenceObjectId": null
+      },
+      "situationContainer": {
+        "informationQuality": 3,
+        "eventType": "collisionRisk97"
+      },
+      "locationContainer": {
+        "eventSpeed": {
+          "value": 130.0,
+          "confidence": null
+        },
+        "eventPositionHeading": {
+          "value": 14.0,
+          "confidence": null
+        },
+        "roadType": null
+      },
+      "preCrashContainer": null
+    }
+
+.. note::
+    The last block, starting at ``{``, is the decoded facility message serialized as
+    indented JSON (via ``FacilityMessage.to_json(indent=2)``); the lines above it are
+    informational log messages describing the GeoNetworking/BTP headers and the
+    detected message type. ``Creation time`` is the timestamp carried by the
+    GeoNetworking position vector (i.e. when the message was published), not the
+    DENM's own ``detectionTime``/``referenceTime`` fields, so it varies between runs
+    and is not reproduced verbatim here.
+
+---------------------------
+Encode ITS facility packets
+---------------------------
+
+The command is designed to encode a JSON-formatted ITS message (matching the
+``ItsMessageRoot`` schema) into its binary (hex format) representation, using a fixed
+road-side-unit address for the GeoNetworking/BTP layers.
+
+.. code-block:: bash
+
+   $step_lib -e <json_message>
+
+The parameters are:
+
+- <json_message> is the ITS message as a JSON string.
 
 Example:
 
 .. code-block:: bash
 
-    $step_lib -d 0201012fd537c78097ea9b81ed9f2ce6ba8767cb39aea1dceaa4d8d72bb42e617917900018b5010546001f3030cc200d9647e08cfc023fffeffffe39c3ff0901c031b0
+    $step_lib -e '{"type": "DENM", "stationId": 19911991, "managementContainer": {"actionId": {"originatingStationId": 19911991, "sequenceNumber": 987}, "detectionTime": "2037-12-10T21:33:57.691Z", "referenceTime": "2037-12-10T21:33:57.691Z", "termination": null, "eventPosition": {"latitude": 41.9783821, "longitude": 12.4874982, "positionConfidence": {"semiMajorAxisLengthConfidence": 3.77, "semiMinorAxisLengthConfidence": 3.77, "semiMajorAxisOrientation": 0}, "altitude": {"value": 12.0, "confidence": 0.02}}, "awarenessDistance": 49, "trafficDirection": "allTrafficDirections", "validityDuration": 86400, "transmissionInterval": 500, "stationType": "moped", "referenceStationId": null, "referenceObjectId": null}, "situationContainer": {"informationQuality": 3, "eventType": "collisionRisk97"}, "locationContainer": {"eventSpeed": {"value": 130.0, "confidence": null}, "eventPositionHeading": {"value": 14.0, "confidence": null}, "roadType": null}, "preCrashContainer": null}'
+    Encoded message (hex): 11004c0120400080003a010000000000bc000000075bcd156735d5341905648d077170e53fff0e111905648d077170e500c800000000000007d200000201012fd537c78097ea9b81ed9f2ce6ba8767cb39aea1dceaa4d8d72bb42e617917900018b5010546001f3030cc200d9647e08cfc00
 
-Decoded message in ASN.1 format:
+-------------------
+Set the log level
+-------------------
 
-.. code-block:: python
+The command is designed to control the verbosity of the logger used by the other
+commands.
 
-    { 'header': { 'protocolVersion': 2,
-                'messageId': 1,
-                'stationId': 19911991},
-    'denm': { 'management': { 'actionId': { 'originatingStationId': 19911991,
-                                            'sequenceNumber': 987},
-                                'detectionTime': 1071178437691,
-                                'referenceTime': 1071178437691,
-                                'eventPosition': { 'latitude': 419783821,
-                                                'longitude': 124874982,
-                                                'positionConfidenceEllipse': { 'semiMajorConfidence': 377,
-                                                                                'semiMinorConfidence': 377,
-                                                                                'semiMajorOrientation': 0},
-                                                'altitude': { 'altitudeValue': 1200,
-                                                                'altitudeConfidence': 'alt-000-02'}},
-                                'awarenessDistance': 'lessThan50m',
-                                'trafficDirection': 'allTrafficDirections',
-                                'validityDuration': 86400,
-                                'transmissionInterval': 500,
-                                'stationType': 3},
-                'situation': { 'informationQuality': 3,
-                            'eventType': { 'ccAndScc': ( 'collisionRisk97',
-                                                            0)}},
-                'location': { 'eventSpeed': { 'speedValue': 13000,
-                                            'speedConfidence': 127},
-                            'eventPositionHeading': { 'value': 140,
-                                                        'confidence': 127},
-                            'detectionZonesToEventPosition': [ [ { 'pathPosition': { 'deltaLatitude': 0,
-                                                                                    'deltaLongitude': 0,
-                                                                                    'deltaAltitude': 12800}},
-                                                                { 'pathPosition': { 'deltaLatitude': -123,
-                                                                                    'deltaLongitude': 897,
-                                                                                    'deltaAltitude': 20}}]]}}}
+.. code-block:: bash
 
-Message in JSON format:
+   $step_lib -l <log level> -v
 
-.. code-block:: json
-    
-    {
-        "stationId": 19911991,
-        "managementContainer": {
-            "actionId": {
-            "originatingStationId": 19911991,
-            "sequenceNumber": 987
-            },
-            "detectionTime": "2037-12-10T21:33:57.691Z",
-            "referenceTime": "2037-12-10T21:33:57.691Z",
-            "termination": null,
-            "eventPosition": {
-            "latitude": 41.9783821,
-            "longitude": 12.4874982,
-            "positionConfidence": {
-                "semiMajorAxisLengthConfidence": 377,
-                "semiMinorAxisLengthConfidence": 377,
-                "semiMajorAxisOrientation": 0
-            },
-            "altitude": {
-                "value": 1200,
-                "confidence": 2
-            }
-            },
-            "awarenessDistance": 49,
-            "trafficDirection": "allTrafficDirections",
-            "validityDuration": 86400,
-            "transmissionInterval": 500,
-            "stationType": "moped"
-        },
-        "situationContainer": {
-            "informationQuality": 3,
-            "eventType": "collisionRisk97"
-        },
-        "locationContainer": {
-            "eventSpeed": {
-            "value": 13000,
-            "confidence": null
-            },
-            "eventPositionHeading": {
-            "value": 140,
-            "confidence": null
-            },
-            "roadType": null
-        },
-        "preCrashContainer": null
-    }
+The parameters are:
+
+- <log level> is one of DEBUG, INFO, WARNING, ERROR, CRITICAL.

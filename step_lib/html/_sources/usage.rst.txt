@@ -62,9 +62,16 @@ Configuration
 
 The following snippet explains how to create the data-class of parameters.
 
-.. code-block:: python    
-    
-    def create_sync_com_manager(logger: logging.Logger) -> SyncComManager:
+.. code-block:: python
+
+    import logging
+    import ssl
+
+    from aiomqtt import TLSParameters
+    from step_cloud_schemas import MessageId
+    from step_lib import MqttQoS, PublishTopicParams, SyncComManagerParams
+
+    def create_sync_com_manager_params(logger: logging.Logger) -> SyncComManagerParams:
         tls_params = TLSParameters(
             ca_certs=None,
             certfile=None,
@@ -74,7 +81,7 @@ The following snippet explains how to create the data-class of parameters.
             ciphers=None,
             keyfile_password=None,
         )
-        params = SyncComManagerParams(
+        return SyncComManagerParams(
             instance_name="step_lib_test_1",
             host="step.example.com",
             port=8883,
@@ -93,7 +100,6 @@ The following snippet explains how to create the data-class of parameters.
             max_concurrent_outgoing_calls=60,
             tls_context=None,
             tls_params=tls_params,
-            tls_insecure=False,
             proxy=None,
             socket_options=None,
             session_expiry=0,
@@ -102,16 +108,16 @@ The following snippet explains how to create the data-class of parameters.
             topic_alias_maximum=0,
             publish_topics_params=[
                 PublishTopicParams(
-                    message_type=MessageType.CAM,
+                    message_type=MessageId.CAM_PDU,
                     header_topic="v2x/cam/264421_4",
                     geohash_precision=8,
-                    qos=0,
+                    qos=MqttQoS.QOS_0,
                 ),
                 PublishTopicParams(
-                    message_type=MessageType.CPM,
+                    message_type=MessageId.CPM_PDU,
                     header_topic="v2x/cpm/264421_4",
                     geohash_precision=8,
-                    qos=0,
+                    qos=MqttQoS.QOS_0,
                 ),
             ],
             cache_dir="./.cache",
@@ -120,13 +126,13 @@ The following snippet explains how to create the data-class of parameters.
             max_incoming_queue_rooms=60,
             max_outgoing_queue_rooms=60,
         )
-        return SyncComManager(params=params)
-    
+
 .. note::
 
     The ``station_id`` field can be None if the library is able to send messages created
-    by different stations. If the station_id is None, the library doesn't any
-    message otherwise it filters the messages received from the ``station_id`` passed.
+    by different stations. If ``station_id`` is None, it isn't used; otherwise, the
+    library filters received messages to those matching ``station_id`` and overrides
+    the station id in published messages with it.
 
 Using Context Manager (Recommended)
 -----------------------------------
@@ -141,7 +147,18 @@ The following snippet of code:
 
 .. code-block:: python
 
+    from step_cloud_schemas import ItsTime, TrafficParticipantType
+    from step_lib import (
+        CamMessageV1,
+        CpmMessageV1,
+        GeoNetworkAddress,
+        GpsLocation,
+        MqttQoS,
+        SyncComManager,
+    )
+
     # Use context manager for automatic resource cleanup
+    params = create_sync_com_manager_params(logger=logger)
     with SyncComManager(params) as client:
 
         # Subscribe to the topics
@@ -215,6 +232,7 @@ The following snippet of code:
 
     client = None
     try:
+        params = create_sync_com_manager_params(logger=logger)
         client = SyncComManager(params)
 
         # Start the client
@@ -304,10 +322,18 @@ In the asynchronous approach, only the communication using context manager is su
 Configuration
 -------------
 
-The following snippet explains how to create the data-class of parameters.
+The following snippet explains how to create the data-class of parameters and use
+it to build a ready-to-use ``AsyncComManager`` instance.
 
-.. code-block:: python    
-    
+.. code-block:: python
+
+    import logging
+    import ssl
+
+    from aiomqtt import TLSParameters
+    from step_cloud_schemas import MessageId
+    from step_lib import AsyncComManager, AsyncComManagerParams, MqttQoS, PublishTopicParams
+
     def create_async_com_manager(logger: logging.Logger) -> AsyncComManager:
         tls_params = TLSParameters(
             ca_certs=None,
@@ -337,7 +363,6 @@ The following snippet explains how to create the data-class of parameters.
             max_concurrent_outgoing_calls=60,
             tls_context=None,
             tls_params=tls_params,
-            tls_insecure=False,
             proxy=None,
             socket_options=None,
             session_expiry=0,
@@ -346,28 +371,29 @@ The following snippet explains how to create the data-class of parameters.
             topic_alias_maximum=0,
             publish_topics_params=[
                 PublishTopicParams(
-                    message_type=MessageType.CAM,
+                    message_type=MessageId.CAM_PDU,
                     header_topic="v2x/cam/264421_4",
                     geohash_precision=8,
-                    qos=0,
+                    qos=MqttQoS.QOS_0,
                 ),
                 PublishTopicParams(
-                    message_type=MessageType.CPM,
+                    message_type=MessageId.CPM_PDU,
                     header_topic="v2x/cpm/264421_4",
                     geohash_precision=8,
-                    qos=0,
+                    qos=MqttQoS.QOS_0,
                 ),
             ],
             cache_dir="./.cache",
             logger=logger,
         )
         return AsyncComManager(params=params)
-    
+
 .. note::
 
     The ``station_id`` field can be None if the library is able to send messages created
-    by different stations. If the station_id is None, the library doesn't any
-    message otherwise it filters the messages received from the ``station_id`` passed.
+    by different stations. If ``station_id`` is None, it isn't used; otherwise, the
+    library filters received messages to those matching ``station_id`` and overrides
+    the station id in published messages with it.
 
 Using Context Manager
 -----------------------------------
@@ -381,6 +407,17 @@ The following snippet of code:
     #. Processes the received messages in the queue
 
 .. code-block:: python
+
+    from asyncio import TaskGroup
+    from asyncio import sleep as asyncio_sleep
+
+    from paho.mqtt.subscribeoptions import SubscribeOptions
+    from step_cloud_schemas import ItsTime, TrafficParticipantType
+    from step_lib import GeoNetworkAddress, GpsLocation, MqttQoS
+
+    # create_async_com_manager is the function defined above; receive_messages,
+    # create_cam_orm_message, create_cpm_orm_message, and create_denm_orm_message
+    # are application-defined helpers (not part of step_lib)
 
     # Use context manager for automatic resource cleanup
     async with create_async_com_manager(logger=logger) as client:
