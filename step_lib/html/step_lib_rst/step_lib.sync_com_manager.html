@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>step_lib.sync_com_manager module &mdash; STEP Library 1.7.0 documentation</title>
+  <title>step_lib.sync_com_manager module &mdash; STEP Library 1.7.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/tabs.css?v=4c969af8" />
@@ -16,7 +16,7 @@
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=030dc6f6"></script>
+      <script src="../_static/documentation_options.js?v=a77542ef"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/tabs.js?v=3ee01567"></script>
@@ -1786,7 +1786,7 @@ async loop and thread are running before attempting to get a message.</p>
 <dd class="field-even"><p><a class="reference internal" href="facilities/step_lib.facilities.facility_message.html#step_lib.facilities.facility_message.FacilityMessage" title="step_lib.facilities.facility_message.FacilityMessage">FacilityMessage</a> | None</p>
 </dd>
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>StepLibException</strong> – If the async loop or thread is not running.</p>
+<dd class="field-odd"><p><a class="reference internal" href="step_lib.exception.html#step_lib.exception.StepLibError" title="step_lib.exception.StepLibError"><strong>StepLibError</strong></a> – If the async loop or thread is not running.</p>
 </dd>
 <dt class="field-even">Complexity<span class="colon">:</span></dt>
 <dd class="field-even"><ul class="simple">
@@ -1852,7 +1852,7 @@ the internal queue. The actual sending is handled by an asynchronous worker thre
 </ul>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>StepLibException</strong> – If the async loop is not running or if the async thread is not alive.</p>
+<dd class="field-even"><p><a class="reference internal" href="step_lib.exception.html#step_lib.exception.StepLibError" title="step_lib.exception.StepLibError"><strong>StepLibError</strong></a> – If the async loop is not running or if the async thread is not alive.</p>
 </dd>
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>None</p>
@@ -1879,7 +1879,7 @@ only one thread and loop are running at a time.</p>
 <dd class="field-odd"><p>None</p>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>StepLibException</strong> – If async loop is already running or async thread is already alive.</p>
+<dd class="field-even"><p><a class="reference internal" href="step_lib.exception.html#step_lib.exception.StepLibError" title="step_lib.exception.StepLibError"><strong>StepLibError</strong></a> – If async loop is already running or async thread is already alive.</p>
 </dd>
 <dt class="field-odd">Complexity<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -1896,18 +1896,23 @@ increments for a bounded startup delay, independent of message volume.</p></li>
 <span class="sig-name descname"><span class="pre">stop</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/step_lib/sync_com_manager.html#SyncComManager.stop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#step_lib.sync_com_manager.SyncComManager.stop" title="Link to this definition"></a></dt>
 <dd><p>Stop the asynchronous communication thread. Stops the running asynchronous
 thread by setting the enable flag to False and sending an exit command through
-the queue. Waits for thread completion before clearing the async loop reference.</p>
+the queue. Waits for every already-queued command (including the exit command)
+to be fully processed, then waits for thread completion before clearing the
+async loop reference.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>StepLibException</strong> – If async loop is not running or async thread is not alive.</p>
+<dd class="field-odd"><p><a class="reference internal" href="step_lib.exception.html#step_lib.exception.StepLibError" title="step_lib.exception.StepLibError"><strong>StepLibError</strong></a> – If async loop is not running or async thread is not alive.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>None</p>
 </dd>
 <dt class="field-odd">Complexity<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>- Time</strong> – O(1) to enqueue the exit command; the subsequent thread join blocks
-for a bounded shutdown delay, independent of message volume.</p></li>
+<li><p><strong>- Time</strong> – O(q), where q is the number of commands already queued in
+_incoming_queue at the time stop() is called (bounded by
+max_incoming_queue_rooms), to drain them before the exit command is
+processed; the subsequent thread join then blocks for a bounded shutdown
+delay.</p></li>
 <li><p><strong>- Space</strong> – O(1), no additional storage is required.</p></li>
 </ul>
 </dd>
@@ -1932,7 +1937,7 @@ running async loop.</p>
 </ul>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>StepLibException</strong> – If the async loop is not running or async thread is not alive</p>
+<dd class="field-even"><p><a class="reference internal" href="step_lib.exception.html#step_lib.exception.StepLibError" title="step_lib.exception.StepLibError"><strong>StepLibError</strong></a> – If the async loop is not running or async thread is not alive</p>
 </dd>
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>None</p>

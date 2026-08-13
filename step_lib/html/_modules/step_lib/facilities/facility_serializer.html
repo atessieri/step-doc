@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>step_lib.facilities.facility_serializer &mdash; STEP Library 1.7.0 documentation</title>
+  <title>step_lib.facilities.facility_serializer &mdash; STEP Library 1.7.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../../_static/tabs.css?v=4c969af8" />
@@ -15,7 +15,7 @@
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=030dc6f6"></script>
+      <script src="../../../_static/documentation_options.js?v=a77542ef"></script>
       <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../../_static/tabs.js?v=3ee01567"></script>
@@ -1564,121 +1564,122 @@
 <span class="linenos">171</span><span class="sd">            FacilityMessage: The converted facility message.</span>
 <span class="linenos">172</span>
 <span class="linenos">173</span><span class="sd">        Raises:</span>
-<span class="linenos">174</span><span class="sd">            StepLibException: If the message type is not supported or if the message&#39;s station ID</span>
-<span class="linenos">175</span><span class="sd">                matches this station&#39;s ID (to avoid processing our own messages).</span>
-<span class="linenos">176</span>
-<span class="linenos">177</span><span class="sd">        Complexity:</span>
-<span class="linenos">178</span><span class="sd">            - Time: O(n), where n is the number of fields in raw_message, to build the</span>
-<span class="linenos">179</span><span class="sd">              corresponding FacilityMessage subclass.</span>
-<span class="linenos">180</span><span class="sd">            - Space: O(n), where n is the number of fields in raw_message, for the</span>
-<span class="linenos">181</span><span class="sd">              resulting FacilityMessage instance.</span>
-<span class="linenos">182</span><span class="sd">        &quot;&quot;&quot;</span>
-<span class="linenos">183</span>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">):</span>
-<span class="linenos">184</span>            <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Decoded message </span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">message_type</span><span class="p">,</span> <span class="n">raw_message</span><span class="p">)</span>
-<span class="linenos">185</span>        <span class="n">facility_message</span><span class="p">:</span> <span class="n">FacilityMessage</span>
-<span class="linenos">186</span>        <span class="k">match</span> <span class="n">message_type</span><span class="o">.</span><span class="n">message_type</span><span class="p">:</span>
-<span class="linenos">187</span>            <span class="k">case</span> <span class="n">MessageId</span><span class="o">.</span><span class="n">CAM_PDU</span><span class="p">:</span>
-<span class="linenos">188</span>                <span class="n">facility_message</span> <span class="o">=</span> <span class="n">CamMessageV1</span><span class="p">()</span><span class="o">.</span><span class="n">from_asn</span><span class="p">(</span>
-<span class="linenos">189</span>                    <span class="n">data</span><span class="o">=</span><span class="n">raw_message</span><span class="p">,</span> <span class="n">is_custom</span><span class="o">=</span><span class="n">message_type</span><span class="o">.</span><span class="n">is_custom</span>
-<span class="linenos">190</span>                <span class="p">)</span>
-<span class="linenos">191</span>            <span class="k">case</span> <span class="n">MessageId</span><span class="o">.</span><span class="n">CPM_PDU</span><span class="p">:</span>
-<span class="linenos">192</span>                <span class="n">facility_message</span> <span class="o">=</span> <span class="n">CpmMessageV1</span><span class="p">()</span><span class="o">.</span><span class="n">from_asn</span><span class="p">(</span>
-<span class="linenos">193</span>                    <span class="n">data</span><span class="o">=</span><span class="n">raw_message</span><span class="p">,</span> <span class="n">is_custom</span><span class="o">=</span><span class="n">message_type</span><span class="o">.</span><span class="n">is_custom</span>
-<span class="linenos">194</span>                <span class="p">)</span>
-<span class="linenos">195</span>            <span class="k">case</span> <span class="n">MessageId</span><span class="o">.</span><span class="n">DENM_PDU</span><span class="p">:</span>
-<span class="linenos">196</span>                <span class="n">facility_message</span> <span class="o">=</span> <span class="n">DenmMessageV1</span><span class="p">()</span><span class="o">.</span><span class="n">from_asn</span><span class="p">(</span>
-<span class="linenos">197</span>                    <span class="n">data</span><span class="o">=</span><span class="n">raw_message</span><span class="p">,</span> <span class="n">is_custom</span><span class="o">=</span><span class="n">message_type</span><span class="o">.</span><span class="n">is_custom</span>
-<span class="linenos">198</span>                <span class="p">)</span>
-<span class="linenos">199</span>            <span class="k">case</span><span class="w"> </span><span class="k">_</span><span class="p">:</span>
-<span class="linenos">200</span>                <span class="k">raise</span> <span class="n">StepLibUnsupportedMessageError</span><span class="p">(</span>
-<span class="linenos">201</span>                    <span class="sa">f</span><span class="s2">&quot;Message </span><span class="si">{</span><span class="n">message_type</span><span class="si">}</span><span class="s2"> type not supported&quot;</span>
-<span class="linenos">202</span>                <span class="p">)</span>
-<span class="linenos">203</span>        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_station_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span>
-<span class="linenos">204</span>            <span class="n">facility_message</span><span class="o">.</span><span class="n">station_id</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_station_id</span>
-<span class="linenos">205</span>        <span class="p">):</span>
-<span class="linenos">206</span>            <span class="k">raise</span> <span class="n">StepLibEchoMessageError</span><span class="p">(</span>
-<span class="linenos">207</span>                <span class="sa">f</span><span class="s2">&quot;Ignoring own message: </span><span class="si">{</span><span class="n">facility_message</span><span class="o">.</span><span class="n">station_id</span><span class="si">}</span><span class="s2">&quot;</span>
-<span class="linenos">208</span>            <span class="p">)</span>
-<span class="linenos">209</span>        <span class="k">return</span> <span class="n">facility_message</span>
-<span class="linenos">210</span>
+<span class="linenos">174</span><span class="sd">            StepLibUnsupportedMessageError: If the message type is not supported.</span>
+<span class="linenos">175</span><span class="sd">            StepLibEchoMessageError: If the message&#39;s station ID matches this station&#39;s</span>
+<span class="linenos">176</span><span class="sd">                ID (to avoid processing our own messages).</span>
+<span class="linenos">177</span>
+<span class="linenos">178</span><span class="sd">        Complexity:</span>
+<span class="linenos">179</span><span class="sd">            - Time: O(n), where n is the number of fields in raw_message, to build the</span>
+<span class="linenos">180</span><span class="sd">              corresponding FacilityMessage subclass.</span>
+<span class="linenos">181</span><span class="sd">            - Space: O(n), where n is the number of fields in raw_message, for the</span>
+<span class="linenos">182</span><span class="sd">              resulting FacilityMessage instance.</span>
+<span class="linenos">183</span><span class="sd">        &quot;&quot;&quot;</span>
+<span class="linenos">184</span>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">):</span>
+<span class="linenos">185</span>            <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Decoded message </span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">message_type</span><span class="p">,</span> <span class="n">raw_message</span><span class="p">)</span>
+<span class="linenos">186</span>        <span class="n">facility_message</span><span class="p">:</span> <span class="n">FacilityMessage</span>
+<span class="linenos">187</span>        <span class="k">match</span> <span class="n">message_type</span><span class="o">.</span><span class="n">message_type</span><span class="p">:</span>
+<span class="linenos">188</span>            <span class="k">case</span> <span class="n">MessageId</span><span class="o">.</span><span class="n">CAM_PDU</span><span class="p">:</span>
+<span class="linenos">189</span>                <span class="n">facility_message</span> <span class="o">=</span> <span class="n">CamMessageV1</span><span class="p">()</span><span class="o">.</span><span class="n">from_asn</span><span class="p">(</span>
+<span class="linenos">190</span>                    <span class="n">data</span><span class="o">=</span><span class="n">raw_message</span><span class="p">,</span> <span class="n">is_custom</span><span class="o">=</span><span class="n">message_type</span><span class="o">.</span><span class="n">is_custom</span>
+<span class="linenos">191</span>                <span class="p">)</span>
+<span class="linenos">192</span>            <span class="k">case</span> <span class="n">MessageId</span><span class="o">.</span><span class="n">CPM_PDU</span><span class="p">:</span>
+<span class="linenos">193</span>                <span class="n">facility_message</span> <span class="o">=</span> <span class="n">CpmMessageV1</span><span class="p">()</span><span class="o">.</span><span class="n">from_asn</span><span class="p">(</span>
+<span class="linenos">194</span>                    <span class="n">data</span><span class="o">=</span><span class="n">raw_message</span><span class="p">,</span> <span class="n">is_custom</span><span class="o">=</span><span class="n">message_type</span><span class="o">.</span><span class="n">is_custom</span>
+<span class="linenos">195</span>                <span class="p">)</span>
+<span class="linenos">196</span>            <span class="k">case</span> <span class="n">MessageId</span><span class="o">.</span><span class="n">DENM_PDU</span><span class="p">:</span>
+<span class="linenos">197</span>                <span class="n">facility_message</span> <span class="o">=</span> <span class="n">DenmMessageV1</span><span class="p">()</span><span class="o">.</span><span class="n">from_asn</span><span class="p">(</span>
+<span class="linenos">198</span>                    <span class="n">data</span><span class="o">=</span><span class="n">raw_message</span><span class="p">,</span> <span class="n">is_custom</span><span class="o">=</span><span class="n">message_type</span><span class="o">.</span><span class="n">is_custom</span>
+<span class="linenos">199</span>                <span class="p">)</span>
+<span class="linenos">200</span>            <span class="k">case</span><span class="w"> </span><span class="k">_</span><span class="p">:</span>
+<span class="linenos">201</span>                <span class="k">raise</span> <span class="n">StepLibUnsupportedMessageError</span><span class="p">(</span>
+<span class="linenos">202</span>                    <span class="sa">f</span><span class="s2">&quot;Message </span><span class="si">{</span><span class="n">message_type</span><span class="si">}</span><span class="s2"> type not supported&quot;</span>
+<span class="linenos">203</span>                <span class="p">)</span>
+<span class="linenos">204</span>        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_station_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span>
+<span class="linenos">205</span>            <span class="n">facility_message</span><span class="o">.</span><span class="n">station_id</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_station_id</span>
+<span class="linenos">206</span>        <span class="p">):</span>
+<span class="linenos">207</span>            <span class="k">raise</span> <span class="n">StepLibEchoMessageError</span><span class="p">(</span>
+<span class="linenos">208</span>                <span class="sa">f</span><span class="s2">&quot;Ignoring own message: </span><span class="si">{</span><span class="n">facility_message</span><span class="o">.</span><span class="n">station_id</span><span class="si">}</span><span class="s2">&quot;</span>
+<span class="linenos">209</span>            <span class="p">)</span>
+<span class="linenos">210</span>        <span class="k">return</span> <span class="n">facility_message</span>
+<span class="linenos">211</span>
 <div class="viewcode-block" id="FacilitySerializer.deserialize">
 <a class="viewcode-back" href="../../../step_lib_rst/facilities/step_lib.facilities.facility_serializer.html#step_lib.facilities.facility_serializer.FacilitySerializer.deserialize">[docs]</a>
-<span class="linenos">211</span>    <span class="k">def</span><span class="w"> </span><span class="nf">deserialize</span><span class="p">(</span>
-<span class="linenos">212</span>        <span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">,</span> <span class="n">message_type</span><span class="p">:</span> <span class="n">MessageCustomType</span>
-<span class="linenos">213</span>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FacilityMessage</span><span class="p">:</span>
-<span class="linenos">214</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Decodes a raw binary facility message into its corresponding FacilityMessage</span>
-<span class="linenos">215</span><span class="sd">        object representation.</span>
-<span class="linenos">216</span>
-<span class="linenos">217</span><span class="sd">        Args:</span>
-<span class="linenos">218</span><span class="sd">            message (bytes): Raw binary message data to be decoded.</span>
-<span class="linenos">219</span><span class="sd">            message_type (MessageCustomType): Enum identifier specifying the type of message and</span>
-<span class="linenos">220</span><span class="sd">                whether it is custom.</span>
-<span class="linenos">221</span>
-<span class="linenos">222</span><span class="sd">        Returns:</span>
-<span class="linenos">223</span><span class="sd">            FacilityMessage: Decoded message object corresponding to the specified message type.</span>
-<span class="linenos">224</span>
-<span class="linenos">225</span><span class="sd">        Raises:</span>
-<span class="linenos">226</span><span class="sd">            asn1tools.errors.DecodeError: If message does not match the ASN.1 grammar</span>
-<span class="linenos">227</span><span class="sd">                for the given message_type and cannot be decoded.</span>
-<span class="linenos">228</span><span class="sd">            asn1tools.errors.ConstraintsError: If message decodes but violates an ASN.1</span>
-<span class="linenos">229</span><span class="sd">                constraint (check_constraints is enabled for this decode call).</span>
-<span class="linenos">230</span><span class="sd">            StepLibException: If the message type is not supported, or if the decoded</span>
-<span class="linenos">231</span><span class="sd">                message originated from this station.</span>
-<span class="linenos">232</span>
-<span class="linenos">233</span><span class="sd">        Complexity:</span>
-<span class="linenos">234</span><span class="sd">            - Time: O(n), where n is the length of message in bytes, to decode the ASN.1</span>
-<span class="linenos">235</span><span class="sd">              payload.</span>
-<span class="linenos">236</span><span class="sd">            - Space: O(n), where n is the length of message in bytes, for the resulting</span>
-<span class="linenos">237</span><span class="sd">              decoded FacilityMessage instance.</span>
-<span class="linenos">238</span><span class="sd">        &quot;&quot;&quot;</span>
-<span class="linenos">239</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Decoding message: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">message</span><span class="o">.</span><span class="n">hex</span><span class="p">())</span>
-<span class="linenos">240</span>        <span class="n">decoded_result</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_message_ctx</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span>
-<span class="linenos">241</span>            <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ASN1_TYPE_NAME</span><span class="p">[</span><span class="n">message_type</span><span class="p">],</span>
-<span class="linenos">242</span>            <span class="n">data</span><span class="o">=</span><span class="n">message</span><span class="p">,</span>
-<span class="linenos">243</span>            <span class="n">check_constraints</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-<span class="linenos">244</span>        <span class="p">)</span>
-<span class="linenos">245</span>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">):</span>
-<span class="linenos">246</span>            <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;ITS raw facility message: </span><span class="si">{</span><span class="n">decoded_result</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="linenos">247</span>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_to_facility_message</span><span class="p">(</span>
-<span class="linenos">248</span>            <span class="n">raw_message</span><span class="o">=</span><span class="n">decoded_result</span><span class="p">,</span> <span class="n">message_type</span><span class="o">=</span><span class="n">message_type</span>
-<span class="linenos">249</span>        <span class="p">)</span></div>
+<span class="linenos">212</span>    <span class="k">def</span><span class="w"> </span><span class="nf">deserialize</span><span class="p">(</span>
+<span class="linenos">213</span>        <span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">,</span> <span class="n">message_type</span><span class="p">:</span> <span class="n">MessageCustomType</span>
+<span class="linenos">214</span>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FacilityMessage</span><span class="p">:</span>
+<span class="linenos">215</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Decodes a raw binary facility message into its corresponding FacilityMessage</span>
+<span class="linenos">216</span><span class="sd">        object representation.</span>
+<span class="linenos">217</span>
+<span class="linenos">218</span><span class="sd">        Args:</span>
+<span class="linenos">219</span><span class="sd">            message (bytes): Raw binary message data to be decoded.</span>
+<span class="linenos">220</span><span class="sd">            message_type (MessageCustomType): Enum identifier specifying the type of message and</span>
+<span class="linenos">221</span><span class="sd">                whether it is custom.</span>
+<span class="linenos">222</span>
+<span class="linenos">223</span><span class="sd">        Returns:</span>
+<span class="linenos">224</span><span class="sd">            FacilityMessage: Decoded message object corresponding to the specified message type.</span>
+<span class="linenos">225</span>
+<span class="linenos">226</span><span class="sd">        Raises:</span>
+<span class="linenos">227</span><span class="sd">            asn1tools.errors.DecodeError: If message does not match the ASN.1 grammar</span>
+<span class="linenos">228</span><span class="sd">                for the given message_type and cannot be decoded.</span>
+<span class="linenos">229</span><span class="sd">            asn1tools.errors.ConstraintsError: If message decodes but violates an ASN.1</span>
+<span class="linenos">230</span><span class="sd">                constraint (check_constraints is enabled for this decode call).</span>
+<span class="linenos">231</span><span class="sd">            StepLibUnsupportedMessageError: If the message type is not supported.</span>
+<span class="linenos">232</span><span class="sd">            StepLibEchoMessageError: If the decoded message originated from this station.</span>
+<span class="linenos">233</span>
+<span class="linenos">234</span><span class="sd">        Complexity:</span>
+<span class="linenos">235</span><span class="sd">            - Time: O(n), where n is the length of message in bytes, to decode the ASN.1</span>
+<span class="linenos">236</span><span class="sd">              payload.</span>
+<span class="linenos">237</span><span class="sd">            - Space: O(n), where n is the length of message in bytes, for the resulting</span>
+<span class="linenos">238</span><span class="sd">              decoded FacilityMessage instance.</span>
+<span class="linenos">239</span><span class="sd">        &quot;&quot;&quot;</span>
+<span class="linenos">240</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Decoding message: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">message</span><span class="o">.</span><span class="n">hex</span><span class="p">())</span>
+<span class="linenos">241</span>        <span class="n">decoded_result</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_message_ctx</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span>
+<span class="linenos">242</span>            <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ASN1_TYPE_NAME</span><span class="p">[</span><span class="n">message_type</span><span class="p">],</span>
+<span class="linenos">243</span>            <span class="n">data</span><span class="o">=</span><span class="n">message</span><span class="p">,</span>
+<span class="linenos">244</span>            <span class="n">check_constraints</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="linenos">245</span>        <span class="p">)</span>
+<span class="linenos">246</span>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">):</span>
+<span class="linenos">247</span>            <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;ITS raw facility message: </span><span class="si">{</span><span class="n">decoded_result</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="linenos">248</span>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_to_facility_message</span><span class="p">(</span>
+<span class="linenos">249</span>            <span class="n">raw_message</span><span class="o">=</span><span class="n">decoded_result</span><span class="p">,</span> <span class="n">message_type</span><span class="o">=</span><span class="n">message_type</span>
+<span class="linenos">250</span>        <span class="p">)</span></div>
 
-<span class="linenos">250</span>
+<span class="linenos">251</span>
 <div class="viewcode-block" id="FacilitySerializer.serialize">
 <a class="viewcode-back" href="../../../step_lib_rst/facilities/step_lib.facilities.facility_serializer.html#step_lib.facilities.facility_serializer.FacilitySerializer.serialize">[docs]</a>
-<span class="linenos">251</span>    <span class="k">def</span><span class="w"> </span><span class="nf">serialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="n">FacilityMessage</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
-<span class="linenos">252</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Encode an abstract message into bytes using ASN.1 encoding.</span>
-<span class="linenos">253</span>
-<span class="linenos">254</span><span class="sd">        This method takes an FacilityMessage object, converts it to ASN.1 format, and encodes</span>
-<span class="linenos">255</span><span class="sd">        it into bytes using the message context encoder.</span>
-<span class="linenos">256</span>
-<span class="linenos">257</span><span class="sd">        Args:</span>
-<span class="linenos">258</span><span class="sd">            message (FacilityMessage): The abstract message object to encode</span>
-<span class="linenos">259</span>
-<span class="linenos">260</span><span class="sd">        Returns:</span>
-<span class="linenos">261</span><span class="sd">            bytes: The encoded message as bytes</span>
-<span class="linenos">262</span>
-<span class="linenos">263</span><span class="sd">        Complexity:</span>
-<span class="linenos">264</span><span class="sd">            - Time: O(n), where n is the number of fields in message, to convert the</span>
-<span class="linenos">265</span><span class="sd">              message to ASN.1 and encode it to bytes.</span>
-<span class="linenos">266</span><span class="sd">            - Space: O(n), where n is the number of fields in message, for the</span>
-<span class="linenos">267</span><span class="sd">              intermediate ASN.1 dictionary and resulting encoded bytes.</span>
-<span class="linenos">268</span><span class="sd">        &quot;&quot;&quot;</span>
-<span class="linenos">269</span>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_station_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">270</span>            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">):</span>
-<span class="linenos">271</span>                <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Changing station ID to </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_station_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="linenos">272</span>            <span class="n">message</span><span class="o">.</span><span class="n">change_station_id</span><span class="p">(</span><span class="n">station_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_station_id</span><span class="p">)</span>
-<span class="linenos">273</span>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">):</span>
-<span class="linenos">274</span>            <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Encoding message: </span><span class="si">{</span><span class="n">message</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="linenos">275</span>        <span class="n">asn_message</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">to_asn</span><span class="p">()</span>
-<span class="linenos">276</span>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">):</span>
-<span class="linenos">277</span>            <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Dictionary message: </span><span class="si">{</span><span class="n">asn_message</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="linenos">278</span>        <span class="n">message_encoded</span><span class="p">:</span> <span class="nb">bytes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_message_ctx</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
-<span class="linenos">279</span>            <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ASN1_TYPE_NAME</span><span class="p">[</span><span class="n">message</span><span class="o">.</span><span class="n">message_type</span><span class="p">],</span>
-<span class="linenos">280</span>            <span class="n">data</span><span class="o">=</span><span class="n">asn_message</span><span class="p">,</span>
-<span class="linenos">281</span>            <span class="n">check_constraints</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-<span class="linenos">282</span>        <span class="p">)</span>
-<span class="linenos">283</span>        <span class="k">return</span> <span class="n">message_encoded</span></div>
+<span class="linenos">252</span>    <span class="k">def</span><span class="w"> </span><span class="nf">serialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="n">FacilityMessage</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+<span class="linenos">253</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;Encode an abstract message into bytes using ASN.1 encoding.</span>
+<span class="linenos">254</span>
+<span class="linenos">255</span><span class="sd">        This method takes an FacilityMessage object, converts it to ASN.1 format, and encodes</span>
+<span class="linenos">256</span><span class="sd">        it into bytes using the message context encoder.</span>
+<span class="linenos">257</span>
+<span class="linenos">258</span><span class="sd">        Args:</span>
+<span class="linenos">259</span><span class="sd">            message (FacilityMessage): The abstract message object to encode</span>
+<span class="linenos">260</span>
+<span class="linenos">261</span><span class="sd">        Returns:</span>
+<span class="linenos">262</span><span class="sd">            bytes: The encoded message as bytes</span>
+<span class="linenos">263</span>
+<span class="linenos">264</span><span class="sd">        Complexity:</span>
+<span class="linenos">265</span><span class="sd">            - Time: O(n), where n is the number of fields in message, to convert the</span>
+<span class="linenos">266</span><span class="sd">              message to ASN.1 and encode it to bytes.</span>
+<span class="linenos">267</span><span class="sd">            - Space: O(n), where n is the number of fields in message, for the</span>
+<span class="linenos">268</span><span class="sd">              intermediate ASN.1 dictionary and resulting encoded bytes.</span>
+<span class="linenos">269</span><span class="sd">        &quot;&quot;&quot;</span>
+<span class="linenos">270</span>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_station_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">271</span>            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">):</span>
+<span class="linenos">272</span>                <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Changing station ID to </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_station_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="linenos">273</span>            <span class="n">message</span><span class="o">.</span><span class="n">change_station_id</span><span class="p">(</span><span class="n">station_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_station_id</span><span class="p">)</span>
+<span class="linenos">274</span>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">):</span>
+<span class="linenos">275</span>            <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Encoding message: </span><span class="si">{</span><span class="n">message</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="linenos">276</span>        <span class="n">asn_message</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">to_asn</span><span class="p">()</span>
+<span class="linenos">277</span>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">):</span>
+<span class="linenos">278</span>            <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Dictionary message: </span><span class="si">{</span><span class="n">asn_message</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="linenos">279</span>        <span class="n">message_encoded</span><span class="p">:</span> <span class="nb">bytes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_message_ctx</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+<span class="linenos">280</span>            <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ASN1_TYPE_NAME</span><span class="p">[</span><span class="n">message</span><span class="o">.</span><span class="n">message_type</span><span class="p">],</span>
+<span class="linenos">281</span>            <span class="n">data</span><span class="o">=</span><span class="n">asn_message</span><span class="p">,</span>
+<span class="linenos">282</span>            <span class="n">check_constraints</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="linenos">283</span>        <span class="p">)</span>
+<span class="linenos">284</span>        <span class="k">return</span> <span class="n">message_encoded</span></div>
 </div>
 
 </pre></div>
