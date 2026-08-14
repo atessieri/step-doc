@@ -1,0 +1,161 @@
+==============
+Package Script
+==============
+
+This section describes how to use the development automation tools in the project.
+The project uses **tox** for automated testing, code quality, and documentation generation.
+
+.. note::
+   The scripts use **uv** program. If it is not installed,
+   it is necessary to install it first using **pip install uv**
+
+------------------
+Create environment
+------------------
+
+The script creates a virtual environment in the project folder.
+The virtual environment is created in the folder *.venv* and 
+the script will install all the dependencies in this folder.
+
+.. tab:: Windows
+
+   .. code-block:: console
+
+      $.\create_env.bat <python version>
+
+.. tab:: Linux
+
+   .. code-block:: bash
+
+      $source create_env.sh <python version>
+
+After the environment is created, it is necessary to activate it.
+The activation is done with the command:
+
+.. tab:: Windows
+
+   .. code-block:: console
+
+      $.venv\Script\activate
+
+.. tab:: Linux
+
+   .. code-block:: bash
+
+      $source .venv\bin\activate
+
+--------------------
+Development with Tox
+--------------------
+
+The project uses **tox** for comprehensive automation of development tasks. All commands can be executed 
+with UV for optimal performance and automatic Python version management.
+
+Available Environments
+~~~~~~~~~~~~~~~~~~~~~~
+
+List all available tox environments:
+
+.. code-block:: bash
+
+   # List all tox environments
+   uv run tox list
+
+Testing Environments
+~~~~~~~~~~~~~~~~~~~~~
+
+Run tests across multiple Python versions:
+
+.. code-block:: bash
+
+   # Run all test environments in parallel (recommended)
+   uv run tox -p auto
+   
+   # Run tests for specific Python versions
+   uv run tox -e py313
+   uv run tox -e py314
+
+Generate coverage reports and badges:
+
+.. code-block:: bash
+
+   # Combine coverage data and generate reports
+   uv run tox -e report
+
+Code Quality Commands
+~~~~~~~~~~~~~~~~~~~~~
+
+Format code according to project standards:
+
+.. code-block:: bash
+
+   # Auto-format code using multiple formatters
+   uv run tox -e format
+
+Run linting and static analysis:
+
+.. code-block:: bash
+
+   # Run all linting checks (ruff, mypy, pylint)
+   uv run tox -e lint
+
+Documentation Commands
+~~~~~~~~~~~~~~~~~~~~~~
+
+Generate API documentation:
+
+.. code-block:: bash
+
+   # Generate sphinx API documentation
+   uv run tox -e apidoc
+
+Build project documentation:
+
+.. code-block:: bash
+
+   # Build HTML documentation
+   uv run tox -e docs-html
+   
+   # Build LaTeX documentation  
+   uv run tox -e docs-latex
+
+Package Management
+~~~~~~~~~~~~~~~~~~
+
+Upload package to registry:
+
+.. code-block:: bash
+
+   # Build and upload package
+   uv run tox -e upload
+
+Cleanup Commands
+~~~~~~~~~~~~~~~~
+
+Clean build artifacts:
+
+.. code-block:: bash
+
+   # Remove build artifacts and generated files
+   uv run tox -e clean
+   
+   # Clean all tox environments
+   uv run tox -e cleanenv
+
+--------------
+PDF conversion
+--------------
+
+In order to create the pdf documentation, following the steps:
+
+   #. Change the folder to the build folder:
+      
+      .. code-block:: console
+
+         $cd build/latex
+
+   #. Create the documentation in pdf format:
+      
+      .. code-block:: console
+
+         $build/latex/make

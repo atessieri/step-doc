@@ -1,0 +1,207 @@
+======================
+Command Line Interface
+======================
+
+Overview
+========
+
+The step_message_save command line interface (CLI) provides a way to subscribe to the STEP
+(Safer Transport for Europe Platform) broker and persist ITS ETSI messages. It receives
+messages from the STEP gateway and appends them, as JSON lines, to a local output file.
+
+The CLI allows users to:
+
+* View the program version
+* Generate JSON schema documentation for configuration
+* Create configuration templates
+* Load and run the client with a specific configuration and instance name
+
+Basic Usage
+===========
+
+.. code-block:: bash
+
+    step_message_save [options]
+
+If no options are provided, the program will display the help message.
+
+Options
+=======
+
+The following command line options are available:
+
+``-h, --help``
+    Display the help message and exit.
+
+``-v, --version``
+    Show the program version and exit.
+
+``-s, --conf_schema <schema file>``
+    Write the configuration JSON schema to the specified file.
+
+``-t, --conf_template <template file>``
+    Write a configuration template to the specified file.
+
+``-c, --config <config file>``
+    Load the configuration from the specified file and run the client. Requires
+    ``-i``/``--instance`` to also be specified.
+
+``-i, --instance <instance name>``
+    Specify the instance name. Requires ``-c``/``--config`` to also be specified.
+
+Detailed Command Description
+============================
+
+Help Command
+------------
+
+To display help information:
+
+.. code-block:: bash
+
+    step_message_save --help
+
+This will output usage instructions and a list of available options.
+
+Version Command
+---------------
+
+To display the program version:
+
+.. code-block:: bash
+
+    step_message_save --version
+
+This will output the current version of step_message_save.
+
+Configuration Schema Generation
+-------------------------------
+
+To generate a JSON schema file documenting all configuration options:
+
+.. code-block:: bash
+
+    step_message_save --conf_schema /path/to/schema_file.json
+
+This command creates a JSON schema file at the specified path. The file describes
+all available configuration options, their types, defaults, and constraints.
+The schema can be used for validation or as a reference for creating custom configurations.
+
+Configuration Template Generation
+---------------------------------
+
+To generate a configuration template file with default values:
+
+.. code-block:: bash
+
+    step_message_save --conf_template /path/to/template_file.json
+
+This command creates a JSON configuration file with default values
+for all settings. Users can modify this file as needed to customize their configuration.
+
+Running with Configuration
+--------------------------
+
+To run the client with a specific configuration:
+
+.. code-block:: bash
+
+    step_message_save --config /path/to/config_file.json --instance my_instance
+
+This loads the configuration from the specified file and starts step_message_save under the
+given instance name. The client connects to the STEP broker, subscribes to the configured
+topics, and appends the received messages to the configured output file.
+
+Configuration File Structure
+============================
+
+The configuration file is a JSON document that defines the behavior of step_message_save. It includes settings for:
+
+* MQTT client connection
+* MQTT protocol options and subscription topics
+* Output file path
+* Number of concurrent STEP receiver tasks
+* File writer queue size
+* Reconnection interval
+* Logging configuration
+
+Here's an example of the configuration structure:
+
+.. literalinclude:: schemas_examples/step_message_save_config_v1_schema_template.json
+  :language: JSON
+
+For the :ref:`STEP Message Save Configuration Schema<step_message_save_config_schema>` with all configuration options, generate a schema file using the ``--conf_schema`` option.
+
+Exit Codes
+==========
+
+The program uses the following exit codes:
+
+* ``0`` (OK): Successful termination
+* ``1`` (USAGE): Command line usage error
+* ``2`` (ERROR): General error during execution
+* ``3`` (ABORTED): Operation aborted by user or system
+
+Examples
+========
+
+Generate a configuration schema:
+
+.. code-block:: bash
+
+    step_message_save --conf_schema ./schema.json
+
+Create a configuration template:
+
+.. code-block:: bash
+
+    step_message_save --conf_template ./template.json
+
+Run with specific configuration:
+
+.. code-block:: bash
+
+    step_message_save --config ./my_config.json --instance my_instance
+
+Generate both schema and template:
+
+.. code-block:: bash
+
+    step_message_save --conf_schema ./schema.json --conf_template ./template.json
+
+Program Operation
+=================
+
+When running with a configuration file, step_message_save performs the following operations:
+
+   #. Connects to the STEP gateway using MQTT settings and subscribes to the configured topics
+   #. Starts the configured number of concurrent STEP receiver tasks, each listening for ITS
+      messages from the STEP broker
+   #. Starts a single dedicated file writer task that owns the output file exclusively
+   #. Each receiver task serializes received messages to JSON and puts them on a shared queue;
+      the writer task dequeues them and appends them, one per line, to the output file
+   #. Automatically handles reconnection if the MQTT connection is lost (using the specified
+      reconnect interval)
+   #. Manages graceful shutdown when interrupted
+
+The client will continue running until manually interrupted (e.g., with Ctrl+C) or until a system signal is received.
+
+Advanced Usage
+==============
+
+Signal Handling
+---------------
+
+step_message_save properly handles system signals for graceful shutdown. When a signal is
+received, it cleans up resources and terminates with the appropriate exit code.
+
+Logging
+-------
+
+step_message_save includes detailed logging capabilities. Log settings can be configured in the configuration file, including:
+
+* Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+* Console logging
+* File logging with rotation options
+
+You can enable debug logging to troubleshoot connection or message handling issues.

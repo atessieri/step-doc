@@ -1,0 +1,126 @@
+STEP Message Save Usage Guide
+=============================
+
+Introduction
+------------
+
+STEP Message Save is a Python package designed to subscribe to the STEP (Safer Transport for
+Europe Platform) MQTT broker and persist the received ITS (Intelligent Transport Systems)
+messages, as JSON lines, to a local output file. This guide walks through the different ways
+to use the STEP Message Save client, from basic configuration to advanced usage patterns.
+
+Prerequisites
+-------------
+
+Before using STEP Message Save, make sure you have:
+
+    #. Python 3.13 or higher installed
+    #. Access to a STEP MQTT broker
+    #. The step_message_save package installed in your environment
+
+Installation
+------------
+
+You can install the STEP Message Save package using pip:
+
+.. code-block:: bash
+
+   $pip install --extra-index-url https://gitlab.automotive.vodafone.com/api/v4/projects/961/packages/pypi/simple step_message_save
+
+Or if you're using a development version:
+
+.. code-block:: bash
+
+    pip install -e /path/to/step_message_save
+
+Basic Concepts
+--------------
+
+STEP Message Save operates as a client of the STEP MQTT broker, specifically designed for
+ITS message capture. Key concepts include:
+
+    * **StepBroker**: Gateway component that handles MQTT communication with the STEP broker
+      and subscribes to the configured topics
+    * **StepMessageSaveConfig**: Configuration management for the client
+    * **ITS Messages**: Standard message formats like CAM (Cooperative Awareness Messages),
+      CPM (Cooperative Perception Messages) and DENM (Decentralized Environmental Notification
+      Messages)
+    * **Output File**: The single JSON-lines file that received messages are appended to
+
+Configuration
+-------------
+
+STEP Message Save requires configuration for the MQTT connection and the output file. The
+configuration is managed through a JSON file.
+
+Creating a Configuration File
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+To create a default configuration template:
+
+.. code-block:: bash
+
+    step_message_save --conf_template my_config_template.json
+
+This generates a template that you can customize for your specific needs.
+
+Key Configuration Parameters
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* **General Configuration**:
+
+  * outputFile: Path of the file where JSON messages are appended
+  * stepReceiverNumber: Number of concurrent STEP receiver tasks (1-50)
+  * maxFileWriterQueueRooms: Maximum number of rooms in the queue used to send messages from
+    the STEP receiver tasks to the file writer task (1-10000)
+  * reconnectInterval: Time between reconnection attempts (seconds)
+
+* **MQTT Client Configuration**:
+
+  * host: MQTT broker hostname or IP
+  * port: MQTT broker port (typically 1883 for non-TLS, 8883 for TLS)
+  * username and password: Authentication credentials
+  * sslEnable: Whether to use TLS/SSL encryption
+
+* **MQTT Protocol Configuration**:
+
+  * keepalive: Keep-alive interval in seconds
+  * cleanStart: Whether to start with a clean session
+  * subscriptionTopics: List of topics to subscribe to, with the expected message type
+    (CAM, CPM or DENM) for each
+
+Example Configuration
+^^^^^^^^^^^^^^^^^^^^^
+
+The schema of the example below is: :ref:`STEP Message Save Configuration Schema<step_message_save_config_schema>`
+
+.. literalinclude:: schemas_examples/step_message_save_config_v1_schema_template.json
+  :language: JSON
+
+Running STEP Message Save as a Service
+--------------------------------------
+
+To run STEP Message Save as a standalone service:
+
+.. code-block:: bash
+
+    step_message_save --config /path/to/config.json --instance my_instance
+
+This will start the client, which will:
+
+    #. Connect to the configured MQTT broker
+    #. Subscribe to the specified topics
+    #. Receive ITS messages using the configured number of concurrent receiver tasks
+    #. Serialize each received message to JSON and append it to the configured output file
+
+Command-Line Options
+--------------------
+
+STEP Message Save supports several command-line options:
+
+    * ``--config``, ``-c``: Path to configuration file (requires ``--instance``)
+    * ``--instance``, ``-i``: Instance name (required together with ``--config``)
+    * ``--conf_schema``, ``-s``: Write the configuration JSON schema to a file
+    * ``--conf_template``, ``-t``: Generate a configuration template
+    * ``--version``, ``-v``: Show version information
+    * ``--help``, ``-h``: Show help information

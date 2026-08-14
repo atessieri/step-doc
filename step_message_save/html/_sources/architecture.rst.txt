@@ -1,0 +1,443 @@
+Architecture
+============
+
+This document describes the architecture of STEP Message Save, a Python package
+for communicating with the STEP (Safer Transport for Europe Platform) MQTT broker
+to receive ITS (Intelligent Transport Systems) messages.
+
+Overview
+--------
+
+STEP Message Save serves as a client of the STEP MQTT broker. It subscribes to the
+configured topics, receives ITS messages, and appends them, as JSON lines, to a single
+local output file. There is no Redis integration, message publication, or CloudEvents
+conversion involved: the client is a receive-only bridge between MQTT and the filesystem.
+
+Library
+-------
+
+The STEP Message Save project leverages several key libraries to provide robust ITS message
+communication and file persistence capabilities:
+
+**Core Dependencies:**
+
+    #. **Pydantic**: Used extensively for configuration management and data
+       validation throughout the system. The ``StepMessageSaveConfig`` class and its nested
+       configuration models rely on Pydantic's ``BaseModel`` for type-safe configuration
+       loading, validation, and JSON schema generation.
+
+    #. **step_cloud_schemas**: Provides standardized data schemas for ITS
+       messages including CAM (Cooperative Awareness Messages), CPM (Cooperative
+       Perception Messages) and DENM (Decentralized Environmental Notification
+       Messages) identifiers, and the ``StepLogger`` logging utility.
+
+    #. **step_lib**: Core library providing fundamental components including:
+
+        * ``AsyncComManager``: Base class for asynchronous communication management
+        * ``FacilityMessage``: ITS message handling and encoding/decoding functionality
+        * MQTT utilities including ``MqttQoS`` enumerations
+        * TLS/SSL security parameter management
+
+    #. **aiomqtt**: Asynchronous MQTT client library with TLS support
+
+    #. **paho-mqtt**: MQTT protocol implementation providing subscription options and QoS controls
+
+This library ecosystem enables STEP Message Save to provide a comprehensive, type-safe,
+and highly configurable solution for capturing ITS message traffic within the STEP platform.
+
+Components
+----------
+
+The architecture follows a modular design pattern that separates concerns between MQTT
+communication, message persistence, and configuration management. This enables flexibility
+and maintainability in the system design.
+
+Main Components:
+
+    #. **StepBroker**: Gateway class for MQTT communication with the STEP broker
+    #. **Message Pipeline** (``__main__.py``): The receiver/writer tasks and the
+       ``asyncio.Queue`` connecting them; this is the part of the application that
+       actually reads from ``StepBroker`` and appends to the output file
+    #. **StepMessageSaveConfig**: Configuration management for the client
+    #. **StepLogger**: Logging utilities used by the client (from the
+       ``step_cloud_schemas`` library)
+    #. **StepException**: Custom exceptions for error handling
+
+StepBroker
+^^^^^^^^^^
+
+The ``StepBroker`` (STEP Gateway) is a core component of the STEP Message Save architecture
+that manages MQTT communication with the STEP broker. Extending the ``AsyncComManager`` class,
+it provides an asynchronous interface for secure, reliable message reception from the
+STEP ecosystem.
+
+Key responsibilities of ``StepBroker`` include:
+
+    #. **MQTT Connection Setup**: Configures TLS/SSL parameters (when
+       ``mqttClient.sslEnable`` is set) and the underlying MQTT v5 connection settings
+       for the lifetime of the ``async with StepBroker(...)`` block. ``StepBroker``
+       itself has no self-reconnect logic; reconnection after a lost connection is
+       handled by the application loop in ``__main__.py`` (see `Message Pipeline`_
+       below), which discards the broker and constructs a new one after waiting
+       ``reconnectInterval`` seconds.
+    #. **Topic Subscription**: ``subscribe_execution()`` subscribes to the topics
+       configured in ``mqttProtocol.subscriptionTopics`` with a fixed set of MQTT
+       options (configured QoS, ``noLocal=False``, ``retainAsPublished=False``,
+       ``retainHandling=RETAIN_DO_NOT_SEND``) and raises ``StepClientError`` if the
+       number of results doesn't match the number of topics or if any granted QoS
+       doesn't match the one requested.
+    #. **ITS Message Access**: Exposes received messages through the inherited
+       ``its_messages`` property. Each access returns a new ``ItsMessagesIterator``
+       that decodes raw MQTT payloads into ``step_lib.FacilityMessage`` objects, but
+       every iterator wraps the *same* underlying incoming-message queue of the
+       single MQTT connection — it is a "dynamic view", not an independent stream.
+    #. **Context Management**: Implements asynchronous context management through an
+       overridden ``__aenter__`` (which delegates to the parent and returns ``self``)
+       and the inherited ``__aexit__``, for clean resource handling.
+
+``StepBroker`` is receive-only in this application: ``publish_topics_params`` is never
+configured, so the inherited ``publish_its_message()`` would just log a warning and
+return if it were ever called, and it never is. The class uses asynchronous patterns
+throughout to ensure non-blocking operations, making it suitable for high-throughput
+messaging environments in ITS applications.
+
+Message Pipeline
+^^^^^^^^^^^^^^^^
+
+The message pipeline is implemented entirely in ``__main__.py``, on top of the
+``StepBroker`` instance and the configuration; ``StepBroker`` itself never touches the
+queue or the output file. It is composed of:
+
+    #. **STEP receiver tasks**: ``config.stepReceiverNumber`` instances of
+       ``_step_receive_run()`` are started concurrently in a single ``TaskGroup``, all
+       sharing the *same* ``StepBroker`` instance. Each task loops
+       ``async for message in step_broker.its_messages`` and puts
+       ``message.its_payload.to_json(indent=None)`` onto a shared, bounded
+       ``asyncio.Queue[str]``. Because every ``ItsMessagesIterator`` returned by
+       ``its_messages`` wraps the same underlying MQTT incoming-message queue, the N
+       tasks act as competing consumers (a worker pool) over one physical connection's
+       message stream, rather than each receiving an independent copy of all traffic.
+    #. **The queue**: A single ``asyncio.Queue[str]``, sized by
+       ``config.maxFileWriterQueueRooms``, decouples the receiver tasks from the file
+       writer task.
+    #. **The file writer task**: Exactly one instance of ``_step_message_write_run()``
+       owns the output file (``config.outputFile``) exclusively for the lifetime of the
+       connection cycle. It loops forever, dequeuing one JSON string at a time and
+       writing it followed by a newline; because only this task ever touches the file,
+       writes are naturally serialized without a lock. Writes are buffered and are not
+       explicitly flushed after each message — they reach disk once the buffer fills
+       or the file is closed.
+    #. **The reconnect loop**: ``_main_async()`` wraps broker creation, subscription,
+       and the receiver/writer ``TaskGroup`` in a ``while True`` loop. If an unhandled
+       exception propagates out of that block (e.g. a lost MQTT connection), it is
+       logged, the broker and all receiver/writer tasks are torn down as the ``async
+       with``/``TaskGroup`` blocks exit, the loop sleeps ``config.reconnectInterval``
+       seconds, and then it reconnects by constructing a brand-new ``StepBroker``.
+
+StepMessageSaveConfig
+^^^^^^^^^^^^^^^^^^^^^
+
+The ``StepMessageSaveConfig`` component is responsible for configuration management in the
+STEP Message Save architecture. Built as a Pydantic ``BaseModel``, it provides a robust,
+type-safe mechanism for loading, validating, and accessing configuration settings
+throughout the application.
+
+Key features of ``StepMessageSaveConfig`` include:
+
+    #. **JSON Configuration Loading**: Loads configuration settings from a JSON file specified
+       at startup, providing a centralized source of configuration for all components.
+    #. **Type Validation**: Leverages Pydantic's validation system to ensure all configuration
+       values meet the expected types and constraints, preventing configuration errors at runtime.
+    #. **Hierarchical Structure**: Organizes configuration in a hierarchical manner, with nested
+       models for different aspects of the system:
+
+        * MQTT Client configuration (connection parameters, security settings)
+        * MQTT Protocol configuration (QoS, subscription topic management)
+        * Logging configuration (handlers, levels, formatting)
+
+    #. **Immutable Configuration**: Once loaded at startup, the configuration becomes immutable,
+       ensuring consistency throughout the application's lifecycle.
+    #. **Output and Concurrency Settings**: Carries the output file path
+       (``outputFile``), the number of concurrent STEP receiver tasks
+       (``stepReceiverNumber``), and the maximum size of the file writer queue
+       (``maxFileWriterQueueRooms``).
+    #. **Default Configuration**: Provides ``get_default()`` methods to generate sensible
+       default configurations when specific values are not provided.
+    #. **JSON Schema Generation**: Supports generating JSON schemas for configuration
+       validation through the ``_ConfigGenerateJsonSchema`` utility class.
+
+The design of ``StepMessageSaveConfig`` emphasizes immutability and strong validation, helping
+prevent configuration-related issues during runtime while providing a clear, structured
+approach to configuration management.
+
+StepLogger
+^^^^^^^^^^
+
+``StepLogger`` is provided by the ``step_cloud_schemas`` library (not implemented within
+step_message_save itself) and is used by STEP Message Save to build and configure its
+``logging.Logger`` instances. Today it is a thin factory built directly on top of
+Python's standard ``logging`` module; a future revision is expected to move the
+underlying implementation to the ``loguru`` library while keeping the same
+``StepLogger`` interface used by step_message_save.
+
+Key features of ``StepLogger`` include:
+
+    #. **Multiple Handler Types**: Builds loggers with one or more of the following
+       handlers, each independently configurable via ``LogConfig``:
+
+        * ``stream``: writes to stderr
+        * ``null``: discards all log records
+        * ``file``: writes to a single log file (append or overwrite)
+        * ``sizeFileRotate``: rotates the log file once it exceeds a configured size
+        * ``timeFileRotate``: rotates the log file at a configured time interval
+
+       Rotated log files are automatically compressed with BZIP2. There is no syslog
+       handler.
+    #. **UTC Timestamp Formatting**: Uses a custom ``UtcFormatter`` so all log
+       timestamps are rendered in UTC regardless of the local system timezone.
+    #. **Log Level Management**: Supports the standard log levels (DEBUG, INFO,
+       WARNING, ERROR, CRITICAL) per handler and a global logger level, via
+       ``LogMode``.
+    #. **Configuration Integration**: Driven by the ``LogConfig``/``LogHandlerConfig``
+       models (from ``step_cloud_schemas``), which are carried inside
+       ``StepMessageSaveConfig.log``.
+    #. **Public API**: Exposes two classmethods:
+
+        * ``get_logger(name, config, instance_name)``: builds and returns a configured
+          ``Logger``. If ``config`` is ``None``, it falls back to a single stderr
+          stream handler at WARNING level with the logger itself at INFO. File-based
+          handlers require ``instance_name`` to build the log filename, and raise
+          ``ValueError`` if it is missing.
+        * ``logger_force_write(logger, msg)``: temporarily elevates the logger and all
+          its handlers to INFO to guarantee a message is emitted (used by step_message_save
+          for startup/version banners), then restores the original levels.
+
+There is currently no built-in support for syslog, or for attaching structured
+context such as component IDs or transaction IDs to log records beyond what the
+configured format string exposes (e.g. ``%(module)s``, ``%(funcName)s``).
+
+StepException
+^^^^^^^^^^^^^
+
+step_message_save defines a minimal exception hierarchy in ``step_exception.py``, used to
+distinguish STEP Message Save errors from other unhandled exceptions:
+
+    #. **StepClientError**: Base exception for the client. A plain subclass of
+       ``Exception`` with no additional attributes; it is raised, for example, by
+       ``StepBroker.subscribe_execution()`` when a topic subscription fails or its
+       returned QoS doesn't match the configured one.
+    #. **StepCliError**: Subclass of ``StepClientError`` raised for CLI-specific
+       errors in ``main()`` — such as passing ``-c/--config`` without ``-i/--instance``
+       or vice versa.
+
+Both classes are message-only exceptions (the message is carried via the standard
+``Exception`` args, not a dedicated attribute); there is no structured error context,
+error-type classification, or recovery-hint mechanism beyond what the raised message
+string conveys. Callers catch and log these via the standard Python exception handling
+already used throughout ``__main__.py`` (e.g. the top-level ``except Exception`` in
+``main()`` and ``_main_async()``).
+
+Component Diagram
+^^^^^^^^^^^^^^^^^
+
+The following component diagram illustrates the high-level architecture of STEP Message
+Save and its interactions with external systems. ``StepBroker`` only talks to the MQTT
+broker and exposes decoded messages through ``its_messages``; it is the message pipeline
+in ``__main__.py`` — the receiver tasks, the queue, and the writer task — that actually
+reads from ``StepBroker`` and produces the output file.
+
+.. container:: scrollable-diagram
+
+   .. plantuml::
+      :align: center
+
+      @startuml
+
+      package "STEP Message Save" {
+         [StepBroker] as GW
+         [StepMessageSaveConfig] as Config
+         [StepLogger] as Logger
+         [StepClientError] as Exception
+         note left of GW
+         Gateway for MQTT
+         communication
+         with the STEP broker
+         end note
+
+         package "Message Pipeline (__main__.py)" {
+            [STEP Receiver Tasks] as Recv
+            queue "asyncio.Queue" as Queue
+            [File Writer Task] as Writer
+         }
+      }
+
+      cloud "MQTT Broker" as MQTT
+      file "Output File\n(JSON Lines)" as OutFile
+
+      GW -up-> Config : uses
+      GW <-right-> MQTT : subscribes to
+      Recv -left-> GW : reads its_messages
+      Recv -down-> Queue : put(json_line)
+      Queue -down-> Writer : get()
+      Writer -down-> OutFile : append line
+      GW -up-> Logger : uses
+      GW -down-> Exception : throws
+
+      note bottom of MQTT
+         Subscribe only,
+         no publication
+      end note
+
+      note right of Recv
+         stepReceiverNumber concurrent
+         tasks competing for messages
+         from the same MQTT connection
+      end note
+
+      note right of Queue
+         Bounded by
+         maxFileWriterQueueRooms
+      end note
+
+      note top of Config
+         Configuration for MQTT
+         and output file
+      end note
+
+      @enduml
+
+Class Diagram
+-------------
+
+The class diagram below illustrates the structure and relationships between
+the key classes in the STEP Message Save architecture. It shows the main methods
+and attributes of each class and how they interact with one another. ``StepBroker``'s
+methods shown here are only the ones defined or overridden in step_message_save
+(``__init__``, ``__aenter__``, ``subscribe_execution``); the connection lifecycle
+(``__aenter__``/``__aexit__``) and message access (``its_messages``) are otherwise
+inherited unchanged from ``step_lib.AsyncComManager`` and, beneath it,
+``aiomqtt.Client`` — there are no separate ``connect()``/``disconnect()``/``aclose()``
+methods anywhere in that chain.
+
+.. container:: scrollable-diagram
+
+   .. plantuml::
+      :align: center
+
+      @startuml
+
+      !theme plain
+      skinparam classAttributeIconSize 0
+
+      package "step_message_save" {
+         class StepBroker {
+            +async __aenter__()
+            +async __aexit__()
+            +async subscribe_execution()
+            +its_messages: ItsMessagesIterator
+         }
+
+         class StepMessageSaveConfig {
+            +templateVersion: str
+            +outputFile: str
+            +stepReceiverNumber: int
+            +maxFileWriterQueueRooms: int
+            +reconnectInterval: int
+            +stepBroker: StepBrokerConfig
+            +log: LogConfig
+            +get_default()
+            +model_validate_json()
+            +print_config_schema()
+            +print_config_example()
+         }
+
+         class StepLogger {
+            +get_logger()
+            +logger_force_write()
+         }
+
+         class StepClientError
+         class StepCliError
+         StepCliError --|> StepClientError
+      }
+
+      StepBroker --> StepMessageSaveConfig : uses
+      StepBroker --> StepLogger : uses
+      StepBroker --> StepClientError : throws
+
+      @enduml
+
+Sequence Diagram
+----------------
+
+The sequence diagram below illustrates the single message flow implemented by
+STEP Message Save: receiving ITS messages from the STEP broker and appending them to the
+output file. It reflects the actual implementation in ``__main__.py``, where
+``config.stepReceiverNumber`` concurrent ``_step_receive_run()`` tasks share a single
+``StepBroker`` instance and compete for messages from its single underlying MQTT
+connection, feeding a bounded ``asyncio.Queue`` that a single
+``_step_message_write_run()`` task drains, owning the output file exclusively.
+
+.. container:: scrollable-diagram
+
+   .. plantuml::
+      :align: center
+
+      @startuml
+
+      participant "STEP MQTT Broker" as MQTT
+      participant "StepBroker" as Gateway
+      participant "Receiver Task 1" as Recv1
+      participant "Receiver Task N" as RecvN
+      queue "asyncio.Queue" as Q
+      participant "File Writer Task" as Writer
+      database "Output File" as File
+
+      Gateway -> MQTT : SUBSCRIBE (topics, QoS)
+      MQTT --> Gateway : SUBACK
+
+      note over Recv1, RecvN
+         Both tasks loop
+         "async for message in step_broker.its_messages".
+         Every its_messages access wraps the same
+         underlying incoming-message queue of the one
+         MQTT connection, so the tasks are competing
+         consumers, not independent subscriptions.
+      end note
+
+      loop until cancelled
+         MQTT -> Gateway : PUBLISH (topic, ITS_bytes, QoS)
+         Gateway -> Gateway : Decode ITS ASN.1 to FacilityMessage
+         note over Gateway
+            Use step_lib.FacilityMessage
+            for decoding
+         end note
+         alt delivered to Receiver Task 1
+            Gateway -> Recv1 : its_payload
+            Recv1 -> Recv1 : its_payload.to_json()
+            Recv1 -> Q : put(json_line)
+         else delivered to Receiver Task N
+            Gateway -> RecvN : its_payload
+            RecvN -> RecvN : its_payload.to_json()
+            RecvN -> Q : put(json_line)
+         end
+      end
+
+      loop until cancelled
+         Writer -> Q : get()
+         Writer -> File : write(json_line + "\n")
+         note over Writer
+            Single task owns the file
+            handle exclusively; writes
+            are buffered and not flushed
+            per message
+         end note
+      end
+
+      @enduml
+
+On an unmanaged exception (e.g. a lost MQTT connection), the exception propagates out of
+the ``async with StepBroker(...)``/``TaskGroup`` block in ``_main_async()``, tearing down
+the current broker and all receiver/writer tasks. The reconnect loop then waits
+``reconnectInterval`` seconds and retries the whole connect-subscribe-receive cycle with a
+brand-new ``StepBroker`` instance.
