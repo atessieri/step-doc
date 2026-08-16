@@ -83,7 +83,7 @@ Key responsibilities of ``StepBroker`` include:
     #. **Topic Subscription**: ``subscribe_execution()`` subscribes to the topics
        configured in ``mqttProtocol.subscriptionTopics`` with a fixed set of MQTT
        options (configured QoS, ``noLocal=False``, ``retainAsPublished=False``,
-       ``retainHandling=RETAIN_DO_NOT_SEND``) and raises ``StepClientError`` if the
+       ``retainHandling=RETAIN_DO_NOT_SEND``) and raises ``StepMessageSaveError`` if the
        number of results doesn't match the number of topics or if any granted QoS
        doesn't match the one requested.
     #. **ITS Message Access**: Exposes received messages through the inherited
@@ -119,20 +119,34 @@ queue or the output file. It is composed of:
        message stream, rather than each receiving an independent copy of all traffic.
     #. **The queue**: A single ``asyncio.Queue[str]``, sized by
        ``config.maxFileWriterQueueRooms``, decouples the receiver tasks from the file
-       writer task.
-    #. **The file writer task**: Exactly one instance of ``_step_message_write_run()``
-       owns the output file (``config.outputFile``) exclusively for the lifetime of the
-       connection cycle. It loops forever, dequeuing one JSON string at a time and
-       writing it followed by a newline; because only this task ever touches the file,
-       writes are naturally serialized without a lock. Writes are buffered and are not
-       explicitly flushed after each message — they reach disk once the buffer fills
-       or the file is closed.
-    #. **The reconnect loop**: ``_main_async()`` wraps broker creation, subscription,
-       and the receiver/writer ``TaskGroup`` in a ``while True`` loop. If an unhandled
-       exception propagates out of that block (e.g. a lost MQTT connection), it is
-       logged, the broker and all receiver/writer tasks are torn down as the ``async
-       with``/``TaskGroup`` blocks exit, the loop sleeps ``config.reconnectInterval``
-       seconds, and then it reconnects by constructing a brand-new ``StepBroker``.
+       writer task. It is created once by ``_main_async()`` before the reconnect loop
+       starts, and that same instance is shared across every reconnect cycle — a
+       message already queued when a connection drops is not discarded, it is simply
+       drained by the writer task started on the next cycle. A message is only lost if
+       a receiver task is cancelled while blocked handing it off to a full queue, or if
+       the writer fails to write it to disk.
+    #. **The file writer task**: The output file (``config.outputFile``) path is
+       resolved once by ``_main_async()`` before the reconnect loop starts, but the
+       file itself is opened, in append mode, by ``_step_message_write_run()`` — once
+       per connection cycle, since exactly one instance of that task is (re)started
+       per cycle. Append mode means a reconnect, or even a full process restart, never
+       truncates the file: messages already on disk are always preserved. Each writer
+       instance loops forever, dequeuing one JSON string at a time, writing it followed
+       by a newline, and closing the file when the task is cancelled at the end of that
+       cycle. Because only one writer task is ever active at a time, writes are
+       naturally serialized without a lock. Writes are buffered and are not explicitly
+       flushed after each message — they reach disk once the buffer fills or the file
+       is closed.
+    #. **The reconnect loop**: ``_main_async()`` resolves the output file path and
+       creates the shared queue once, then wraps broker creation, subscription, and the
+       receiver/writer ``TaskGroup`` in a ``while True`` loop. If an unhandled
+       exception propagates out of the broker/task-group block (e.g. a lost MQTT
+       connection), it is logged, the broker and all receiver/writer tasks are torn
+       down as the ``async with``/``TaskGroup`` blocks exit, the loop sleeps
+       ``config.reconnectInterval`` seconds, and then it reconnects by constructing a
+       brand-new ``StepBroker`` and starting a fresh ``_step_message_write_run()`` task
+       — which reopens the *same* output file in append mode — against the *same*
+       shared queue.
 
 StepMessageSaveConfig
 ^^^^^^^^^^^^^^^^^^^^^
@@ -222,11 +236,11 @@ StepException
 step_message_save defines a minimal exception hierarchy in ``step_exception.py``, used to
 distinguish STEP Message Save errors from other unhandled exceptions:
 
-    #. **StepClientError**: Base exception for the client. A plain subclass of
+    #. **StepMessageSaveError**: Base exception for the client. A plain subclass of
        ``Exception`` with no additional attributes; it is raised, for example, by
        ``StepBroker.subscribe_execution()`` when a topic subscription fails or its
        returned QoS doesn't match the configured one.
-    #. **StepCliError**: Subclass of ``StepClientError`` raised for CLI-specific
+    #. **StepCliError**: Subclass of ``StepMessageSaveError`` raised for CLI-specific
        errors in ``main()`` — such as passing ``-c/--config`` without ``-i/--instance``
        or vice versa.
 
@@ -257,7 +271,7 @@ reads from ``StepBroker`` and produces the output file.
          [StepBroker] as GW
          [StepMessageSaveConfig] as Config
          [StepLogger] as Logger
-         [StepClientError] as Exception
+         [StepMessageSaveError] as Exception
          note left of GW
          Gateway for MQTT
          communication
@@ -356,14 +370,14 @@ methods anywhere in that chain.
             +logger_force_write()
          }
 
-         class StepClientError
+         class StepMessageSaveError
          class StepCliError
-         StepCliError --|> StepClientError
+         StepCliError --|> StepMessageSaveError
       }
 
       StepBroker --> StepMessageSaveConfig : uses
       StepBroker --> StepLogger : uses
-      StepBroker --> StepClientError : throws
+      StepBroker --> StepMessageSaveError : throws
 
       @enduml
 
@@ -427,10 +441,14 @@ connection, feeding a bounded ``asyncio.Queue`` that a single
          Writer -> Q : get()
          Writer -> File : write(json_line + "\n")
          note over Writer
-            Single task owns the file
-            handle exclusively; writes
-            are buffered and not flushed
-            per message
+            Each writer task opens
+            the file itself, in
+            append mode, once per
+            connection cycle, so a
+            reconnect or restart
+            never truncates it.
+            Writes are buffered and
+            not flushed per message
          end note
       end
 
@@ -440,4 +458,6 @@ On an unmanaged exception (e.g. a lost MQTT connection), the exception propagate
 the ``async with StepBroker(...)``/``TaskGroup`` block in ``_main_async()``, tearing down
 the current broker and all receiver/writer tasks. The reconnect loop then waits
 ``reconnectInterval`` seconds and retries the whole connect-subscribe-receive cycle with a
-brand-new ``StepBroker`` instance.
+brand-new ``StepBroker`` instance. The output file handle opened at the start of
+``_main_async()`` is untouched by this teardown/retry and is reused by the new writer
+task, so messages persisted before the drop are not lost.
