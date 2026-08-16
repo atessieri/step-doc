@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>test.test___main__ module &mdash; STEP Library 1.7.3 documentation</title>
+  <title>test.test___main__ module &mdash; STEP Library 1.7.4 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/tabs.css?v=4c969af8" />
@@ -16,7 +16,7 @@
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=34f54c9c"></script>
+      <script src="../_static/documentation_options.js?v=ff7cdc51"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/tabs.js?v=3ee01567"></script>
@@ -1179,6 +1179,7 @@
 <li class="toctree-l5"><a class="reference internal" href="#test.test___main__.TestMain.test_prints_version_banner"><code class="docutils literal notranslate"><span class="pre">TestMain.test_prints_version_banner()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l4"><a class="reference internal" href="#test.test___main__.test_dunder_main_guard"><code class="docutils literal notranslate"><span class="pre">test_dunder_main_guard()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="test.test_async_com_manager.html">test.test_async_com_manager module</a><ul>
@@ -2019,6 +2020,33 @@ created.</p></li>
 </dl>
 </dd></dl>
 
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="test.test___main__.test_dunder_main_guard">
+<span class="sig-prename descclassname"><span class="pre">test.test___main__.</span></span><span class="sig-name descname"><span class="pre">test_dunder_main_guard</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mocker</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MockerFixture</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test___main__.html#test_dunder_main_guard"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test___main__.test_dunder_main_guard" title="Link to this definition"></a></dt>
+<dd><p>Test that running the module as a script exits with <code class="docutils literal notranslate"><span class="pre">main()</span></code>’s return code.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">if</span> <span class="pre">__name__</span> <span class="pre">==</span> <span class="pre">&quot;__main__&quot;:</span></code> guard at the bottom of the module is only
+reached when the module is executed directly (e.g. via <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">step_lib</span></code>),
+which cannot be exercised by calling <code class="docutils literal notranslate"><span class="pre">main()</span></code> or any other importable symbol
+directly. This test re-executes the module with <code class="docutils literal notranslate"><span class="pre">runpy.run_module</span></code> and
+<code class="docutils literal notranslate"><span class="pre">run_name=&quot;__main__&quot;</span></code> to reach that guard, with <code class="docutils literal notranslate"><span class="pre">sys.argv</span></code> set so that
+<code class="docutils literal notranslate"><span class="pre">main()</span></code> takes its fast, side-effect-free usage path.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>mocker</strong> (<em>MockerFixture</em>) – pytest-mock fixture for creating mock objects.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+<dt class="field-odd">Complexity<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>- Time</strong> – O(1), the module is re-executed once via <code class="docutils literal notranslate"><span class="pre">runpy.run_module</span></code> and a
+single <code class="docutils literal notranslate"><span class="pre">SystemExit</span></code> is inspected.</p></li>
+<li><p><strong>- Space</strong> – O(1), only the cached module reference and exception info are held.</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 </section>
