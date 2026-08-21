@@ -92,8 +92,9 @@ The typical usage pattern involves:
                 await stream.publish_message(message="Hello, Redis!")
                 
                 # 7. Receive a message
-                message = await stream.receive_message(block_timeout=30000)
-                logger.info("Received message: %s", message)
+                async for message in stream.receive_message():
+                    logger.info("Received message: %s", message)
+                    break
                 
     if __name__ == "__main__":
         asyncio.run(main())
@@ -196,8 +197,9 @@ Let's look at how these components are used:
                 )
                 
                 # Receive a message
-                msg = await stream.receive_client_message()
-                logger.info("Received message: %s", msg)
+                async for msg in stream.receive_client_message():
+                    logger.info("Received message: %s", msg)
+                    break
 
 Running the Demo Application
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -238,8 +240,9 @@ of publishing and consuming messages. Here's an excerpt from the main implementa
             await stream.publish_denm_message(message=DenmDataV1.get_default())
             
             # Receive and log the message
-            msg = await stream.receive_client_message()
-            logger.info("Received message: %s", msg)
+            async for msg in stream.receive_client_message():
+                logger.info("Received message: %s", msg)
+                break
 
     # Run the demo
     if __name__ == "__main__":
