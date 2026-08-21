@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>step_lib.sync_com_manager &mdash; STEP Library 1.7.7 documentation</title>
+  <title>step_lib.sync_com_manager &mdash; STEP Library 1.7.8 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=4c969af8" />
@@ -15,7 +15,7 @@
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=c884563b"></script>
+      <script src="../../_static/documentation_options.js?v=209ef5f9"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/tabs.js?v=3ee01567"></script>
@@ -1340,9 +1340,12 @@
 <li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_sync_com_manager.html#test.test_sync_com_manager.TestSyncComManager.test_message_publish_thread"><code class="docutils literal notranslate"><span class="pre">TestSyncComManager.test_message_publish_thread()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_sync_com_manager.html#test.test_sync_com_manager.TestSyncComManager.test_message_receive_thread"><code class="docutils literal notranslate"><span class="pre">TestSyncComManager.test_message_receive_thread()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_sync_com_manager.html#test.test_sync_com_manager.TestSyncComManager.test_publish_command_exec"><code class="docutils literal notranslate"><span class="pre">TestSyncComManager.test_publish_command_exec()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_sync_com_manager.html#test.test_sync_com_manager.TestSyncComManager.test_publish_its_message_does_not_block_and_raises_when_queue_full"><code class="docutils literal notranslate"><span class="pre">TestSyncComManager.test_publish_its_message_does_not_block_and_raises_when_queue_full()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_sync_com_manager.html#test.test_sync_com_manager.TestSyncComManager.test_publish_its_message_propagates_dispatch_error"><code class="docutils literal notranslate"><span class="pre">TestSyncComManager.test_publish_its_message_propagates_dispatch_error()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_sync_com_manager.html#test.test_sync_com_manager.TestSyncComManager.test_publish_its_message_raises"><code class="docutils literal notranslate"><span class="pre">TestSyncComManager.test_publish_its_message_raises()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_sync_com_manager.html#test.test_sync_com_manager.TestSyncComManager.test_publish_its_message_success"><code class="docutils literal notranslate"><span class="pre">TestSyncComManager.test_publish_its_message_success()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_sync_com_manager.html#test.test_sync_com_manager.TestSyncComManager.test_put_incoming_nowait_enqueues_when_room_available"><code class="docutils literal notranslate"><span class="pre">TestSyncComManager.test_put_incoming_nowait_enqueues_when_room_available()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_sync_com_manager.html#test.test_sync_com_manager.TestSyncComManager.test_put_incoming_nowait_raises_when_queue_full"><code class="docutils literal notranslate"><span class="pre">TestSyncComManager.test_put_incoming_nowait_raises_when_queue_full()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_sync_com_manager.html#test.test_sync_com_manager.TestSyncComManager.test_run"><code class="docutils literal notranslate"><span class="pre">TestSyncComManager.test_run()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_sync_com_manager.html#test.test_sync_com_manager.TestSyncComManager.test_run_does_not_start_when_already_disabled"><code class="docutils literal notranslate"><span class="pre">TestSyncComManager.test_run_does_not_start_when_already_disabled()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_sync_com_manager.html#test.test_sync_com_manager.TestSyncComManager.test_run_republishes_disconnected_state_before_retrying"><code class="docutils literal notranslate"><span class="pre">TestSyncComManager.test_run_republishes_disconnected_state_before_retrying()</span></code></a></li>
@@ -2322,348 +2325,375 @@
 <span class="linenos"> 888</span>            <span class="k">raise</span> <span class="n">StepLibError</span><span class="p">(</span><span class="s2">"Async thread is not running"</span><span class="p">)</span>
 <span class="linenos"> 889</span>        <span class="k">return</span> <span class="n">loop</span>
 <span class="linenos"> 890</span>
-<span class="linenos"> 891</span>    <span class="k">def</span><span class="w"> </span><span class="nf">_begin_start</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos"> 892</span><span class="w">        </span><span class="sd">"""Atomically validate and record that the manager is starting.</span>
+<span class="linenos"> 891</span>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_put_incoming_nowait</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">command</span><span class="p">:</span> <span class="s2">"SyncComManager.Command"</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos"> 892</span><span class="w">        </span><span class="sd">"""Enqueue a command onto the incoming queue without waiting for room.</span>
 <span class="linenos"> 893</span>
-<span class="linenos"> 894</span><span class="sd">        Under a single ``_state_lock`` acquisition: checks that no loop is</span>
-<span class="linenos"> 895</span><span class="sd">        published and the background thread is not alive, then marks the</span>
-<span class="linenos"> 896</span><span class="sd">        manager enabled. Keeping the check and the ``_async_thread_enable``</span>
-<span class="linenos"> 897</span><span class="sd">        write in one critical section prevents a concurrent stop() from</span>
-<span class="linenos"> 898</span><span class="sd">        observing a torn state.</span>
-<span class="linenos"> 899</span>
-<span class="linenos"> 900</span><span class="sd">        Returns:</span>
-<span class="linenos"> 901</span><span class="sd">            None</span>
-<span class="linenos"> 902</span>
-<span class="linenos"> 903</span><span class="sd">        Raises:</span>
-<span class="linenos"> 904</span><span class="sd">            StepLibError: If async loop is already running or async thread is already alive.</span>
-<span class="linenos"> 905</span>
-<span class="linenos"> 906</span><span class="sd">        Complexity:</span>
-<span class="linenos"> 907</span><span class="sd">            - Time: O(1), acquires a lock, checks two conditions, and assigns a flag.</span>
-<span class="linenos"> 908</span><span class="sd">            - Space: O(1), no additional storage is required.</span>
-<span class="linenos"> 909</span><span class="sd">        """</span>
-<span class="linenos"> 910</span>        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state_lock</span><span class="p">:</span>
-<span class="linenos"> 911</span>            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_async_loop</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos"> 912</span>                <span class="k">raise</span> <span class="n">StepLibError</span><span class="p">(</span><span class="s2">"Async loop is running"</span><span class="p">)</span>
-<span class="linenos"> 913</span>            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_async_thread</span><span class="o">.</span><span class="n">is_alive</span><span class="p">():</span>
-<span class="linenos"> 914</span>                <span class="k">raise</span> <span class="n">StepLibError</span><span class="p">(</span><span class="s2">"Async thread is running"</span><span class="p">)</span>
-<span class="linenos"> 915</span>            <span class="bp">self</span><span class="o">.</span><span class="n">_async_thread_enable</span> <span class="o">=</span> <span class="kc">True</span>
-<span class="linenos"> 916</span>
-<span class="linenos"> 917</span>    <span class="k">def</span><span class="w"> </span><span class="nf">_begin_stop</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AbstractEventLoop</span><span class="p">:</span>
-<span class="linenos"> 918</span><span class="w">        </span><span class="sd">"""Atomically validate, capture, and record that the manager is stopping.</span>
-<span class="linenos"> 919</span>
-<span class="linenos"> 920</span><span class="sd">        Under a single ``_state_lock`` acquisition: captures the current loop</span>
-<span class="linenos"> 921</span><span class="sd">        reference and thread-alive state, validates both, then marks the</span>
-<span class="linenos"> 922</span><span class="sd">        manager disabled. The captured loop is returned for the caller to</span>
-<span class="linenos"> 923</span><span class="sd">        dispatch the shutdown commands through, without re-reading</span>
-<span class="linenos"> 924</span><span class="sd">        ``self._async_loop``.</span>
-<span class="linenos"> 925</span>
-<span class="linenos"> 926</span><span class="sd">        Returns:</span>
-<span class="linenos"> 927</span><span class="sd">            AbstractEventLoop: The event loop reference to use for the shutdown</span>
-<span class="linenos"> 928</span><span class="sd">            dispatch.</span>
-<span class="linenos"> 929</span>
-<span class="linenos"> 930</span><span class="sd">        Raises:</span>
-<span class="linenos"> 931</span><span class="sd">            StepLibError: If async loop is not running or async thread is not alive.</span>
-<span class="linenos"> 932</span>
-<span class="linenos"> 933</span><span class="sd">        Complexity:</span>
-<span class="linenos"> 934</span><span class="sd">            - Time: O(1), acquires a lock, checks two conditions, and assigns a flag.</span>
-<span class="linenos"> 935</span><span class="sd">            - Space: O(1), no additional storage is required.</span>
-<span class="linenos"> 936</span><span class="sd">        """</span>
-<span class="linenos"> 937</span>        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state_lock</span><span class="p">:</span>
-<span class="linenos"> 938</span>            <span class="n">loop</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_async_loop</span>
-<span class="linenos"> 939</span>            <span class="n">thread_alive</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_async_thread</span><span class="o">.</span><span class="n">is_alive</span><span class="p">()</span>
-<span class="linenos"> 940</span>            <span class="k">if</span> <span class="n">loop</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos"> 941</span>                <span class="k">raise</span> <span class="n">StepLibError</span><span class="p">(</span><span class="s2">"Async loop is not running"</span><span class="p">)</span>
-<span class="linenos"> 942</span>            <span class="k">if</span> <span class="ow">not</span> <span class="n">thread_alive</span><span class="p">:</span>
-<span class="linenos"> 943</span>                <span class="k">raise</span> <span class="n">StepLibError</span><span class="p">(</span><span class="s2">"Async thread is not running"</span><span class="p">)</span>
-<span class="linenos"> 944</span>            <span class="bp">self</span><span class="o">.</span><span class="n">_async_thread_enable</span> <span class="o">=</span> <span class="kc">False</span>
-<span class="linenos"> 945</span>            <span class="k">return</span> <span class="n">loop</span>
-<span class="linenos"> 946</span>
+<span class="linenos"> 894</span><span class="sd">        Must run on the queue's own event-loop thread (dispatched via</span>
+<span class="linenos"> 895</span><span class="sd">        ``run_coroutine_threadsafe``), since ``asyncio.Queue`` is not</span>
+<span class="linenos"> 896</span><span class="sd">        thread-safe to mutate directly from a foreign thread.</span>
+<span class="linenos"> 897</span>
+<span class="linenos"> 898</span><span class="sd">        Args:</span>
+<span class="linenos"> 899</span><span class="sd">            command (SyncComManager.Command): The command to enqueue.</span>
+<span class="linenos"> 900</span>
+<span class="linenos"> 901</span><span class="sd">        Raises:</span>
+<span class="linenos"> 902</span><span class="sd">            asyncio.QueueFull: If the incoming queue is full.</span>
+<span class="linenos"> 903</span>
+<span class="linenos"> 904</span><span class="sd">        Returns:</span>
+<span class="linenos"> 905</span><span class="sd">            None</span>
+<span class="linenos"> 906</span>
+<span class="linenos"> 907</span><span class="sd">        Complexity:</span>
+<span class="linenos"> 908</span><span class="sd">            - Time: O(1), a single non-blocking queue insertion.</span>
+<span class="linenos"> 909</span><span class="sd">            - Space: O(1), no additional storage is required.</span>
+<span class="linenos"> 910</span><span class="sd">        """</span>
+<span class="linenos"> 911</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_incoming_queue</span><span class="o">.</span><span class="n">put_nowait</span><span class="p">(</span><span class="n">item</span><span class="o">=</span><span class="n">command</span><span class="p">)</span>
+<span class="linenos"> 912</span>
+<span class="linenos"> 913</span>    <span class="k">def</span><span class="w"> </span><span class="nf">_begin_start</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos"> 914</span><span class="w">        </span><span class="sd">"""Atomically validate and record that the manager is starting.</span>
+<span class="linenos"> 915</span>
+<span class="linenos"> 916</span><span class="sd">        Under a single ``_state_lock`` acquisition: checks that no loop is</span>
+<span class="linenos"> 917</span><span class="sd">        published and the background thread is not alive, then marks the</span>
+<span class="linenos"> 918</span><span class="sd">        manager enabled. Keeping the check and the ``_async_thread_enable``</span>
+<span class="linenos"> 919</span><span class="sd">        write in one critical section prevents a concurrent stop() from</span>
+<span class="linenos"> 920</span><span class="sd">        observing a torn state.</span>
+<span class="linenos"> 921</span>
+<span class="linenos"> 922</span><span class="sd">        Returns:</span>
+<span class="linenos"> 923</span><span class="sd">            None</span>
+<span class="linenos"> 924</span>
+<span class="linenos"> 925</span><span class="sd">        Raises:</span>
+<span class="linenos"> 926</span><span class="sd">            StepLibError: If async loop is already running or async thread is already alive.</span>
+<span class="linenos"> 927</span>
+<span class="linenos"> 928</span><span class="sd">        Complexity:</span>
+<span class="linenos"> 929</span><span class="sd">            - Time: O(1), acquires a lock, checks two conditions, and assigns a flag.</span>
+<span class="linenos"> 930</span><span class="sd">            - Space: O(1), no additional storage is required.</span>
+<span class="linenos"> 931</span><span class="sd">        """</span>
+<span class="linenos"> 932</span>        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state_lock</span><span class="p">:</span>
+<span class="linenos"> 933</span>            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_async_loop</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos"> 934</span>                <span class="k">raise</span> <span class="n">StepLibError</span><span class="p">(</span><span class="s2">"Async loop is running"</span><span class="p">)</span>
+<span class="linenos"> 935</span>            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_async_thread</span><span class="o">.</span><span class="n">is_alive</span><span class="p">():</span>
+<span class="linenos"> 936</span>                <span class="k">raise</span> <span class="n">StepLibError</span><span class="p">(</span><span class="s2">"Async thread is running"</span><span class="p">)</span>
+<span class="linenos"> 937</span>            <span class="bp">self</span><span class="o">.</span><span class="n">_async_thread_enable</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="linenos"> 938</span>
+<span class="linenos"> 939</span>    <span class="k">def</span><span class="w"> </span><span class="nf">_begin_stop</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AbstractEventLoop</span><span class="p">:</span>
+<span class="linenos"> 940</span><span class="w">        </span><span class="sd">"""Atomically validate, capture, and record that the manager is stopping.</span>
+<span class="linenos"> 941</span>
+<span class="linenos"> 942</span><span class="sd">        Under a single ``_state_lock`` acquisition: captures the current loop</span>
+<span class="linenos"> 943</span><span class="sd">        reference and thread-alive state, validates both, then marks the</span>
+<span class="linenos"> 944</span><span class="sd">        manager disabled. The captured loop is returned for the caller to</span>
+<span class="linenos"> 945</span><span class="sd">        dispatch the shutdown commands through, without re-reading</span>
+<span class="linenos"> 946</span><span class="sd">        ``self._async_loop``.</span>
+<span class="linenos"> 947</span>
+<span class="linenos"> 948</span><span class="sd">        Returns:</span>
+<span class="linenos"> 949</span><span class="sd">            AbstractEventLoop: The event loop reference to use for the shutdown</span>
+<span class="linenos"> 950</span><span class="sd">            dispatch.</span>
+<span class="linenos"> 951</span>
+<span class="linenos"> 952</span><span class="sd">        Raises:</span>
+<span class="linenos"> 953</span><span class="sd">            StepLibError: If async loop is not running or async thread is not alive.</span>
+<span class="linenos"> 954</span>
+<span class="linenos"> 955</span><span class="sd">        Complexity:</span>
+<span class="linenos"> 956</span><span class="sd">            - Time: O(1), acquires a lock, checks two conditions, and assigns a flag.</span>
+<span class="linenos"> 957</span><span class="sd">            - Space: O(1), no additional storage is required.</span>
+<span class="linenos"> 958</span><span class="sd">        """</span>
+<span class="linenos"> 959</span>        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state_lock</span><span class="p">:</span>
+<span class="linenos"> 960</span>            <span class="n">loop</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_async_loop</span>
+<span class="linenos"> 961</span>            <span class="n">thread_alive</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_async_thread</span><span class="o">.</span><span class="n">is_alive</span><span class="p">()</span>
+<span class="linenos"> 962</span>            <span class="k">if</span> <span class="n">loop</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos"> 963</span>                <span class="k">raise</span> <span class="n">StepLibError</span><span class="p">(</span><span class="s2">"Async loop is not running"</span><span class="p">)</span>
+<span class="linenos"> 964</span>            <span class="k">if</span> <span class="ow">not</span> <span class="n">thread_alive</span><span class="p">:</span>
+<span class="linenos"> 965</span>                <span class="k">raise</span> <span class="n">StepLibError</span><span class="p">(</span><span class="s2">"Async thread is not running"</span><span class="p">)</span>
+<span class="linenos"> 966</span>            <span class="bp">self</span><span class="o">.</span><span class="n">_async_thread_enable</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="linenos"> 967</span>            <span class="k">return</span> <span class="n">loop</span>
+<span class="linenos"> 968</span>
 <div class="viewcode-block" id="SyncComManager.start">
 <a class="viewcode-back" href="../../step_lib_rst/step_lib.sync_com_manager.html#step_lib.sync_com_manager.SyncComManager.start">[docs]</a>
-<span class="linenos"> 947</span>    <span class="k">def</span><span class="w"> </span><span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos"> 948</span><span class="w">        </span><span class="sd">"""Start the async thread and wait for the async loop. Start the asynchronous</span>
-<span class="linenos"> 949</span><span class="sd">        thread and wait for initialization of the event loop. The method ensures that</span>
-<span class="linenos"> 950</span><span class="sd">        only one thread and loop are running at a time.</span>
-<span class="linenos"> 951</span>
-<span class="linenos"> 952</span><span class="sd">        Note:</span>
-<span class="linenos"> 953</span><span class="sd">            The initial "not already running" check is performed atomically by</span>
-<span class="linenos"> 954</span><span class="sd">            ``_begin_start()`` (backed by ``_state_lock``) to avoid racing with a</span>
-<span class="linenos"> 955</span><span class="sd">            concurrent stop() or with the background thread publishing</span>
-<span class="linenos"> 956</span><span class="sd">            ``_async_loop``. The subsequent readiness poll goes through</span>
-<span class="linenos"> 957</span><span class="sd">            ``_is_async_loop_ready()``, which re-acquires the lock briefly on each</span>
-<span class="linenos"> 958</span><span class="sd">            iteration instead of holding it for the whole wait, so it cannot block</span>
-<span class="linenos"> 959</span><span class="sd">            the background thread from publishing the loop.</span>
-<span class="linenos"> 960</span>
-<span class="linenos"> 961</span><span class="sd">        Returns:</span>
-<span class="linenos"> 962</span><span class="sd">            None</span>
-<span class="linenos"> 963</span>
-<span class="linenos"> 964</span><span class="sd">        Raises:</span>
-<span class="linenos"> 965</span><span class="sd">            StepLibError: If async loop is already running or async thread is already alive.</span>
-<span class="linenos"> 966</span>
-<span class="linenos"> 967</span><span class="sd">        Complexity:</span>
-<span class="linenos"> 968</span><span class="sd">            - Time: O(1) amortized. Starts the thread and polls in fixed 0.1-second</span>
-<span class="linenos"> 969</span><span class="sd">              increments for a bounded startup delay, independent of message volume.</span>
-<span class="linenos"> 970</span><span class="sd">            - Space: O(1), no additional storage is required.</span>
-<span class="linenos"> 971</span><span class="sd">        """</span>
-<span class="linenos"> 972</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_begin_start</span><span class="p">()</span>
-<span class="linenos"> 973</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_async_thread</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
-<span class="linenos"> 974</span>        <span class="k">while</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_async_loop_ready</span><span class="p">():</span>
-<span class="linenos"> 975</span>            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_async_thread</span><span class="o">.</span><span class="n">is_alive</span><span class="p">():</span>
-<span class="linenos"> 976</span>                <span class="k">raise</span> <span class="n">StepLibError</span><span class="p">(</span><span class="s2">"Async thread died before event loop was ready"</span><span class="p">)</span>
-<span class="linenos"> 977</span>            <span class="n">time_sleep</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span></div>
+<span class="linenos"> 969</span>    <span class="k">def</span><span class="w"> </span><span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos"> 970</span><span class="w">        </span><span class="sd">"""Start the async thread and wait for the async loop. Start the asynchronous</span>
+<span class="linenos"> 971</span><span class="sd">        thread and wait for initialization of the event loop. The method ensures that</span>
+<span class="linenos"> 972</span><span class="sd">        only one thread and loop are running at a time.</span>
+<span class="linenos"> 973</span>
+<span class="linenos"> 974</span><span class="sd">        Note:</span>
+<span class="linenos"> 975</span><span class="sd">            The initial "not already running" check is performed atomically by</span>
+<span class="linenos"> 976</span><span class="sd">            ``_begin_start()`` (backed by ``_state_lock``) to avoid racing with a</span>
+<span class="linenos"> 977</span><span class="sd">            concurrent stop() or with the background thread publishing</span>
+<span class="linenos"> 978</span><span class="sd">            ``_async_loop``. The subsequent readiness poll goes through</span>
+<span class="linenos"> 979</span><span class="sd">            ``_is_async_loop_ready()``, which re-acquires the lock briefly on each</span>
+<span class="linenos"> 980</span><span class="sd">            iteration instead of holding it for the whole wait, so it cannot block</span>
+<span class="linenos"> 981</span><span class="sd">            the background thread from publishing the loop.</span>
+<span class="linenos"> 982</span>
+<span class="linenos"> 983</span><span class="sd">        Returns:</span>
+<span class="linenos"> 984</span><span class="sd">            None</span>
+<span class="linenos"> 985</span>
+<span class="linenos"> 986</span><span class="sd">        Raises:</span>
+<span class="linenos"> 987</span><span class="sd">            StepLibError: If async loop is already running or async thread is already alive.</span>
+<span class="linenos"> 988</span>
+<span class="linenos"> 989</span><span class="sd">        Complexity:</span>
+<span class="linenos"> 990</span><span class="sd">            - Time: O(1) amortized. Starts the thread and polls in fixed 0.1-second</span>
+<span class="linenos"> 991</span><span class="sd">              increments for a bounded startup delay, independent of message volume.</span>
+<span class="linenos"> 992</span><span class="sd">            - Space: O(1), no additional storage is required.</span>
+<span class="linenos"> 993</span><span class="sd">        """</span>
+<span class="linenos"> 994</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_begin_start</span><span class="p">()</span>
+<span class="linenos"> 995</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_async_thread</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+<span class="linenos"> 996</span>        <span class="k">while</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_async_loop_ready</span><span class="p">():</span>
+<span class="linenos"> 997</span>            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_async_thread</span><span class="o">.</span><span class="n">is_alive</span><span class="p">():</span>
+<span class="linenos"> 998</span>                <span class="k">raise</span> <span class="n">StepLibError</span><span class="p">(</span><span class="s2">"Async thread died before event loop was ready"</span><span class="p">)</span>
+<span class="linenos"> 999</span>            <span class="n">time_sleep</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span></div>
 
-<span class="linenos"> 978</span>
+<span class="linenos">1000</span>
 <div class="viewcode-block" id="SyncComManager.stop">
 <a class="viewcode-back" href="../../step_lib_rst/step_lib.sync_com_manager.html#step_lib.sync_com_manager.SyncComManager.stop">[docs]</a>
-<span class="linenos"> 979</span>    <span class="k">def</span><span class="w"> </span><span class="nf">stop</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos"> 980</span><span class="w">        </span><span class="sd">"""Stop the asynchronous communication thread. Stops the running asynchronous</span>
-<span class="linenos"> 981</span><span class="sd">        thread by setting the enable flag to False and sending an exit command through</span>
-<span class="linenos"> 982</span><span class="sd">        the queue. Waits for every already-queued command (including the exit command)</span>
-<span class="linenos"> 983</span><span class="sd">        to be fully processed, then waits for thread completion before clearing the</span>
-<span class="linenos"> 984</span><span class="sd">        async loop reference.</span>
-<span class="linenos"> 985</span>
-<span class="linenos"> 986</span><span class="sd">        Note:</span>
-<span class="linenos"> 987</span><span class="sd">            The loop/thread-alive check, the capture of the loop reference used</span>
-<span class="linenos"> 988</span><span class="sd">            for dispatch, and the ``_async_thread_enable`` write are performed</span>
-<span class="linenos"> 989</span><span class="sd">            atomically by ``_begin_stop()`` (backed by ``_state_lock``), so a</span>
-<span class="linenos"> 990</span><span class="sd">            concurrent crash cannot leave this method holding a half-updated</span>
-<span class="linenos"> 991</span><span class="sd">            reference. The lock is released before the blocking</span>
-<span class="linenos"> 992</span><span class="sd">            ``run_coroutine_threadsafe(...).result()`` calls and the thread join, so</span>
-<span class="linenos"> 993</span><span class="sd">            those I/O waits are not serialized against other lock users. Each</span>
-<span class="linenos"> 994</span><span class="sd">            ``.result()`` call is bounded by ``self._params.timeout`` as a</span>
-<span class="linenos"> 995</span><span class="sd">            defense-in-depth safeguard: ``_async_run`` already drains any</span>
-<span class="linenos"> 996</span><span class="sd">            leftover queue items before returning so these calls should</span>
-<span class="linenos"> 997</span><span class="sd">            complete promptly on their own, but the timeout ensures ``stop()``</span>
-<span class="linenos"> 998</span><span class="sd">            fails loudly rather than blocking forever if some other, unforeseen</span>
-<span class="linenos"> 999</span><span class="sd">            interleaving still leaves them pending.</span>
-<span class="linenos">1000</span>
-<span class="linenos">1001</span><span class="sd">        Raises:</span>
-<span class="linenos">1002</span><span class="sd">            StepLibError: If async loop is not running or async thread is not alive,</span>
-<span class="linenos">1003</span><span class="sd">                or if the async loop does not process the stop command within</span>
-<span class="linenos">1004</span><span class="sd">                ``self._params.timeout`` seconds.</span>
-<span class="linenos">1005</span>
-<span class="linenos">1006</span><span class="sd">        Returns:</span>
-<span class="linenos">1007</span><span class="sd">            None</span>
-<span class="linenos">1008</span>
-<span class="linenos">1009</span><span class="sd">        Complexity:</span>
-<span class="linenos">1010</span><span class="sd">            - Time: O(q), where q is the number of commands already queued in</span>
-<span class="linenos">1011</span><span class="sd">              _incoming_queue at the time stop() is called (bounded by</span>
-<span class="linenos">1012</span><span class="sd">              max_incoming_queue_rooms), to drain them before the exit command is</span>
-<span class="linenos">1013</span><span class="sd">              processed; the subsequent thread join then blocks for a bounded shutdown</span>
-<span class="linenos">1014</span><span class="sd">              delay.</span>
-<span class="linenos">1015</span><span class="sd">            - Space: O(1), no additional storage is required.</span>
-<span class="linenos">1016</span><span class="sd">        """</span>
-<span class="linenos">1017</span>        <span class="n">loop</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_begin_stop</span><span class="p">()</span>
-<span class="linenos">1018</span>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">):</span>
-<span class="linenos">1019</span>            <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">"Command: thread async stop execution"</span><span class="p">)</span>
-<span class="linenos">1020</span>        <span class="k">try</span><span class="p">:</span>
-<span class="linenos">1021</span>            <span class="n">asyncio_run_coroutine_threadsafe</span><span class="p">(</span>
-<span class="linenos">1022</span>                <span class="n">coro</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_incoming_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">item</span><span class="o">=</span><span class="n">SyncComManager</span><span class="o">.</span><span class="n">ExitThreadsCommand</span><span class="p">()),</span>
-<span class="linenos">1023</span>                <span class="n">loop</span><span class="o">=</span><span class="n">loop</span><span class="p">,</span>
-<span class="linenos">1024</span>            <span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">timeout</span><span class="p">)</span>
-<span class="linenos">1025</span>            <span class="n">asyncio_run_coroutine_threadsafe</span><span class="p">(</span>
-<span class="linenos">1026</span>                <span class="n">coro</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_incoming_queue</span><span class="o">.</span><span class="n">join</span><span class="p">(),</span> <span class="n">loop</span><span class="o">=</span><span class="n">loop</span>
-<span class="linenos">1027</span>            <span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">timeout</span><span class="p">)</span>
-<span class="linenos">1028</span>        <span class="k">except</span> <span class="ne">TimeoutError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
-<span class="linenos">1029</span>            <span class="k">raise</span> <span class="n">StepLibError</span><span class="p">(</span>
-<span class="linenos">1030</span>                <span class="s2">"Timed out waiting for the async loop to process the stop command"</span>
-<span class="linenos">1031</span>            <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">error</span>
-<span class="linenos">1032</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_async_thread</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
-<span class="linenos">1033</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_set_async_loop</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span></div>
+<span class="linenos">1001</span>    <span class="k">def</span><span class="w"> </span><span class="nf">stop</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">1002</span><span class="w">        </span><span class="sd">"""Stop the asynchronous communication thread. Stops the running asynchronous</span>
+<span class="linenos">1003</span><span class="sd">        thread by setting the enable flag to False and sending an exit command through</span>
+<span class="linenos">1004</span><span class="sd">        the queue. Waits for every already-queued command (including the exit command)</span>
+<span class="linenos">1005</span><span class="sd">        to be fully processed, then waits for thread completion before clearing the</span>
+<span class="linenos">1006</span><span class="sd">        async loop reference.</span>
+<span class="linenos">1007</span>
+<span class="linenos">1008</span><span class="sd">        Note:</span>
+<span class="linenos">1009</span><span class="sd">            The loop/thread-alive check, the capture of the loop reference used</span>
+<span class="linenos">1010</span><span class="sd">            for dispatch, and the ``_async_thread_enable`` write are performed</span>
+<span class="linenos">1011</span><span class="sd">            atomically by ``_begin_stop()`` (backed by ``_state_lock``), so a</span>
+<span class="linenos">1012</span><span class="sd">            concurrent crash cannot leave this method holding a half-updated</span>
+<span class="linenos">1013</span><span class="sd">            reference. The lock is released before the blocking</span>
+<span class="linenos">1014</span><span class="sd">            ``run_coroutine_threadsafe(...).result()`` calls and the thread join, so</span>
+<span class="linenos">1015</span><span class="sd">            those I/O waits are not serialized against other lock users. Each</span>
+<span class="linenos">1016</span><span class="sd">            ``.result()`` call is bounded by ``self._params.timeout`` as a</span>
+<span class="linenos">1017</span><span class="sd">            defense-in-depth safeguard: ``_async_run`` already drains any</span>
+<span class="linenos">1018</span><span class="sd">            leftover queue items before returning so these calls should</span>
+<span class="linenos">1019</span><span class="sd">            complete promptly on their own, but the timeout ensures ``stop()``</span>
+<span class="linenos">1020</span><span class="sd">            fails loudly rather than blocking forever if some other, unforeseen</span>
+<span class="linenos">1021</span><span class="sd">            interleaving still leaves them pending.</span>
+<span class="linenos">1022</span>
+<span class="linenos">1023</span><span class="sd">        Raises:</span>
+<span class="linenos">1024</span><span class="sd">            StepLibError: If async loop is not running or async thread is not alive,</span>
+<span class="linenos">1025</span><span class="sd">                or if the async loop does not process the stop command within</span>
+<span class="linenos">1026</span><span class="sd">                ``self._params.timeout`` seconds.</span>
+<span class="linenos">1027</span>
+<span class="linenos">1028</span><span class="sd">        Returns:</span>
+<span class="linenos">1029</span><span class="sd">            None</span>
+<span class="linenos">1030</span>
+<span class="linenos">1031</span><span class="sd">        Complexity:</span>
+<span class="linenos">1032</span><span class="sd">            - Time: O(q), where q is the number of commands already queued in</span>
+<span class="linenos">1033</span><span class="sd">              _incoming_queue at the time stop() is called (bounded by</span>
+<span class="linenos">1034</span><span class="sd">              max_incoming_queue_rooms), to drain them before the exit command is</span>
+<span class="linenos">1035</span><span class="sd">              processed; the subsequent thread join then blocks for a bounded shutdown</span>
+<span class="linenos">1036</span><span class="sd">              delay.</span>
+<span class="linenos">1037</span><span class="sd">            - Space: O(1), no additional storage is required.</span>
+<span class="linenos">1038</span><span class="sd">        """</span>
+<span class="linenos">1039</span>        <span class="n">loop</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_begin_stop</span><span class="p">()</span>
+<span class="linenos">1040</span>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">):</span>
+<span class="linenos">1041</span>            <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">"Command: thread async stop execution"</span><span class="p">)</span>
+<span class="linenos">1042</span>        <span class="k">try</span><span class="p">:</span>
+<span class="linenos">1043</span>            <span class="n">asyncio_run_coroutine_threadsafe</span><span class="p">(</span>
+<span class="linenos">1044</span>                <span class="n">coro</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_incoming_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">item</span><span class="o">=</span><span class="n">SyncComManager</span><span class="o">.</span><span class="n">ExitThreadsCommand</span><span class="p">()),</span>
+<span class="linenos">1045</span>                <span class="n">loop</span><span class="o">=</span><span class="n">loop</span><span class="p">,</span>
+<span class="linenos">1046</span>            <span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">timeout</span><span class="p">)</span>
+<span class="linenos">1047</span>            <span class="n">asyncio_run_coroutine_threadsafe</span><span class="p">(</span>
+<span class="linenos">1048</span>                <span class="n">coro</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_incoming_queue</span><span class="o">.</span><span class="n">join</span><span class="p">(),</span> <span class="n">loop</span><span class="o">=</span><span class="n">loop</span>
+<span class="linenos">1049</span>            <span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">timeout</span><span class="p">)</span>
+<span class="linenos">1050</span>        <span class="k">except</span> <span class="ne">TimeoutError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+<span class="linenos">1051</span>            <span class="k">raise</span> <span class="n">StepLibError</span><span class="p">(</span>
+<span class="linenos">1052</span>                <span class="s2">"Timed out waiting for the async loop to process the stop command"</span>
+<span class="linenos">1053</span>            <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">error</span>
+<span class="linenos">1054</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_async_thread</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+<span class="linenos">1055</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_set_async_loop</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span></div>
 
-<span class="linenos">1034</span>
+<span class="linenos">1056</span>
 <div class="viewcode-block" id="SyncComManager.get_its_message_received">
 <a class="viewcode-back" href="../../step_lib_rst/step_lib.sync_com_manager.html#step_lib.sync_com_manager.SyncComManager.get_its_message_received">[docs]</a>
-<span class="linenos">1035</span>    <span class="k">def</span><span class="w"> </span><span class="nf">get_its_message_received</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FacilityMessage</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">1036</span><span class="w">        </span><span class="sd">"""Gets the last message received from the queue. This method attempts to</span>
-<span class="linenos">1037</span><span class="sd">        retrieve a message from the outgoing queue without blocking. It checks if the</span>
-<span class="linenos">1038</span><span class="sd">        async loop and thread are running before attempting to get a message.</span>
-<span class="linenos">1039</span>
-<span class="linenos">1040</span><span class="sd">        Note:</span>
-<span class="linenos">1041</span><span class="sd">            The loop/thread-alive check is performed atomically via</span>
-<span class="linenos">1042</span><span class="sd">            ``_get_active_loop()`` (backed by ``_state_lock``) so the two</span>
-<span class="linenos">1043</span><span class="sd">            conditions reflect a single consistent instant instead of two</span>
-<span class="linenos">1044</span><span class="sd">            independent, possibly torn, reads. The returned loop reference itself</span>
-<span class="linenos">1045</span><span class="sd">            is not needed here and is discarded; only its validation matters.</span>
-<span class="linenos">1046</span>
-<span class="linenos">1047</span><span class="sd">        Returns:</span>
-<span class="linenos">1048</span><span class="sd">            FacilityMessage | None: The received message if available, None if no message</span>
-<span class="linenos">1049</span><span class="sd">                is in the queue.</span>
-<span class="linenos">1050</span>
-<span class="linenos">1051</span><span class="sd">        Raises:</span>
-<span class="linenos">1052</span><span class="sd">            StepLibError: If the async loop or thread is not running.</span>
-<span class="linenos">1053</span>
-<span class="linenos">1054</span><span class="sd">        Complexity:</span>
-<span class="linenos">1055</span><span class="sd">            - Time: O(1), a single non-blocking queue access.</span>
-<span class="linenos">1056</span><span class="sd">            - Space: O(1), no additional storage is required beyond the returned message</span>
-<span class="linenos">1057</span><span class="sd">              reference.</span>
-<span class="linenos">1058</span><span class="sd">        """</span>
-<span class="linenos">1059</span>        <span class="k">try</span><span class="p">:</span>
-<span class="linenos">1060</span>            <span class="bp">self</span><span class="o">.</span><span class="n">_get_active_loop</span><span class="p">()</span>
-<span class="linenos">1061</span>            <span class="n">message</span><span class="p">:</span> <span class="n">FacilityMessage</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_outgoing_queue</span><span class="o">.</span><span class="n">get_nowait</span><span class="p">()</span>
-<span class="linenos">1062</span>        <span class="k">except</span> <span class="n">SyncEmpty</span><span class="p">:</span>
-<span class="linenos">1063</span>            <span class="c1"># Return None if no data is available yet</span>
-<span class="linenos">1064</span>            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">):</span>
-<span class="linenos">1065</span>                <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">"No message received yet"</span><span class="p">)</span>
-<span class="linenos">1066</span>            <span class="k">return</span> <span class="kc">None</span>
-<span class="linenos">1067</span>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">):</span>
-<span class="linenos">1068</span>            <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">"Message: </span><span class="si">{</span><span class="n">message</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-<span class="linenos">1069</span>        <span class="k">return</span> <span class="n">message</span></div>
+<span class="linenos">1057</span>    <span class="k">def</span><span class="w"> </span><span class="nf">get_its_message_received</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FacilityMessage</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">1058</span><span class="w">        </span><span class="sd">"""Gets the last message received from the queue. This method attempts to</span>
+<span class="linenos">1059</span><span class="sd">        retrieve a message from the outgoing queue without blocking. It checks if the</span>
+<span class="linenos">1060</span><span class="sd">        async loop and thread are running before attempting to get a message.</span>
+<span class="linenos">1061</span>
+<span class="linenos">1062</span><span class="sd">        Note:</span>
+<span class="linenos">1063</span><span class="sd">            The loop/thread-alive check is performed atomically via</span>
+<span class="linenos">1064</span><span class="sd">            ``_get_active_loop()`` (backed by ``_state_lock``) so the two</span>
+<span class="linenos">1065</span><span class="sd">            conditions reflect a single consistent instant instead of two</span>
+<span class="linenos">1066</span><span class="sd">            independent, possibly torn, reads. The returned loop reference itself</span>
+<span class="linenos">1067</span><span class="sd">            is not needed here and is discarded; only its validation matters.</span>
+<span class="linenos">1068</span>
+<span class="linenos">1069</span><span class="sd">        Returns:</span>
+<span class="linenos">1070</span><span class="sd">            FacilityMessage | None: The received message if available, None if no message</span>
+<span class="linenos">1071</span><span class="sd">                is in the queue.</span>
+<span class="linenos">1072</span>
+<span class="linenos">1073</span><span class="sd">        Raises:</span>
+<span class="linenos">1074</span><span class="sd">            StepLibError: If the async loop or thread is not running.</span>
+<span class="linenos">1075</span>
+<span class="linenos">1076</span><span class="sd">        Complexity:</span>
+<span class="linenos">1077</span><span class="sd">            - Time: O(1), a single non-blocking queue access.</span>
+<span class="linenos">1078</span><span class="sd">            - Space: O(1), no additional storage is required beyond the returned message</span>
+<span class="linenos">1079</span><span class="sd">              reference.</span>
+<span class="linenos">1080</span><span class="sd">        """</span>
+<span class="linenos">1081</span>        <span class="k">try</span><span class="p">:</span>
+<span class="linenos">1082</span>            <span class="bp">self</span><span class="o">.</span><span class="n">_get_active_loop</span><span class="p">()</span>
+<span class="linenos">1083</span>            <span class="n">message</span><span class="p">:</span> <span class="n">FacilityMessage</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_outgoing_queue</span><span class="o">.</span><span class="n">get_nowait</span><span class="p">()</span>
+<span class="linenos">1084</span>        <span class="k">except</span> <span class="n">SyncEmpty</span><span class="p">:</span>
+<span class="linenos">1085</span>            <span class="c1"># Return None if no data is available yet</span>
+<span class="linenos">1086</span>            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">):</span>
+<span class="linenos">1087</span>                <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">"No message received yet"</span><span class="p">)</span>
+<span class="linenos">1088</span>            <span class="k">return</span> <span class="kc">None</span>
+<span class="linenos">1089</span>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">):</span>
+<span class="linenos">1090</span>            <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">"Message: </span><span class="si">{</span><span class="n">message</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="linenos">1091</span>        <span class="k">return</span> <span class="n">message</span></div>
 
-<span class="linenos">1070</span>
-<span class="linenos">1071</span>    <span class="nd">@property</span>
-<span class="linenos">1072</span>    <span class="k">def</span><span class="w"> </span><span class="nf">its_messages_received</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Generator</span><span class="p">[</span><span class="n">FacilityMessage</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
-<span class="linenos">1073</span><span class="w">        </span><span class="sd">"""Iterates over all messages currently available in the receive queue.</span>
-<span class="linenos">1074</span>
-<span class="linenos">1075</span><span class="sd">        Yields:</span>
-<span class="linenos">1076</span><span class="sd">            FacilityMessage: Each message present in the queue at the time of</span>
-<span class="linenos">1077</span><span class="sd">            iteration. Stops when the queue is empty.</span>
-<span class="linenos">1078</span>
-<span class="linenos">1079</span><span class="sd">        Returns:</span>
-<span class="linenos">1080</span><span class="sd">            Generator[FacilityMessage, Any, None]: A generator yielding each message</span>
-<span class="linenos">1081</span><span class="sd">            present in the receive queue at the time of iteration.</span>
-<span class="linenos">1082</span>
-<span class="linenos">1083</span><span class="sd">        Note:</span>
-<span class="linenos">1084</span><span class="sd">            - Drains all messages currently queued, not just the first one.</span>
-<span class="linenos">1085</span><span class="sd">            - Returns an empty generator if no messages are available.</span>
-<span class="linenos">1086</span><span class="sd">            - Does not block waiting for new messages.</span>
-<span class="linenos">1087</span>
-<span class="linenos">1088</span><span class="sd">        Complexity:</span>
-<span class="linenos">1089</span><span class="sd">            - Time: O(m), where m is the number of messages currently queued, to drain</span>
-<span class="linenos">1090</span><span class="sd">              the entire outgoing queue.</span>
-<span class="linenos">1091</span><span class="sd">            - Space: O(1) for the generator's own state (messages are yielded one at a</span>
-<span class="linenos">1092</span><span class="sd">              time, not accumulated).</span>
-<span class="linenos">1093</span><span class="sd">        """</span>
-<span class="linenos">1094</span>        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
-<span class="linenos">1095</span>            <span class="n">message</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_its_message_received</span><span class="p">()</span>
-<span class="linenos">1096</span>            <span class="k">if</span> <span class="n">message</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">1097</span>                <span class="k">return</span>
-<span class="linenos">1098</span>            <span class="k">yield</span> <span class="n">message</span>
-<span class="linenos">1099</span>
+<span class="linenos">1092</span>
+<span class="linenos">1093</span>    <span class="nd">@property</span>
+<span class="linenos">1094</span>    <span class="k">def</span><span class="w"> </span><span class="nf">its_messages_received</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Generator</span><span class="p">[</span><span class="n">FacilityMessage</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
+<span class="linenos">1095</span><span class="w">        </span><span class="sd">"""Iterates over all messages currently available in the receive queue.</span>
+<span class="linenos">1096</span>
+<span class="linenos">1097</span><span class="sd">        Yields:</span>
+<span class="linenos">1098</span><span class="sd">            FacilityMessage: Each message present in the queue at the time of</span>
+<span class="linenos">1099</span><span class="sd">            iteration. Stops when the queue is empty.</span>
+<span class="linenos">1100</span>
+<span class="linenos">1101</span><span class="sd">        Returns:</span>
+<span class="linenos">1102</span><span class="sd">            Generator[FacilityMessage, Any, None]: A generator yielding each message</span>
+<span class="linenos">1103</span><span class="sd">            present in the receive queue at the time of iteration.</span>
+<span class="linenos">1104</span>
+<span class="linenos">1105</span><span class="sd">        Note:</span>
+<span class="linenos">1106</span><span class="sd">            - Drains all messages currently queued, not just the first one.</span>
+<span class="linenos">1107</span><span class="sd">            - Returns an empty generator if no messages are available.</span>
+<span class="linenos">1108</span><span class="sd">            - Does not block waiting for new messages.</span>
+<span class="linenos">1109</span>
+<span class="linenos">1110</span><span class="sd">        Complexity:</span>
+<span class="linenos">1111</span><span class="sd">            - Time: O(m), where m is the number of messages currently queued, to drain</span>
+<span class="linenos">1112</span><span class="sd">              the entire outgoing queue.</span>
+<span class="linenos">1113</span><span class="sd">            - Space: O(1) for the generator's own state (messages are yielded one at a</span>
+<span class="linenos">1114</span><span class="sd">              time, not accumulated).</span>
+<span class="linenos">1115</span><span class="sd">        """</span>
+<span class="linenos">1116</span>        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+<span class="linenos">1117</span>            <span class="n">message</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_its_message_received</span><span class="p">()</span>
+<span class="linenos">1118</span>            <span class="k">if</span> <span class="n">message</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">1119</span>                <span class="k">return</span>
+<span class="linenos">1120</span>            <span class="k">yield</span> <span class="n">message</span>
+<span class="linenos">1121</span>
 <div class="viewcode-block" id="SyncComManager.subscribe">
 <a class="viewcode-back" href="../../step_lib_rst/step_lib.sync_com_manager.html#step_lib.sync_com_manager.SyncComManager.subscribe">[docs]</a>
-<span class="linenos">1100</span>    <span class="k">def</span><span class="w"> </span><span class="nf">subscribe</span><span class="p">(</span>
-<span class="linenos">1101</span>        <span class="bp">self</span><span class="p">,</span> <span class="n">topics</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">max_qos</span><span class="p">:</span> <span class="n">MqttQoS</span><span class="p">,</span> <span class="n">no_local</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
-<span class="linenos">1102</span>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">1103</span><span class="w">        </span><span class="sd">"""Subscribe to MQTT topics.</span>
-<span class="linenos">1104</span>
-<span class="linenos">1105</span><span class="sd">        This method queues a subscription request to the specified MQTT topics with the</span>
-<span class="linenos">1106</span><span class="sd">        given maximum QoS level. The subscription is processed asynchronously by the</span>
-<span class="linenos">1107</span><span class="sd">        running async loop.</span>
-<span class="linenos">1108</span>
-<span class="linenos">1109</span><span class="sd">        Args:</span>
-<span class="linenos">1110</span><span class="sd">            topics (list[str]): List of MQTT topic strings to subscribe to</span>
-<span class="linenos">1111</span><span class="sd">            max_qos (MqttQoS): Maximum Quality of Service level for the subscriptions</span>
-<span class="linenos">1112</span><span class="sd">            no_local (bool): If the value is 1, Application Messages must not be forwarded to a</span>
-<span class="linenos">1113</span><span class="sd">            connection with a ClientID equal to the ClientID of the publishing connection.</span>
-<span class="linenos">1114</span><span class="sd">            Defaults to True.</span>
-<span class="linenos">1115</span>
-<span class="linenos">1116</span><span class="sd">        Note:</span>
-<span class="linenos">1117</span><span class="sd">            The loop/thread-alive check and the capture of the loop reference used</span>
-<span class="linenos">1118</span><span class="sd">            for dispatch are performed atomically via ``_get_active_loop()`` (backed</span>
-<span class="linenos">1119</span><span class="sd">            by ``_state_lock``), so a concurrent stop() cannot leave this call</span>
-<span class="linenos">1120</span><span class="sd">            dispatching against a stale attribute read.</span>
-<span class="linenos">1121</span>
-<span class="linenos">1122</span><span class="sd">        Raises:</span>
-<span class="linenos">1123</span><span class="sd">            StepLibError: If the async loop is not running or async thread is not alive</span>
-<span class="linenos">1124</span>
-<span class="linenos">1125</span><span class="sd">        Returns:</span>
-<span class="linenos">1126</span><span class="sd">            None</span>
-<span class="linenos">1127</span>
-<span class="linenos">1128</span><span class="sd">        Example:</span>
-<span class="linenos">1129</span><span class="sd">            &gt;&gt;&gt; com_manager.subscribe(topics=["home/sensors/#"], max_qos=MqttQoS.QOS_1)</span>
+<span class="linenos">1122</span>    <span class="k">def</span><span class="w"> </span><span class="nf">subscribe</span><span class="p">(</span>
+<span class="linenos">1123</span>        <span class="bp">self</span><span class="p">,</span> <span class="n">topics</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">max_qos</span><span class="p">:</span> <span class="n">MqttQoS</span><span class="p">,</span> <span class="n">no_local</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="linenos">1124</span>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">1125</span><span class="w">        </span><span class="sd">"""Subscribe to MQTT topics.</span>
+<span class="linenos">1126</span>
+<span class="linenos">1127</span><span class="sd">        This method queues a subscription request to the specified MQTT topics with the</span>
+<span class="linenos">1128</span><span class="sd">        given maximum QoS level. The subscription is processed asynchronously by the</span>
+<span class="linenos">1129</span><span class="sd">        running async loop.</span>
 <span class="linenos">1130</span>
-<span class="linenos">1131</span><span class="sd">        Complexity:</span>
-<span class="linenos">1132</span><span class="sd">            - Time: O(k), where k is the number of topics, to build and enqueue the</span>
-<span class="linenos">1133</span><span class="sd">              SubscribeCommand.</span>
-<span class="linenos">1134</span><span class="sd">            - Space: O(k), where k is the number of topics, for the referenced topics</span>
-<span class="linenos">1135</span><span class="sd">              list held by the command.</span>
-<span class="linenos">1136</span><span class="sd">        """</span>
-<span class="linenos">1137</span>        <span class="n">loop</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_active_loop</span><span class="p">()</span>
-<span class="linenos">1138</span>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">):</span>
-<span class="linenos">1139</span>            <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
-<span class="linenos">1140</span>                <span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">"Command: subscribe </span><span class="si">{</span><span class="n">topics</span><span class="si">}</span><span class="s2">, max_qos </span><span class="si">{</span><span class="n">max_qos</span><span class="si">}</span><span class="s2">"</span>
-<span class="linenos">1141</span>            <span class="p">)</span>
-<span class="linenos">1142</span>        <span class="n">asyncio_run_coroutine_threadsafe</span><span class="p">(</span>
-<span class="linenos">1143</span>            <span class="n">coro</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_incoming_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span>
-<span class="linenos">1144</span>                <span class="n">item</span><span class="o">=</span><span class="n">SyncComManager</span><span class="o">.</span><span class="n">SubscribeCommand</span><span class="p">(</span>
-<span class="linenos">1145</span>                    <span class="n">topics</span><span class="o">=</span><span class="n">topics</span><span class="p">,</span> <span class="n">max_qos</span><span class="o">=</span><span class="n">max_qos</span><span class="p">,</span> <span class="n">no_local</span><span class="o">=</span><span class="n">no_local</span>
-<span class="linenos">1146</span>                <span class="p">)</span>
-<span class="linenos">1147</span>            <span class="p">),</span>
-<span class="linenos">1148</span>            <span class="n">loop</span><span class="o">=</span><span class="n">loop</span><span class="p">,</span>
-<span class="linenos">1149</span>        <span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">()</span></div>
+<span class="linenos">1131</span><span class="sd">        Args:</span>
+<span class="linenos">1132</span><span class="sd">            topics (list[str]): List of MQTT topic strings to subscribe to</span>
+<span class="linenos">1133</span><span class="sd">            max_qos (MqttQoS): Maximum Quality of Service level for the subscriptions</span>
+<span class="linenos">1134</span><span class="sd">            no_local (bool): If the value is 1, Application Messages must not be forwarded to a</span>
+<span class="linenos">1135</span><span class="sd">            connection with a ClientID equal to the ClientID of the publishing connection.</span>
+<span class="linenos">1136</span><span class="sd">            Defaults to True.</span>
+<span class="linenos">1137</span>
+<span class="linenos">1138</span><span class="sd">        Note:</span>
+<span class="linenos">1139</span><span class="sd">            The loop/thread-alive check and the capture of the loop reference used</span>
+<span class="linenos">1140</span><span class="sd">            for dispatch are performed atomically via ``_get_active_loop()`` (backed</span>
+<span class="linenos">1141</span><span class="sd">            by ``_state_lock``), so a concurrent stop() cannot leave this call</span>
+<span class="linenos">1142</span><span class="sd">            dispatching against a stale attribute read.</span>
+<span class="linenos">1143</span>
+<span class="linenos">1144</span><span class="sd">        Raises:</span>
+<span class="linenos">1145</span><span class="sd">            StepLibError: If the async loop is not running or async thread is not alive</span>
+<span class="linenos">1146</span>
+<span class="linenos">1147</span><span class="sd">        Returns:</span>
+<span class="linenos">1148</span><span class="sd">            None</span>
+<span class="linenos">1149</span>
+<span class="linenos">1150</span><span class="sd">        Example:</span>
+<span class="linenos">1151</span><span class="sd">            &gt;&gt;&gt; com_manager.subscribe(topics=["home/sensors/#"], max_qos=MqttQoS.QOS_1)</span>
+<span class="linenos">1152</span>
+<span class="linenos">1153</span><span class="sd">        Complexity:</span>
+<span class="linenos">1154</span><span class="sd">            - Time: O(k), where k is the number of topics, to build and enqueue the</span>
+<span class="linenos">1155</span><span class="sd">              SubscribeCommand.</span>
+<span class="linenos">1156</span><span class="sd">            - Space: O(k), where k is the number of topics, for the referenced topics</span>
+<span class="linenos">1157</span><span class="sd">              list held by the command.</span>
+<span class="linenos">1158</span><span class="sd">        """</span>
+<span class="linenos">1159</span>        <span class="n">loop</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_active_loop</span><span class="p">()</span>
+<span class="linenos">1160</span>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">):</span>
+<span class="linenos">1161</span>            <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+<span class="linenos">1162</span>                <span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">"Command: subscribe </span><span class="si">{</span><span class="n">topics</span><span class="si">}</span><span class="s2">, max_qos </span><span class="si">{</span><span class="n">max_qos</span><span class="si">}</span><span class="s2">"</span>
+<span class="linenos">1163</span>            <span class="p">)</span>
+<span class="linenos">1164</span>        <span class="n">asyncio_run_coroutine_threadsafe</span><span class="p">(</span>
+<span class="linenos">1165</span>            <span class="n">coro</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_incoming_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span>
+<span class="linenos">1166</span>                <span class="n">item</span><span class="o">=</span><span class="n">SyncComManager</span><span class="o">.</span><span class="n">SubscribeCommand</span><span class="p">(</span>
+<span class="linenos">1167</span>                    <span class="n">topics</span><span class="o">=</span><span class="n">topics</span><span class="p">,</span> <span class="n">max_qos</span><span class="o">=</span><span class="n">max_qos</span><span class="p">,</span> <span class="n">no_local</span><span class="o">=</span><span class="n">no_local</span>
+<span class="linenos">1168</span>                <span class="p">)</span>
+<span class="linenos">1169</span>            <span class="p">),</span>
+<span class="linenos">1170</span>            <span class="n">loop</span><span class="o">=</span><span class="n">loop</span><span class="p">,</span>
+<span class="linenos">1171</span>        <span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">()</span></div>
 
-<span class="linenos">1150</span>
+<span class="linenos">1172</span>
 <div class="viewcode-block" id="SyncComManager.publish_its_message">
 <a class="viewcode-back" href="../../step_lib_rst/step_lib.sync_com_manager.html#step_lib.sync_com_manager.SyncComManager.publish_its_message">[docs]</a>
-<span class="linenos">1151</span>    <span class="k">def</span><span class="w"> </span><span class="nf">publish_its_message</span><span class="p">(</span>
-<span class="linenos">1152</span>        <span class="bp">self</span><span class="p">,</span>
-<span class="linenos">1153</span>        <span class="n">message</span><span class="p">:</span> <span class="n">FacilityMessage</span><span class="p">,</span>
-<span class="linenos">1154</span>        <span class="n">address</span><span class="p">:</span> <span class="n">GeoNetworkAddress</span><span class="p">,</span>
-<span class="linenos">1155</span>        <span class="n">current_position</span><span class="p">:</span> <span class="n">GpsLocation</span><span class="p">,</span>
-<span class="linenos">1156</span>        <span class="n">is_station_mobile</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-<span class="linenos">1157</span>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">1158</span><span class="w">        </span><span class="sd">"""Publishes an ITS message to the network.</span>
-<span class="linenos">1159</span>
-<span class="linenos">1160</span><span class="sd">        This method schedules the publication of a message by placing a publish command in</span>
-<span class="linenos">1161</span><span class="sd">        the internal queue. The actual sending is handled by an asynchronous worker thread.</span>
-<span class="linenos">1162</span>
-<span class="linenos">1163</span><span class="sd">        Args:</span>
-<span class="linenos">1164</span><span class="sd">            message (FacilityMessage): The ITS message to be published.</span>
-<span class="linenos">1165</span><span class="sd">            address (GeoNetworkAddress): The network address for the message.</span>
-<span class="linenos">1166</span><span class="sd">            current_position (GpsLocation): The current GPS position of the sender.</span>
-<span class="linenos">1167</span><span class="sd">            is_station_mobile (bool, optional): Indicates if the station is mobile.</span>
-<span class="linenos">1168</span><span class="sd">            Defaults to True.</span>
-<span class="linenos">1169</span>
-<span class="linenos">1170</span><span class="sd">        Note:</span>
-<span class="linenos">1171</span><span class="sd">            The loop/thread-alive check and the capture of the loop reference used</span>
-<span class="linenos">1172</span><span class="sd">            for dispatch are performed atomically via ``_get_active_loop()`` (backed</span>
-<span class="linenos">1173</span><span class="sd">            by ``_state_lock``), so a concurrent stop() cannot leave this call</span>
-<span class="linenos">1174</span><span class="sd">            dispatching against a stale attribute read.</span>
-<span class="linenos">1175</span>
-<span class="linenos">1176</span><span class="sd">        Raises:</span>
-<span class="linenos">1177</span><span class="sd">            StepLibError: If the async loop is not running or if the async thread is not alive.</span>
-<span class="linenos">1178</span>
-<span class="linenos">1179</span><span class="sd">        Returns:</span>
-<span class="linenos">1180</span><span class="sd">            None</span>
+<span class="linenos">1173</span>    <span class="k">def</span><span class="w"> </span><span class="nf">publish_its_message</span><span class="p">(</span>
+<span class="linenos">1174</span>        <span class="bp">self</span><span class="p">,</span>
+<span class="linenos">1175</span>        <span class="n">message</span><span class="p">:</span> <span class="n">FacilityMessage</span><span class="p">,</span>
+<span class="linenos">1176</span>        <span class="n">address</span><span class="p">:</span> <span class="n">GeoNetworkAddress</span><span class="p">,</span>
+<span class="linenos">1177</span>        <span class="n">current_position</span><span class="p">:</span> <span class="n">GpsLocation</span><span class="p">,</span>
+<span class="linenos">1178</span>        <span class="n">is_station_mobile</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<span class="linenos">1179</span>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">1180</span><span class="w">        </span><span class="sd">"""Publishes an ITS message to the network.</span>
 <span class="linenos">1181</span>
-<span class="linenos">1182</span><span class="sd">        Complexity:</span>
-<span class="linenos">1183</span><span class="sd">            - Time: O(1), builds and enqueues a PublishMessageCommand holding references</span>
-<span class="linenos">1184</span><span class="sd">              (no message copy); actual serialization happens later on the background</span>
-<span class="linenos">1185</span><span class="sd">              thread.</span>
-<span class="linenos">1186</span><span class="sd">            - Space: O(1), only a fixed number of references are stored on the command.</span>
-<span class="linenos">1187</span><span class="sd">        """</span>
-<span class="linenos">1188</span>        <span class="n">loop</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_active_loop</span><span class="p">()</span>
-<span class="linenos">1189</span>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">):</span>
-<span class="linenos">1190</span>            <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">"Command: publish </span><span class="si">{</span><span class="n">message</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-<span class="linenos">1191</span>        <span class="n">asyncio_run_coroutine_threadsafe</span><span class="p">(</span>
-<span class="linenos">1192</span>            <span class="n">coro</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_incoming_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span>
-<span class="linenos">1193</span>                <span class="n">item</span><span class="o">=</span><span class="n">SyncComManager</span><span class="o">.</span><span class="n">PublishMessageCommand</span><span class="p">(</span>
-<span class="linenos">1194</span>                    <span class="n">message</span><span class="o">=</span><span class="n">message</span><span class="p">,</span>
-<span class="linenos">1195</span>                    <span class="n">address</span><span class="o">=</span><span class="n">address</span><span class="p">,</span>
-<span class="linenos">1196</span>                    <span class="n">current_position</span><span class="o">=</span><span class="n">current_position</span><span class="p">,</span>
-<span class="linenos">1197</span>                    <span class="n">is_station_mobile</span><span class="o">=</span><span class="n">is_station_mobile</span><span class="p">,</span>
-<span class="linenos">1198</span>                <span class="p">)</span>
-<span class="linenos">1199</span>            <span class="p">),</span>
-<span class="linenos">1200</span>            <span class="n">loop</span><span class="o">=</span><span class="n">loop</span><span class="p">,</span>
-<span class="linenos">1201</span>        <span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">()</span></div>
-
-<span class="linenos">1202</span>
-<span class="linenos">1203</span>    <span class="nd">@property</span>
-<span class="linenos">1204</span>    <span class="k">def</span><span class="w"> </span><span class="nf">connection_status</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ConnectionStatus</span><span class="p">:</span>
-<span class="linenos">1205</span><span class="w">        </span><span class="sd">"""Get the current connection status.</span>
+<span class="linenos">1182</span><span class="sd">        This method schedules the publication of a message by placing a publish command in</span>
+<span class="linenos">1183</span><span class="sd">        the internal queue. The actual sending is handled by an asynchronous worker thread.</span>
+<span class="linenos">1184</span>
+<span class="linenos">1185</span><span class="sd">        Args:</span>
+<span class="linenos">1186</span><span class="sd">            message (FacilityMessage): The ITS message to be published.</span>
+<span class="linenos">1187</span><span class="sd">            address (GeoNetworkAddress): The network address for the message.</span>
+<span class="linenos">1188</span><span class="sd">            current_position (GpsLocation): The current GPS position of the sender.</span>
+<span class="linenos">1189</span><span class="sd">            is_station_mobile (bool, optional): Indicates if the station is mobile.</span>
+<span class="linenos">1190</span><span class="sd">            Defaults to True.</span>
+<span class="linenos">1191</span>
+<span class="linenos">1192</span><span class="sd">        Note:</span>
+<span class="linenos">1193</span><span class="sd">            The loop/thread-alive check and the capture of the loop reference used</span>
+<span class="linenos">1194</span><span class="sd">            for dispatch are performed atomically via ``_get_active_loop()`` (backed</span>
+<span class="linenos">1195</span><span class="sd">            by ``_state_lock``), so a concurrent stop() cannot leave this call</span>
+<span class="linenos">1196</span><span class="sd">            dispatching against a stale attribute read. The enqueue itself is</span>
+<span class="linenos">1197</span><span class="sd">            non-blocking: it never waits for room in the incoming queue, it either</span>
+<span class="linenos">1198</span><span class="sd">            succeeds immediately or raises.</span>
+<span class="linenos">1199</span>
+<span class="linenos">1200</span><span class="sd">        Raises:</span>
+<span class="linenos">1201</span><span class="sd">            StepLibError: If the async loop is not running or if the async thread is not alive.</span>
+<span class="linenos">1202</span><span class="sd">            asyncio.QueueFull: If the incoming queue is full (max_incoming_queue_rooms reached).</span>
+<span class="linenos">1203</span>
+<span class="linenos">1204</span><span class="sd">        Returns:</span>
+<span class="linenos">1205</span><span class="sd">            None</span>
 <span class="linenos">1206</span>
-<span class="linenos">1207</span><span class="sd">        This property returns the current connection status of the communication manager.</span>
-<span class="linenos">1208</span>
-<span class="linenos">1209</span><span class="sd">        Returns:</span>
-<span class="linenos">1210</span><span class="sd">            ConnectionStatus: The current connection status.</span>
-<span class="linenos">1211</span>
-<span class="linenos">1212</span><span class="sd">        Complexity:</span>
-<span class="linenos">1213</span><span class="sd">            - Time: O(1), acquires a lock and returns a stored value.</span>
-<span class="linenos">1214</span><span class="sd">            - Space: O(1), no additional storage is required.</span>
-<span class="linenos">1215</span><span class="sd">        """</span>
-<span class="linenos">1216</span>        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state_lock</span><span class="p">:</span>
-<span class="linenos">1217</span>            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_connection_status</span></div>
+<span class="linenos">1207</span><span class="sd">        Complexity:</span>
+<span class="linenos">1208</span><span class="sd">            - Time: O(1), builds and enqueues a PublishMessageCommand holding references</span>
+<span class="linenos">1209</span><span class="sd">              (no message copy, no waiting for queue room); actual serialization happens</span>
+<span class="linenos">1210</span><span class="sd">              later on the background thread.</span>
+<span class="linenos">1211</span><span class="sd">            - Space: O(1), only a fixed number of references are stored on the command.</span>
+<span class="linenos">1212</span><span class="sd">        """</span>
+<span class="linenos">1213</span>        <span class="n">loop</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_active_loop</span><span class="p">()</span>
+<span class="linenos">1214</span>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">):</span>
+<span class="linenos">1215</span>            <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">"Command: publish </span><span class="si">{</span><span class="n">message</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="linenos">1216</span>        <span class="n">asyncio_run_coroutine_threadsafe</span><span class="p">(</span>
+<span class="linenos">1217</span>            <span class="n">coro</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_put_incoming_nowait</span><span class="p">(</span>
+<span class="linenos">1218</span>                <span class="n">command</span><span class="o">=</span><span class="n">SyncComManager</span><span class="o">.</span><span class="n">PublishMessageCommand</span><span class="p">(</span>
+<span class="linenos">1219</span>                    <span class="n">message</span><span class="o">=</span><span class="n">message</span><span class="p">,</span>
+<span class="linenos">1220</span>                    <span class="n">address</span><span class="o">=</span><span class="n">address</span><span class="p">,</span>
+<span class="linenos">1221</span>                    <span class="n">current_position</span><span class="o">=</span><span class="n">current_position</span><span class="p">,</span>
+<span class="linenos">1222</span>                    <span class="n">is_station_mobile</span><span class="o">=</span><span class="n">is_station_mobile</span><span class="p">,</span>
+<span class="linenos">1223</span>                <span class="p">)</span>
+<span class="linenos">1224</span>            <span class="p">),</span>
+<span class="linenos">1225</span>            <span class="n">loop</span><span class="o">=</span><span class="n">loop</span><span class="p">,</span>
+<span class="linenos">1226</span>        <span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+<span class="linenos">1227</span>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">):</span>
+<span class="linenos">1228</span>            <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">"Message </span><span class="si">{</span><span class="n">message</span><span class="o">.</span><span class="n">its_time</span><span class="si">}</span><span class="s2"> published"</span><span class="p">)</span></div>
+
+<span class="linenos">1229</span>
+<span class="linenos">1230</span>    <span class="nd">@property</span>
+<span class="linenos">1231</span>    <span class="k">def</span><span class="w"> </span><span class="nf">connection_status</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ConnectionStatus</span><span class="p">:</span>
+<span class="linenos">1232</span><span class="w">        </span><span class="sd">"""Get the current connection status.</span>
+<span class="linenos">1233</span>
+<span class="linenos">1234</span><span class="sd">        This property returns the current connection status of the communication manager.</span>
+<span class="linenos">1235</span>
+<span class="linenos">1236</span><span class="sd">        Returns:</span>
+<span class="linenos">1237</span><span class="sd">            ConnectionStatus: The current connection status.</span>
+<span class="linenos">1238</span>
+<span class="linenos">1239</span><span class="sd">        Complexity:</span>
+<span class="linenos">1240</span><span class="sd">            - Time: O(1), acquires a lock and returns a stored value.</span>
+<span class="linenos">1241</span><span class="sd">            - Space: O(1), no additional storage is required.</span>
+<span class="linenos">1242</span><span class="sd">        """</span>
+<span class="linenos">1243</span>        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state_lock</span><span class="p">:</span>
+<span class="linenos">1244</span>            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_connection_status</span></div>
 
 </pre></div>
 

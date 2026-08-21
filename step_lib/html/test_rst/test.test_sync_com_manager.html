@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>test.test_sync_com_manager module &mdash; STEP Library 1.7.7 documentation</title>
+  <title>test.test_sync_com_manager module &mdash; STEP Library 1.7.8 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/tabs.css?v=4c969af8" />
@@ -16,7 +16,7 @@
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=c884563b"></script>
+      <script src="../_static/documentation_options.js?v=209ef5f9"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/tabs.js?v=3ee01567"></script>
@@ -1342,9 +1342,12 @@
 <li class="toctree-l5"><a class="reference internal" href="#test.test_sync_com_manager.TestSyncComManager.test_message_publish_thread"><code class="docutils literal notranslate"><span class="pre">TestSyncComManager.test_message_publish_thread()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#test.test_sync_com_manager.TestSyncComManager.test_message_receive_thread"><code class="docutils literal notranslate"><span class="pre">TestSyncComManager.test_message_receive_thread()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#test.test_sync_com_manager.TestSyncComManager.test_publish_command_exec"><code class="docutils literal notranslate"><span class="pre">TestSyncComManager.test_publish_command_exec()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#test.test_sync_com_manager.TestSyncComManager.test_publish_its_message_does_not_block_and_raises_when_queue_full"><code class="docutils literal notranslate"><span class="pre">TestSyncComManager.test_publish_its_message_does_not_block_and_raises_when_queue_full()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#test.test_sync_com_manager.TestSyncComManager.test_publish_its_message_propagates_dispatch_error"><code class="docutils literal notranslate"><span class="pre">TestSyncComManager.test_publish_its_message_propagates_dispatch_error()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#test.test_sync_com_manager.TestSyncComManager.test_publish_its_message_raises"><code class="docutils literal notranslate"><span class="pre">TestSyncComManager.test_publish_its_message_raises()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#test.test_sync_com_manager.TestSyncComManager.test_publish_its_message_success"><code class="docutils literal notranslate"><span class="pre">TestSyncComManager.test_publish_its_message_success()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#test.test_sync_com_manager.TestSyncComManager.test_put_incoming_nowait_enqueues_when_room_available"><code class="docutils literal notranslate"><span class="pre">TestSyncComManager.test_put_incoming_nowait_enqueues_when_room_available()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#test.test_sync_com_manager.TestSyncComManager.test_put_incoming_nowait_raises_when_queue_full"><code class="docutils literal notranslate"><span class="pre">TestSyncComManager.test_put_incoming_nowait_raises_when_queue_full()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#test.test_sync_com_manager.TestSyncComManager.test_run"><code class="docutils literal notranslate"><span class="pre">TestSyncComManager.test_run()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#test.test_sync_com_manager.TestSyncComManager.test_run_does_not_start_when_already_disabled"><code class="docutils literal notranslate"><span class="pre">TestSyncComManager.test_run_does_not_start_when_already_disabled()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#test.test_sync_com_manager.TestSyncComManager.test_run_republishes_disconnected_state_before_retrying"><code class="docutils literal notranslate"><span class="pre">TestSyncComManager.test_run_republishes_disconnected_state_before_retrying()</span></code></a></li>
@@ -1428,10 +1431,11 @@ manager</p></li>
 <p>Test coverage includes initialization, attribute assignment, slot definitions, the
 context-manager protocol, start/stop lifecycle handling, subscribe/publish dispatch,
 the background thread’s command loop and reconnection logic, and correct delegation to
-the underlying AsyncComManager collaborator (mocked throughout, with one deliberate
-exception: test_stop_during_reconnect_does_not_hang_or_raise_unexpectedly runs a real
-background Thread and a real asyncio event loop, since the race it guards against can
-only be observed with genuine cross-thread timing rather than a mocked loop/thread).</p>
+the underlying AsyncComManager collaborator (mocked throughout, with two deliberate
+exceptions: test_stop_during_reconnect_does_not_hang_or_raise_unexpectedly and
+test_publish_its_message_does_not_block_and_raises_when_queue_full each run a real
+background Thread and a real asyncio event loop, since the behavior they guard against
+can only be observed with genuine cross-thread timing rather than a mocked loop/thread).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Complexity<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -2477,6 +2481,35 @@ created.</p></li>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="test.test_sync_com_manager.TestSyncComManager.test_publish_its_message_does_not_block_and_raises_when_queue_full">
+<span class="sig-name descname"><span class="pre">test_publish_its_message_does_not_block_and_raises_when_queue_full</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_sync_com_manager.html#TestSyncComManager.test_publish_its_message_does_not_block_and_raises_when_queue_full"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_sync_com_manager.TestSyncComManager.test_publish_its_message_does_not_block_and_raises_when_queue_full" title="Link to this definition"></a></dt>
+<dd><p>Test that publish_its_message(), dispatched against a real background
+event-loop thread, returns promptly by raising asyncio.QueueFull instead
+of blocking when _incoming_queue has no room left.</p>
+<p>Like test_stop_during_reconnect_does_not_hang_or_raise_unexpectedly, this
+one deliberately runs a real background Thread with a real asyncio event
+loop (no mocking of asyncio_run_coroutine_threadsafe or the thread):
+proving the call does not block can only be observed against a genuine
+event loop, since a mocked loop can’t distinguish “returned immediately”
+from “would have waited forever.” The target port is bound and
+immediately released so the connection attempt is refused right away,
+keeping the manager in the disconnected/reconnecting window – where
+nothing drains _incoming_queue – for the whole test.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+<dt class="field-even">Complexity<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>- Time</strong> – O(k), where k is max_incoming_queue_rooms, to fill the queue to
+capacity before the call under test.</p></li>
+<li><p><strong>- Space</strong> – O(k), for the k queued filler commands.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="test.test_sync_com_manager.TestSyncComManager.test_publish_its_message_propagates_dispatch_error">
 <span class="sig-name descname"><span class="pre">test_publish_its_message_propagates_dispatch_error</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mocker</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MockerFixture</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">manager</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../step_lib_rst/step_lib.sync_com_manager.html#step_lib.sync_com_manager.SyncComManager" title="step_lib.sync_com_manager.SyncComManager"><span class="pre">SyncComManager</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_sync_com_manager.html#TestSyncComManager.test_publish_its_message_propagates_dispatch_error"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_sync_com_manager.TestSyncComManager.test_publish_its_message_propagates_dispatch_error" title="Link to this definition"></a></dt>
 <dd><p>Test that publish_its_message() propagates an exception raised while
@@ -2540,7 +2573,8 @@ created.</p></li>
 <span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">test_publish_its_message_success</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mocker</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MockerFixture</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mock_logger</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MagicMock</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">manager</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../step_lib_rst/step_lib.sync_com_manager.html#step_lib.sync_com_manager.SyncComManager" title="step_lib.sync_com_manager.SyncComManager"><span class="pre">SyncComManager</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">logging_enabled</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_sync_com_manager.html#TestSyncComManager.test_publish_its_message_success"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_sync_com_manager.TestSyncComManager.test_publish_its_message_success" title="Link to this definition"></a></dt>
 <dd><p>Test that publish_its_message() enqueues a PublishMessageCommand carrying
 the given message, address, position, and mobility flag onto the async
-loop, logging the command only when DEBUG is enabled.</p>
+loop, logging the command before dispatch and the completion afterward,
+both only when DEBUG is enabled.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -2560,6 +2594,55 @@ collaborators and patch asyncio_run_coroutine_threadsafe.</p></li>
 with no loops over variable-length input.</p></li>
 <li><p><strong>- Space</strong> – O(1), only a fixed, small number of local objects/references is
 created.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="test.test_sync_com_manager.TestSyncComManager.test_put_incoming_nowait_enqueues_when_room_available">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">test_put_incoming_nowait_enqueues_when_room_available</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">manager</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../step_lib_rst/step_lib.sync_com_manager.html#step_lib.sync_com_manager.SyncComManager" title="step_lib.sync_com_manager.SyncComManager"><span class="pre">SyncComManager</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_sync_com_manager.html#TestSyncComManager.test_put_incoming_nowait_enqueues_when_room_available"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_sync_com_manager.TestSyncComManager.test_put_incoming_nowait_enqueues_when_room_available" title="Link to this definition"></a></dt>
+<dd><p>Test that _put_incoming_nowait enqueues the given command onto
+_incoming_queue immediately when the queue has room, without waiting.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>manager</strong> (<a class="reference internal" href="../step_lib_rst/step_lib.sync_com_manager.html#step_lib.sync_com_manager.SyncComManager" title="step_lib.sync_com_manager.SyncComManager"><em>SyncComManager</em></a>) – The manager instance under test.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+<dt class="field-odd">Complexity<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>- Time</strong> – O(1), a fixed, constant number of operations/assertions is performed
+with no loops over variable-length input.</p></li>
+<li><p><strong>- Space</strong> – O(1), only a fixed, small number of local objects/references is
+created.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="test.test_sync_com_manager.TestSyncComManager.test_put_incoming_nowait_raises_when_queue_full">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">test_put_incoming_nowait_raises_when_queue_full</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">manager</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../step_lib_rst/step_lib.sync_com_manager.html#step_lib.sync_com_manager.SyncComManager" title="step_lib.sync_com_manager.SyncComManager"><span class="pre">SyncComManager</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">sync_com_manager_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../step_lib_rst/step_lib.sync_com_manager.html#step_lib.sync_com_manager.SyncComManagerParams" title="step_lib.sync_com_manager.SyncComManagerParams"><span class="pre">SyncComManagerParams</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_sync_com_manager.html#TestSyncComManager.test_put_incoming_nowait_raises_when_queue_full"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_sync_com_manager.TestSyncComManager.test_put_incoming_nowait_raises_when_queue_full" title="Link to this definition"></a></dt>
+<dd><p>Test that _put_incoming_nowait raises asyncio.QueueFull immediately,
+instead of waiting for room, once _incoming_queue is at capacity.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>manager</strong> (<a class="reference internal" href="../step_lib_rst/step_lib.sync_com_manager.html#step_lib.sync_com_manager.SyncComManager" title="step_lib.sync_com_manager.SyncComManager"><em>SyncComManager</em></a>) – The manager instance under test.</p></li>
+<li><p><strong>sync_com_manager_params</strong> (<a class="reference internal" href="../step_lib_rst/step_lib.sync_com_manager.html#step_lib.sync_com_manager.SyncComManagerParams" title="step_lib.sync_com_manager.SyncComManagerParams"><em>SyncComManagerParams</em></a>) – The parameters used to
+construct the manager, giving the queue’s configured capacity.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+<dt class="field-odd">Complexity<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>- Time</strong> – O(k), where k is max_incoming_queue_rooms, to fill the queue to
+capacity before the call under test.</p></li>
+<li><p><strong>- Space</strong> – O(k), for the k queued filler commands.</p></li>
 </ul>
 </dd>
 </dl>
