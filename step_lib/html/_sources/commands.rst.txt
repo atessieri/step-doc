@@ -22,7 +22,7 @@ Example:
 .. code-block:: bash
 
     $step_lib -v
-    step_lib version: 1.7.0
+    step_lib version: 1.7.8
 
 ---------------------------
 Decode ITS facility packets
@@ -56,6 +56,9 @@ Console output:
 
 .. code-block:: text
 
+    STEP Library: version 1.7.8
+    Library:
+        - step_cloud_schemas: <installed step_cloud_schemas version>
     Decoded message: MessageCustomType(message_type=<MessageId.DENM_PDU: 'DENM'>, is_custom=False)
     Creation time: <ISO-8601 timestamp of the GeoNetworking position vector>
     Geonet: GeonetMessage(basic_header=..., common_header=..., extended_header=...)
@@ -112,8 +115,13 @@ Console output:
     }
 
 .. note::
+    The first three lines (``STEP Library: version ...`` and the ``step_cloud_schemas``
+    version) are always printed, regardless of the log level, and report the
+    installed library versions; the actual ``step_cloud_schemas`` version depends on
+    what is installed, so it is not reproduced verbatim here.
+
     The last block, starting at ``{``, is the decoded facility message serialized as
-    indented JSON (via ``FacilityMessage.to_json(indent=2)``); the lines above it are
+    indented JSON (via ``FacilityMessage.to_json(indent=2)``); the lines in between are
     informational log messages describing the GeoNetworking/BTP headers and the
     detected message type. ``Creation time`` is the timestamp carried by the
     GeoNetworking position vector (i.e. when the message was published), not the
@@ -152,8 +160,15 @@ commands.
 
 .. code-block:: bash
 
-   $step_lib -l <log level> -v
+   $step_lib -l <log level> -d <hex_string>
 
 The parameters are:
 
 - <log level> is one of DEBUG, INFO, WARNING, ERROR, CRITICAL.
+
+.. note::
+    ``-l``/``--log-level`` only has an effect when combined with ``-d``/``--decode``
+    or ``-e``/``--encode``, since those are the commands that use the logger. It
+    cannot be combined with ``-v``/``--version``: argparse's ``version`` action
+    prints the version and exits immediately, before the log level would ever be
+    applied.
