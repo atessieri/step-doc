@@ -19,7 +19,8 @@ Library
 The STEP Message Save project leverages several key libraries to provide robust ITS message
 communication and file persistence capabilities:
 
-**Core Dependencies:**
+**Direct Dependencies** (declared in ``pyproject.toml`` and imported directly by
+step_message_save's own source):
 
     #. **Pydantic**: Used extensively for configuration management and data
        validation throughout the system. The ``StepMessageSaveConfig`` class and its nested
@@ -38,9 +39,16 @@ communication and file persistence capabilities:
         * MQTT utilities including ``MqttQoS`` enumerations
         * TLS/SSL security parameter management
 
-    #. **aiomqtt**: Asynchronous MQTT client library with TLS support
+    #. **paho-mqtt**: Imported directly in ``StepBroker`` (``ReasonCode``,
+       ``SubscribeOptions``) to build MQTT subscription options and interpret SUBACK reason
+       codes.
 
-    #. **paho-mqtt**: MQTT protocol implementation providing subscription options and QoS controls
+**Transitive Dependencies Used Indirectly** (not imported by step_message_save's own source,
+but relied upon underneath a direct dependency):
+
+    #. **aiomqtt**: Asynchronous MQTT client library with TLS support, used by
+       ``step_lib.AsyncComManager`` to implement the actual MQTT connection; step_message_save
+       never imports it directly.
 
 This library ecosystem enables STEP Message Save to provide a comprehensive, type-safe,
 and highly configurable solution for capturing ITS message traffic within the STEP platform.
