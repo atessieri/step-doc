@@ -1,0 +1,113 @@
+Accepted Input Files
+=====================
+
+Overview
+--------
+
+The STEP Publisher Pickle publishes the entries listed in the ``inputFiles`` configuration
+parameter (see the :ref:`STEP Publisher Pickle Configuration Schema<step_publisher_pkl_config_schema>`).
+Each entry is automatically inspected by :class:`step_publisher_pkl.scenario.Scenario` and
+classified into one of three supported formats. There is no need to declare the format of a
+file explicitly: the loader tries each format in turn and uses the first one that validates.
+
+Detection Order
+----------------
+
+For every path listed in ``inputFiles``, the following checks are performed in order,
+stopping at the first successful match:
+
+    #. **JSONL ITS messages**: the file is opened as text and its first line is parsed and
+       validated as an ITS message.
+    #. **Pickle actor / vehicle trajectories**: the file is unpickled and checked for the
+       CARLA-style vehicle trajectories structure.
+    #. **Pickle camera / CPM data**: the file is unpickled and checked for a list of
+       Collective Perception Message (CPM) records.
+
+A file that does not match any of the three formats is skipped, and a warning is logged;
+processing continues with the remaining files.
+
+JSONL ITS Messages
+-------------------
+
+A plain text file containing one JSON document per line. Each line must independently
+validate as an ITS message (``CamDataV1``, ``CpmDataV1``, or ``DenmDataV1``), following the
+:doc:`JSON Schemas<schemas_rst/json_schemas>`. The format is detected by successfully
+parsing and validating only the **first** line of the file.
+
+Each valid line is loaded as-is and published as the corresponding CAM, CPM, or DENM
+message. Lines that fail validation, or that resolve to an unsupported message type, are
+skipped individually with a warning; the rest of the file is still processed.
+
+Example of a single line (CAM message):
+
+.. literalinclude:: schemas_examples/cam_data_v1_schema.json
+  :language: JSON
+
+Pickle Actor / Vehicle Trajectories
+-------------------------------------
+
+A binary pickle file (``.pkl``) produced from a CARLA simulation run, containing an
+unpickled dictionary shaped as:
+
+.. code-block:: python
+
+    {
+        "trajectories": {
+            "vehicles": {
+                <station_id>: [
+                    {
+                        "timestamp": datetime.datetime(...),
+                        "geo_location": {
+                            "latitude": <float>,
+                            "longitude": <float>,
+                            "altitude": <float>,
+                        },
+                        "heading": <float>,       # optional
+                        "velocity": {"speed": <float>},  # optional
+                    },
+                    ...
+                ],
+                ...
+            }
+        }
+    }
+
+Requirements for every trajectory point:
+
+    * ``timestamp`` must be a :class:`datetime.datetime` instance.
+    * ``geo_location`` must provide ``latitude``, ``longitude``, and ``altitude`` as
+      ``float`` or ``int``.
+    * ``heading`` is optional; if present it must be a ``float`` or ``int``.
+    * ``velocity.speed`` is optional; if present it must be a ``float`` or ``int``.
+
+The dictionary must contain at least one vehicle, and every vehicle must have at least
+one trajectory point. The format is detected by unpickling the file and validating the
+first trajectory point of the first vehicle found.
+
+Each trajectory point is converted into a Cooperative Awareness Message (CAM) compliant
+with ETSI TS 103 900, using ``PASSENGER_CAR`` as the station type. Vehicles whose station
+ID is listed in ``stationsBlacklist`` are skipped entirely.
+
+Pickle Camera / CPM Data
+--------------------------
+
+A binary pickle file (``.pkl``) containing an unpickled **list** of dictionaries, where
+each item directly validates against the ``CpmDataV1`` schema (Collective Perception
+Message). The list must contain at least one item. The format is detected by unpickling
+the file and validating every item in the list.
+
+Each item is loaded and published as a Collective Perception Message (CPM). Items whose
+station ID is listed in ``stationsBlacklist`` are skipped.
+
+Notes
+------
+
+    * Once loaded, the creation/reference/detection times of every message are rewritten
+      from scenario time to real time, using the earliest message time across all loaded
+      files as the scenario time origin and the current time (offset by
+      ``waitTimeBeforeStarting``) as the real time origin. This keeps the relative
+      timing between messages intact while aligning playback to the moment the publisher
+      starts.
+    * Multiple ``inputFiles`` entries, of any of the three supported formats, can be
+      combined in a single run; messages from all files are merged per station and
+      published in chronological order.

@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>test.test_step_publisher_pkl_config &mdash; STEP Publisher Pickle 1.2.0 documentation</title>
+  <title>step_publisher_pkl.__main__ &mdash; STEP Publisher Pickle 1.2.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=4c969af8" />
@@ -503,7 +503,7 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
-      <li class="breadcrumb-item active">test.test_step_publisher_pkl_config</li>
+      <li class="breadcrumb-item active">step_publisher_pkl.__main__</li>
       <li class="wy-breadcrumbs-aside">
       </li>
   </ul>
@@ -512,596 +512,534 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <h1>Source code for test.test_step_publisher_pkl_config</h1><div class="highlight"><pre>
-<span></span><span class="linenos">  1</span><span class="sd">"""Test module for step_publisher_pkl configuration components.</span>
+  <h1>Source code for step_publisher_pkl.__main__</h1><div class="highlight"><pre>
+<span></span><span class="linenos">  1</span><span class="sd">"""STEP Publisher Pickle Application.</span>
 <span class="linenos">  2</span>
-<span class="linenos">  3</span><span class="sd">This module contains unit tests for the step_publisher_pkl configuration system,</span>
-<span class="linenos">  4</span><span class="sd">covering every enum and Pydantic model defined in</span>
-<span class="linenos">  5</span><span class="sd">``step_publisher_pkl.step_publisher_pkl_config``: version enumeration, MQTT client and</span>
-<span class="linenos">  6</span><span class="sd">protocol configuration, publish topic parameters, custom JSON schema generation, and the</span>
-<span class="linenos">  7</span><span class="sd">top-level ``StepPublisherPklConfig`` class. The tests validate default value factories,</span>
-<span class="linenos">  8</span><span class="sd">enum-to-value mappings, custom pydantic JSON schema hooks, and schema/example file</span>
-<span class="linenos">  9</span><span class="sd">generation.</span>
-<span class="linenos"> 10</span>
-<span class="linenos"> 11</span><span class="sd">Key Testing Features:</span>
-<span class="linenos"> 12</span>
-<span class="linenos"> 13</span><span class="sd">    - One test suite class per configuration class or enum</span>
-<span class="linenos"> 14</span><span class="sd">    - Default configuration validation via each class's ``get_default()``</span>
-<span class="linenos"> 15</span><span class="sd">    - Parameterized testing for enumeration value conversions</span>
-<span class="linenos"> 16</span><span class="sd">    - File comparison testing for schema and template generation</span>
-<span class="linenos"> 17</span><span class="sd">    - Temporary directory usage to avoid filesystem pollution</span>
-<span class="linenos"> 18</span>
-<span class="linenos"> 19</span><span class="sd">The tests utilize temporary directories for file operations and perform byte-level</span>
-<span class="linenos"> 20</span><span class="sd">file comparisons to ensure generated schemas and examples match reference files.</span>
-<span class="linenos"> 21</span><span class="sd">"""</span>
-<span class="linenos"> 22</span>
-<span class="linenos"> 23</span><span class="c1"># ruff: noqa: S101, PLR2004</span>
-<span class="linenos"> 24</span>
-<span class="linenos"> 25</span><span class="c1"># Standard Library Imports</span>
-<span class="linenos"> 26</span><span class="kn">from</span><span class="w"> </span><span class="nn">filecmp</span><span class="w"> </span><span class="kn">import</span> <span class="n">cmp</span> <span class="k">as</span> <span class="n">filecmp_cmp</span>
-<span class="linenos"> 27</span><span class="kn">from</span><span class="w"> </span><span class="nn">importlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">resources</span>
-<span class="linenos"> 28</span><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
-<span class="linenos"> 29</span><span class="kn">from</span><span class="w"> </span><span class="nn">tempfile</span><span class="w"> </span><span class="kn">import</span> <span class="n">TemporaryDirectory</span>
-<span class="linenos"> 30</span><span class="kn">from</span><span class="w"> </span><span class="nn">test.file_compare</span><span class="w"> </span><span class="kn">import</span> <span class="n">schemas</span><span class="p">,</span> <span class="n">templates</span>
-<span class="linenos"> 31</span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
-<span class="linenos"> 32</span>
-<span class="linenos"> 33</span><span class="c1"># Third Party Imports</span>
-<span class="linenos"> 34</span><span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
-<span class="linenos"> 35</span><span class="kn">from</span><span class="w"> </span><span class="nn">step_cloud_schemas</span><span class="w"> </span><span class="kn">import</span> <span class="n">LogConfig</span><span class="p">,</span> <span class="n">MessageId</span>
-<span class="linenos"> 36</span><span class="kn">from</span><span class="w"> </span><span class="nn">step_lib</span><span class="w"> </span><span class="kn">import</span> <span class="n">MqttQoS</span>
-<span class="linenos"> 37</span>
-<span class="linenos"> 38</span><span class="c1"># step_publisher_pkl Package Imports</span>
-<span class="linenos"> 39</span><span class="kn">from</span><span class="w"> </span><span class="nn">step_publisher_pkl</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-<span class="linenos"> 40</span>    <span class="n">MessageType</span><span class="p">,</span>
-<span class="linenos"> 41</span>    <span class="n">MqttClientConfig</span><span class="p">,</span>
-<span class="linenos"> 42</span>    <span class="n">MqttProtocolConfig</span><span class="p">,</span>
-<span class="linenos"> 43</span>    <span class="n">MqttQoSConfig</span><span class="p">,</span>
-<span class="linenos"> 44</span>    <span class="n">PublishTopicParams</span><span class="p">,</span>
-<span class="linenos"> 45</span>    <span class="n">StepBrokerConfig</span><span class="p">,</span>
-<span class="linenos"> 46</span>    <span class="n">StepConfigVersion</span><span class="p">,</span>
-<span class="linenos"> 47</span>    <span class="n">StepPublisherPklConfig</span><span class="p">,</span>
-<span class="linenos"> 48</span><span class="p">)</span>
-<span class="linenos"> 49</span><span class="kn">from</span><span class="w"> </span><span class="nn">step_publisher_pkl.step_publisher_pkl_config</span><span class="w"> </span><span class="kn">import</span> <span class="n">_ConfigGenerateJsonSchema</span>
-<span class="linenos"> 50</span>
-<span class="linenos"> 51</span>
-<div class="viewcode-block" id="TestStepConfigVersion">
-<a class="viewcode-back" href="../../test_rst/test.test_step_publisher_pkl_config.html#test.test_step_publisher_pkl_config.TestStepConfigVersion">[docs]</a>
-<span class="linenos"> 52</span><span class="k">class</span><span class="w"> </span><span class="nc">TestStepConfigVersion</span><span class="p">:</span>
-<span class="linenos"> 53</span><span class="w">    </span><span class="sd">"""Test suite for the ``StepConfigVersion`` enum.</span>
+<span class="linenos">  3</span><span class="sd">This module provides a command-line application for publishing vehicle position data to the</span>
+<span class="linenos">  4</span><span class="sd">STEP (Smart Transportation Evolution Platform) using PKL (Pickle) formatted scenario files.</span>
+<span class="linenos">  5</span><span class="sd">The application simulates real-world Connected and Autonomous Vehicle (CAV) messaging by</span>
+<span class="linenos">  6</span><span class="sd">publishing Cooperative Awareness Messages (CAM) through the STEP broker.</span>
+<span class="linenos">  7</span>
+<span class="linenos">  8</span><span class="sd">Key Features:</span>
+<span class="linenos">  9</span><span class="sd">    - Asynchronous publishing of CAM messages from PKL scenario data</span>
+<span class="linenos"> 10</span><span class="sd">    - Multi-vehicle simulation support with concurrent task execution using TaskGroup</span>
+<span class="linenos"> 11</span><span class="sd">    - Configurable STEP broker connection via JSON configuration file</span>
+<span class="linenos"> 12</span><span class="sd">    - Structured logging with configurable verbosity levels</span>
+<span class="linenos"> 13</span><span class="sd">    - Command-line interface for configuration schema/template generation and execution</span>
+<span class="linenos"> 14</span><span class="sd">    - Cross-platform signal handling (Windows SIGBREAK, Unix SIGINT)</span>
+<span class="linenos"> 15</span><span class="sd">    - Robust error handling and graceful shutdown</span>
+<span class="linenos"> 16</span>
+<span class="linenos"> 17</span><span class="sd">Architecture:</span>
+<span class="linenos"> 18</span><span class="sd">The application follows an event-driven architecture using Python's asyncio framework</span>
+<span class="linenos"> 19</span><span class="sd">with async context managers for resource management. It creates separate publisher tasks</span>
+<span class="linenos"> 20</span><span class="sd">for each vehicle in the scenario using asyncio.TaskGroup, allowing concurrent message</span>
+<span class="linenos"> 21</span><span class="sd">publishing while maintaining realistic timing between position updates based on ItsTime</span>
+<span class="linenos"> 22</span><span class="sd">calculations.</span>
+<span class="linenos"> 23</span>
+<span class="linenos"> 24</span><span class="sd">Command-Line Interface:</span>
+<span class="linenos"> 25</span><span class="sd">    - `-v, --version`: Display program and library versions</span>
+<span class="linenos"> 26</span><span class="sd">    - `-s, --conf_schema &lt;file&gt;`: Generate JSON configuration schema</span>
+<span class="linenos"> 27</span><span class="sd">    - `-t, --conf_template &lt;file&gt;`: Generate configuration template</span>
+<span class="linenos"> 28</span><span class="sd">    - `-c, --config &lt;file&gt;`: Load configuration from file (requires -i)</span>
+<span class="linenos"> 29</span><span class="sd">    - `-i, --instance &lt;name&gt;`: Specify instance name (requires -c)</span>
+<span class="linenos"> 30</span>
+<span class="linenos"> 31</span><span class="sd">Message Flow:</span>
+<span class="linenos"> 32</span><span class="sd">    #. Parse command-line arguments and load configuration</span>
+<span class="linenos"> 33</span><span class="sd">    #. Initialize logger and STEP broker connection</span>
+<span class="linenos"> 34</span><span class="sd">    #. Load vehicle scenario data from PKL folder</span>
+<span class="linenos"> 35</span><span class="sd">    #. Create concurrent publisher tasks for each vehicle using TaskGroup</span>
+<span class="linenos"> 36</span><span class="sd">    #. Publish CAM messages with precise timing based on ItsTime differences</span>
+<span class="linenos"> 37</span><span class="sd">    #. Handle graceful shutdown and cleanup via async context managers</span>
+<span class="linenos"> 38</span>
+<span class="linenos"> 39</span><span class="sd">Exit Codes:</span>
+<span class="linenos"> 40</span><span class="sd">    - 0 (OK): Successful execution</span>
+<span class="linenos"> 41</span><span class="sd">    - 1 (USAGE): Command line usage error or missing required arguments</span>
+<span class="linenos"> 42</span><span class="sd">    - 2 (ERROR): Runtime error or unhandled exception</span>
+<span class="linenos"> 43</span><span class="sd">    - 3 (ABORTED): User interruption (Ctrl+C) or system signal</span>
+<span class="linenos"> 44</span>
+<span class="linenos"> 45</span><span class="sd">Dependencies:</span>
+<span class="linenos"> 46</span><span class="sd">    - step_cloud_schemas: Provides ItsTime and message schemas</span>
+<span class="linenos"> 47</span><span class="sd">    - step_lib: Provides CamMessageV1 and ITS message support</span>
+<span class="linenos"> 48</span><span class="sd">    - step_publisher_pkl: Internal package for scenario loading and broker communication</span>
+<span class="linenos"> 49</span>
+<span class="linenos"> 50</span><span class="sd">Note:</span>
+<span class="linenos"> 51</span><span class="sd">    This is a application intended for testing and development</span>
+<span class="linenos"> 52</span><span class="sd">    purposes within the STEP ecosystem. On Windows, uses SelectorEventLoop</span>
+<span class="linenos"> 53</span><span class="sd">    for compatibility.</span>
 <span class="linenos"> 54</span>
-<span class="linenos"> 55</span><span class="sd">    Validates that the enum defines the expected ``__slots__``, that its single</span>
-<span class="linenos"> 56</span><span class="sd">    member exposes the correct string value, and that the enum contains exactly</span>
-<span class="linenos"> 57</span><span class="sd">    one member.</span>
-<span class="linenos"> 58</span><span class="sd">    """</span>
-<span class="linenos"> 59</span>
-<div class="viewcode-block" id="TestStepConfigVersion.test___slots__">
-<a class="viewcode-back" href="../../test_rst/test.test_step_publisher_pkl_config.html#test.test_step_publisher_pkl_config.TestStepConfigVersion.test___slots__">[docs]</a>
-<span class="linenos"> 60</span>    <span class="k">def</span><span class="w"> </span><span class="nf">test___slots__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos"> 61</span><span class="w">        </span><span class="sd">"""Test that the StepConfigVersion class defines the expected ``__slots__``.</span>
-<span class="linenos"> 62</span>
-<span class="linenos"> 63</span><span class="sd">        Returns:</span>
-<span class="linenos"> 64</span><span class="sd">            None</span>
-<span class="linenos"> 65</span><span class="sd">        """</span>
-<span class="linenos"> 66</span>        <span class="k">assert</span> <span class="n">StepConfigVersion</span><span class="o">.</span><span class="vm">__slots__</span> <span class="o">==</span> <span class="p">()</span></div>
-
-<span class="linenos"> 67</span>
-<div class="viewcode-block" id="TestStepConfigVersion.test_value">
-<a class="viewcode-back" href="../../test_rst/test.test_step_publisher_pkl_config.html#test.test_step_publisher_pkl_config.TestStepConfigVersion.test_value">[docs]</a>
-<span class="linenos"> 68</span>    <span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">parametrize</span><span class="p">(</span>
-<span class="linenos"> 69</span>        <span class="n">argnames</span><span class="o">=</span><span class="p">(</span><span class="s2">"enum"</span><span class="p">,</span> <span class="s2">"expected"</span><span class="p">),</span> <span class="n">argvalues</span><span class="o">=</span><span class="p">[(</span><span class="n">StepConfigVersion</span><span class="o">.</span><span class="n">VERSION</span><span class="p">,</span> <span class="s2">"1"</span><span class="p">)]</span>
-<span class="linenos"> 70</span>    <span class="p">)</span>
-<span class="linenos"> 71</span>    <span class="k">def</span><span class="w"> </span><span class="nf">test_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">enum</span><span class="p">:</span> <span class="n">StepConfigVersion</span><span class="p">,</span> <span class="n">expected</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos"> 72</span><span class="w">        </span><span class="sd">"""Test that the enum value matches the expected string value.</span>
-<span class="linenos"> 73</span>
-<span class="linenos"> 74</span><span class="sd">        Args:</span>
-<span class="linenos"> 75</span><span class="sd">            enum (StepConfigVersion): The enum instance to test.</span>
-<span class="linenos"> 76</span><span class="sd">            expected (str): The expected string value of the enum.</span>
-<span class="linenos"> 77</span>
-<span class="linenos"> 78</span><span class="sd">        Returns:</span>
-<span class="linenos"> 79</span><span class="sd">            None</span>
-<span class="linenos"> 80</span><span class="sd">        """</span>
-<span class="linenos"> 81</span>        <span class="k">assert</span> <span class="n">enum</span><span class="o">.</span><span class="n">value</span> <span class="o">==</span> <span class="n">expected</span>
-<span class="linenos"> 82</span>        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">StepConfigVersion</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span></div>
-</div>
-
-<span class="linenos"> 83</span>
-<span class="linenos"> 84</span>
-<div class="viewcode-block" id="TestMqttClientConfig">
-<a class="viewcode-back" href="../../test_rst/test.test_step_publisher_pkl_config.html#test.test_step_publisher_pkl_config.TestMqttClientConfig">[docs]</a>
-<span class="linenos"> 85</span><span class="k">class</span><span class="w"> </span><span class="nc">TestMqttClientConfig</span><span class="p">:</span>
-<span class="linenos"> 86</span><span class="w">    </span><span class="sd">"""Test suite for the ``MqttClientConfig`` class.</span>
+<span class="linenos"> 55</span><span class="sd">Complexity:</span>
+<span class="linenos"> 56</span><span class="sd">    - Time: O(s), dominated by _publisher_run aggregated over every vehicle</span>
+<span class="linenos"> 57</span><span class="sd">      (s = total number of messages published across all vehicles), excluding</span>
+<span class="linenos"> 58</span><span class="sd">      unbounded wall-clock sleep/task runtime.</span>
+<span class="linenos"> 59</span><span class="sd">    - Space: O(v), dominated by _main_async creating one concurrent task per</span>
+<span class="linenos"> 60</span><span class="sd">      vehicle; v = number of vehicles.</span>
+<span class="linenos"> 61</span>
+<span class="linenos"> 62</span><span class="sd">Classes:</span>
+<span class="linenos"> 63</span><span class="sd">    ExitCode: Enumerates the process exit codes (OK/USAGE/ERROR/ABORTED).</span>
+<span class="linenos"> 64</span><span class="sd">        Complexity: time O(1), space O(1).</span>
+<span class="linenos"> 65</span>
+<span class="linenos"> 66</span><span class="sd">Functions:</span>
+<span class="linenos"> 67</span><span class="sd">    _exception_handler: Logs uncaught exceptions from the asyncio event loop.</span>
+<span class="linenos"> 68</span><span class="sd">        Complexity: time O(1), space O(1).</span>
+<span class="linenos"> 69</span><span class="sd">    _publisher_run: Publishes one vehicle's messages with scenario-based timing.</span>
+<span class="linenos"> 70</span><span class="sd">        Complexity: time O(n), space O(1), n = number of messages available for</span>
+<span class="linenos"> 71</span><span class="sd">        the vehicle (excludes wall-clock sleep time).</span>
+<span class="linenos"> 72</span><span class="sd">    _main_async: Establishes the broker connection, loads scenario data, and</span>
+<span class="linenos"> 73</span><span class="sd">        creates one publisher task per vehicle. Complexity: time O(v), space</span>
+<span class="linenos"> 74</span><span class="sd">        O(v), v = number of vehicles (excludes unbounded task runtime).</span>
+<span class="linenos"> 75</span><span class="sd">    _get_config_schema_file: Writes the configuration JSON schema file.</span>
+<span class="linenos"> 76</span><span class="sd">        Complexity: time O(n), space O(n), n = number of configuration fields.</span>
+<span class="linenos"> 77</span><span class="sd">    _get_config_template_file: Writes the configuration template file.</span>
+<span class="linenos"> 78</span><span class="sd">        Complexity: time O(1), space O(1).</span>
+<span class="linenos"> 79</span><span class="sd">    _signal_handler: Raises KeyboardInterrupt in response to an OS signal.</span>
+<span class="linenos"> 80</span><span class="sd">        Complexity: time O(1), space O(1).</span>
+<span class="linenos"> 81</span><span class="sd">    _args_parse: Builds the command-line ArgumentParser. Complexity: time O(1),</span>
+<span class="linenos"> 82</span><span class="sd">        space O(1).</span>
+<span class="linenos"> 83</span><span class="sd">    main: Entry point parsing arguments, loading configuration, and running the</span>
+<span class="linenos"> 84</span><span class="sd">        asyncio event loop. Complexity: time O(1), space O(1) (excludes the</span>
+<span class="linenos"> 85</span><span class="sd">        unbounded runtime of _main_async).</span>
+<span class="linenos"> 86</span><span class="sd">"""</span>
 <span class="linenos"> 87</span>
-<span class="linenos"> 88</span><span class="sd">    Validates the default MQTT client configuration factory, covering connection,</span>
-<span class="linenos"> 89</span><span class="sd">    authentication, and SSL/TLS related fields.</span>
-<span class="linenos"> 90</span><span class="sd">    """</span>
-<span class="linenos"> 91</span>
-<div class="viewcode-block" id="TestMqttClientConfig.test___slots__">
-<a class="viewcode-back" href="../../test_rst/test.test_step_publisher_pkl_config.html#test.test_step_publisher_pkl_config.TestMqttClientConfig.test___slots__">[docs]</a>
-<span class="linenos"> 92</span>    <span class="k">def</span><span class="w"> </span><span class="nf">test___slots__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos"> 93</span><span class="w">        </span><span class="sd">"""Test that the MqttClientConfig class defines the expected ``__slots__``.</span>
-<span class="linenos"> 94</span>
-<span class="linenos"> 95</span><span class="sd">        Returns:</span>
-<span class="linenos"> 96</span><span class="sd">            None</span>
-<span class="linenos"> 97</span><span class="sd">        """</span>
-<span class="linenos"> 98</span>        <span class="k">assert</span> <span class="n">MqttClientConfig</span><span class="o">.</span><span class="vm">__slots__</span></div>
+<span class="linenos"> 88</span><span class="c1"># Standard Library Imports</span>
+<span class="linenos"> 89</span><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+<span class="linenos"> 90</span><span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="linenos"> 91</span><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="linenos"> 92</span><span class="kn">import</span><span class="w"> </span><span class="nn">signal</span>
+<span class="linenos"> 93</span><span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="linenos"> 94</span><span class="kn">from</span><span class="w"> </span><span class="nn">argparse</span><span class="w"> </span><span class="kn">import</span> <span class="n">ArgumentParser</span>
+<span class="linenos"> 95</span><span class="kn">from</span><span class="w"> </span><span class="nn">asyncio</span><span class="w"> </span><span class="kn">import</span> <span class="n">Runner</span><span class="p">,</span> <span class="n">TaskGroup</span><span class="p">,</span> <span class="n">get_running_loop</span>
+<span class="linenos"> 96</span><span class="kn">from</span><span class="w"> </span><span class="nn">asyncio</span><span class="w"> </span><span class="kn">import</span> <span class="n">sleep</span> <span class="k">as</span> <span class="n">asyncio_sleep</span>
+<span class="linenos"> 97</span><span class="kn">from</span><span class="w"> </span><span class="nn">enum</span><span class="w"> </span><span class="kn">import</span> <span class="n">IntEnum</span>
+<span class="linenos"> 98</span><span class="kn">from</span><span class="w"> </span><span class="nn">logging</span><span class="w"> </span><span class="kn">import</span> <span class="n">Logger</span>
+<span class="linenos"> 99</span><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="linenos">100</span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
+<span class="linenos">101</span>
+<span class="linenos">102</span><span class="c1"># Third Party Imports</span>
+<span class="linenos">103</span><span class="kn">import</span><span class="w"> </span><span class="nn">step_cloud_schemas</span>
+<span class="linenos">104</span><span class="kn">import</span><span class="w"> </span><span class="nn">step_lib</span>
+<span class="linenos">105</span><span class="kn">from</span><span class="w"> </span><span class="nn">step_cloud_schemas</span><span class="w"> </span><span class="kn">import</span> <span class="n">ItsTime</span><span class="p">,</span> <span class="n">StepLogger</span>
+<span class="linenos">106</span>
+<span class="linenos">107</span><span class="c1"># step_publisher_pkl Package Imports</span>
+<span class="linenos">108</span><span class="kn">import</span><span class="w"> </span><span class="nn">step_publisher_pkl</span>
+<span class="linenos">109</span><span class="kn">from</span><span class="w"> </span><span class="nn">step_publisher_pkl.scenario</span><span class="w"> </span><span class="kn">import</span> <span class="n">Scenario</span>
+<span class="linenos">110</span><span class="kn">from</span><span class="w"> </span><span class="nn">step_publisher_pkl.step_broker</span><span class="w"> </span><span class="kn">import</span> <span class="n">StepBroker</span>
+<span class="linenos">111</span><span class="kn">from</span><span class="w"> </span><span class="nn">step_publisher_pkl.step_exception</span><span class="w"> </span><span class="kn">import</span> <span class="n">StepCliError</span>
+<span class="linenos">112</span><span class="kn">from</span><span class="w"> </span><span class="nn">step_publisher_pkl.step_publisher_pkl_config</span><span class="w"> </span><span class="kn">import</span> <span class="n">StepPublisherPklConfig</span>
+<span class="linenos">113</span>
+<span class="linenos">114</span><span class="n">IS_WINDOWS</span> <span class="o">=</span> <span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">platform</span> <span class="o">==</span> <span class="s2">"win32"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">"nt"</span><span class="p">)</span>
+<span class="linenos">115</span>
+<span class="linenos">116</span>
+<div class="viewcode-block" id="ExitCode">
+<a class="viewcode-back" href="../../step_publisher_pkl_rst/step_publisher_pkl.__main__.html#step_publisher_pkl.__main__.ExitCode">[docs]</a>
+<span class="linenos">117</span><span class="k">class</span><span class="w"> </span><span class="nc">ExitCode</span><span class="p">(</span><span class="n">IntEnum</span><span class="p">):</span>
+<span class="linenos">118</span><span class="w">    </span><span class="sd">"""An enumeration of exit codes used by the application.</span>
+<span class="linenos">119</span>
+<span class="linenos">120</span><span class="sd">    This enum defines the standard exit codes that can be returned by the application</span>
+<span class="linenos">121</span><span class="sd">    when it terminates.</span>
+<span class="linenos">122</span>
+<span class="linenos">123</span><span class="sd">    Attributes:</span>
+<span class="linenos">124</span><span class="sd">        OK (int): Successful termination (0).</span>
+<span class="linenos">125</span><span class="sd">        USAGE (int): Command line usage error (1).</span>
+<span class="linenos">126</span><span class="sd">        ERROR (int): General error during execution (2).</span>
+<span class="linenos">127</span><span class="sd">        ABORTED (int): Operation aborted by user or system (3).</span>
+<span class="linenos">128</span>
+<span class="linenos">129</span><span class="sd">    Complexity:</span>
+<span class="linenos">130</span><span class="sd">        - Time: O(1), a plain IntEnum with a fixed number of members.</span>
+<span class="linenos">131</span><span class="sd">        - Space: O(1), a plain IntEnum with a fixed number of members.</span>
+<span class="linenos">132</span><span class="sd">    """</span>
+<span class="linenos">133</span>
+<span class="linenos">134</span>    <span class="n">OK</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="linenos">135</span>    <span class="n">USAGE</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="linenos">136</span>    <span class="n">ERROR</span> <span class="o">=</span> <span class="mi">2</span>
+<span class="linenos">137</span>    <span class="n">ABORTED</span> <span class="o">=</span> <span class="mi">3</span></div>
 
-<span class="linenos"> 99</span>
-<div class="viewcode-block" id="TestMqttClientConfig.test_get_default">
-<a class="viewcode-back" href="../../test_rst/test.test_step_publisher_pkl_config.html#test.test_step_publisher_pkl_config.TestMqttClientConfig.test_get_default">[docs]</a>
-<span class="linenos">100</span>    <span class="k">def</span><span class="w"> </span><span class="nf">test_get_default</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">101</span><span class="w">        </span><span class="sd">"""Test that ``MqttClientConfig.get_default()`` returns a properly configured</span>
-<span class="linenos">102</span><span class="sd">        instance.</span>
-<span class="linenos">103</span>
-<span class="linenos">104</span><span class="sd">        Verifies that the default configuration contains:</span>
-<span class="linenos">105</span>
-<span class="linenos">106</span><span class="sd">            - Host set to "localhost"</span>
-<span class="linenos">107</span><span class="sd">            - Port set to 8883</span>
-<span class="linenos">108</span><span class="sd">            - Username set to "username"</span>
-<span class="linenos">109</span><span class="sd">            - Password set to "password"</span>
-<span class="linenos">110</span><span class="sd">            - SSL enabled</span>
-<span class="linenos">111</span><span class="sd">            - Proper SSL certificate and key file paths</span>
-<span class="linenos">112</span><span class="sd">            - SSL certificate verification enabled</span>
-<span class="linenos">113</span><span class="sd">            - CA certificates file path configured</span>
-<span class="linenos">114</span>
-<span class="linenos">115</span><span class="sd">        Returns:</span>
-<span class="linenos">116</span><span class="sd">            None</span>
-<span class="linenos">117</span><span class="sd">        """</span>
-<span class="linenos">118</span>        <span class="n">result</span> <span class="o">=</span> <span class="n">MqttClientConfig</span><span class="o">.</span><span class="n">get_default</span><span class="p">()</span>
-<span class="linenos">119</span>        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">MqttClientConfig</span><span class="p">)</span>
-<span class="linenos">120</span>        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">host</span> <span class="o">==</span> <span class="s2">"localhost"</span>
-<span class="linenos">121</span>        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">port</span> <span class="o">==</span> <span class="mi">8883</span>
-<span class="linenos">122</span>        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">username</span> <span class="o">==</span> <span class="s2">"username"</span>
-<span class="linenos">123</span>        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">password</span> <span class="o">==</span> <span class="s2">"password"</span>  <span class="c1"># noqa: S105</span>
-<span class="linenos">124</span>        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">sslEnable</span> <span class="ow">is</span> <span class="kc">True</span>
-<span class="linenos">125</span>        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">sslClientKeyFile</span> <span class="o">==</span> <span class="s2">"/path/to/client.key"</span>
-<span class="linenos">126</span>        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">sslClientKeyFilePassword</span> <span class="o">==</span> <span class="s2">"&lt;password&gt;"</span>
-<span class="linenos">127</span>        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">sslClientCertFile</span> <span class="o">==</span> <span class="s2">"/path/to/client.crt"</span>
-<span class="linenos">128</span>        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">sslVerifyServerCert</span> <span class="ow">is</span> <span class="kc">True</span>
-<span class="linenos">129</span>        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">sslCaCertsFile</span> <span class="o">==</span> <span class="s2">"/path/to/ca_certs_file.crt"</span></div>
-</div>
-
-<span class="linenos">130</span>
-<span class="linenos">131</span>
-<div class="viewcode-block" id="TestMessageType">
-<a class="viewcode-back" href="../../test_rst/test.test_step_publisher_pkl_config.html#test.test_step_publisher_pkl_config.TestMessageType">[docs]</a>
-<span class="linenos">132</span><span class="k">class</span><span class="w"> </span><span class="nc">TestMessageType</span><span class="p">:</span>
-<span class="linenos">133</span><span class="w">    </span><span class="sd">"""Test suite for the ``MessageType`` enum.</span>
-<span class="linenos">134</span>
-<span class="linenos">135</span><span class="sd">    Validates the mapping between each ``MessageType`` member and its corresponding</span>
-<span class="linenos">136</span><span class="sd">    ``MessageId`` value, and the custom pydantic JSON schema generation hook.</span>
-<span class="linenos">137</span><span class="sd">    """</span>
 <span class="linenos">138</span>
-<div class="viewcode-block" id="TestMessageType.test___slots__">
-<a class="viewcode-back" href="../../test_rst/test.test_step_publisher_pkl_config.html#test.test_step_publisher_pkl_config.TestMessageType.test___slots__">[docs]</a>
-<span class="linenos">139</span>    <span class="k">def</span><span class="w"> </span><span class="nf">test___slots__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">140</span><span class="w">        </span><span class="sd">"""Test that the MessageType class defines the expected ``__slots__``.</span>
-<span class="linenos">141</span>
-<span class="linenos">142</span><span class="sd">        Returns:</span>
-<span class="linenos">143</span><span class="sd">            None</span>
-<span class="linenos">144</span><span class="sd">        """</span>
-<span class="linenos">145</span>        <span class="k">assert</span> <span class="n">MessageType</span><span class="o">.</span><span class="vm">__slots__</span> <span class="o">==</span> <span class="p">()</span></div>
-
-<span class="linenos">146</span>
-<div class="viewcode-block" id="TestMessageType.test_value">
-<a class="viewcode-back" href="../../test_rst/test.test_step_publisher_pkl_config.html#test.test_step_publisher_pkl_config.TestMessageType.test_value">[docs]</a>
-<span class="linenos">147</span>    <span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">parametrize</span><span class="p">(</span>
-<span class="linenos">148</span>        <span class="n">argnames</span><span class="o">=</span><span class="p">(</span><span class="s2">"enum"</span><span class="p">,</span> <span class="s2">"expected"</span><span class="p">),</span>
-<span class="linenos">149</span>        <span class="n">argvalues</span><span class="o">=</span><span class="p">[</span>
-<span class="linenos">150</span>            <span class="p">(</span><span class="n">MessageType</span><span class="o">.</span><span class="n">CAM</span><span class="p">,</span> <span class="n">MessageId</span><span class="o">.</span><span class="n">CAM_PDU</span><span class="p">),</span>
-<span class="linenos">151</span>            <span class="p">(</span><span class="n">MessageType</span><span class="o">.</span><span class="n">CPM</span><span class="p">,</span> <span class="n">MessageId</span><span class="o">.</span><span class="n">CPM_PDU</span><span class="p">),</span>
-<span class="linenos">152</span>            <span class="p">(</span><span class="n">MessageType</span><span class="o">.</span><span class="n">DENM</span><span class="p">,</span> <span class="n">MessageId</span><span class="o">.</span><span class="n">DENM_PDU</span><span class="p">),</span>
-<span class="linenos">153</span>        <span class="p">],</span>
-<span class="linenos">154</span>    <span class="p">)</span>
-<span class="linenos">155</span>    <span class="k">def</span><span class="w"> </span><span class="nf">test_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">enum</span><span class="p">:</span> <span class="n">MessageType</span><span class="p">,</span> <span class="n">expected</span><span class="p">:</span> <span class="n">MessageId</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">156</span><span class="w">        </span><span class="sd">"""Test that the MessageType enum value matches the expected MessageId.</span>
+<span class="linenos">139</span>
+<span class="linenos">140</span><span class="k">def</span><span class="w"> </span><span class="nf">_exception_handler</span><span class="p">(</span><span class="n">context</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">logger</span><span class="p">:</span> <span class="n">Logger</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">141</span><span class="w">    </span><span class="sd">"""Handle exceptions in asyncio event loop.</span>
+<span class="linenos">142</span>
+<span class="linenos">143</span><span class="sd">    This function serves as an exception handler for the asyncio event loop,</span>
+<span class="linenos">144</span><span class="sd">    logging any uncaught exceptions that occur during loop execution.</span>
+<span class="linenos">145</span>
+<span class="linenos">146</span><span class="sd">    Args:</span>
+<span class="linenos">147</span><span class="sd">        context (dict[Any, Any]): A dictionary containing contextual information about the exception.</span>
+<span class="linenos">148</span><span class="sd">            Must include an 'exception' key with the actual exception object.</span>
+<span class="linenos">149</span><span class="sd">        logger (Logger): Logger instance to record the error message.</span>
+<span class="linenos">150</span>
+<span class="linenos">151</span><span class="sd">    Returns:</span>
+<span class="linenos">152</span><span class="sd">        None</span>
+<span class="linenos">153</span>
+<span class="linenos">154</span><span class="sd">    Example:</span>
+<span class="linenos">155</span><span class="sd">        &gt;&gt;&gt; loop = asyncio.get_running_loop()</span>
+<span class="linenos">156</span><span class="sd">        ... loop.set_exception_handler(lambda ctx: _exception_handler(ctx, logger))</span>
 <span class="linenos">157</span>
-<span class="linenos">158</span><span class="sd">        Args:</span>
-<span class="linenos">159</span><span class="sd">            enum (MessageType): The MessageType enum instance to test.</span>
-<span class="linenos">160</span><span class="sd">            expected (MessageId): The expected MessageId value that should match the</span>
-<span class="linenos">161</span><span class="sd">                enum's value.</span>
-<span class="linenos">162</span>
-<span class="linenos">163</span><span class="sd">        Returns:</span>
-<span class="linenos">164</span><span class="sd">            None</span>
-<span class="linenos">165</span><span class="sd">        """</span>
-<span class="linenos">166</span>        <span class="k">assert</span> <span class="n">enum</span><span class="o">.</span><span class="n">value</span> <span class="o">==</span> <span class="n">expected</span>
-<span class="linenos">167</span>        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">MessageType</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span></div>
-
-<span class="linenos">168</span>
-<div class="viewcode-block" id="TestMessageType.test___get_pydantic_json_schema__">
-<a class="viewcode-back" href="../../test_rst/test.test_step_publisher_pkl_config.html#test.test_step_publisher_pkl_config.TestMessageType.test___get_pydantic_json_schema__">[docs]</a>
-<span class="linenos">169</span>    <span class="k">def</span><span class="w"> </span><span class="nf">test___get_pydantic_json_schema__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">170</span><span class="w">        </span><span class="sd">"""Test that the custom pydantic JSON schema hook adds a title and</span>
-<span class="linenos">171</span><span class="sd">        description.</span>
-<span class="linenos">172</span>
-<span class="linenos">173</span><span class="sd">        Returns:</span>
-<span class="linenos">174</span><span class="sd">            None</span>
-<span class="linenos">175</span><span class="sd">        """</span>
-<span class="linenos">176</span>        <span class="n">schema</span> <span class="o">=</span> <span class="n">MessageType</span><span class="o">.</span><span class="n">__get_pydantic_json_schema__</span><span class="p">(</span>
-<span class="linenos">177</span>            <span class="n">core_schema</span><span class="o">=</span><span class="p">{},</span> <span class="n">handler</span><span class="o">=</span><span class="k">lambda</span> <span class="n">_core_schema</span><span class="p">:</span> <span class="p">{}</span>
-<span class="linenos">178</span>        <span class="p">)</span>
-<span class="linenos">179</span>        <span class="k">assert</span> <span class="n">schema</span><span class="p">[</span><span class="s2">"title"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"Message Type"</span>
-<span class="linenos">180</span>        <span class="k">assert</span> <span class="p">(</span>
-<span class="linenos">181</span>            <span class="n">schema</span><span class="p">[</span><span class="s2">"description"</span><span class="p">]</span>
-<span class="linenos">182</span>            <span class="o">==</span> <span class="s2">"Enumerate representing different types of messages"</span>
-<span class="linenos">183</span>        <span class="p">)</span></div>
-</div>
-
-<span class="linenos">184</span>
-<span class="linenos">185</span>
-<div class="viewcode-block" id="TestMqttQoSConfig">
-<a class="viewcode-back" href="../../test_rst/test.test_step_publisher_pkl_config.html#test.test_step_publisher_pkl_config.TestMqttQoSConfig">[docs]</a>
-<span class="linenos">186</span><span class="k">class</span><span class="w"> </span><span class="nc">TestMqttQoSConfig</span><span class="p">:</span>
-<span class="linenos">187</span><span class="w">    </span><span class="sd">"""Test suite for the ``MqttQoSConfig`` enum.</span>
-<span class="linenos">188</span>
-<span class="linenos">189</span><span class="sd">    Validates the mapping between each ``MqttQoSConfig`` member and its corresponding</span>
-<span class="linenos">190</span><span class="sd">    ``MqttQoS`` value, and the custom pydantic JSON schema generation hook.</span>
-<span class="linenos">191</span><span class="sd">    """</span>
-<span class="linenos">192</span>
-<div class="viewcode-block" id="TestMqttQoSConfig.test_value">
-<a class="viewcode-back" href="../../test_rst/test.test_step_publisher_pkl_config.html#test.test_step_publisher_pkl_config.TestMqttQoSConfig.test_value">[docs]</a>
-<span class="linenos">193</span>    <span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">parametrize</span><span class="p">(</span>
-<span class="linenos">194</span>        <span class="n">argnames</span><span class="o">=</span><span class="p">(</span><span class="s2">"enum"</span><span class="p">,</span> <span class="s2">"expected"</span><span class="p">),</span>
-<span class="linenos">195</span>        <span class="n">argvalues</span><span class="o">=</span><span class="p">[</span>
-<span class="linenos">196</span>            <span class="p">(</span><span class="n">MqttQoSConfig</span><span class="o">.</span><span class="n">QOS_0</span><span class="p">,</span> <span class="n">MqttQoS</span><span class="o">.</span><span class="n">QOS_0</span><span class="p">),</span>
-<span class="linenos">197</span>            <span class="p">(</span><span class="n">MqttQoSConfig</span><span class="o">.</span><span class="n">QOS_1</span><span class="p">,</span> <span class="n">MqttQoS</span><span class="o">.</span><span class="n">QOS_1</span><span class="p">),</span>
-<span class="linenos">198</span>            <span class="p">(</span><span class="n">MqttQoSConfig</span><span class="o">.</span><span class="n">QOS_2</span><span class="p">,</span> <span class="n">MqttQoS</span><span class="o">.</span><span class="n">QOS_2</span><span class="p">),</span>
-<span class="linenos">199</span>        <span class="p">],</span>
-<span class="linenos">200</span>    <span class="p">)</span>
-<span class="linenos">201</span>    <span class="k">def</span><span class="w"> </span><span class="nf">test_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">enum</span><span class="p">:</span> <span class="n">MqttQoSConfig</span><span class="p">,</span> <span class="n">expected</span><span class="p">:</span> <span class="n">MqttQoS</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">202</span><span class="w">        </span><span class="sd">"""Test that the MqttQoSConfig enum value matches the expected MqttQoS.</span>
-<span class="linenos">203</span>
-<span class="linenos">204</span><span class="sd">        Args:</span>
-<span class="linenos">205</span><span class="sd">            enum (MqttQoSConfig): The MqttQoSConfig enum instance to test.</span>
-<span class="linenos">206</span><span class="sd">            expected (MqttQoS): The expected MqttQoS value that should match the</span>
-<span class="linenos">207</span><span class="sd">                enum's value.</span>
-<span class="linenos">208</span>
-<span class="linenos">209</span><span class="sd">        Returns:</span>
-<span class="linenos">210</span><span class="sd">            None</span>
-<span class="linenos">211</span><span class="sd">        """</span>
-<span class="linenos">212</span>        <span class="k">assert</span> <span class="n">enum</span><span class="o">.</span><span class="n">value</span> <span class="o">==</span> <span class="n">expected</span>
-<span class="linenos">213</span>        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">MqttQoSConfig</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span></div>
-
-<span class="linenos">214</span>
-<div class="viewcode-block" id="TestMqttQoSConfig.test___get_pydantic_json_schema__">
-<a class="viewcode-back" href="../../test_rst/test.test_step_publisher_pkl_config.html#test.test_step_publisher_pkl_config.TestMqttQoSConfig.test___get_pydantic_json_schema__">[docs]</a>
-<span class="linenos">215</span>    <span class="k">def</span><span class="w"> </span><span class="nf">test___get_pydantic_json_schema__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">216</span><span class="w">        </span><span class="sd">"""Test that the custom pydantic JSON schema hook adds a title and</span>
-<span class="linenos">217</span><span class="sd">        description.</span>
-<span class="linenos">218</span>
-<span class="linenos">219</span><span class="sd">        Returns:</span>
-<span class="linenos">220</span><span class="sd">            None</span>
-<span class="linenos">221</span><span class="sd">        """</span>
-<span class="linenos">222</span>        <span class="n">schema</span> <span class="o">=</span> <span class="n">MqttQoSConfig</span><span class="o">.</span><span class="n">__get_pydantic_json_schema__</span><span class="p">(</span>
-<span class="linenos">223</span>            <span class="n">core_schema</span><span class="o">=</span><span class="p">{},</span> <span class="n">handler</span><span class="o">=</span><span class="k">lambda</span> <span class="n">_core_schema</span><span class="p">:</span> <span class="p">{}</span>
-<span class="linenos">224</span>        <span class="p">)</span>
-<span class="linenos">225</span>        <span class="k">assert</span> <span class="n">schema</span><span class="p">[</span><span class="s2">"title"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"Quality of Service"</span>
-<span class="linenos">226</span>        <span class="k">assert</span> <span class="n">schema</span><span class="p">[</span><span class="s2">"description"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"Quality of Service levels for MQTT messages"</span></div>
-</div>
-
+<span class="linenos">158</span><span class="sd">    Complexity:</span>
+<span class="linenos">159</span><span class="sd">        - Time: O(1), checks the log level and logs a single message.</span>
+<span class="linenos">160</span><span class="sd">        - Space: O(1), no data structures are allocated beyond the fixed log message.</span>
+<span class="linenos">161</span><span class="sd">    """</span>
+<span class="linenos">162</span>    <span class="k">if</span> <span class="n">logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">ERROR</span><span class="p">):</span>
+<span class="linenos">163</span>        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">"Exception in loop"</span><span class="p">,</span> <span class="n">exc_info</span><span class="o">=</span><span class="n">context</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"exception"</span><span class="p">))</span>
+<span class="linenos">164</span>
+<span class="linenos">165</span>
+<span class="linenos">166</span><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_publisher_run</span><span class="p">(</span>
+<span class="linenos">167</span>    <span class="n">client</span><span class="p">:</span> <span class="n">StepBroker</span><span class="p">,</span> <span class="n">scenario</span><span class="p">:</span> <span class="n">Scenario</span><span class="p">,</span> <span class="n">vehicle_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">logger</span><span class="p">:</span> <span class="n">Logger</span>
+<span class="linenos">168</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">169</span><span class="w">    </span><span class="sd">"""Asynchronously publishes ITS messages for a specific vehicle from scenario data.</span>
+<span class="linenos">170</span>
+<span class="linenos">171</span><span class="sd">    This coroutine iterates through the vehicle's messages retrieved from the scenario</span>
+<span class="linenos">172</span><span class="sd">    using pop_message(), sleeping when necessary to preserve the original timing between</span>
+<span class="linenos">173</span><span class="sd">    messages before publishing each one through the STEP broker.</span>
+<span class="linenos">174</span>
+<span class="linenos">175</span><span class="sd">    Args:</span>
+<span class="linenos">176</span><span class="sd">        client (StepBroker): STEP broker client used to publish ITS messages via publish_its_message().</span>
+<span class="linenos">177</span><span class="sd">        scenario (Scenario): Scenario object providing vehicle message data through pop_message().</span>
+<span class="linenos">178</span><span class="sd">        vehicle_id (int): Unique identifier for the vehicle whose messages to publish.</span>
+<span class="linenos">179</span><span class="sd">        logger (Logger): Logger instance for recording debug level messages.</span>
+<span class="linenos">180</span>
+<span class="linenos">181</span><span class="sd">    Returns:</span>
+<span class="linenos">182</span><span class="sd">        None</span>
+<span class="linenos">183</span>
+<span class="linenos">184</span><span class="sd">    Processing Flow:</span>
+<span class="linenos">185</span><span class="sd">        #. Retrieve the vehicle's next message via scenario.pop_message(vehicle_id)</span>
+<span class="linenos">186</span><span class="sd">        #. Log the message type and time if DEBUG level enabled</span>
+<span class="linenos">187</span><span class="sd">        #. Compute the time delta between the message's time and the current ItsTime</span>
+<span class="linenos">188</span><span class="sd">        #. Sleep for the computed delta (converted from ms to seconds) if it is positive</span>
+<span class="linenos">189</span><span class="sd">        #. Publish the message via client.publish_its_message()</span>
+<span class="linenos">190</span><span class="sd">        #. Log the published message type and time if DEBUG level enabled</span>
+<span class="linenos">191</span>
+<span class="linenos">192</span><span class="sd">    Note:</span>
+<span class="linenos">193</span><span class="sd">        - Uses ItsTime for current time and time difference calculations</span>
+<span class="linenos">194</span><span class="sd">        - Converts sleep duration from milliseconds to seconds using ItsTime.SEC_TO_MS_FACTOR</span>
+<span class="linenos">195</span><span class="sd">        - Skips sleeping when the message time is not in the future</span>
+<span class="linenos">196</span>
+<span class="linenos">197</span><span class="sd">    Complexity:</span>
+<span class="linenos">198</span><span class="sd">        - Time: O(n), where n is the number of messages available for the vehicle,</span>
+<span class="linenos">199</span><span class="sd">          excluding the wall-clock time spent sleeping between messages.</span>
+<span class="linenos">200</span><span class="sd">        - Space: O(1), processes one message at a time without accumulating</span>
+<span class="linenos">201</span><span class="sd">          additional data structures.</span>
+<span class="linenos">202</span><span class="sd">    """</span>
+<span class="linenos">203</span>    <span class="k">for</span> <span class="n">message</span> <span class="ow">in</span> <span class="n">scenario</span><span class="o">.</span><span class="n">pop_message</span><span class="p">(</span><span class="n">vehicle_id</span><span class="o">=</span><span class="n">vehicle_id</span><span class="p">):</span>
+<span class="linenos">204</span>        <span class="n">now</span> <span class="o">=</span> <span class="n">ItsTime</span><span class="p">()</span>
+<span class="linenos">205</span>        <span class="n">message_time</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">its_time</span>
+<span class="linenos">206</span>        <span class="n">delta</span> <span class="o">=</span> <span class="n">message_time</span><span class="o">.</span><span class="n">time_difference</span><span class="p">(</span><span class="n">other_time</span><span class="o">=</span><span class="n">now</span><span class="p">)</span>
+<span class="linenos">207</span>        <span class="k">if</span> <span class="n">logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">):</span>
+<span class="linenos">208</span>            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+<span class="linenos">209</span>                <span class="n">msg</span><span class="o">=</span><span class="p">(</span>
+<span class="linenos">210</span>                    <span class="sa">f</span><span class="s2">"Station id: </span><span class="si">{</span><span class="n">vehicle_id</span><span class="si">}</span><span class="s2">, message type </span><span class="si">{</span><span class="n">message</span><span class="o">.</span><span class="n">message_type</span><span class="o">.</span><span class="n">message_type</span><span class="si">}</span><span class="s2">, "</span>
+<span class="linenos">211</span>                    <span class="sa">f</span><span class="s2">"time: </span><span class="si">{</span><span class="n">message_time</span><span class="si">}</span><span class="s2">, current time: </span><span class="si">{</span><span class="n">now</span><span class="si">}</span><span class="s2">, delta: </span><span class="si">{</span><span class="n">delta</span><span class="si">}</span><span class="s2"> ms"</span>
+<span class="linenos">212</span>                <span class="p">)</span>
+<span class="linenos">213</span>            <span class="p">)</span>
+<span class="linenos">214</span>        <span class="k">if</span> <span class="n">delta</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+<span class="linenos">215</span>            <span class="k">if</span> <span class="n">logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">):</span>
+<span class="linenos">216</span>                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">"Station id: </span><span class="si">{</span><span class="n">vehicle_id</span><span class="si">}</span><span class="s2"> sleeping for </span><span class="si">{</span><span class="n">delta</span><span class="si">}</span><span class="s2"> ms"</span><span class="p">)</span>
+<span class="linenos">217</span>            <span class="k">await</span> <span class="n">asyncio_sleep</span><span class="p">(</span><span class="n">delay</span><span class="o">=</span><span class="n">delta</span> <span class="o">/</span> <span class="n">ItsTime</span><span class="o">.</span><span class="n">SEC_TO_MS_FACTOR</span><span class="p">)</span>
+<span class="linenos">218</span>        <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">client_publish_its_message</span><span class="p">(</span><span class="n">message</span><span class="o">=</span><span class="n">message</span><span class="p">)</span>
+<span class="linenos">219</span>        <span class="k">if</span> <span class="n">logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">):</span>
+<span class="linenos">220</span>            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+<span class="linenos">221</span>                <span class="n">msg</span><span class="o">=</span><span class="p">(</span>
+<span class="linenos">222</span>                    <span class="sa">f</span><span class="s2">"Station id: </span><span class="si">{</span><span class="n">vehicle_id</span><span class="si">}</span><span class="s2">, published message type </span><span class="si">{</span><span class="n">message</span><span class="o">.</span><span class="n">message_type</span><span class="o">.</span><span class="n">message_type</span><span class="si">}</span><span class="s2">, "</span>
+<span class="linenos">223</span>                    <span class="sa">f</span><span class="s2">"time: </span><span class="si">{</span><span class="n">message_time</span><span class="si">}</span><span class="s2">"</span>
+<span class="linenos">224</span>                <span class="p">)</span>
+<span class="linenos">225</span>            <span class="p">)</span>
+<span class="linenos">226</span>
 <span class="linenos">227</span>
-<span class="linenos">228</span>
-<div class="viewcode-block" id="TestPublishTopicParams">
-<a class="viewcode-back" href="../../test_rst/test.test_step_publisher_pkl_config.html#test.test_step_publisher_pkl_config.TestPublishTopicParams">[docs]</a>
-<span class="linenos">229</span><span class="k">class</span><span class="w"> </span><span class="nc">TestPublishTopicParams</span><span class="p">:</span>
-<span class="linenos">230</span><span class="w">    </span><span class="sd">"""Test suite for the ``PublishTopicParams`` class.</span>
-<span class="linenos">231</span>
-<span class="linenos">232</span><span class="sd">    Validates the default publish topic parameters factory, covering message type,</span>
-<span class="linenos">233</span><span class="sd">    header topic, geohash precision, and QoS settings.</span>
-<span class="linenos">234</span><span class="sd">    """</span>
+<span class="linenos">228</span><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_main_async</span><span class="p">(</span>
+<span class="linenos">229</span>    <span class="n">instance_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">StepPublisherPklConfig</span><span class="p">,</span> <span class="n">logger</span><span class="p">:</span> <span class="n">Logger</span>
+<span class="linenos">230</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">231</span><span class="w">    </span><span class="sd">"""Main async entry point for the STEP publisher application.</span>
+<span class="linenos">232</span>
+<span class="linenos">233</span><span class="sd">    Sets up exception handling, establishes a broker connection, loads scenario data,</span>
+<span class="linenos">234</span><span class="sd">    and creates publisher tasks for each vehicle in the scenario.</span>
 <span class="linenos">235</span>
-<div class="viewcode-block" id="TestPublishTopicParams.test___slots__">
-<a class="viewcode-back" href="../../test_rst/test.test_step_publisher_pkl_config.html#test.test_step_publisher_pkl_config.TestPublishTopicParams.test___slots__">[docs]</a>
-<span class="linenos">236</span>    <span class="k">def</span><span class="w"> </span><span class="nf">test___slots__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">237</span><span class="w">        </span><span class="sd">"""Test that the PublishTopicParams class defines the expected ``__slots__``.</span>
-<span class="linenos">238</span>
-<span class="linenos">239</span><span class="sd">        Returns:</span>
-<span class="linenos">240</span><span class="sd">            None</span>
-<span class="linenos">241</span><span class="sd">        """</span>
-<span class="linenos">242</span>        <span class="k">assert</span> <span class="n">PublishTopicParams</span><span class="o">.</span><span class="vm">__slots__</span></div>
-
+<span class="linenos">236</span><span class="sd">    Args:</span>
+<span class="linenos">237</span><span class="sd">        instance_name (str): Name identifier for this application instance</span>
+<span class="linenos">238</span><span class="sd">        config (StepPublisherPklConfig): Configuration object containing STEP client settings</span>
+<span class="linenos">239</span><span class="sd">        logger (Logger): Logger instance for recording application events</span>
+<span class="linenos">240</span>
+<span class="linenos">241</span><span class="sd">    Returns:</span>
+<span class="linenos">242</span><span class="sd">        None</span>
 <span class="linenos">243</span>
-<div class="viewcode-block" id="TestPublishTopicParams.test_get_default">
-<a class="viewcode-back" href="../../test_rst/test.test_step_publisher_pkl_config.html#test.test_step_publisher_pkl_config.TestPublishTopicParams.test_get_default">[docs]</a>
-<span class="linenos">244</span>    <span class="k">def</span><span class="w"> </span><span class="nf">test_get_default</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">245</span><span class="w">        </span><span class="sd">"""Test that ``PublishTopicParams.get_default()`` returns a properly</span>
-<span class="linenos">246</span><span class="sd">        configured instance.</span>
+<span class="linenos">244</span><span class="sd">    Note:</span>
+<span class="linenos">245</span><span class="sd">        This function manages the complete lifecycle of the publisher application,</span>
+<span class="linenos">246</span><span class="sd">        including resource cleanup through async context managers.</span>
 <span class="linenos">247</span>
-<span class="linenos">248</span><span class="sd">        Verifies that the default configuration contains:</span>
-<span class="linenos">249</span>
-<span class="linenos">250</span><span class="sd">            - Message type set to MessageType.CAM</span>
-<span class="linenos">251</span><span class="sd">            - Header topic set to "v2x/cam/264421_4"</span>
-<span class="linenos">252</span><span class="sd">            - Geohash precision set to 8</span>
-<span class="linenos">253</span><span class="sd">            - QoS set to MqttQoSConfig.QOS_0</span>
-<span class="linenos">254</span>
-<span class="linenos">255</span><span class="sd">        Returns:</span>
-<span class="linenos">256</span><span class="sd">            None</span>
-<span class="linenos">257</span><span class="sd">        """</span>
-<span class="linenos">258</span>        <span class="n">result</span> <span class="o">=</span> <span class="n">PublishTopicParams</span><span class="o">.</span><span class="n">get_default</span><span class="p">()</span>
-<span class="linenos">259</span>        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">PublishTopicParams</span><span class="p">)</span>
-<span class="linenos">260</span>        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">messageType</span> <span class="o">==</span> <span class="n">MessageType</span><span class="o">.</span><span class="n">CAM</span>
-<span class="linenos">261</span>        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">headerTopic</span> <span class="o">==</span> <span class="s2">"v2x/cam/264421_4"</span>
-<span class="linenos">262</span>        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">geohashPrecision</span> <span class="o">==</span> <span class="mi">8</span>
-<span class="linenos">263</span>        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">qos</span> <span class="o">==</span> <span class="n">MqttQoSConfig</span><span class="o">.</span><span class="n">QOS_0</span></div>
-</div>
-
-<span class="linenos">264</span>
-<span class="linenos">265</span>
-<div class="viewcode-block" id="TestMqttProtocolConfig">
-<a class="viewcode-back" href="../../test_rst/test.test_step_publisher_pkl_config.html#test.test_step_publisher_pkl_config.TestMqttProtocolConfig">[docs]</a>
-<span class="linenos">266</span><span class="k">class</span><span class="w"> </span><span class="nc">TestMqttProtocolConfig</span><span class="p">:</span>
-<span class="linenos">267</span><span class="w">    </span><span class="sd">"""Test suite for the ``MqttProtocolConfig`` class.</span>
-<span class="linenos">268</span>
-<span class="linenos">269</span><span class="sd">    Validates the default MQTT protocol configuration factory, covering session,</span>
-<span class="linenos">270</span><span class="sd">    timeout, queue-size, and publish-topic settings.</span>
-<span class="linenos">271</span><span class="sd">    """</span>
-<span class="linenos">272</span>
-<div class="viewcode-block" id="TestMqttProtocolConfig.test___slots__">
-<a class="viewcode-back" href="../../test_rst/test.test_step_publisher_pkl_config.html#test.test_step_publisher_pkl_config.TestMqttProtocolConfig.test___slots__">[docs]</a>
-<span class="linenos">273</span>    <span class="k">def</span><span class="w"> </span><span class="nf">test___slots__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">274</span><span class="w">        </span><span class="sd">"""Test that the ``MqttProtocolConfig`` class defines the expected</span>
-<span class="linenos">275</span><span class="sd">        ``__slots__``.</span>
-<span class="linenos">276</span>
-<span class="linenos">277</span><span class="sd">        Returns:</span>
-<span class="linenos">278</span><span class="sd">            None</span>
-<span class="linenos">279</span><span class="sd">        """</span>
-<span class="linenos">280</span>        <span class="k">assert</span> <span class="n">MqttProtocolConfig</span><span class="o">.</span><span class="vm">__slots__</span></div>
-
-<span class="linenos">281</span>
-<div class="viewcode-block" id="TestMqttProtocolConfig.test_get_default">
-<a class="viewcode-back" href="../../test_rst/test.test_step_publisher_pkl_config.html#test.test_step_publisher_pkl_config.TestMqttProtocolConfig.test_get_default">[docs]</a>
-<span class="linenos">282</span>    <span class="k">def</span><span class="w"> </span><span class="nf">test_get_default</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">283</span><span class="w">        </span><span class="sd">"""Test that ``MqttProtocolConfig.get_default()`` returns a properly</span>
-<span class="linenos">284</span><span class="sd">        configured instance.</span>
-<span class="linenos">285</span>
-<span class="linenos">286</span><span class="sd">        Verifies that the default configuration contains:</span>
+<span class="linenos">248</span><span class="sd">    Complexity:</span>
+<span class="linenos">249</span><span class="sd">        - Time: O(v), where v is the number of vehicles in the scenario, for creating</span>
+<span class="linenos">250</span><span class="sd">          one publisher task per vehicle; excludes the unbounded runtime of the tasks</span>
+<span class="linenos">251</span><span class="sd">          themselves.</span>
+<span class="linenos">252</span><span class="sd">        - Space: O(v), one concurrent task and its associated state per vehicle.</span>
+<span class="linenos">253</span><span class="sd">    """</span>
+<span class="linenos">254</span>    <span class="n">get_running_loop</span><span class="p">()</span><span class="o">.</span><span class="n">set_exception_handler</span><span class="p">(</span>
+<span class="linenos">255</span>        <span class="n">handler</span><span class="o">=</span><span class="k">lambda</span> <span class="n">_</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">_exception_handler</span><span class="p">(</span><span class="n">context</span><span class="o">=</span><span class="n">context</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span>
+<span class="linenos">256</span>    <span class="p">)</span>
+<span class="linenos">257</span>    <span class="k">async</span> <span class="k">with</span> <span class="p">(</span>
+<span class="linenos">258</span>        <span class="n">StepBroker</span><span class="p">(</span>
+<span class="linenos">259</span>            <span class="n">instance_name</span><span class="o">=</span><span class="n">instance_name</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">stepBroker</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span>
+<span class="linenos">260</span>        <span class="p">)</span> <span class="k">as</span> <span class="n">client</span><span class="p">,</span>
+<span class="linenos">261</span>        <span class="n">TaskGroup</span><span class="p">()</span> <span class="k">as</span> <span class="n">group</span><span class="p">,</span>
+<span class="linenos">262</span>    <span class="p">):</span>
+<span class="linenos">263</span>        <span class="n">scenario</span> <span class="o">=</span> <span class="n">Scenario</span><span class="p">(</span>
+<span class="linenos">264</span>            <span class="n">stations_blacklist</span><span class="o">=</span><span class="nb">set</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">stationsBlacklist</span> <span class="ow">or</span> <span class="p">[]),</span>
+<span class="linenos">265</span>            <span class="n">wait_time_before_starting_ms</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">waitTimeBeforeStarting</span><span class="p">,</span>
+<span class="linenos">266</span>            <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span>
+<span class="linenos">267</span>        <span class="p">)</span>
+<span class="linenos">268</span>        <span class="n">scenario</span><span class="o">.</span><span class="n">load_data</span><span class="p">(</span><span class="n">input_files</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">inputFiles</span><span class="p">)</span>
+<span class="linenos">269</span>        <span class="k">for</span> <span class="n">vehicle_id</span> <span class="ow">in</span> <span class="n">scenario</span><span class="o">.</span><span class="n">get_vehicle_ids</span><span class="p">():</span>
+<span class="linenos">270</span>            <span class="n">group</span><span class="o">.</span><span class="n">create_task</span><span class="p">(</span>
+<span class="linenos">271</span>                <span class="n">coro</span><span class="o">=</span><span class="n">_publisher_run</span><span class="p">(</span>
+<span class="linenos">272</span>                    <span class="n">client</span><span class="o">=</span><span class="n">client</span><span class="p">,</span>
+<span class="linenos">273</span>                    <span class="n">scenario</span><span class="o">=</span><span class="n">scenario</span><span class="p">,</span>
+<span class="linenos">274</span>                    <span class="n">vehicle_id</span><span class="o">=</span><span class="n">vehicle_id</span><span class="p">,</span>
+<span class="linenos">275</span>                    <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span>
+<span class="linenos">276</span>                <span class="p">)</span>
+<span class="linenos">277</span>            <span class="p">)</span>
+<span class="linenos">278</span>
+<span class="linenos">279</span>
+<span class="linenos">280</span><span class="k">def</span><span class="w"> </span><span class="nf">_get_config_schema_file</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">281</span><span class="w">    </span><span class="sd">"""Creates the specified directory path if it does not exist and generates the</span>
+<span class="linenos">282</span><span class="sd">    configuration schema file for StepPublisherPklConfig in that path.</span>
+<span class="linenos">283</span>
+<span class="linenos">284</span><span class="sd">    Args:</span>
+<span class="linenos">285</span><span class="sd">        path (Path): The directory path where the configuration schema file</span>
+<span class="linenos">286</span><span class="sd">            will be created.</span>
 <span class="linenos">287</span>
-<span class="linenos">288</span><span class="sd">            - Session expiry set to 0</span>
-<span class="linenos">289</span><span class="sd">            - Timeout set to 30 seconds</span>
-<span class="linenos">290</span><span class="sd">            - Keepalive set to 600 seconds</span>
-<span class="linenos">291</span><span class="sd">            - Max queued incoming messages set to 60</span>
-<span class="linenos">292</span><span class="sd">            - Max queued outgoing messages set to 60</span>
-<span class="linenos">293</span><span class="sd">            - Max inflight messages set to 60</span>
-<span class="linenos">294</span><span class="sd">            - Max concurrent outgoing calls set to 60</span>
-<span class="linenos">295</span><span class="sd">            - Clean start enabled</span>
-<span class="linenos">296</span><span class="sd">            - Max subscription QoS set to QOS_1</span>
-<span class="linenos">297</span><span class="sd">            - Publish topics with a single default entry</span>
-<span class="linenos">298</span>
-<span class="linenos">299</span><span class="sd">        Returns:</span>
-<span class="linenos">300</span><span class="sd">            None</span>
-<span class="linenos">301</span><span class="sd">        """</span>
-<span class="linenos">302</span>        <span class="n">result</span> <span class="o">=</span> <span class="n">MqttProtocolConfig</span><span class="o">.</span><span class="n">get_default</span><span class="p">()</span>
-<span class="linenos">303</span>        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">MqttProtocolConfig</span><span class="p">)</span>
-<span class="linenos">304</span>        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">sessionExpiry</span> <span class="o">==</span> <span class="mi">0</span>
-<span class="linenos">305</span>        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">timeout</span> <span class="o">==</span> <span class="mi">30</span>
-<span class="linenos">306</span>        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">keepalive</span> <span class="o">==</span> <span class="mi">600</span>
-<span class="linenos">307</span>        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">maxQueuedIncomingMessages</span> <span class="o">==</span> <span class="mi">60</span>
-<span class="linenos">308</span>        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">maxQueuedOutgoingMessages</span> <span class="o">==</span> <span class="mi">60</span>
-<span class="linenos">309</span>        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">maxInflightMessages</span> <span class="o">==</span> <span class="mi">60</span>
-<span class="linenos">310</span>        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">maxConcurrentOutgoingCalls</span> <span class="o">==</span> <span class="mi">60</span>
-<span class="linenos">311</span>        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">cleanStart</span> <span class="ow">is</span> <span class="kc">True</span>
-<span class="linenos">312</span>        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">maxSubscriptionQos</span> <span class="o">==</span> <span class="n">MqttQoSConfig</span><span class="o">.</span><span class="n">QOS_1</span>
-<span class="linenos">313</span>        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">publishTopics</span> <span class="o">==</span> <span class="p">[</span><span class="n">PublishTopicParams</span><span class="o">.</span><span class="n">get_default</span><span class="p">()]</span></div>
-</div>
-
-<span class="linenos">314</span>
-<span class="linenos">315</span>
-<div class="viewcode-block" id="TestStepBrokerConfig">
-<a class="viewcode-back" href="../../test_rst/test.test_step_publisher_pkl_config.html#test.test_step_publisher_pkl_config.TestStepBrokerConfig">[docs]</a>
-<span class="linenos">316</span><span class="k">class</span><span class="w"> </span><span class="nc">TestStepBrokerConfig</span><span class="p">:</span>
-<span class="linenos">317</span><span class="w">    </span><span class="sd">"""Test suite for the ``StepBrokerConfig`` class.</span>
-<span class="linenos">318</span>
-<span class="linenos">319</span><span class="sd">    Validates the default STEP broker configuration factory, covering MQTT client,</span>
-<span class="linenos">320</span><span class="sd">    MQTT protocol, and cache directory settings.</span>
-<span class="linenos">321</span><span class="sd">    """</span>
+<span class="linenos">288</span><span class="sd">    Returns:</span>
+<span class="linenos">289</span><span class="sd">        None</span>
+<span class="linenos">290</span>
+<span class="linenos">291</span><span class="sd">    Complexity:</span>
+<span class="linenos">292</span><span class="sd">        - Time: O(n), where n is the number of fields in the configuration model,</span>
+<span class="linenos">293</span><span class="sd">          dominated by StepPublisherPklConfig.print_config_schema.</span>
+<span class="linenos">294</span><span class="sd">        - Space: O(n), the generated JSON schema string size grows with the number</span>
+<span class="linenos">295</span><span class="sd">          of fields.</span>
+<span class="linenos">296</span><span class="sd">    """</span>
+<span class="linenos">297</span>    <span class="n">path</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="linenos">298</span>    <span class="n">StepPublisherPklConfig</span><span class="o">.</span><span class="n">print_config_schema</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">path</span><span class="p">)</span>
+<span class="linenos">299</span>    <span class="nb">print</span><span class="p">(</span><span class="s2">"Schemas are generated in the directory"</span><span class="p">)</span>  <span class="c1"># noqa: T201</span>
+<span class="linenos">300</span>
+<span class="linenos">301</span>
+<span class="linenos">302</span><span class="k">def</span><span class="w"> </span><span class="nf">_get_config_template_file</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">303</span><span class="w">    </span><span class="sd">"""Creates the specified directory path if it does not exist and generates a</span>
+<span class="linenos">304</span><span class="sd">    configuration template file within it.</span>
+<span class="linenos">305</span>
+<span class="linenos">306</span><span class="sd">    Args:</span>
+<span class="linenos">307</span><span class="sd">        path (Path): The directory path where the configuration template</span>
+<span class="linenos">308</span><span class="sd">            file will be created.</span>
+<span class="linenos">309</span>
+<span class="linenos">310</span><span class="sd">    Returns:</span>
+<span class="linenos">311</span><span class="sd">        None</span>
+<span class="linenos">312</span>
+<span class="linenos">313</span><span class="sd">    Complexity:</span>
+<span class="linenos">314</span><span class="sd">        - Time: O(1), serializes a fixed-size default configuration instance to JSON</span>
+<span class="linenos">315</span><span class="sd">          via StepPublisherPklConfig.print_config_example.</span>
+<span class="linenos">316</span><span class="sd">        - Space: O(1), the serialized configuration string size is constant given</span>
+<span class="linenos">317</span><span class="sd">          the fixed default structure.</span>
+<span class="linenos">318</span><span class="sd">    """</span>
+<span class="linenos">319</span>    <span class="n">path</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="linenos">320</span>    <span class="n">StepPublisherPklConfig</span><span class="o">.</span><span class="n">print_config_example</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">path</span><span class="p">)</span>
+<span class="linenos">321</span>    <span class="nb">print</span><span class="p">(</span><span class="s2">"Templates are generated in the directory"</span><span class="p">)</span>  <span class="c1"># noqa: T201</span>
 <span class="linenos">322</span>
-<div class="viewcode-block" id="TestStepBrokerConfig.test___slots__">
-<a class="viewcode-back" href="../../test_rst/test.test_step_publisher_pkl_config.html#test.test_step_publisher_pkl_config.TestStepBrokerConfig.test___slots__">[docs]</a>
-<span class="linenos">323</span>    <span class="k">def</span><span class="w"> </span><span class="nf">test___slots__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">324</span><span class="w">        </span><span class="sd">"""Test that the ``StepBrokerConfig`` class defines the expected</span>
-<span class="linenos">325</span><span class="sd">        ``__slots__``.</span>
+<span class="linenos">323</span>
+<span class="linenos">324</span><span class="k">def</span><span class="w"> </span><span class="nf">_signal_handler</span><span class="p">(</span><span class="n">_signum</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">_frame</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">325</span><span class="w">    </span><span class="sd">"""Handles incoming signals by raising a KeyboardInterrupt exception.</span>
 <span class="linenos">326</span>
-<span class="linenos">327</span><span class="sd">        Returns:</span>
-<span class="linenos">328</span><span class="sd">            None</span>
-<span class="linenos">329</span><span class="sd">        """</span>
-<span class="linenos">330</span>        <span class="k">assert</span> <span class="n">StepBrokerConfig</span><span class="o">.</span><span class="vm">__slots__</span></div>
-
-<span class="linenos">331</span>
-<div class="viewcode-block" id="TestStepBrokerConfig.test_get_default">
-<a class="viewcode-back" href="../../test_rst/test.test_step_publisher_pkl_config.html#test.test_step_publisher_pkl_config.TestStepBrokerConfig.test_get_default">[docs]</a>
-<span class="linenos">332</span>    <span class="k">def</span><span class="w"> </span><span class="nf">test_get_default</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">333</span><span class="w">        </span><span class="sd">"""Test that ``StepBrokerConfig.get_default()`` returns a properly configured</span>
-<span class="linenos">334</span><span class="sd">        instance.</span>
-<span class="linenos">335</span>
-<span class="linenos">336</span><span class="sd">        Verifies that the default configuration contains:</span>
-<span class="linenos">337</span>
-<span class="linenos">338</span><span class="sd">            - MQTT client configuration with default values</span>
-<span class="linenos">339</span><span class="sd">            - MQTT protocol configuration with default values</span>
-<span class="linenos">340</span><span class="sd">            - Cache directory set to ".cache"</span>
-<span class="linenos">341</span>
-<span class="linenos">342</span><span class="sd">        Returns:</span>
-<span class="linenos">343</span><span class="sd">            None</span>
-<span class="linenos">344</span><span class="sd">        """</span>
-<span class="linenos">345</span>        <span class="n">result</span> <span class="o">=</span> <span class="n">StepBrokerConfig</span><span class="o">.</span><span class="n">get_default</span><span class="p">()</span>
-<span class="linenos">346</span>        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">StepBrokerConfig</span><span class="p">)</span>
-<span class="linenos">347</span>        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">mqttClient</span> <span class="o">==</span> <span class="n">MqttClientConfig</span><span class="o">.</span><span class="n">get_default</span><span class="p">()</span>
-<span class="linenos">348</span>        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">mqttProtocol</span> <span class="o">==</span> <span class="n">MqttProtocolConfig</span><span class="o">.</span><span class="n">get_default</span><span class="p">()</span>
-<span class="linenos">349</span>        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">cacheDir</span> <span class="o">==</span> <span class="s2">".cache"</span></div>
-</div>
-
-<span class="linenos">350</span>
-<span class="linenos">351</span>
-<div class="viewcode-block" id="TestConfigGenerateJsonSchema">
-<a class="viewcode-back" href="../../test_rst/test.test_step_publisher_pkl_config.html#test.test_step_publisher_pkl_config.TestConfigGenerateJsonSchema">[docs]</a>
-<span class="linenos">352</span><span class="k">class</span><span class="w"> </span><span class="nc">TestConfigGenerateJsonSchema</span><span class="p">:</span>
-<span class="linenos">353</span><span class="w">    </span><span class="sd">"""Test suite for the ``_ConfigGenerateJsonSchema`` class.</span>
+<span class="linenos">327</span><span class="sd">    Args:</span>
+<span class="linenos">328</span><span class="sd">        _signum (int): The signal number received.</span>
+<span class="linenos">329</span><span class="sd">        _frame (Any): The current stack frame (unused).</span>
+<span class="linenos">330</span>
+<span class="linenos">331</span><span class="sd">    Returns:</span>
+<span class="linenos">332</span><span class="sd">        None</span>
+<span class="linenos">333</span>
+<span class="linenos">334</span><span class="sd">    Raises:</span>
+<span class="linenos">335</span><span class="sd">        KeyboardInterrupt: Always raised to interrupt program execution.</span>
+<span class="linenos">336</span>
+<span class="linenos">337</span><span class="sd">    Complexity:</span>
+<span class="linenos">338</span><span class="sd">        - Time: O(1), immediately raises an exception.</span>
+<span class="linenos">339</span><span class="sd">        - Space: O(1), no data structures are allocated.</span>
+<span class="linenos">340</span><span class="sd">    """</span>
+<span class="linenos">341</span>    <span class="k">raise</span> <span class="ne">KeyboardInterrupt</span>
+<span class="linenos">342</span>
+<span class="linenos">343</span>
+<span class="linenos">344</span><span class="k">def</span><span class="w"> </span><span class="nf">_args_parse</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">ArgumentParser</span><span class="p">:</span>
+<span class="linenos">345</span><span class="w">    </span><span class="sd">"""Parse command line arguments for the step_publisher_pkl application.</span>
+<span class="linenos">346</span>
+<span class="linenos">347</span><span class="sd">    This function creates and configures an ArgumentParser with the following options:</span>
+<span class="linenos">348</span>
+<span class="linenos">349</span><span class="sd">        -v, --version: Show program version</span>
+<span class="linenos">350</span><span class="sd">        -s, --conf_schema: Write JSON schema to specified file</span>
+<span class="linenos">351</span><span class="sd">        -t, --conf_template: Write configuration template to specified file</span>
+<span class="linenos">352</span><span class="sd">        -c, --config: Load configuration from specified file</span>
+<span class="linenos">353</span><span class="sd">        -i, --instance: Specify the instance name</span>
 <span class="linenos">354</span>
-<span class="linenos">355</span><span class="sd">    Validates that the ``generate`` method correctly customizes the JSON schema with</span>
-<span class="linenos">356</span><span class="sd">    the ``$id`` and ``$schema`` fields expected for the STEP Publisher Pickle</span>
-<span class="linenos">357</span><span class="sd">    configuration schema.</span>
-<span class="linenos">358</span><span class="sd">    """</span>
-<span class="linenos">359</span>
-<div class="viewcode-block" id="TestConfigGenerateJsonSchema.test___slots__">
-<a class="viewcode-back" href="../../test_rst/test.test_step_publisher_pkl_config.html#test.test_step_publisher_pkl_config.TestConfigGenerateJsonSchema.test___slots__">[docs]</a>
-<span class="linenos">360</span>    <span class="k">def</span><span class="w"> </span><span class="nf">test___slots__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">361</span><span class="w">        </span><span class="sd">"""Test that the ``_ConfigGenerateJsonSchema`` class defines the expected</span>
-<span class="linenos">362</span><span class="sd">        ``__slots__``.</span>
-<span class="linenos">363</span>
-<span class="linenos">364</span><span class="sd">        Returns:</span>
-<span class="linenos">365</span><span class="sd">            None</span>
-<span class="linenos">366</span><span class="sd">        """</span>
-<span class="linenos">367</span>        <span class="k">assert</span> <span class="n">_ConfigGenerateJsonSchema</span><span class="o">.</span><span class="vm">__slots__</span> <span class="o">==</span> <span class="p">()</span></div>
-
-<span class="linenos">368</span>
-<div class="viewcode-block" id="TestConfigGenerateJsonSchema.test_generate">
-<a class="viewcode-back" href="../../test_rst/test.test_step_publisher_pkl_config.html#test.test_step_publisher_pkl_config.TestConfigGenerateJsonSchema.test_generate">[docs]</a>
-<span class="linenos">369</span>    <span class="k">def</span><span class="w"> </span><span class="nf">test_generate</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">370</span><span class="w">        </span><span class="sd">"""Test that the generate method returns a JSON schema with custom ``$id``</span>
-<span class="linenos">371</span><span class="sd">        and ``$schema``.</span>
-<span class="linenos">372</span>
-<span class="linenos">373</span><span class="sd">        Verifies that:</span>
-<span class="linenos">374</span>
-<span class="linenos">375</span><span class="sd">            - The returned object is a dictionary</span>
-<span class="linenos">376</span><span class="sd">            - The $id field is set to ``STEP_CONFIG_SCHEMA``</span>
-<span class="linenos">377</span><span class="sd">            - The $schema field is set to the schema_dialect of</span>
-<span class="linenos">378</span><span class="sd">              ``_ConfigGenerateJsonSchema``</span>
-<span class="linenos">379</span>
-<span class="linenos">380</span><span class="sd">        Returns:</span>
-<span class="linenos">381</span><span class="sd">            None</span>
-<span class="linenos">382</span><span class="sd">        """</span>
-<span class="linenos">383</span>        <span class="n">generator</span> <span class="o">=</span> <span class="n">_ConfigGenerateJsonSchema</span><span class="p">()</span>
-<span class="linenos">384</span>        <span class="n">core_schema</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="n">StepPublisherPklConfig</span><span class="o">.</span><span class="n">__pydantic_core_schema__</span>
-<span class="linenos">385</span>        <span class="n">result</span> <span class="o">=</span> <span class="n">generator</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="n">schema</span><span class="o">=</span><span class="n">core_schema</span><span class="p">)</span>
-<span class="linenos">386</span>        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span>
-<span class="linenos">387</span>        <span class="k">assert</span> <span class="n">result</span><span class="p">[</span><span class="s2">"$id"</span><span class="p">]</span> <span class="o">==</span> <span class="n">StepPublisherPklConfig</span><span class="o">.</span><span class="n">STEP_CONFIG_SCHEMA</span>
-<span class="linenos">388</span>        <span class="k">assert</span> <span class="n">result</span><span class="p">[</span><span class="s2">"$schema"</span><span class="p">]</span> <span class="o">==</span> <span class="n">generator</span><span class="o">.</span><span class="n">schema_dialect</span></div>
-
-<span class="linenos">389</span>
-<div class="viewcode-block" id="TestConfigGenerateJsonSchema.test_generate_with_validation_mode">
-<a class="viewcode-back" href="../../test_rst/test.test_step_publisher_pkl_config.html#test.test_step_publisher_pkl_config.TestConfigGenerateJsonSchema.test_generate_with_validation_mode">[docs]</a>
-<span class="linenos">390</span>    <span class="k">def</span><span class="w"> </span><span class="nf">test_generate_with_validation_mode</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">391</span><span class="w">        </span><span class="sd">"""Test that model_json_schema works correctly using the custom generator</span>
-<span class="linenos">392</span><span class="sd">        with the explicit "validation" mode.</span>
-<span class="linenos">393</span>
-<span class="linenos">394</span><span class="sd">        Verifies that:</span>
-<span class="linenos">395</span>
-<span class="linenos">396</span><span class="sd">            - The method accepts "validation" as the mode parameter</span>
-<span class="linenos">397</span><span class="sd">            - The returned schema contains the custom $id and $schema fields</span>
-<span class="linenos">398</span>
-<span class="linenos">399</span><span class="sd">        Returns:</span>
-<span class="linenos">400</span><span class="sd">            None</span>
-<span class="linenos">401</span><span class="sd">        """</span>
-<span class="linenos">402</span>        <span class="n">result</span> <span class="o">=</span> <span class="n">StepPublisherPklConfig</span><span class="o">.</span><span class="n">model_json_schema</span><span class="p">(</span>
-<span class="linenos">403</span>            <span class="n">schema_generator</span><span class="o">=</span><span class="n">_ConfigGenerateJsonSchema</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">"validation"</span>
-<span class="linenos">404</span>        <span class="p">)</span>
-<span class="linenos">405</span>        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span>
-<span class="linenos">406</span>        <span class="k">assert</span> <span class="s2">"$id"</span> <span class="ow">in</span> <span class="n">result</span>
-<span class="linenos">407</span>        <span class="k">assert</span> <span class="s2">"$schema"</span> <span class="ow">in</span> <span class="n">result</span></div>
-</div>
-
-<span class="linenos">408</span>
-<span class="linenos">409</span>
-<div class="viewcode-block" id="TestStepPublisherPklConfig">
-<a class="viewcode-back" href="../../test_rst/test.test_step_publisher_pkl_config.html#test.test_step_publisher_pkl_config.TestStepPublisherPklConfig">[docs]</a>
-<span class="linenos">410</span><span class="k">class</span><span class="w"> </span><span class="nc">TestStepPublisherPklConfig</span><span class="p">:</span>
-<span class="linenos">411</span><span class="w">    </span><span class="sd">"""Test suite for the ``StepPublisherPklConfig`` class.</span>
-<span class="linenos">412</span>
-<span class="linenos">413</span><span class="sd">    Validates the top-level default configuration factory, and the schema/example</span>
-<span class="linenos">414</span><span class="sd">    file generation methods.</span>
-<span class="linenos">415</span><span class="sd">    """</span>
-<span class="linenos">416</span>
-<div class="viewcode-block" id="TestStepPublisherPklConfig.test___slots__">
-<a class="viewcode-back" href="../../test_rst/test.test_step_publisher_pkl_config.html#test.test_step_publisher_pkl_config.TestStepPublisherPklConfig.test___slots__">[docs]</a>
-<span class="linenos">417</span>    <span class="k">def</span><span class="w"> </span><span class="nf">test___slots__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">418</span><span class="w">        </span><span class="sd">"""Test that the ``StepPublisherPklConfig`` class defines the expected</span>
-<span class="linenos">419</span><span class="sd">        ``__slots__``.</span>
-<span class="linenos">420</span>
-<span class="linenos">421</span><span class="sd">        Returns:</span>
-<span class="linenos">422</span><span class="sd">            None</span>
-<span class="linenos">423</span><span class="sd">        """</span>
-<span class="linenos">424</span>        <span class="k">assert</span> <span class="n">StepPublisherPklConfig</span><span class="o">.</span><span class="vm">__slots__</span></div>
-
-<span class="linenos">425</span>
-<div class="viewcode-block" id="TestStepPublisherPklConfig.test_get_default">
-<a class="viewcode-back" href="../../test_rst/test.test_step_publisher_pkl_config.html#test.test_step_publisher_pkl_config.TestStepPublisherPklConfig.test_get_default">[docs]</a>
-<span class="linenos">426</span>    <span class="k">def</span><span class="w"> </span><span class="nf">test_get_default</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">427</span><span class="w">        </span><span class="sd">"""Test that ``StepPublisherPklConfig.get_default()`` returns a properly</span>
-<span class="linenos">428</span><span class="sd">        configured instance.</span>
-<span class="linenos">429</span>
-<span class="linenos">430</span><span class="sd">        Verifies that the default configuration contains:</span>
-<span class="linenos">431</span>
-<span class="linenos">432</span><span class="sd">            - Template version set to StepConfigVersion.VERSION</span>
-<span class="linenos">433</span><span class="sd">            - Input files set to ["./pickle.pkl"]</span>
-<span class="linenos">434</span><span class="sd">            - Stations blacklist set to [123]</span>
-<span class="linenos">435</span><span class="sd">            - Wait time before starting set to 1000 ms</span>
-<span class="linenos">436</span><span class="sd">            - STEP broker configuration with default values</span>
-<span class="linenos">437</span><span class="sd">            - Log configuration with default values</span>
+<span class="linenos">355</span><span class="sd">    Note:</span>
+<span class="linenos">356</span><span class="sd">       When the module uses the `-c` or `--config` option, also the -i or --instance option</span>
+<span class="linenos">357</span><span class="sd">       must be specified to set the instance name.</span>
+<span class="linenos">358</span>
+<span class="linenos">359</span><span class="sd">    Returns:</span>
+<span class="linenos">360</span><span class="sd">        ArgumentParser: Configured argument parser object</span>
+<span class="linenos">361</span>
+<span class="linenos">362</span><span class="sd">    Complexity:</span>
+<span class="linenos">363</span><span class="sd">        - Time: O(1), registers a fixed, constant number of command-line arguments.</span>
+<span class="linenos">364</span><span class="sd">        - Space: O(1), allocates a single ArgumentParser instance with a constant</span>
+<span class="linenos">365</span><span class="sd">          number of argument definitions.</span>
+<span class="linenos">366</span><span class="sd">    """</span>
+<span class="linenos">367</span>    <span class="n">parser</span> <span class="o">=</span> <span class="n">ArgumentParser</span><span class="p">(</span>
+<span class="linenos">368</span>        <span class="n">description</span><span class="o">=</span><span class="s2">"Program to publish to the STEP broker the pickle data through ITS ETSI messages"</span><span class="p">,</span>
+<span class="linenos">369</span>        <span class="n">epilog</span><span class="o">=</span><span class="p">(</span>
+<span class="linenos">370</span>            <span class="s2">"When the module uses the `-c` or `--config` option, also the "</span>
+<span class="linenos">371</span>            <span class="s2">"-i or --instance option must be specified to set the instance name"</span>
+<span class="linenos">372</span>        <span class="p">),</span>
+<span class="linenos">373</span>        <span class="n">add_help</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="linenos">374</span>        <span class="n">allow_abbrev</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="linenos">375</span>        <span class="n">exit_on_error</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="linenos">376</span>    <span class="p">)</span>
+<span class="linenos">377</span>    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+<span class="linenos">378</span>        <span class="s2">"-v"</span><span class="p">,</span>
+<span class="linenos">379</span>        <span class="s2">"--version"</span><span class="p">,</span>
+<span class="linenos">380</span>        <span class="n">help</span><span class="o">=</span><span class="s2">"Version of the program"</span><span class="p">,</span>
+<span class="linenos">381</span>        <span class="n">action</span><span class="o">=</span><span class="s2">"version"</span><span class="p">,</span>
+<span class="linenos">382</span>        <span class="n">version</span><span class="o">=</span><span class="sa">f</span><span class="s2">"%(prog)s version: </span><span class="si">{</span><span class="n">step_publisher_pkl</span><span class="o">.</span><span class="n">__version__</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+<span class="linenos">383</span>    <span class="p">)</span>
+<span class="linenos">384</span>    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+<span class="linenos">385</span>        <span class="s2">"-s"</span><span class="p">,</span>
+<span class="linenos">386</span>        <span class="s2">"--conf_schema"</span><span class="p">,</span>
+<span class="linenos">387</span>        <span class="n">help</span><span class="o">=</span><span class="s2">"Write in the file the configuration JSON schema"</span><span class="p">,</span>
+<span class="linenos">388</span>        <span class="n">metavar</span><span class="o">=</span><span class="s2">"&lt;schema file&gt;"</span><span class="p">,</span>
+<span class="linenos">389</span>        <span class="n">dest</span><span class="o">=</span><span class="s2">"conf_schema_file"</span><span class="p">,</span>
+<span class="linenos">390</span>        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+<span class="linenos">391</span>    <span class="p">)</span>
+<span class="linenos">392</span>    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+<span class="linenos">393</span>        <span class="s2">"-t"</span><span class="p">,</span>
+<span class="linenos">394</span>        <span class="s2">"--conf_template"</span><span class="p">,</span>
+<span class="linenos">395</span>        <span class="n">help</span><span class="o">=</span><span class="s2">"Write in the file the configuration template"</span><span class="p">,</span>
+<span class="linenos">396</span>        <span class="n">metavar</span><span class="o">=</span><span class="s2">"&lt;template file&gt;"</span><span class="p">,</span>
+<span class="linenos">397</span>        <span class="n">dest</span><span class="o">=</span><span class="s2">"conf_template_file"</span><span class="p">,</span>
+<span class="linenos">398</span>        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+<span class="linenos">399</span>    <span class="p">)</span>
+<span class="linenos">400</span>    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+<span class="linenos">401</span>        <span class="s2">"-c"</span><span class="p">,</span>
+<span class="linenos">402</span>        <span class="s2">"--config"</span><span class="p">,</span>
+<span class="linenos">403</span>        <span class="n">help</span><span class="o">=</span><span class="s2">"Load the configuration from the file"</span><span class="p">,</span>
+<span class="linenos">404</span>        <span class="n">metavar</span><span class="o">=</span><span class="s2">"&lt;config file&gt;"</span><span class="p">,</span>
+<span class="linenos">405</span>        <span class="n">dest</span><span class="o">=</span><span class="s2">"config_file"</span><span class="p">,</span>
+<span class="linenos">406</span>        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+<span class="linenos">407</span>    <span class="p">)</span>
+<span class="linenos">408</span>    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+<span class="linenos">409</span>        <span class="s2">"-i"</span><span class="p">,</span>
+<span class="linenos">410</span>        <span class="s2">"--instance"</span><span class="p">,</span>
+<span class="linenos">411</span>        <span class="n">help</span><span class="o">=</span><span class="s2">"Specify the instance name"</span><span class="p">,</span>
+<span class="linenos">412</span>        <span class="n">metavar</span><span class="o">=</span><span class="s2">"&lt;instance name&gt;"</span><span class="p">,</span>
+<span class="linenos">413</span>        <span class="n">dest</span><span class="o">=</span><span class="s2">"instance_name"</span><span class="p">,</span>
+<span class="linenos">414</span>        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+<span class="linenos">415</span>    <span class="p">)</span>
+<span class="linenos">416</span>    <span class="k">return</span> <span class="n">parser</span>
+<span class="linenos">417</span>
+<span class="linenos">418</span>
+<div class="viewcode-block" id="main">
+<a class="viewcode-back" href="../../step_publisher_pkl_rst/step_publisher_pkl.__main__.html#step_publisher_pkl.__main__.main">[docs]</a>
+<span class="linenos">419</span><span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>  <span class="c1"># noqa: C901, PLR0912</span>
+<span class="linenos">420</span><span class="w">    </span><span class="sd">"""Main entry point for the application.</span>
+<span class="linenos">421</span>
+<span class="linenos">422</span><span class="sd">    This function initializes the application, processes command-line arguments,</span>
+<span class="linenos">423</span><span class="sd">    loads configuration, sets up logging, and executes the main asynchronous event loop.</span>
+<span class="linenos">424</span>
+<span class="linenos">425</span><span class="sd">    It handles the following operations:</span>
+<span class="linenos">426</span>
+<span class="linenos">427</span><span class="sd">        - Printing help when no arguments are provided</span>
+<span class="linenos">428</span><span class="sd">        - Generating JSON schema file when requested</span>
+<span class="linenos">429</span><span class="sd">        - Creating configuration template file when requested</span>
+<span class="linenos">430</span><span class="sd">        - Loading configuration from specified file</span>
+<span class="linenos">431</span><span class="sd">        - Setting up Windows event loop policy if running on Windows</span>
+<span class="linenos">432</span><span class="sd">        - Running the main asynchronous function</span>
+<span class="linenos">433</span>
+<span class="linenos">434</span><span class="sd">    Exception handling:</span>
+<span class="linenos">435</span>
+<span class="linenos">436</span><span class="sd">        - Catches interruptions (Ctrl+C) gracefully</span>
+<span class="linenos">437</span><span class="sd">        - Logs unhandled exceptions</span>
 <span class="linenos">438</span>
-<span class="linenos">439</span><span class="sd">        Returns:</span>
-<span class="linenos">440</span><span class="sd">            None</span>
-<span class="linenos">441</span><span class="sd">        """</span>
-<span class="linenos">442</span>        <span class="n">result</span> <span class="o">=</span> <span class="n">StepPublisherPklConfig</span><span class="o">.</span><span class="n">get_default</span><span class="p">()</span>
-<span class="linenos">443</span>        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">StepPublisherPklConfig</span><span class="p">)</span>
-<span class="linenos">444</span>        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">templateVersion</span> <span class="o">==</span> <span class="n">StepConfigVersion</span><span class="o">.</span><span class="n">VERSION</span>
-<span class="linenos">445</span>        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">inputFiles</span> <span class="o">==</span> <span class="p">[</span><span class="s2">"./pickle.pkl"</span><span class="p">]</span>
-<span class="linenos">446</span>        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">stationsBlacklist</span> <span class="o">==</span> <span class="p">[</span><span class="mi">123</span><span class="p">]</span>
-<span class="linenos">447</span>        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">waitTimeBeforeStarting</span> <span class="o">==</span> <span class="mi">1000</span>
-<span class="linenos">448</span>        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">stepBroker</span> <span class="o">==</span> <span class="n">StepBrokerConfig</span><span class="o">.</span><span class="n">get_default</span><span class="p">()</span>
-<span class="linenos">449</span>        <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">log</span> <span class="o">==</span> <span class="n">LogConfig</span><span class="o">.</span><span class="n">get_default</span><span class="p">()</span></div>
+<span class="linenos">439</span><span class="sd">    Returns:</span>
+<span class="linenos">440</span><span class="sd">        int: Exit code indicating program result status:</span>
+<span class="linenos">441</span>
+<span class="linenos">442</span><span class="sd">            - ExitCode.OK (0): Success</span>
+<span class="linenos">443</span><span class="sd">            - ExitCode.USAGE (1): Improper usage</span>
+<span class="linenos">444</span><span class="sd">            - ExitCode.ERROR (2): An unhandled exception occurred</span>
+<span class="linenos">445</span><span class="sd">            - ExitCode.ABORTED (3): Program was interrupted</span>
+<span class="linenos">446</span>
+<span class="linenos">447</span><span class="sd">    Complexity:</span>
+<span class="linenos">448</span><span class="sd">        - Time: O(1) for argument parsing, configuration loading, and dispatch logic;</span>
+<span class="linenos">449</span><span class="sd">          excludes the unbounded runtime of the underlying asyncio event loop</span>
+<span class="linenos">450</span><span class="sd">          triggered by _main_async.</span>
+<span class="linenos">451</span><span class="sd">        - Space: O(1), aside from the memory used by the loaded configuration object.</span>
+<span class="linenos">452</span><span class="sd">    """</span>
+<span class="linenos">453</span>    <span class="k">if</span> <span class="n">IS_WINDOWS</span><span class="p">:</span>
+<span class="linenos">454</span>        <span class="c1"># Windows: Handle CTRL_BREAK_EVENT</span>
+<span class="linenos">455</span>        <span class="n">sigbreak</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">signal</span><span class="p">,</span> <span class="s2">"SIGBREAK"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+<span class="linenos">456</span>        <span class="k">if</span> <span class="n">sigbreak</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">457</span>            <span class="n">signal</span><span class="o">.</span><span class="n">signal</span><span class="p">(</span><span class="n">signalnum</span><span class="o">=</span><span class="n">sigbreak</span><span class="p">,</span> <span class="n">handler</span><span class="o">=</span><span class="n">_signal_handler</span><span class="p">)</span>
+<span class="linenos">458</span>    <span class="k">else</span><span class="p">:</span>
+<span class="linenos">459</span>        <span class="c1"># Linux/Unix: Handle SIGINT (in case default behavior is overridden)</span>
+<span class="linenos">460</span>        <span class="n">signal</span><span class="o">.</span><span class="n">signal</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">SIGINT</span><span class="p">,</span> <span class="n">_signal_handler</span><span class="p">)</span>
+<span class="linenos">461</span>        <span class="c1"># Linux/Unix: Handle SIGTERM (sent by container runtimes on stop)</span>
+<span class="linenos">462</span>        <span class="n">signal</span><span class="o">.</span><span class="n">signal</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">SIGTERM</span><span class="p">,</span> <span class="n">_signal_handler</span><span class="p">)</span>
+<span class="linenos">463</span>    <span class="n">result</span> <span class="o">=</span> <span class="n">ExitCode</span><span class="o">.</span><span class="n">OK</span>
+<span class="linenos">464</span>    <span class="n">logger</span> <span class="o">=</span> <span class="n">StepLogger</span><span class="o">.</span><span class="n">get_logger</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">instance_name</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+<span class="linenos">465</span>    <span class="k">try</span><span class="p">:</span>
+<span class="linenos">466</span>        <span class="n">parser</span> <span class="o">=</span> <span class="n">_args_parse</span><span class="p">()</span>
+<span class="linenos">467</span>        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+<span class="linenos">468</span>            <span class="n">parser</span><span class="o">.</span><span class="n">print_help</span><span class="p">()</span>
+<span class="linenos">469</span>            <span class="k">return</span> <span class="n">ExitCode</span><span class="o">.</span><span class="n">USAGE</span>
+<span class="linenos">470</span>        <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+<span class="linenos">471</span>        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">conf_schema_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">472</span>            <span class="n">_get_config_schema_file</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">conf_schema_file</span><span class="p">))</span>
+<span class="linenos">473</span>        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">conf_template_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">474</span>            <span class="n">_get_config_template_file</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">conf_template_file</span><span class="p">))</span>
+<span class="linenos">475</span>        <span class="k">if</span> <span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">config_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">instance_name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
+<span class="linenos">476</span>            <span class="k">raise</span> <span class="n">StepCliError</span><span class="p">(</span>  <span class="c1"># noqa: TRY301</span>
+<span class="linenos">477</span>                <span class="s2">"The -i/--instance option must be specified when using -c/--config."</span>
+<span class="linenos">478</span>            <span class="p">)</span>
+<span class="linenos">479</span>        <span class="k">if</span> <span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">config_file</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">instance_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
+<span class="linenos">480</span>            <span class="k">raise</span> <span class="n">StepCliError</span><span class="p">(</span>  <span class="c1"># noqa: TRY301</span>
+<span class="linenos">481</span>                <span class="s2">"The -c/--config option must be specified when using -i/--instance."</span>
+<span class="linenos">482</span>            <span class="p">)</span>
+<span class="linenos">483</span>        <span class="k">if</span> <span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">config_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">instance_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
+<span class="linenos">484</span>            <span class="n">config</span> <span class="o">=</span> <span class="n">StepPublisherPklConfig</span><span class="o">.</span><span class="n">model_validate_json</span><span class="p">(</span>
+<span class="linenos">485</span>                <span class="n">json_data</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">config_file</span><span class="p">)</span><span class="o">.</span><span class="n">read_text</span><span class="p">(</span><span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span>
+<span class="linenos">486</span>            <span class="p">)</span>
+<span class="linenos">487</span>            <span class="n">logger</span> <span class="o">=</span> <span class="n">StepLogger</span><span class="o">.</span><span class="n">get_logger</span><span class="p">(</span>
+<span class="linenos">488</span>                <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">log</span><span class="p">,</span> <span class="n">instance_name</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">instance_name</span>
+<span class="linenos">489</span>            <span class="p">)</span>
+<span class="linenos">490</span>            <span class="n">StepLogger</span><span class="o">.</span><span class="n">logger_force_write</span><span class="p">(</span>
+<span class="linenos">491</span>                <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span>
+<span class="linenos">492</span>                <span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">"STEP Publisher Pickle: name </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">instance_name</span><span class="si">}</span><span class="s2"> version </span><span class="si">{</span><span class="n">step_publisher_pkl</span><span class="o">.</span><span class="n">__version__</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+<span class="linenos">493</span>            <span class="p">)</span>
+<span class="linenos">494</span>            <span class="n">StepLogger</span><span class="o">.</span><span class="n">logger_force_write</span><span class="p">(</span><span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span> <span class="n">msg</span><span class="o">=</span><span class="s2">"Library:"</span><span class="p">)</span>
+<span class="linenos">495</span>            <span class="n">StepLogger</span><span class="o">.</span><span class="n">logger_force_write</span><span class="p">(</span>
+<span class="linenos">496</span>                <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span>
+<span class="linenos">497</span>                <span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">"    - step_cloud_schemas: </span><span class="si">{</span><span class="n">step_cloud_schemas</span><span class="o">.</span><span class="n">__version__</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+<span class="linenos">498</span>            <span class="p">)</span>
+<span class="linenos">499</span>            <span class="n">StepLogger</span><span class="o">.</span><span class="n">logger_force_write</span><span class="p">(</span>
+<span class="linenos">500</span>                <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span> <span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">"    - step_lib: </span><span class="si">{</span><span class="n">step_lib</span><span class="o">.</span><span class="n">__version__</span><span class="si">}</span><span class="s2">"</span>
+<span class="linenos">501</span>            <span class="p">)</span>
+<span class="linenos">502</span>            <span class="n">loop_factory</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">SelectorEventLoop</span> <span class="k">if</span> <span class="n">IS_WINDOWS</span> <span class="k">else</span> <span class="kc">None</span>
+<span class="linenos">503</span>            <span class="k">with</span> <span class="n">Runner</span><span class="p">(</span><span class="n">loop_factory</span><span class="o">=</span><span class="n">loop_factory</span><span class="p">)</span> <span class="k">as</span> <span class="n">runner</span><span class="p">:</span>
+<span class="linenos">504</span>                <span class="n">runner</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
+<span class="linenos">505</span>                    <span class="n">coro</span><span class="o">=</span><span class="n">_main_async</span><span class="p">(</span>
+<span class="linenos">506</span>                        <span class="n">instance_name</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">instance_name</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span>
+<span class="linenos">507</span>                    <span class="p">)</span>
+<span class="linenos">508</span>                <span class="p">)</span>
+<span class="linenos">509</span>    <span class="k">except</span> <span class="ne">KeyboardInterrupt</span><span class="p">:</span>
+<span class="linenos">510</span>        <span class="k">if</span> <span class="n">logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">):</span>
+<span class="linenos">511</span>            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">"Program interrupted"</span><span class="p">)</span>
+<span class="linenos">512</span>        <span class="n">result</span> <span class="o">=</span> <span class="n">ExitCode</span><span class="o">.</span><span class="n">ABORTED</span>
+<span class="linenos">513</span>    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+<span class="linenos">514</span>        <span class="k">if</span> <span class="n">logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">ERROR</span><span class="p">):</span>
+<span class="linenos">515</span>            <span class="n">logger</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">"Exception unmanaged"</span><span class="p">)</span>
+<span class="linenos">516</span>        <span class="n">result</span> <span class="o">=</span> <span class="n">ExitCode</span><span class="o">.</span><span class="n">ERROR</span>
+<span class="linenos">517</span>    <span class="k">return</span> <span class="n">result</span><span class="o">.</span><span class="n">value</span></div>
 
-<span class="linenos">450</span>
-<div class="viewcode-block" id="TestStepPublisherPklConfig.test_print_config_schema">
-<a class="viewcode-back" href="../../test_rst/test.test_step_publisher_pkl_config.html#test.test_step_publisher_pkl_config.TestStepPublisherPklConfig.test_print_config_schema">[docs]</a>
-<span class="linenos">451</span>    <span class="k">def</span><span class="w"> </span><span class="nf">test_print_config_schema</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">452</span><span class="w">        </span><span class="sd">"""Tests the ``print_config_schema`` method of ``StepPublisherPklConfig`` by</span>
-<span class="linenos">453</span><span class="sd">        verifying that the generated schema file matches the reference schema file.</span>
-<span class="linenos">454</span>
-<span class="linenos">455</span><span class="sd">        It does so by creating a temporary directory, invoking the method to output</span>
-<span class="linenos">456</span><span class="sd">        the schema, and then comparing the generated file with the expected schema</span>
-<span class="linenos">457</span><span class="sd">        file for equality.</span>
-<span class="linenos">458</span>
-<span class="linenos">459</span><span class="sd">        Returns:</span>
-<span class="linenos">460</span><span class="sd">            None</span>
-<span class="linenos">461</span><span class="sd">        """</span>
-<span class="linenos">462</span>        <span class="k">with</span> <span class="p">(</span>
-<span class="linenos">463</span>            <span class="n">resources</span><span class="o">.</span><span class="n">as_file</span><span class="p">(</span><span class="n">resources</span><span class="o">.</span><span class="n">files</span><span class="p">(</span><span class="n">schemas</span><span class="p">))</span> <span class="k">as</span> <span class="n">resource_path</span><span class="p">,</span>
-<span class="linenos">464</span>            <span class="n">TemporaryDirectory</span><span class="p">()</span> <span class="k">as</span> <span class="n">tmp_path</span><span class="p">,</span>
-<span class="linenos">465</span>        <span class="p">):</span>
-<span class="linenos">466</span>            <span class="n">StepPublisherPklConfig</span><span class="o">.</span><span class="n">print_config_schema</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="n">tmp_path</span><span class="p">))</span>
-<span class="linenos">467</span>            <span class="k">assert</span> <span class="n">filecmp_cmp</span><span class="p">(</span>
-<span class="linenos">468</span>                <span class="n">f1</span><span class="o">=</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">tmp_path</span><span class="si">}</span><span class="s2">/step_publisher_pkl_config_v1_schema.json"</span><span class="p">,</span>
-<span class="linenos">469</span>                <span class="n">f2</span><span class="o">=</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">resource_path</span><span class="si">}</span><span class="s2">/step_publisher_pkl_config_v1_schema.json"</span><span class="p">,</span>
-<span class="linenos">470</span>                <span class="n">shallow</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-<span class="linenos">471</span>            <span class="p">)</span></div>
-
-<span class="linenos">472</span>
-<div class="viewcode-block" id="TestStepPublisherPklConfig.test_print_config_example">
-<a class="viewcode-back" href="../../test_rst/test.test_step_publisher_pkl_config.html#test.test_step_publisher_pkl_config.TestStepPublisherPklConfig.test_print_config_example">[docs]</a>
-<span class="linenos">473</span>    <span class="k">def</span><span class="w"> </span><span class="nf">test_print_config_example</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">474</span><span class="w">        </span><span class="sd">"""Tests the ``print_config_example`` method of ``StepPublisherPklConfig`` by</span>
-<span class="linenos">475</span><span class="sd">        verifying that the generated configuration example file matches the reference</span>
-<span class="linenos">476</span><span class="sd">        template file.</span>
-<span class="linenos">477</span>
-<span class="linenos">478</span><span class="sd">        This test:</span>
-<span class="linenos">479</span>
-<span class="linenos">480</span><span class="sd">            - Uses a temporary directory to generate the config example.</span>
-<span class="linenos">481</span><span class="sd">            - Compares the generated file with the expected template</span>
-<span class="linenos">482</span><span class="sd">              file for exact content match.</span>
-<span class="linenos">483</span>
-<span class="linenos">484</span><span class="sd">        Returns:</span>
-<span class="linenos">485</span><span class="sd">            None</span>
-<span class="linenos">486</span><span class="sd">        """</span>
-<span class="linenos">487</span>        <span class="k">with</span> <span class="p">(</span>
-<span class="linenos">488</span>            <span class="n">resources</span><span class="o">.</span><span class="n">as_file</span><span class="p">(</span><span class="n">resources</span><span class="o">.</span><span class="n">files</span><span class="p">(</span><span class="n">templates</span><span class="p">))</span> <span class="k">as</span> <span class="n">resource_path</span><span class="p">,</span>
-<span class="linenos">489</span>            <span class="n">TemporaryDirectory</span><span class="p">()</span> <span class="k">as</span> <span class="n">tmp_path</span><span class="p">,</span>
-<span class="linenos">490</span>        <span class="p">):</span>
-<span class="linenos">491</span>            <span class="n">StepPublisherPklConfig</span><span class="o">.</span><span class="n">print_config_example</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="n">tmp_path</span><span class="p">))</span>
-<span class="linenos">492</span>            <span class="k">assert</span> <span class="n">filecmp_cmp</span><span class="p">(</span>
-<span class="linenos">493</span>                <span class="n">f1</span><span class="o">=</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">tmp_path</span><span class="si">}</span><span class="s2">/step_publisher_pkl_config_v1_schema_template.json"</span><span class="p">,</span>
-<span class="linenos">494</span>                <span class="n">f2</span><span class="o">=</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">resource_path</span><span class="si">}</span><span class="s2">/step_publisher_pkl_config_v1_schema_template.json"</span><span class="p">,</span>
-<span class="linenos">495</span>                <span class="n">shallow</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-<span class="linenos">496</span>            <span class="p">)</span></div>
-</div>
-
+<span class="linenos">518</span>
+<span class="linenos">519</span>
+<span class="linenos">520</span><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">"__main__"</span><span class="p">:</span>
+<span class="linenos">521</span>    <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
 </pre></div>
 
            </div>
