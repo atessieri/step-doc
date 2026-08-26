@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>test.test_step_redis_stream module &mdash; STEP Redis 1.4.2 documentation</title>
+  <title>test.test_step_redis_stream module &mdash; STEP Redis 1.5.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/tabs.css?v=4c969af8" />
@@ -16,7 +16,7 @@
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=02f2166e"></script>
+      <script src="../_static/documentation_options.js?v=e0a75244"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/tabs.js?v=3ee01567"></script>
@@ -99,6 +99,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../architecture.html#stepredispool">StepRedisPool</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../architecture.html#stepredisstreamparams">StepRedisStreamParams</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../architecture.html#stepredisstream">StepRedisStream</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../architecture.html#connection-health-monitoring">Connection Health Monitoring</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../architecture.html#package-integration">Package Integration</a></li>
@@ -110,6 +111,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../architecture.html#usage-patterns">Usage Patterns</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../architecture.html#example-usage">Example Usage</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../architecture.html#base-stream-usage">Base Stream Usage</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../architecture.html#health-check-task-usage">Health Check Task Usage</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../architecture.html#specialized-stream-usage">Specialized Stream Usage</a></li>
 </ul>
 </li>
@@ -330,9 +332,11 @@
 <li class="toctree-l2"><a class="reference internal" href="../step_redis_rst/step_redis.html#submodules">Submodules</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../step_redis_rst/step_redis.step_adapter_redis_stream.html">step_redis.step_adapter_redis_stream module</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../step_redis_rst/step_redis.step_adapter_redis_stream.html#step_redis.step_adapter_redis_stream.StepAdapterRedisStream"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_adapter_redis_stream.html#step_redis.step_adapter_redis_stream.StepAdapterRedisStream.pool"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream.pool</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_adapter_redis_stream.html#step_redis.step_adapter_redis_stream.StepAdapterRedisStream.config"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream.config</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_adapter_redis_stream.html#step_redis.step_adapter_redis_stream.StepAdapterRedisStream.health_check_interval"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream.health_check_interval</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_adapter_redis_stream.html#step_redis.step_adapter_redis_stream.StepAdapterRedisStream.logger"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream.logger</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_adapter_redis_stream.html#step_redis.step_adapter_redis_stream.StepAdapterRedisStream.redis_pool"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream.redis_pool</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_adapter_redis_stream.html#step_redis.step_adapter_redis_stream.StepAdapterRedisStream.logging_timer"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream.logging_timer</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_adapter_redis_stream.html#step_redis.step_adapter_redis_stream.StepAdapterRedisStream.__aenter__"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream.__aenter__()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_adapter_redis_stream.html#step_redis.step_adapter_redis_stream.StepAdapterRedisStream.publish_cam_message"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream.publish_cam_message()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_adapter_redis_stream.html#step_redis.step_adapter_redis_stream.StepAdapterRedisStream.publish_cpm_message"><code class="docutils literal notranslate"><span class="pre">StepAdapterRedisStream.publish_cpm_message()</span></code></a></li>
@@ -343,9 +347,11 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../step_redis_rst/step_redis.step_client_redis_stream.html">step_redis.step_client_redis_stream module</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../step_redis_rst/step_redis.step_client_redis_stream.html#step_redis.step_client_redis_stream.StepClientRedisStream"><code class="docutils literal notranslate"><span class="pre">StepClientRedisStream</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_client_redis_stream.html#step_redis.step_client_redis_stream.StepClientRedisStream.pool"><code class="docutils literal notranslate"><span class="pre">StepClientRedisStream.pool</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_client_redis_stream.html#step_redis.step_client_redis_stream.StepClientRedisStream.config"><code class="docutils literal notranslate"><span class="pre">StepClientRedisStream.config</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_client_redis_stream.html#step_redis.step_client_redis_stream.StepClientRedisStream.health_check_interval"><code class="docutils literal notranslate"><span class="pre">StepClientRedisStream.health_check_interval</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_client_redis_stream.html#step_redis.step_client_redis_stream.StepClientRedisStream.logger"><code class="docutils literal notranslate"><span class="pre">StepClientRedisStream.logger</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_client_redis_stream.html#step_redis.step_client_redis_stream.StepClientRedisStream.redis_pool"><code class="docutils literal notranslate"><span class="pre">StepClientRedisStream.redis_pool</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_client_redis_stream.html#step_redis.step_client_redis_stream.StepClientRedisStream.logging_timer"><code class="docutils literal notranslate"><span class="pre">StepClientRedisStream.logging_timer</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_client_redis_stream.html#step_redis.step_client_redis_stream.StepClientRedisStream.__aenter__"><code class="docutils literal notranslate"><span class="pre">StepClientRedisStream.__aenter__()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_client_redis_stream.html#step_redis.step_client_redis_stream.StepClientRedisStream.publish_denm_message"><code class="docutils literal notranslate"><span class="pre">StepClientRedisStream.publish_denm_message()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_client_redis_stream.html#step_redis.step_client_redis_stream.StepClientRedisStream.receive_client_message"><code class="docutils literal notranslate"><span class="pre">StepClientRedisStream.receive_client_message()</span></code></a></li>
@@ -355,9 +361,11 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../step_redis_rst/step_redis.step_crash_prediction_redis_stream.html">step_redis.step_crash_prediction_redis_stream module</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../step_redis_rst/step_redis.step_crash_prediction_redis_stream.html#step_redis.step_crash_prediction_redis_stream.StepCrashPredictionRedisStream"><code class="docutils literal notranslate"><span class="pre">StepCrashPredictionRedisStream</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_crash_prediction_redis_stream.html#step_redis.step_crash_prediction_redis_stream.StepCrashPredictionRedisStream.pool"><code class="docutils literal notranslate"><span class="pre">StepCrashPredictionRedisStream.pool</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_crash_prediction_redis_stream.html#step_redis.step_crash_prediction_redis_stream.StepCrashPredictionRedisStream.config"><code class="docutils literal notranslate"><span class="pre">StepCrashPredictionRedisStream.config</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_crash_prediction_redis_stream.html#step_redis.step_crash_prediction_redis_stream.StepCrashPredictionRedisStream.health_check_interval"><code class="docutils literal notranslate"><span class="pre">StepCrashPredictionRedisStream.health_check_interval</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_crash_prediction_redis_stream.html#step_redis.step_crash_prediction_redis_stream.StepCrashPredictionRedisStream.logger"><code class="docutils literal notranslate"><span class="pre">StepCrashPredictionRedisStream.logger</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_crash_prediction_redis_stream.html#step_redis.step_crash_prediction_redis_stream.StepCrashPredictionRedisStream.redis_pool"><code class="docutils literal notranslate"><span class="pre">StepCrashPredictionRedisStream.redis_pool</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_crash_prediction_redis_stream.html#step_redis.step_crash_prediction_redis_stream.StepCrashPredictionRedisStream.logging_timer"><code class="docutils literal notranslate"><span class="pre">StepCrashPredictionRedisStream.logging_timer</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_crash_prediction_redis_stream.html#step_redis.step_crash_prediction_redis_stream.StepCrashPredictionRedisStream.__aenter__"><code class="docutils literal notranslate"><span class="pre">StepCrashPredictionRedisStream.__aenter__()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_crash_prediction_redis_stream.html#step_redis.step_crash_prediction_redis_stream.StepCrashPredictionRedisStream.publish_position_array"><code class="docutils literal notranslate"><span class="pre">StepCrashPredictionRedisStream.publish_position_array()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_crash_prediction_redis_stream.html#step_redis.step_crash_prediction_redis_stream.StepCrashPredictionRedisStream.receive_crash_prediction_message"><code class="docutils literal notranslate"><span class="pre">StepCrashPredictionRedisStream.receive_crash_prediction_message()</span></code></a></li>
@@ -367,9 +375,11 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../step_redis_rst/step_redis.step_monitoring_redis_stream.html">step_redis.step_monitoring_redis_stream module</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../step_redis_rst/step_redis.step_monitoring_redis_stream.html#step_redis.step_monitoring_redis_stream.StepMonitoringRedisStream"><code class="docutils literal notranslate"><span class="pre">StepMonitoringRedisStream</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_monitoring_redis_stream.html#step_redis.step_monitoring_redis_stream.StepMonitoringRedisStream.pool"><code class="docutils literal notranslate"><span class="pre">StepMonitoringRedisStream.pool</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_monitoring_redis_stream.html#step_redis.step_monitoring_redis_stream.StepMonitoringRedisStream.config"><code class="docutils literal notranslate"><span class="pre">StepMonitoringRedisStream.config</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_monitoring_redis_stream.html#step_redis.step_monitoring_redis_stream.StepMonitoringRedisStream.health_check_interval"><code class="docutils literal notranslate"><span class="pre">StepMonitoringRedisStream.health_check_interval</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_monitoring_redis_stream.html#step_redis.step_monitoring_redis_stream.StepMonitoringRedisStream.logger"><code class="docutils literal notranslate"><span class="pre">StepMonitoringRedisStream.logger</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_monitoring_redis_stream.html#step_redis.step_monitoring_redis_stream.StepMonitoringRedisStream.redis_pool"><code class="docutils literal notranslate"><span class="pre">StepMonitoringRedisStream.redis_pool</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_monitoring_redis_stream.html#step_redis.step_monitoring_redis_stream.StepMonitoringRedisStream.logging_timer"><code class="docutils literal notranslate"><span class="pre">StepMonitoringRedisStream.logging_timer</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_monitoring_redis_stream.html#step_redis.step_monitoring_redis_stream.StepMonitoringRedisStream.__aenter__"><code class="docutils literal notranslate"><span class="pre">StepMonitoringRedisStream.__aenter__()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_monitoring_redis_stream.html#step_redis.step_monitoring_redis_stream.StepMonitoringRedisStream.publish_forecasted_trajectory"><code class="docutils literal notranslate"><span class="pre">StepMonitoringRedisStream.publish_forecasted_trajectory()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_monitoring_redis_stream.html#step_redis.step_monitoring_redis_stream.StepMonitoringRedisStream.receive_monitoring_message"><code class="docutils literal notranslate"><span class="pre">StepMonitoringRedisStream.receive_monitoring_message()</span></code></a></li>
@@ -379,9 +389,11 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../step_redis_rst/step_redis.step_producer_redis_stream.html">step_redis.step_producer_redis_stream module</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../step_redis_rst/step_redis.step_producer_redis_stream.html#step_redis.step_producer_redis_stream.StepProducerRedisStream"><code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_producer_redis_stream.html#step_redis.step_producer_redis_stream.StepProducerRedisStream.pool"><code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream.pool</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_producer_redis_stream.html#step_redis.step_producer_redis_stream.StepProducerRedisStream.config"><code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream.config</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_producer_redis_stream.html#step_redis.step_producer_redis_stream.StepProducerRedisStream.health_check_interval"><code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream.health_check_interval</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_producer_redis_stream.html#step_redis.step_producer_redis_stream.StepProducerRedisStream.logger"><code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream.logger</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_producer_redis_stream.html#step_redis.step_producer_redis_stream.StepProducerRedisStream.redis_pool"><code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream.redis_pool</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_producer_redis_stream.html#step_redis.step_producer_redis_stream.StepProducerRedisStream.logging_timer"><code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream.logging_timer</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_producer_redis_stream.html#step_redis.step_producer_redis_stream.StepProducerRedisStream.__aenter__"><code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream.__aenter__()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_producer_redis_stream.html#step_redis.step_producer_redis_stream.StepProducerRedisStream.publish_denm_message"><code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream.publish_denm_message()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_producer_redis_stream.html#step_redis.step_producer_redis_stream.StepProducerRedisStream.publish_station_collision_array"><code class="docutils literal notranslate"><span class="pre">StepProducerRedisStream.publish_station_collision_array()</span></code></a></li>
@@ -396,6 +408,7 @@
 <li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPool.logger"><code class="docutils literal notranslate"><span class="pre">StepRedisPool.logger</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPool.__aenter__"><code class="docutils literal notranslate"><span class="pre">StepRedisPool.__aenter__()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPool.__aexit__"><code class="docutils literal notranslate"><span class="pre">StepRedisPool.__aexit__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPool.health_check_interval"><code class="docutils literal notranslate"><span class="pre">StepRedisPool.health_check_interval</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l4"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams</span></code></a><ul>
@@ -419,15 +432,17 @@
 <li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.max_connections"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.max_connections</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.connection_available_timeout"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.connection_available_timeout</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.protocol"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.protocol</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_pool.html#step_redis.step_redis_pool.StepRedisPoolParams.retry_count"><code class="docutils literal notranslate"><span class="pre">StepRedisPoolParams.retry_count</span></code></a></li>
 </ul>
 </li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_stream.html">step_redis.step_redis_stream module</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream"><code class="docutils literal notranslate"><span class="pre">StepRedisStream</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream.pool"><code class="docutils literal notranslate"><span class="pre">StepRedisStream.pool</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream.config"><code class="docutils literal notranslate"><span class="pre">StepRedisStream.config</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream.health_check_interval"><code class="docutils literal notranslate"><span class="pre">StepRedisStream.health_check_interval</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream.logger"><code class="docutils literal notranslate"><span class="pre">StepRedisStream.logger</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream.redis_pool"><code class="docutils literal notranslate"><span class="pre">StepRedisStream.redis_pool</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream.__aenter__"><code class="docutils literal notranslate"><span class="pre">StepRedisStream.__aenter__()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream.__aexit__"><code class="docutils literal notranslate"><span class="pre">StepRedisStream.__aexit__()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream.create_input_stream"><code class="docutils literal notranslate"><span class="pre">StepRedisStream.create_input_stream()</span></code></a></li>
@@ -435,6 +450,7 @@
 <li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream.ping"><code class="docutils literal notranslate"><span class="pre">StepRedisStream.ping()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream.publish_message"><code class="docutils literal notranslate"><span class="pre">StepRedisStream.publish_message()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream.receive_message"><code class="docutils literal notranslate"><span class="pre">StepRedisStream.receive_message()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream.run_health_check"><code class="docutils literal notranslate"><span class="pre">StepRedisStream.run_health_check()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStream.update_stream_ttl"><code class="docutils literal notranslate"><span class="pre">StepRedisStream.update_stream_ttl()</span></code></a></li>
 </ul>
 </li>
@@ -442,7 +458,7 @@
 <li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStreamParams.stream_id"><code class="docutils literal notranslate"><span class="pre">StepRedisStreamParams.stream_id</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStreamParams.group_id"><code class="docutils literal notranslate"><span class="pre">StepRedisStreamParams.group_id</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStreamParams.wait_timeout_ms"><code class="docutils literal notranslate"><span class="pre">StepRedisStreamParams.wait_timeout_ms</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStreamParams.max_length"><code class="docutils literal notranslate"><span class="pre">StepRedisStreamParams.max_length</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStreamParams.published_message_max_retained"><code class="docutils literal notranslate"><span class="pre">StepRedisStreamParams.published_message_max_retained</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStreamParams.consumer_name"><code class="docutils literal notranslate"><span class="pre">StepRedisStreamParams.consumer_name</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStreamParams.ttl_seconds"><code class="docutils literal notranslate"><span class="pre">StepRedisStreamParams.ttl_seconds</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStreamParams.__post_init__"><code class="docutils literal notranslate"><span class="pre">StepRedisStreamParams.__post_init__()</span></code></a></li>
@@ -457,6 +473,14 @@
 <li class="toctree-l1 current"><a class="reference internal" href="test.html">Unit Test package</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="test.html#submodules">Submodules</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="test.conftest.html">test.conftest module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="test.conftest.html#test.conftest.StepRedisStreamSubclassTestBase"><code class="docutils literal notranslate"><span class="pre">StepRedisStreamSubclassTestBase</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test.conftest.html#test.conftest.StepRedisStreamSubclassTestBase.test___aenter__"><code class="docutils literal notranslate"><span class="pre">StepRedisStreamSubclassTestBase.test___aenter__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test.conftest.html#test.conftest.StepRedisStreamSubclassTestBase.test___init__"><code class="docutils literal notranslate"><span class="pre">StepRedisStreamSubclassTestBase.test___init__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test.conftest.html#test.conftest.StepRedisStreamSubclassTestBase.test___slots__"><code class="docutils literal notranslate"><span class="pre">StepRedisStreamSubclassTestBase.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test.conftest.html#test.conftest.StepRedisStreamSubclassTestBase.test_receive_message"><code class="docutils literal notranslate"><span class="pre">StepRedisStreamSubclassTestBase.test_receive_message()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test.conftest.html#test.conftest.StepRedisStreamSubclassTestBase.test_receive_message_discards_invalid_message"><code class="docutils literal notranslate"><span class="pre">StepRedisStreamSubclassTestBase.test_receive_message_discards_invalid_message()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l4"><a class="reference internal" href="test.conftest.html#test.conftest.fake_redis_stream_init"><code class="docutils literal notranslate"><span class="pre">fake_redis_stream_init()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="test.conftest.html#test.conftest.mock_receive_generator"><code class="docutils literal notranslate"><span class="pre">mock_receive_generator()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="test.conftest.html#test.conftest.mock_receive_generator_sequence"><code class="docutils literal notranslate"><span class="pre">mock_receive_generator_sequence()</span></code></a></li>
@@ -472,62 +496,47 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="test.test_step_adapter_redis_stream.html">test.test_step_adapter_redis_stream module</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="test.test_step_adapter_redis_stream.html#test.test_step_adapter_redis_stream.TestStepAdapterRedisStream"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterRedisStream</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="test.test_step_adapter_redis_stream.html#test.test_step_adapter_redis_stream.TestStepAdapterRedisStream.test___aenter__"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterRedisStream.test___aenter__()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test.test_step_adapter_redis_stream.html#test.test_step_adapter_redis_stream.TestStepAdapterRedisStream.test___init__"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterRedisStream.test___init__()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test.test_step_adapter_redis_stream.html#test.test_step_adapter_redis_stream.TestStepAdapterRedisStream.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterRedisStream.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test.test_step_adapter_redis_stream.html#test.test_step_adapter_redis_stream.TestStepAdapterRedisStream.cloud_events_json_root_cls"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterRedisStream.cloud_events_json_root_cls</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test.test_step_adapter_redis_stream.html#test.test_step_adapter_redis_stream.TestStepAdapterRedisStream.stream_cls"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterRedisStream.stream_cls</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test.test_step_adapter_redis_stream.html#test.test_step_adapter_redis_stream.TestStepAdapterRedisStream.test_publish_cam_message"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterRedisStream.test_publish_cam_message()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test.test_step_adapter_redis_stream.html#test.test_step_adapter_redis_stream.TestStepAdapterRedisStream.test_publish_cpm_message"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterRedisStream.test_publish_cpm_message()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test.test_step_adapter_redis_stream.html#test.test_step_adapter_redis_stream.TestStepAdapterRedisStream.test_receive_adapter_message"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterRedisStream.test_receive_adapter_message()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test.test_step_adapter_redis_stream.html#test.test_step_adapter_redis_stream.TestStepAdapterRedisStream.test_receive_adapter_message_discards_invalid_message"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterRedisStream.test_receive_adapter_message_discards_invalid_message()</span></code></a></li>
 </ul>
 </li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="test.test_step_client_redis_stream.html">test.test_step_client_redis_stream module</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="test.test_step_client_redis_stream.html#test.test_step_client_redis_stream.TestStepClientRedisStream"><code class="docutils literal notranslate"><span class="pre">TestStepClientRedisStream</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="test.test_step_client_redis_stream.html#test.test_step_client_redis_stream.TestStepClientRedisStream.test___aenter__"><code class="docutils literal notranslate"><span class="pre">TestStepClientRedisStream.test___aenter__()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test.test_step_client_redis_stream.html#test.test_step_client_redis_stream.TestStepClientRedisStream.test___init__"><code class="docutils literal notranslate"><span class="pre">TestStepClientRedisStream.test___init__()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test.test_step_client_redis_stream.html#test.test_step_client_redis_stream.TestStepClientRedisStream.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestStepClientRedisStream.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test.test_step_client_redis_stream.html#test.test_step_client_redis_stream.TestStepClientRedisStream.cloud_events_json_root_cls"><code class="docutils literal notranslate"><span class="pre">TestStepClientRedisStream.cloud_events_json_root_cls</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test.test_step_client_redis_stream.html#test.test_step_client_redis_stream.TestStepClientRedisStream.stream_cls"><code class="docutils literal notranslate"><span class="pre">TestStepClientRedisStream.stream_cls</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test.test_step_client_redis_stream.html#test.test_step_client_redis_stream.TestStepClientRedisStream.test_publish_denm_message"><code class="docutils literal notranslate"><span class="pre">TestStepClientRedisStream.test_publish_denm_message()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test.test_step_client_redis_stream.html#test.test_step_client_redis_stream.TestStepClientRedisStream.test_receive_client_message"><code class="docutils literal notranslate"><span class="pre">TestStepClientRedisStream.test_receive_client_message()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test.test_step_client_redis_stream.html#test.test_step_client_redis_stream.TestStepClientRedisStream.test_receive_client_message_discards_invalid_message"><code class="docutils literal notranslate"><span class="pre">TestStepClientRedisStream.test_receive_client_message_discards_invalid_message()</span></code></a></li>
 </ul>
 </li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="test.test_step_crash_prediction_redis_stream.html">test.test_step_crash_prediction_redis_stream module</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="test.test_step_crash_prediction_redis_stream.html#test.test_step_crash_prediction_redis_stream.TestStepCrashPredictionRedisStream"><code class="docutils literal notranslate"><span class="pre">TestStepCrashPredictionRedisStream</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="test.test_step_crash_prediction_redis_stream.html#test.test_step_crash_prediction_redis_stream.TestStepCrashPredictionRedisStream.test___aenter__"><code class="docutils literal notranslate"><span class="pre">TestStepCrashPredictionRedisStream.test___aenter__()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test.test_step_crash_prediction_redis_stream.html#test.test_step_crash_prediction_redis_stream.TestStepCrashPredictionRedisStream.test___init__"><code class="docutils literal notranslate"><span class="pre">TestStepCrashPredictionRedisStream.test___init__()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test.test_step_crash_prediction_redis_stream.html#test.test_step_crash_prediction_redis_stream.TestStepCrashPredictionRedisStream.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestStepCrashPredictionRedisStream.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test.test_step_crash_prediction_redis_stream.html#test.test_step_crash_prediction_redis_stream.TestStepCrashPredictionRedisStream.cloud_events_json_root_cls"><code class="docutils literal notranslate"><span class="pre">TestStepCrashPredictionRedisStream.cloud_events_json_root_cls</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test.test_step_crash_prediction_redis_stream.html#test.test_step_crash_prediction_redis_stream.TestStepCrashPredictionRedisStream.stream_cls"><code class="docutils literal notranslate"><span class="pre">TestStepCrashPredictionRedisStream.stream_cls</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test.test_step_crash_prediction_redis_stream.html#test.test_step_crash_prediction_redis_stream.TestStepCrashPredictionRedisStream.test_publish_position_array"><code class="docutils literal notranslate"><span class="pre">TestStepCrashPredictionRedisStream.test_publish_position_array()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test.test_step_crash_prediction_redis_stream.html#test.test_step_crash_prediction_redis_stream.TestStepCrashPredictionRedisStream.test_receive_crash_prediction_message"><code class="docutils literal notranslate"><span class="pre">TestStepCrashPredictionRedisStream.test_receive_crash_prediction_message()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test.test_step_crash_prediction_redis_stream.html#test.test_step_crash_prediction_redis_stream.TestStepCrashPredictionRedisStream.test_receive_crash_prediction_message_discards_invalid_message"><code class="docutils literal notranslate"><span class="pre">TestStepCrashPredictionRedisStream.test_receive_crash_prediction_message_discards_invalid_message()</span></code></a></li>
 </ul>
 </li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="test.test_step_monitoring_redis_stream.html">test.test_step_monitoring_redis_stream module</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="test.test_step_monitoring_redis_stream.html#test.test_step_monitoring_redis_stream.TestStepMonitoringRedisStream"><code class="docutils literal notranslate"><span class="pre">TestStepMonitoringRedisStream</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="test.test_step_monitoring_redis_stream.html#test.test_step_monitoring_redis_stream.TestStepMonitoringRedisStream.test___aenter__"><code class="docutils literal notranslate"><span class="pre">TestStepMonitoringRedisStream.test___aenter__()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test.test_step_monitoring_redis_stream.html#test.test_step_monitoring_redis_stream.TestStepMonitoringRedisStream.test___init__"><code class="docutils literal notranslate"><span class="pre">TestStepMonitoringRedisStream.test___init__()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test.test_step_monitoring_redis_stream.html#test.test_step_monitoring_redis_stream.TestStepMonitoringRedisStream.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestStepMonitoringRedisStream.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test.test_step_monitoring_redis_stream.html#test.test_step_monitoring_redis_stream.TestStepMonitoringRedisStream.cloud_events_json_root_cls"><code class="docutils literal notranslate"><span class="pre">TestStepMonitoringRedisStream.cloud_events_json_root_cls</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test.test_step_monitoring_redis_stream.html#test.test_step_monitoring_redis_stream.TestStepMonitoringRedisStream.stream_cls"><code class="docutils literal notranslate"><span class="pre">TestStepMonitoringRedisStream.stream_cls</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test.test_step_monitoring_redis_stream.html#test.test_step_monitoring_redis_stream.TestStepMonitoringRedisStream.test_publish_forecasted_trajectory"><code class="docutils literal notranslate"><span class="pre">TestStepMonitoringRedisStream.test_publish_forecasted_trajectory()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test.test_step_monitoring_redis_stream.html#test.test_step_monitoring_redis_stream.TestStepMonitoringRedisStream.test_receive_monitoring_message"><code class="docutils literal notranslate"><span class="pre">TestStepMonitoringRedisStream.test_receive_monitoring_message()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test.test_step_monitoring_redis_stream.html#test.test_step_monitoring_redis_stream.TestStepMonitoringRedisStream.test_receive_monitoring_message_discards_invalid_message"><code class="docutils literal notranslate"><span class="pre">TestStepMonitoringRedisStream.test_receive_monitoring_message_discards_invalid_message()</span></code></a></li>
 </ul>
 </li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="test.test_step_producer_redis_stream.html">test.test_step_producer_redis_stream module</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="test.test_step_producer_redis_stream.html#test.test_step_producer_redis_stream.TestStepProducerRedisStream"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisStream</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="test.test_step_producer_redis_stream.html#test.test_step_producer_redis_stream.TestStepProducerRedisStream.test___aenter__"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisStream.test___aenter__()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test.test_step_producer_redis_stream.html#test.test_step_producer_redis_stream.TestStepProducerRedisStream.test___init__"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisStream.test___init__()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test.test_step_producer_redis_stream.html#test.test_step_producer_redis_stream.TestStepProducerRedisStream.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisStream.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test.test_step_producer_redis_stream.html#test.test_step_producer_redis_stream.TestStepProducerRedisStream.cloud_events_json_root_cls"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisStream.cloud_events_json_root_cls</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test.test_step_producer_redis_stream.html#test.test_step_producer_redis_stream.TestStepProducerRedisStream.stream_cls"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisStream.stream_cls</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test.test_step_producer_redis_stream.html#test.test_step_producer_redis_stream.TestStepProducerRedisStream.test_publish_denm_message"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisStream.test_publish_denm_message()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test.test_step_producer_redis_stream.html#test.test_step_producer_redis_stream.TestStepProducerRedisStream.test_publish_station_collision_array"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisStream.test_publish_station_collision_array()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test.test_step_producer_redis_stream.html#test.test_step_producer_redis_stream.TestStepProducerRedisStream.test_receive_producer_message"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisStream.test_receive_producer_message()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test.test_step_producer_redis_stream.html#test.test_step_producer_redis_stream.TestStepProducerRedisStream.test_receive_producer_message_discards_invalid_message"><code class="docutils literal notranslate"><span class="pre">TestStepProducerRedisStream.test_receive_producer_message_discards_invalid_message()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -536,7 +545,10 @@
 <li class="toctree-l4"><a class="reference internal" href="test.test_step_redis_pool.html#test.test_step_redis_pool.TestStepRedisPool"><code class="docutils literal notranslate"><span class="pre">TestStepRedisPool</span></code></a><ul>
 <li class="toctree-l5"><a class="reference internal" href="test.test_step_redis_pool.html#test.test_step_redis_pool.TestStepRedisPool.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestStepRedisPool.test___slots__()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test.test_step_redis_pool.html#test.test_step_redis_pool.TestStepRedisPool.test_async_context_manager"><code class="docutils literal notranslate"><span class="pre">TestStepRedisPool.test_async_context_manager()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test.test_step_redis_pool.html#test.test_step_redis_pool.TestStepRedisPool.test_health_check_interval_property"><code class="docutils literal notranslate"><span class="pre">TestStepRedisPool.test_health_check_interval_property()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test.test_step_redis_pool.html#test.test_step_redis_pool.TestStepRedisPool.test_init_darwin_keepalive_options"><code class="docutils literal notranslate"><span class="pre">TestStepRedisPool.test_init_darwin_keepalive_options()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test.test_step_redis_pool.html#test.test_step_redis_pool.TestStepRedisPool.test_init_retry_does_not_cover_timeout_error"><code class="docutils literal notranslate"><span class="pre">TestStepRedisPool.test_init_retry_does_not_cover_timeout_error()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test.test_step_redis_pool.html#test.test_step_redis_pool.TestStepRedisPool.test_init_with_custom_retry_count"><code class="docutils literal notranslate"><span class="pre">TestStepRedisPool.test_init_with_custom_retry_count()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test.test_step_redis_pool.html#test.test_step_redis_pool.TestStepRedisPool.test_init_with_ssl"><code class="docutils literal notranslate"><span class="pre">TestStepRedisPool.test_init_with_ssl()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test.test_step_redis_pool.html#test.test_step_redis_pool.TestStepRedisPool.test_init_without_ssl"><code class="docutils literal notranslate"><span class="pre">TestStepRedisPool.test_init_without_ssl()</span></code></a></li>
 </ul>
@@ -545,6 +557,7 @@
 <li class="toctree-l5"><a class="reference internal" href="test.test_step_redis_pool.html#test.test_step_redis_pool.TestStepRedisPoolParams.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestStepRedisPoolParams.test___slots__()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test.test_step_redis_pool.html#test.test_step_redis_pool.TestStepRedisPoolParams.test_redis_pool_params_init_no_ssl"><code class="docutils literal notranslate"><span class="pre">TestStepRedisPoolParams.test_redis_pool_params_init_no_ssl()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test.test_step_redis_pool.html#test.test_step_redis_pool.TestStepRedisPoolParams.test_redis_pool_params_init_ssl"><code class="docutils literal notranslate"><span class="pre">TestStepRedisPoolParams.test_redis_pool_params_init_ssl()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test.test_step_redis_pool.html#test.test_step_redis_pool.TestStepRedisPoolParams.test_redis_pool_params_retry_count_override"><code class="docutils literal notranslate"><span class="pre">TestStepRedisPoolParams.test_redis_pool_params_retry_count_override()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -561,7 +574,8 @@
 <li class="toctree-l5"><a class="reference internal" href="#test.test_step_redis_stream.TestStepRedisStream.test_get_stream_ttl"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_get_stream_ttl()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#test.test_step_redis_stream.TestStepRedisStream.test_init"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_init()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#test.test_step_redis_stream.TestStepRedisStream.test_ping"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_ping()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="#test.test_step_redis_stream.TestStepRedisStream.test_publish_message_params_error"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_publish_message_params_error()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#test.test_step_redis_stream.TestStepRedisStream.test_ping_logs_and_reraises_on_error"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_ping_logs_and_reraises_on_error()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#test.test_step_redis_stream.TestStepRedisStream.test_publish_message_raises_when_max_retained_is_none"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_publish_message_raises_when_max_retained_is_none()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#test.test_step_redis_stream.TestStepRedisStream.test_publish_message_success"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_publish_message_success()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#test.test_step_redis_stream.TestStepRedisStream.test_receive_message"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_receive_message()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#test.test_step_redis_stream.TestStepRedisStream.test_receive_message_non_nogroup_response_error_propagates"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_receive_message_non_nogroup_response_error_propagates()</span></code></a></li>
@@ -570,6 +584,10 @@
 <li class="toctree-l5"><a class="reference internal" href="#test.test_step_redis_stream.TestStepRedisStream.test_receive_message_resp2_list_shape"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_receive_message_resp2_list_shape()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#test.test_step_redis_stream.TestStepRedisStream.test_receive_message_resp2_list_shape_no_matching_stream"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_receive_message_resp2_list_shape_no_matching_stream()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#test.test_step_redis_stream.TestStepRedisStream.test_receive_message_response_error_recreates_stream"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_receive_message_response_error_recreates_stream()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#test.test_step_redis_stream.TestStepRedisStream.test_receive_message_ttl_refreshed_before_yield"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_receive_message_ttl_refreshed_before_yield()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#test.test_step_redis_stream.TestStepRedisStream.test_run_health_check_disabled_when_interval_zero"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_run_health_check_disabled_when_interval_zero()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#test.test_step_redis_stream.TestStepRedisStream.test_run_health_check_logs_and_reraises_on_connection_error"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_run_health_check_logs_and_reraises_on_connection_error()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#test.test_step_redis_stream.TestStepRedisStream.test_run_health_check_pings_periodically"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_run_health_check_pings_periodically()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#test.test_step_redis_stream.TestStepRedisStream.test_update_stream_ttl"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_update_stream_ttl()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#test.test_step_redis_stream.TestStepRedisStream.test_update_stream_ttl_error"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStream.test_update_stream_ttl_error()</span></code></a></li>
 </ul>
@@ -577,7 +595,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#test.test_step_redis_stream.TestStepRedisStreamParams"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStreamParams</span></code></a><ul>
 <li class="toctree-l5"><a class="reference internal" href="#test.test_step_redis_stream.TestStepRedisStreamParams.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStreamParams.test___slots__()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#test.test_step_redis_stream.TestStepRedisStreamParams.test_params_boundary_values"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStreamParams.test_params_boundary_values()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="#test.test_step_redis_stream.TestStepRedisStreamParams.test_params_default_values"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStreamParams.test_params_default_values()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#test.test_step_redis_stream.TestStepRedisStreamParams.test_params_default_group_id"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStreamParams.test_params_default_group_id()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#test.test_step_redis_stream.TestStepRedisStreamParams.test_params_invalid_values"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStreamParams.test_params_invalid_values()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#test.test_step_redis_stream.TestStepRedisStreamParams.test_params_ttl_not_greater_than_wait_timeout"><code class="docutils literal notranslate"><span class="pre">TestStepRedisStreamParams.test_params_ttl_not_greater_than_wait_timeout()</span></code></a></li>
 </ul>
@@ -901,20 +919,41 @@ the Time-To-Live (TTL) value for a Redis stream in different states:</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="test.test_step_redis_stream.TestStepRedisStream.test_publish_message_params_error">
-<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">test_publish_message_params_error</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mocker</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MockerFixture</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mock_pool</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MagicMock</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStreamParams" title="step_redis.step_redis_stream.StepRedisStreamParams"><span class="pre">StepRedisStreamParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">exception_string</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_enabled</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_redis_stream.html#TestStepRedisStream.test_publish_message_params_error"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_redis_stream.TestStepRedisStream.test_publish_message_params_error" title="Link to this definition"></a></dt>
-<dd><p>Test that publish_message raises ValueError for invalid configuration.</p>
-<p>This test verifies that the publish_message method raises a ValueError
-with the expected message when called with a configuration that has
-invalid parameters (e.g., max_length is None).</p>
+<dt class="sig sig-object py" id="test.test_step_redis_stream.TestStepRedisStream.test_ping_logs_and_reraises_on_error">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">test_ping_logs_and_reraises_on_error</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mocker</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MockerFixture</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mock_pool</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MagicMock</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_enabled</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exception</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">type</span><span class="p"><span class="pre">[</span></span><span class="pre">Exception</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_redis_stream.html#TestStepRedisStream.test_ping_logs_and_reraises_on_error"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_redis_stream.TestStepRedisStream.test_ping_logs_and_reraises_on_error" title="Link to this definition"></a></dt>
+<dd><p>Test that <code class="docutils literal notranslate"><span class="pre">ping</span></code> logs and re-raises a connection or timeout error.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>mocker</strong> (<em>MockerFixture</em>) – Pytest-mock fixture for creating mocks.</p></li>
-<li><p><strong>mock_pool</strong> (<em>MagicMock</em>) – Mocked Redis connection pool.</p></li>
-<li><p><strong>params</strong> (<a class="reference internal" href="../step_redis_rst/step_redis.step_redis_stream.html#step_redis.step_redis_stream.StepRedisStreamParams" title="step_redis.step_redis_stream.StepRedisStreamParams"><em>StepRedisStreamParams</em></a>) – The parameters to use for the stream configuration.</p></li>
-<li><p><strong>exception_string</strong> (<em>str</em>) – The expected exception message substring.</p></li>
-<li><p><strong>log_enabled</strong> (<em>bool</em>) – Flag to enable or disable logging.</p></li>
+<li><p><strong>mocker</strong> (<em>MockerFixture</em>) – Pytest fixture for mocking</p></li>
+<li><p><strong>mock_pool</strong> (<em>MagicMock</em>) – Mock Redis connection pool</p></li>
+<li><p><strong>log_enabled</strong> (<em>bool</em>) – Flag to enable or disable logging</p></li>
+<li><p><strong>exception</strong> (<em>type</em><em>[</em><em>Exception</em><em>]</em>) – The redis-py exception <code class="docutils literal notranslate"><span class="pre">ping</span></code> should
+fail with (<code class="docutils literal notranslate"><span class="pre">RedisConnectionError</span></code> or <code class="docutils literal notranslate"><span class="pre">RedisTimeoutError</span></code>).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="test.test_step_redis_stream.TestStepRedisStream.test_publish_message_raises_when_max_retained_is_none">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">test_publish_message_raises_when_max_retained_is_none</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mocker</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MockerFixture</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mock_pool</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MagicMock</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_redis_stream.html#TestStepRedisStream.test_publish_message_raises_when_max_retained_is_none"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_redis_stream.TestStepRedisStream.test_publish_message_raises_when_max_retained_is_none" title="Link to this definition"></a></dt>
+<dd><p>Test that publish_message raises when published_message_max_retained is None.</p>
+<p>This test verifies that:</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li><p>A ValueError is raised before any Redis call is made</p></li>
+<li><p>Redis xadd is never called</p></li>
+</ol>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mocker</strong> (<em>MockerFixture</em>) – Pytest fixture for mocking</p></li>
+<li><p><strong>mock_pool</strong> (<em>MagicMock</em>) – Mock Redis connection pool</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -1107,14 +1146,108 @@ instead of propagating out of the generator and killing consumption.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="test.test_step_redis_stream.TestStepRedisStream.test_receive_message_ttl_refreshed_before_yield">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">test_receive_message_ttl_refreshed_before_yield</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mocker</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MockerFixture</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mock_pool</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MagicMock</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_redis_stream.html#TestStepRedisStream.test_receive_message_ttl_refreshed_before_yield"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_redis_stream.TestStepRedisStream.test_receive_message_ttl_refreshed_before_yield" title="Link to this definition"></a></dt>
+<dd><p>Regression test: the TTL refresh for a successfully received message
+must complete before the message is yielded, not only when the
+generator is later resumed or closed.</p>
+<p>Without this, a caller that breaks out of the <code class="docutils literal notranslate"><span class="pre">async</span> <span class="pre">for</span></code> loop right
+after receiving a message (as the package’s own usage example does)
+would have no guarantee the TTL refresh ran before it proceeded.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mocker</strong> (<em>MockerFixture</em>) – Pytest fixture for mocking.</p></li>
+<li><p><strong>mock_pool</strong> (<em>MagicMock</em>) – Mock Redis connection pool.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="test.test_step_redis_stream.TestStepRedisStream.test_run_health_check_disabled_when_interval_zero">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">test_run_health_check_disabled_when_interval_zero</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mocker</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MockerFixture</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mock_pool</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MagicMock</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_enabled</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_redis_stream.html#TestStepRedisStream.test_run_health_check_disabled_when_interval_zero"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_redis_stream.TestStepRedisStream.test_run_health_check_disabled_when_interval_zero" title="Link to this definition"></a></dt>
+<dd><p>Test that <code class="docutils literal notranslate"><span class="pre">run_health_check</span></code> never pings when <code class="docutils literal notranslate"><span class="pre">health_check_interval</span></code>
+is <code class="docutils literal notranslate"><span class="pre">0</span></code>.</p>
+<p>A <code class="docutils literal notranslate"><span class="pre">health_check_interval</span></code> of <code class="docutils literal notranslate"><span class="pre">0</span></code> conventionally means “disabled” in
+redis-py (<code class="docutils literal notranslate"><span class="pre">Connection.check_health</span></code> no-ops when it’s falsy). This test
+verifies that <code class="docutils literal notranslate"><span class="pre">run_health_check</span></code> honors the same convention: it never
+sleeps on a timer or pings, it just blocks on (and then returns from)
+<code class="docutils literal notranslate"><span class="pre">asyncio.Event.wait</span></code> instead.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mocker</strong> (<em>MockerFixture</em>) – Pytest fixture for mocking</p></li>
+<li><p><strong>mock_pool</strong> (<em>MagicMock</em>) – Mock Redis connection pool</p></li>
+<li><p><strong>log_enabled</strong> (<em>bool</em>) – Flag to enable or disable logging</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="test.test_step_redis_stream.TestStepRedisStream.test_run_health_check_logs_and_reraises_on_connection_error">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">test_run_health_check_logs_and_reraises_on_connection_error</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mocker</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MockerFixture</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mock_pool</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MagicMock</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_enabled</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_redis_stream.html#TestStepRedisStream.test_run_health_check_logs_and_reraises_on_connection_error"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_redis_stream.TestStepRedisStream.test_run_health_check_logs_and_reraises_on_connection_error" title="Link to this definition"></a></dt>
+<dd><p>Test that a failed ping is logged and re-raised by <code class="docutils literal notranslate"><span class="pre">run_health_check</span></code>.</p>
+<p>Re-raising is required so that a caller running this coroutine inside an
+<code class="docutils literal notranslate"><span class="pre">asyncio.TaskGroup</span></code> has its sibling tasks cancelled and the failure
+propagated to the outer reconnect logic, rather than the health check
+silently failing forever.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mocker</strong> (<em>MockerFixture</em>) – Pytest fixture for mocking</p></li>
+<li><p><strong>mock_pool</strong> (<em>MagicMock</em>) – Mock Redis connection pool</p></li>
+<li><p><strong>log_enabled</strong> (<em>bool</em>) – Flag to enable or disable logging</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="test.test_step_redis_stream.TestStepRedisStream.test_run_health_check_pings_periodically">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">test_run_health_check_pings_periodically</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mocker</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MockerFixture</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mock_pool</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MagicMock</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_redis_stream.html#TestStepRedisStream.test_run_health_check_pings_periodically"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_redis_stream.TestStepRedisStream.test_run_health_check_pings_periodically" title="Link to this definition"></a></dt>
+<dd><p>Test that <code class="docutils literal notranslate"><span class="pre">run_health_check</span></code> pings on the pool’s configured interval.</p>
+<p>This test verifies that:</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li><p>The loop sleeps for the pool’s <code class="docutils literal notranslate"><span class="pre">health_check_interval</span></code> before each ping</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ping</span></code> is awaited once per loop iteration</p></li>
+</ol>
+</div></blockquote>
+<p>The loop is stopped by making the third sleep raise <code class="docutils literal notranslate"><span class="pre">asyncio.CancelledError</span></code>,
+simulating the task being cancelled by an owning <code class="docutils literal notranslate"><span class="pre">TaskGroup</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mocker</strong> (<em>MockerFixture</em>) – Pytest fixture for mocking</p></li>
+<li><p><strong>mock_pool</strong> (<em>MagicMock</em>) – Mock Redis connection pool</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="test.test_step_redis_stream.TestStepRedisStream.test_update_stream_ttl">
-<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">test_update_stream_ttl</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mocker</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MockerFixture</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mock_pool</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MagicMock</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expire_result</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_enabled</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_redis_stream.html#TestStepRedisStream.test_update_stream_ttl"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_redis_stream.TestStepRedisStream.test_update_stream_ttl" title="Link to this definition"></a></dt>
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">test_update_stream_ttl</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mocker</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MockerFixture</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mock_pool</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MagicMock</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expire_result</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_enabled</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_redis_stream.html#TestStepRedisStream.test_update_stream_ttl"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_redis_stream.TestStepRedisStream.test_update_stream_ttl" title="Link to this definition"></a></dt>
 <dd><p>Test that update_stream_ttl sets the TTL for a Redis stream and logs
 appropriately.</p>
 <dl class="simple">
 <dt>This test ensures:</dt><dd><ul class="simple">
 <li><p>The expire method is called with the correct stream ID and TTL.</p></li>
-<li><p>The method returns True when expire returns 1 (success), False otherwise.</p></li>
+<li><p>The method returns True when expire returns True (success), False otherwise.</p></li>
 <li><p>Appropriate debug/warning logs are generated based on success/failure.</p></li>
 </ul>
 </dd>
@@ -1124,7 +1257,8 @@ appropriately.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>mocker</strong> (<em>MockerFixture</em>) – Pytest-mock fixture.</p></li>
 <li><p><strong>mock_pool</strong> (<em>MagicMock</em>) – Mocked Redis connection pool.</p></li>
-<li><p><strong>expire_result</strong> (<em>int</em>) – The return value from Redis expire (0 or 1).</p></li>
+<li><p><strong>expire_result</strong> (<em>bool</em>) – The return value from Redis expire, as returned by
+the real redis-py <code class="docutils literal notranslate"><span class="pre">EXPIRE</span></code> callback.</p></li>
 <li><p><strong>log_enabled</strong> (<em>bool</em>) – Flag to enable or disable logging.</p></li>
 </ul>
 </dd>
@@ -1180,7 +1314,7 @@ and attribute management.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="test.test_step_redis_stream.TestStepRedisStreamParams.test_params_boundary_values">
-<span class="sig-name descname"><span class="pre">test_params_boundary_values</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stream_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">group_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wait_timeout_ms</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_length</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">consumer_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">ttl_seconds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_redis_stream.html#TestStepRedisStreamParams.test_params_boundary_values"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_redis_stream.TestStepRedisStreamParams.test_params_boundary_values" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">test_params_boundary_values</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stream_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">group_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wait_timeout_ms</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">published_message_max_retained</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">consumer_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">ttl_seconds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_redis_stream.html#TestStepRedisStreamParams.test_params_boundary_values"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_redis_stream.TestStepRedisStreamParams.test_params_boundary_values" title="Link to this definition"></a></dt>
 <dd><p>Test that StepRedisStreamParams correctly assigns boundary values to its
 attributes.</p>
 <dl class="field-list simple">
@@ -1189,7 +1323,7 @@ attributes.</p>
 <li><p><strong>stream_id</strong> (<em>str</em>) – The ID of the Redis stream.</p></li>
 <li><p><strong>group_id</strong> (<em>str</em>) – The ID of the consumer group.</p></li>
 <li><p><strong>wait_timeout_ms</strong> (<em>int</em>) – The wait timeout in milliseconds.</p></li>
-<li><p><strong>max_length</strong> (<em>int</em>) – The maximum length of the stream.</p></li>
+<li><p><strong>published_message_max_retained</strong> (<em>int</em>) – The maximum length of the stream.</p></li>
 <li><p><strong>consumer_name</strong> (<em>str</em>) – The name of the consumer.</p></li>
 <li><p><strong>ttl_seconds</strong> (<em>int</em><em> | </em><em>None</em>) – The time-to-live in seconds for the stream.</p></li>
 </ul>
@@ -1201,10 +1335,11 @@ attributes.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="test.test_step_redis_stream.TestStepRedisStreamParams.test_params_default_values">
-<span class="sig-name descname"><span class="pre">test_params_default_values</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_redis_stream.html#TestStepRedisStreamParams.test_params_default_values"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_redis_stream.TestStepRedisStreamParams.test_params_default_values" title="Link to this definition"></a></dt>
-<dd><p>Test that StepRedisStreamParams applies the documented default values for
-optional fields when they are omitted.</p>
+<dt class="sig sig-object py" id="test.test_step_redis_stream.TestStepRedisStreamParams.test_params_default_group_id">
+<span class="sig-name descname"><span class="pre">test_params_default_group_id</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_redis_stream.html#TestStepRedisStreamParams.test_params_default_group_id"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_redis_stream.TestStepRedisStreamParams.test_params_default_group_id" title="Link to this definition"></a></dt>
+<dd><p>Test that StepRedisStreamParams defaults group_id to None when omitted.</p>
+<p>wait_timeout_ms, published_message_max_retained, and ttl_seconds have no defaults and must be
+passed explicitly; group_id is the only field with a default value.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>None</p>
@@ -1214,7 +1349,7 @@ optional fields when they are omitted.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="test.test_step_redis_stream.TestStepRedisStreamParams.test_params_invalid_values">
-<span class="sig-name descname"><span class="pre">test_params_invalid_values</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stream_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">group_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wait_timeout_ms</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_length</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">consumer_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">ttl_seconds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expected_message</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_redis_stream.html#TestStepRedisStreamParams.test_params_invalid_values"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_redis_stream.TestStepRedisStreamParams.test_params_invalid_values" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">test_params_invalid_values</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stream_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">group_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wait_timeout_ms</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">published_message_max_retained</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">consumer_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">ttl_seconds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expected_message</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_redis_stream.html#TestStepRedisStreamParams.test_params_invalid_values"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_redis_stream.TestStepRedisStreamParams.test_params_invalid_values" title="Link to this definition"></a></dt>
 <dd><p>Test that StepRedisStreamParams raises a ValueError with the expected,
 field-specific message when initialized with invalid parameter values.</p>
 <dl class="field-list simple">
@@ -1223,7 +1358,7 @@ field-specific message when initialized with invalid parameter values.</p>
 <li><p><strong>stream_id</strong> (<em>str</em>) – The ID of the Redis stream.</p></li>
 <li><p><strong>group_id</strong> (<em>str</em>) – The ID of the consumer group.</p></li>
 <li><p><strong>wait_timeout_ms</strong> (<em>int</em>) – The wait timeout in milliseconds.</p></li>
-<li><p><strong>max_length</strong> (<em>int</em>) – The maximum length of the stream.</p></li>
+<li><p><strong>published_message_max_retained</strong> (<em>int</em>) – The maximum length of the stream.</p></li>
 <li><p><strong>consumer_name</strong> (<em>str</em>) – The name of the consumer.</p></li>
 <li><p><strong>ttl_seconds</strong> (<em>int</em><em> | </em><em>None</em>) – The time-to-live in seconds for the stream.</p></li>
 <li><p><strong>expected_message</strong> (<em>str</em>) – The exact ValueError message expected for the

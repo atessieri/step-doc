@@ -75,7 +75,7 @@ and supports both SSL and non-SSL connections.
          +socket_timeout: int
          +socket_connect_timeout: int
          +socket_keep_idle: int
-         +socket_keep_alive: bool
+         +socket_keep_alive: int
          +socket_keep_cnt: int
          +ssl_enable: bool
          +ssl_client_key_file: str | None
@@ -87,19 +87,20 @@ and supports both SSL and non-SSL connections.
          +max_connections: int
          +connection_available_timeout: int | None
          +protocol: int
+         +retry_count: int
       }
       
       class StepRedisPool {
-         -_params: StepRedisPoolParams
-         -_logger: Logger | None
-         -_pool: BlockingConnectionPool
-         +__init__(params: StepRedisPoolParams, logger: Logger | None)
+         -_health_check_interval: int
+         -_logger: Logger
+         +__init__(params: StepRedisPoolParams, logger: Logger)
+         +health_check_interval: int
          +__aenter__(): StepRedisPool
          +__aexit__(exc_type, exc_val, exc_tb): None
-         +get_pool(): BlockingConnectionPool
       }
-      
-      StepRedisPool o-- StepRedisPoolParams
+
+      BlockingConnectionPool <|-- StepRedisPool
+      StepRedisPool ..> StepRedisPoolParams : configured by
 
 **Key Features**:
 
@@ -108,6 +109,17 @@ and supports both SSL and non-SSL connections.
 * Configurable connection limits and timeouts
 * Proper resource management through async context managers
 * Integrated logging support
+* Automatic reconnect-and-retry (``retry_count``) on ``ConnectionError`` with
+  jittered exponential backoff, scoped to connection errors only so a
+  long-blocking ``XREADGROUP ... BLOCK`` read timeout still surfaces
+  immediately instead of silently re-blocking
+
+``StepRedisPool`` extends redis-py's ``BlockingConnectionPool`` directly rather
+than wrapping one internally: there is no separate ``_pool``/``get_pool()`` —
+the pool instance itself *is* the ``BlockingConnectionPool``. It stores only the
+``logger`` reference and the configured ``health_check_interval`` (exposed via
+the read-only ``health_check_interval`` property, consumed by
+``StepRedisStream.run_health_check`` — see `Connection Health Monitoring`_).
 
 StepRedisStreamParams
 ~~~~~~~~~~~~~~~~~~~~~
@@ -120,7 +132,7 @@ for Redis stream operations. It enforces validation on all fields to ensure corr
 * ``stream_id``: The identifier for the Redis stream (minimum 1 character)
 * ``group_id``: The identifier for the Redis consumer group (minimum 1 character)
 * ``wait_timeout_ms``: Timeout in milliseconds for waiting to receive a message (non-negative)
-* ``max_length``: Maximum length of the stream for automatic trimming (positive integer)
+* ``published_message_max_retained``: Maximum length of the stream for automatic trimming (positive integer)
 * ``consumer_name``: The name of the consumer (minimum 1 character)
 * ``ttl_seconds``: Optional time-to-live in seconds for the stream (positive integer if provided)
 
@@ -157,7 +169,7 @@ its relationships with other components in the package.
          +stream_id: str
          +group_id: str
          +wait_timeout_ms: int
-         +max_length: int
+         +published_message_max_retained: int
          +consumer_name: str
          +ttl_seconds: int | None
          +__post_init__(): None
@@ -165,6 +177,7 @@ its relationships with other components in the package.
       
       class StepRedisStream {
          -_config: StepRedisStreamParams
+         -_health_check_interval: int
          -_logger: Logger
          -_redis_pool: Redis
          +__init__(pool: StepRedisPool, config: StepRedisStreamParams, logger: Logger)
@@ -172,10 +185,11 @@ its relationships with other components in the package.
          +__aexit__(exc_type, exc_val, exc_tb): None
          +create_input_stream(): Awaitable[None]
          +publish_message(message: str): Awaitable[None]
-         +receive_message(block_timeout: int): Awaitable[str]
+         +receive_message(): AsyncGenerator[str]
          +update_stream_ttl(ttl_seconds: int): Awaitable[bool]
          +get_stream_ttl(): Awaitable[int]
          +ping(): Awaitable[None]
+         +run_health_check(): Awaitable[None]
       }
       
       class StepAdapterRedisStream {
@@ -216,7 +230,9 @@ its relationships with other components in the package.
 * Publishing messages with configurable maximum length
 * Consuming messages with automatic acknowledgment (noack=True)
 * Setting and managing Time-To-Live (TTL) for streams
-* Connection health monitoring via ping
+* Connection health monitoring, both on-demand (``ping``) and as an active
+  recurring background check (``run_health_check``) - see
+  `Connection Health Monitoring`_
 * Extensible design for specialized message types
 
 **Specialized Stream Classes**:
@@ -236,9 +252,44 @@ The package provides five specialized stream implementations that extend ``StepR
 * **StepCrashPredictionRedisStream**: Specializes in Crash Prediction data processing, publishing 
   position array data as CloudEvents to Crash Prediction streams for real-time analysis.
 
-* **StepMonitoringRedisStream**: Handles STEP Monitoring messages, specifically for publishing 
-  forecasted trajectory data and receiving validated monitoring messages from Redis streams for 
+* **StepMonitoringRedisStream**: Handles STEP Monitoring messages, specifically for publishing
+  forecasted trajectory data and receiving validated monitoring messages from Redis streams for
   real-time trajectory monitoring and analysis.
+
+.. _Connection Health Monitoring:
+
+Connection Health Monitoring
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+redis-py's own ``health_check_interval`` only pings a connection *opportunistically*,
+the next time that connection happens to be used for a real command. If a stream is
+otherwise idle (e.g. a consumer blocked on a low-traffic ``receive_message()`` call),
+that connection can silently go stale between commands. ``StepRedisStream`` addresses
+this with two complementary mechanisms, both driven by the same
+``StepRedisPoolParams.health_check_interval`` value:
+
+* ``ping()``: sends a single ``PING`` and checks for a ``PONG`` response on demand.
+* ``run_health_check()``: an active, recurring health-check loop that sleeps for
+  ``health_check_interval`` seconds and then calls ``ping()``, so the connection is
+  probed even while the stream is otherwise idle. It is meant to be spawned as a
+  background task (e.g. via ``asyncio.TaskGroup.create_task``) alongside a service's
+  other pool consumers, for the lifetime of the pool. A ``health_check_interval`` of
+  ``0`` disables active checking (matching redis-py's own convention): the method
+  never pings and just blocks forever, so it remains a well-behaved, cancellable
+  ``TaskGroup`` member instead of returning immediately. A failed ``PING``
+  (``RedisConnectionError`` or ``RedisTimeoutError``) is logged and re-raised, which
+  cancels sibling tasks in the same ``TaskGroup`` and propagates to outer reconnect
+  logic.
+
+.. code-block:: python
+
+   async with (
+       StepRedisPool(params=pool_params, logger=logger) as pool,
+       StepRedisStream(pool, stream_params, logger) as stream,
+   ):
+       async with asyncio.TaskGroup() as tg:
+           tg.create_task(stream.run_health_check())
+           tg.create_task(consume(stream))
 
 Package Integration
 -------------------
@@ -328,7 +379,7 @@ consumers to process messages independently and reliably.
   acknowledged upon delivery, simplifying consumer logic while maintaining high throughput.
 
 * **Stream Trimming**: Streams are automatically trimmed to a configurable maximum length 
-  (``max_length`` parameter) using approximate trimming (``~`` operator) for performance efficiency.
+  (``published_message_max_retained`` parameter) using approximate trimming (``~`` operator) for performance efficiency.
 
 * **TTL Management**: Streams can have a Time-To-Live (``ttl_seconds``) that automatically expires 
   streams after the specified duration, useful for temporary data storage.
@@ -340,7 +391,7 @@ When a message is published using ``publish_message()`` or specialized methods l
 
    1. Message is serialized to JSON (for CloudEvents-compliant messages)
    2. ``XADD`` command adds the message to the stream with a field named ``payload``
-   3. Stream is trimmed to ``max_length`` using approximate trimming (``XTRIM ~ maxlen``)
+   3. Stream is trimmed to ``published_message_max_retained`` using approximate trimming (``XTRIM ~ maxlen``)
    4. If configured, stream TTL is refreshed using ``EXPIRE`` command
    5. Message receives a unique ID based on server timestamp and sequence number
 
@@ -409,9 +460,9 @@ architecture, showing how publishers, Redis server, and multiple consumers inter
       
       Publisher -> Publisher: publish_message(message)
       Publisher -> Publisher: Serialize message to JSON
-      Publisher -> Redis: XADD my_stream MAXLEN ~ max_length\npayload: "{...json...}"
+      Publisher -> Redis: XADD my_stream MAXLEN ~ published_message_max_retained\npayload: "{...json...}"
       activate Redis
-      Redis -> Redis: Trim stream if length > max_length
+      Redis -> Redis: Trim stream if length > published_message_max_retained
       Redis --> Publisher: message_id (e.g., "1234567890123-0")
       deactivate Redis
       
@@ -442,7 +493,7 @@ architecture, showing how publishers, Redis server, and multiple consumers inter
       == Message Publishing (Second Message) ==
       
       Publisher -> Publisher: publish_message(message2)
-      Publisher -> Redis: XADD my_stream MAXLEN ~ max_length\npayload: "{...json2...}"
+      Publisher -> Redis: XADD my_stream MAXLEN ~ published_message_max_retained\npayload: "{...json2...}"
       activate Redis
       Redis --> Publisher: message_id_2
       deactivate Redis
@@ -551,6 +602,7 @@ Base Stream Usage
            max_connections=50,
            connection_available_timeout=None,
            protocol=3,
+           retry_count=3,
        )
 
        # Configure Redis stream parameters
@@ -558,7 +610,7 @@ Base Stream Usage
            stream_id="my_stream",
            group_id="my_group",
            wait_timeout_ms=5000,
-           max_length=1000,
+           published_message_max_retained=1000,
            consumer_name="consumer1",
            ttl_seconds=3600,
        )
@@ -573,8 +625,84 @@ Base Stream Usage
                await stream.publish_message("Hello, Redis!")
 
                # Consume a message
-               message = await stream.receive_message(block_timeout=5000)
-               print(f"Received: {message}")
+               async for message in stream.receive_message():
+                   print(f"Received: {message}")
+                   break
+
+   asyncio.run(main())
+
+Health Check Task Usage
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+To actively probe the connection while a stream is otherwise idle (rather than
+relying solely on redis-py's opportunistic per-command health check), spawn
+``run_health_check()`` as a background task alongside your publish/consume work,
+for example using ``asyncio.TaskGroup``. See `Connection Health Monitoring`_ for
+details on this method's behavior.
+
+.. code-block:: python
+
+   import asyncio
+   import logging
+   from step_redis.step_redis_pool import StepRedisPoolParams, StepRedisPool
+   from step_redis.step_redis_stream import StepRedisStream, StepRedisStreamParams
+
+   async def consume(stream: StepRedisStream) -> None:
+       async for message in stream.receive_message():
+           print(f"Received: {message}")
+
+   async def main():
+       logging.basicConfig(level=logging.DEBUG)
+       logger = logging.getLogger()
+
+       pool_params = StepRedisPoolParams(
+           host="redis.example.com",
+           port=6379,
+           username="user",
+           password="password",
+           db=0,
+           ssl_enable=True,
+           socket_timeout=30,
+           socket_connect_timeout=10,
+           socket_keep_idle=60,
+           socket_keep_alive=10,
+           socket_keep_cnt=3,
+           ssl_client_key_file=None,
+           ssl_client_key_file_password=None,
+           ssl_client_cert_file=None,
+           ssl_cert_requested=False,
+           ssl_ca_certs_file=None,
+           # Interval, in seconds, between active PING probes sent by
+           # run_health_check(). Set to 0 to disable active probing.
+           health_check_interval=30,
+           max_connections=50,
+           connection_available_timeout=None,
+           protocol=3,
+           retry_count=3,
+       )
+
+       stream_params = StepRedisStreamParams(
+           stream_id="my_stream",
+           group_id="my_group",
+           wait_timeout_ms=5000,
+           published_message_max_retained=1000,
+           consumer_name="consumer1",
+           ttl_seconds=3600,
+       )
+
+       async with (
+           StepRedisPool(params=pool_params, logger=logger) as pool,
+           StepRedisStream(pool, stream_params, logger) as stream,
+       ):
+           await stream.create_input_stream()
+
+           # run_health_check() loops forever (or blocks forever if
+           # health_check_interval == 0), so it must run alongside other
+           # tasks rather than being awaited on its own. A failed PING
+           # raises, which cancels the sibling consume() task too.
+           async with asyncio.TaskGroup() as tg:
+               tg.create_task(stream.run_health_check())
+               tg.create_task(consume(stream))
 
    asyncio.run(main())
 
@@ -608,7 +736,7 @@ Specialized Stream Usage
            stream_id="adapter_stream",
            group_id="adapter_group",
            wait_timeout_ms=5000,
-           max_length=1000,
+           published_message_max_retained=1000,
            consumer_name="adapter_consumer",
            ttl_seconds=3600,
        )
@@ -655,9 +783,10 @@ The ``step_redis`` package was designed with the following considerations:
 CloudEvents Integration
 -----------------------
 
-All specialized stream classes (``StepAdapterRedisStream``, ``StepClientRedisStream``, 
-``StepProducerRedisStream``, and ``StepCrashPredictionRedisStream``) integrate with the 
-``step_cloud_schemas`` package to provide CloudEvents-compliant message formatting. This ensures:
+All specialized stream classes (``StepAdapterRedisStream``, ``StepClientRedisStream``,
+``StepProducerRedisStream``, ``StepCrashPredictionRedisStream``, and ``StepMonitoringRedisStream``)
+integrate with the ``step_cloud_schemas`` package to provide CloudEvents-compliant message
+formatting. This ensures:
 
    * **Standardized Message Format**: All messages follow the CloudEvents specification
    * **Schema Validation**: Messages are validated against defined schemas
