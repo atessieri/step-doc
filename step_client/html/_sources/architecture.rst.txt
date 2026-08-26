@@ -91,8 +91,9 @@ Key responsibilities of ``StepBroker`` include:
        itself.
     #. **Integration with Redis**: Coordinates with ``StepClientRedisStream`` to queue
        received messages in Redis streams and publish client-generated messages.
-    #. **Context Management**: Implements asynchronous context management through 
-       ``__aenter__`` and ``__aexit__`` methods for clean resource handling.
+    #. **Context Management**: Overrides ``__aenter__`` to subscribe to execution events
+       on entry; ``__aexit__`` is inherited unchanged from the parent ``AsyncComManager``
+       (``aiomqtt.Client``) for clean resource handling.
 
 The ``StepBroker`` class uses asynchronous patterns throughout to ensure non-blocking operations, 
 making it suitable for high-throughput messaging environments in ITS applications.
@@ -550,13 +551,8 @@ to the STEP Client.
       package "step_client" {
          class StepBroker {
             +async __aenter__()
-            +async __aexit__()
-            +async aclose()
-            +connect()
-            +disconnect()
-            +subscribe()
-            +unsubscribe()
-            +client_publish_its_message()
+            +async subscribe_execution()
+            +async client_publish_its_message()
             +its_messages: AsyncGenerator
          }
 

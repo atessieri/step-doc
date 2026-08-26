@@ -5,8 +5,8 @@ Command Line Interface
 Overview
 ========
 
-The step_client command line interface (CLI) provides a way to interact with the STEP 
-(Standardized Transport and Environment Protocol) broker and ITS ETSI messages. It facilitates 
+The step_client command line interface (CLI) provides a way to interact with the STEP
+(Safer Transport for Europe Platform) broker and ITS ETSI messages. It facilitates
 the exchange of messages between the STEP gateway and Redis streams.
 
 The CLI allows users to:
@@ -43,7 +43,11 @@ The following command line options are available:
     Write a configuration template to the specified file.
 
 ``-c, --config <config file>``
-    Load the configuration from the specified file and run the client.
+    Load the configuration from the specified file and run the client. Must be used
+    together with ``-i/--instance``.
+
+``-i, --instance <instance name>``
+    Specify the instance name. Must be used together with ``-c/--config``.
 
 Detailed Command Description
 ============================
@@ -102,10 +106,11 @@ To run the client with a specific configuration:
 
 .. code-block:: bash
 
-    step_client --config /path/to/config_file.json
+    step_client --config /path/to/config_file.json --instance my_instance
 
 This loads the configuration from the specified file and starts the step_client.
 The client will connect to the STEP gateway and Redis streams as specified in the configuration.
+The ``-i/--instance`` option is required whenever ``-c/--config`` is used.
 
 Configuration File Structure
 ============================
@@ -172,11 +177,12 @@ When running with a configuration file, the step_client performs the following o
    #. Connects to the Redis server using the provided connection settings
    #. Connects to the STEP gateway using MQTT settings
    #. Subscribes to the specified MQTT topics
-   #. Starts two asynchronous tasks:
-    
+   #. Starts three asynchronous tasks:
+
       - One task listens for MQTT ITS ETSI messages from the STEP gateway and publishes them to Redis streams
       - Another task listens for messages from Redis streams and publishes them to the STEP gateway
-   
+      - A third task runs a periodic Redis stream health check to keep the connection pool validated
+
    #. Automatically handles reconnection if connections are lost (using the specified reconnect interval)
    #. Manages graceful shutdown when interrupted
 
