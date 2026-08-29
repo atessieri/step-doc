@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>step_cloud_schemas.classes.actor_trajectory_forecasted &mdash; STEP Cloud Schemas 2.1.8 documentation</title>
+  <title>step_cloud_schemas.classes.actor_trajectory_forecasted &mdash; STEP Cloud Schemas 2.1.9 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../../_static/tabs.css?v=4c969af8" />
@@ -15,7 +15,7 @@
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=03f109e5"></script>
+      <script src="../../../_static/documentation_options.js?v=a7898dfc"></script>
       <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../../_static/tabs.js?v=3ee01567"></script>
@@ -439,8 +439,7 @@
 <li class="toctree-l7"><a class="reference internal" href="../../../step_cloud_schemas_rst/classes/step_cloud_schemas.classes.actor_trajectory_forecasted.html#step_cloud_schemas.classes.actor_trajectory_forecasted.ForecastedPoint.get_default"><code class="docutils literal notranslate"><span class="pre">ForecastedPoint.get_default()</span></code></a></li>
 <li class="toctree-l7"><a class="reference internal" href="../../../step_cloud_schemas_rst/classes/step_cloud_schemas.classes.actor_trajectory_forecasted.html#step_cloud_schemas.classes.actor_trajectory_forecasted.ForecastedPoint.latitude_clamping"><code class="docutils literal notranslate"><span class="pre">ForecastedPoint.latitude_clamping()</span></code></a></li>
 <li class="toctree-l7"><a class="reference internal" href="../../../step_cloud_schemas_rst/classes/step_cloud_schemas.classes.actor_trajectory_forecasted.html#step_cloud_schemas.classes.actor_trajectory_forecasted.ForecastedPoint.model_config"><code class="docutils literal notranslate"><span class="pre">ForecastedPoint.model_config</span></code></a></li>
-<li class="toctree-l7"><a class="reference internal" href="../../../step_cloud_schemas_rst/classes/step_cloud_schemas.classes.actor_trajectory_forecasted.html#step_cloud_schemas.classes.actor_trajectory_forecasted.ForecastedPoint.serialize_latitude"><code class="docutils literal notranslate"><span class="pre">ForecastedPoint.serialize_latitude()</span></code></a></li>
-<li class="toctree-l7"><a class="reference internal" href="../../../step_cloud_schemas_rst/classes/step_cloud_schemas.classes.actor_trajectory_forecasted.html#step_cloud_schemas.classes.actor_trajectory_forecasted.ForecastedPoint.serialize_longitude"><code class="docutils literal notranslate"><span class="pre">ForecastedPoint.serialize_longitude()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="../../../step_cloud_schemas_rst/classes/step_cloud_schemas.classes.actor_trajectory_forecasted.html#step_cloud_schemas.classes.actor_trajectory_forecasted.ForecastedPoint.serialize_coordinate"><code class="docutils literal notranslate"><span class="pre">ForecastedPoint.serialize_coordinate()</span></code></a></li>
 <li class="toctree-l7"><a class="reference internal" href="../../../step_cloud_schemas_rst/classes/step_cloud_schemas.classes.actor_trajectory_forecasted.html#step_cloud_schemas.classes.actor_trajectory_forecasted.ForecastedPoint.wrap_longitude"><code class="docutils literal notranslate"><span class="pre">ForecastedPoint.wrap_longitude()</span></code></a></li>
 </ul>
 </li>
@@ -2789,7 +2788,7 @@
 <span class="linenos"> 29</span><span class="sd">"""</span>
 <span class="linenos"> 30</span>
 <span class="linenos"> 31</span><span class="c1"># Standard Library Imports</span>
-<span class="linenos"> 32</span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Annotated</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">ClassVar</span>
+<span class="linenos"> 32</span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Annotated</span><span class="p">,</span> <span class="n">Any</span>
 <span class="linenos"> 33</span>
 <span class="linenos"> 34</span><span class="c1"># Third Party Imports</span>
 <span class="linenos"> 35</span><span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">ConfigDict</span><span class="p">,</span> <span class="n">Field</span><span class="p">,</span> <span class="n">field_serializer</span><span class="p">,</span> <span class="n">field_validator</span>
@@ -2797,45 +2796,45 @@
 <span class="linenos"> 37</span><span class="c1"># step_cloud_schemas Package Imports</span>
 <span class="linenos"> 38</span><span class="kn">from</span><span class="w"> </span><span class="nn">step_cloud_schemas.classes.heading</span><span class="w"> </span><span class="kn">import</span> <span class="n">Heading</span>
 <span class="linenos"> 39</span><span class="kn">from</span><span class="w"> </span><span class="nn">step_cloud_schemas.classes.numeric_bounds</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-<span class="linenos"> 40</span>    <span class="n">ISO_8601_TIMESTAMP_PATTERN</span><span class="p">,</span>
-<span class="linenos"> 41</span>    <span class="n">clamp</span><span class="p">,</span>
-<span class="linenos"> 42</span>    <span class="n">wrap</span><span class="p">,</span>
-<span class="linenos"> 43</span><span class="p">)</span>
-<span class="linenos"> 44</span><span class="kn">from</span><span class="w"> </span><span class="nn">step_cloud_schemas.classes.position_info</span><span class="w"> </span><span class="kn">import</span> <span class="n">PositionType</span>
-<span class="linenos"> 45</span><span class="kn">from</span><span class="w"> </span><span class="nn">step_cloud_schemas.classes.speed</span><span class="w"> </span><span class="kn">import</span> <span class="n">Speed</span>
-<span class="linenos"> 46</span><span class="kn">from</span><span class="w"> </span><span class="nn">step_cloud_schemas.classes.traffic_participant_type</span><span class="w"> </span><span class="kn">import</span> <span class="n">TrafficParticipantType</span>
-<span class="linenos"> 47</span>
-<span class="linenos"> 48</span>
+<span class="linenos"> 40</span>    <span class="n">COORDINATE_PRECISION</span><span class="p">,</span>
+<span class="linenos"> 41</span>    <span class="n">ISO_8601_TIMESTAMP_PATTERN</span><span class="p">,</span>
+<span class="linenos"> 42</span>    <span class="n">LATITUDE_MAX</span><span class="p">,</span>
+<span class="linenos"> 43</span>    <span class="n">LATITUDE_MIN</span><span class="p">,</span>
+<span class="linenos"> 44</span>    <span class="n">LONGITUDE_MAX</span><span class="p">,</span>
+<span class="linenos"> 45</span>    <span class="n">LONGITUDE_MIN</span><span class="p">,</span>
+<span class="linenos"> 46</span>    <span class="n">LONGITUDE_RANGE</span><span class="p">,</span>
+<span class="linenos"> 47</span>    <span class="n">OBJECT_TYPE_CONFIDENCE_MAX</span><span class="p">,</span>
+<span class="linenos"> 48</span>    <span class="n">OBJECT_TYPE_CONFIDENCE_MIN</span><span class="p">,</span>
+<span class="linenos"> 49</span>    <span class="n">clamp</span><span class="p">,</span>
+<span class="linenos"> 50</span>    <span class="n">wrap</span><span class="p">,</span>
+<span class="linenos"> 51</span><span class="p">)</span>
+<span class="linenos"> 52</span><span class="kn">from</span><span class="w"> </span><span class="nn">step_cloud_schemas.classes.position_info</span><span class="w"> </span><span class="kn">import</span> <span class="n">PositionType</span>
+<span class="linenos"> 53</span><span class="kn">from</span><span class="w"> </span><span class="nn">step_cloud_schemas.classes.speed</span><span class="w"> </span><span class="kn">import</span> <span class="n">Speed</span>
+<span class="linenos"> 54</span><span class="kn">from</span><span class="w"> </span><span class="nn">step_cloud_schemas.classes.traffic_participant_type</span><span class="w"> </span><span class="kn">import</span> <span class="n">TrafficParticipantType</span>
+<span class="linenos"> 55</span>
+<span class="linenos"> 56</span>
 <div class="viewcode-block" id="ForecastedPoint">
 <a class="viewcode-back" href="../../../step_cloud_schemas_rst/classes/step_cloud_schemas.classes.actor_trajectory_forecasted.html#step_cloud_schemas.classes.actor_trajectory_forecasted.ForecastedPoint">[docs]</a>
-<span class="linenos"> 49</span><span class="k">class</span><span class="w"> </span><span class="nc">ForecastedPoint</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
-<span class="linenos"> 50</span><span class="w">    </span><span class="sd">"""Represents a single forecasted point in a trajectory.</span>
-<span class="linenos"> 51</span>
-<span class="linenos"> 52</span><span class="sd">    Attributes:</span>
-<span class="linenos"> 53</span><span class="sd">        diffTime (int): Time difference in milliseconds between the forecasted point and the reference point.</span>
-<span class="linenos"> 54</span><span class="sd">        latitude (float): Latitude of the forecasted point in degrees (-90 to 90).</span>
-<span class="linenos"> 55</span><span class="sd">        longitude (float): Longitude of the forecasted point in degrees (-180 to 180).</span>
-<span class="linenos"> 56</span><span class="sd">        speed (Speed | None): Speed of the forecasted point.</span>
-<span class="linenos"> 57</span><span class="sd">        heading (Heading | None): Heading of the forecasted point in degrees.</span>
-<span class="linenos"> 58</span>
-<span class="linenos"> 59</span><span class="sd">    Note:</span>
-<span class="linenos"> 60</span><span class="sd">        - The class is immutable (frozen) and does not allow extra attributes.</span>
-<span class="linenos"> 61</span><span class="sd">        - All attributes must be provided as keyword arguments.</span>
-<span class="linenos"> 62</span>
-<span class="linenos"> 63</span><span class="sd">    Complexity:</span>
-<span class="linenos"> 64</span><span class="sd">        - Time: O(1) for every method (latitude_clamping, wrap_longitude,</span>
-<span class="linenos"> 65</span><span class="sd">            serialize_latitude, serialize_longitude, get_default), each a</span>
-<span class="linenos"> 66</span><span class="sd">            constant number of comparisons or a single rounding operation.</span>
-<span class="linenos"> 67</span><span class="sd">        - Space: O(1), each allocates at most a single fixed-size object.</span>
-<span class="linenos"> 68</span><span class="sd">    """</span>
-<span class="linenos"> 69</span>
-<span class="linenos"> 70</span>    <span class="n">LATITUDE_MAX</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="mf">90.0</span>
-<span class="linenos"> 71</span>    <span class="n">LATITUDE_MIN</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mf">90.0</span>
-<span class="linenos"> 72</span>    <span class="n">LONGITUDE_MAX</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="mf">180.0</span>
-<span class="linenos"> 73</span>    <span class="n">LONGITUDE_MIN</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mf">180.0</span>
-<span class="linenos"> 74</span>    <span class="n">LONGITUDE_RANGE</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="mf">360.0</span>
-<span class="linenos"> 75</span>    <span class="n">LONGITUDE_HALF_RANGE</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="n">LONGITUDE_RANGE</span> <span class="o">/</span> <span class="mi">2</span>
-<span class="linenos"> 76</span>    <span class="n">COORDINATE_PRECISION</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">7</span>
+<span class="linenos"> 57</span><span class="k">class</span><span class="w"> </span><span class="nc">ForecastedPoint</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="linenos"> 58</span><span class="w">    </span><span class="sd">"""Represents a single forecasted point in a trajectory.</span>
+<span class="linenos"> 59</span>
+<span class="linenos"> 60</span><span class="sd">    Attributes:</span>
+<span class="linenos"> 61</span><span class="sd">        diffTime (int): Time difference in milliseconds between the forecasted point and the reference point.</span>
+<span class="linenos"> 62</span><span class="sd">        latitude (float): Latitude of the forecasted point in degrees (-90 to 90).</span>
+<span class="linenos"> 63</span><span class="sd">        longitude (float): Longitude of the forecasted point in degrees (-180 to 180).</span>
+<span class="linenos"> 64</span><span class="sd">        speed (Speed | None): Speed of the forecasted point.</span>
+<span class="linenos"> 65</span><span class="sd">        heading (Heading | None): Heading of the forecasted point in degrees.</span>
+<span class="linenos"> 66</span>
+<span class="linenos"> 67</span><span class="sd">    Note:</span>
+<span class="linenos"> 68</span><span class="sd">        - The class is immutable (frozen) and does not allow extra attributes.</span>
+<span class="linenos"> 69</span><span class="sd">        - All attributes must be provided as keyword arguments.</span>
+<span class="linenos"> 70</span>
+<span class="linenos"> 71</span><span class="sd">    Complexity:</span>
+<span class="linenos"> 72</span><span class="sd">        - Time: O(1) for every method (latitude_clamping, wrap_longitude,</span>
+<span class="linenos"> 73</span><span class="sd">            serialize_latitude, serialize_longitude, get_default), each a</span>
+<span class="linenos"> 74</span><span class="sd">            constant number of comparisons or a single rounding operation.</span>
+<span class="linenos"> 75</span><span class="sd">        - Space: O(1), each allocates at most a single fixed-size object.</span>
+<span class="linenos"> 76</span><span class="sd">    """</span>
 <span class="linenos"> 77</span>
 <span class="linenos"> 78</span>    <span class="n">model_config</span> <span class="o">=</span> <span class="n">ConfigDict</span><span class="p">(</span>
 <span class="linenos"> 79</span>        <span class="n">title</span><span class="o">=</span><span class="s2">"Forecasted Point"</span><span class="p">,</span>
@@ -2862,322 +2861,299 @@
 <span class="linenos">100</span>            <span class="n">kw_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 <span class="linenos">101</span>            <span class="n">title</span><span class="o">=</span><span class="s2">"Latitude"</span><span class="p">,</span>
 <span class="linenos">102</span>            <span class="n">description</span><span class="o">=</span><span class="s2">"Latitude of the forecasted point in degrees. Range: -90 to 90."</span><span class="p">,</span>
-<span class="linenos">103</span>            <span class="n">ge</span><span class="o">=</span><span class="n">LATITUDE_MIN</span><span class="p">,</span>
-<span class="linenos">104</span>            <span class="n">le</span><span class="o">=</span><span class="n">LATITUDE_MAX</span><span class="p">,</span>
-<span class="linenos">105</span>            <span class="n">examples</span><span class="o">=</span><span class="p">[</span><span class="mf">52.5200</span><span class="p">],</span>
-<span class="linenos">106</span>        <span class="p">),</span>
-<span class="linenos">107</span>    <span class="p">]</span>
-<span class="linenos">108</span>    <span class="n">longitude</span><span class="p">:</span> <span class="n">Annotated</span><span class="p">[</span>
-<span class="linenos">109</span>        <span class="nb">float</span><span class="p">,</span>
-<span class="linenos">110</span>        <span class="n">Field</span><span class="p">(</span>
-<span class="linenos">111</span>            <span class="n">kw_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-<span class="linenos">112</span>            <span class="n">title</span><span class="o">=</span><span class="s2">"Longitude"</span><span class="p">,</span>
-<span class="linenos">113</span>            <span class="n">description</span><span class="o">=</span><span class="s2">"Longitude of the forecasted point in degrees. Range: -180 to 180."</span><span class="p">,</span>
-<span class="linenos">114</span>            <span class="n">ge</span><span class="o">=</span><span class="n">LONGITUDE_MIN</span><span class="p">,</span>
-<span class="linenos">115</span>            <span class="n">le</span><span class="o">=</span><span class="n">LONGITUDE_MAX</span><span class="p">,</span>
-<span class="linenos">116</span>            <span class="n">examples</span><span class="o">=</span><span class="p">[</span><span class="mf">60.458789</span><span class="p">],</span>
-<span class="linenos">117</span>        <span class="p">),</span>
-<span class="linenos">118</span>    <span class="p">]</span>
-<span class="linenos">119</span>    <span class="n">speed</span><span class="p">:</span> <span class="n">Annotated</span><span class="p">[</span>
-<span class="linenos">120</span>        <span class="n">Speed</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
-<span class="linenos">121</span>        <span class="n">Field</span><span class="p">(</span>
-<span class="linenos">122</span>            <span class="n">kw_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">"Speed"</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Speed of the forecasted point."</span>
-<span class="linenos">123</span>        <span class="p">),</span>
-<span class="linenos">124</span>    <span class="p">]</span>
-<span class="linenos">125</span>    <span class="n">heading</span><span class="p">:</span> <span class="n">Annotated</span><span class="p">[</span>
-<span class="linenos">126</span>        <span class="n">Heading</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
-<span class="linenos">127</span>        <span class="n">Field</span><span class="p">(</span>
-<span class="linenos">128</span>            <span class="n">kw_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-<span class="linenos">129</span>            <span class="n">title</span><span class="o">=</span><span class="s2">"Heading"</span><span class="p">,</span>
-<span class="linenos">130</span>            <span class="n">description</span><span class="o">=</span><span class="s2">"Heading of the forecasted point in degrees."</span><span class="p">,</span>
-<span class="linenos">131</span>        <span class="p">),</span>
-<span class="linenos">132</span>    <span class="p">]</span>
-<span class="linenos">133</span>
+<span class="linenos">103</span>            <span class="n">examples</span><span class="o">=</span><span class="p">[</span><span class="mf">52.5200</span><span class="p">],</span>
+<span class="linenos">104</span>        <span class="p">),</span>
+<span class="linenos">105</span>    <span class="p">]</span>
+<span class="linenos">106</span>    <span class="n">longitude</span><span class="p">:</span> <span class="n">Annotated</span><span class="p">[</span>
+<span class="linenos">107</span>        <span class="nb">float</span><span class="p">,</span>
+<span class="linenos">108</span>        <span class="n">Field</span><span class="p">(</span>
+<span class="linenos">109</span>            <span class="n">kw_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="linenos">110</span>            <span class="n">title</span><span class="o">=</span><span class="s2">"Longitude"</span><span class="p">,</span>
+<span class="linenos">111</span>            <span class="n">description</span><span class="o">=</span><span class="s2">"Longitude of the forecasted point in degrees. Range: -180 to 180."</span><span class="p">,</span>
+<span class="linenos">112</span>            <span class="n">examples</span><span class="o">=</span><span class="p">[</span><span class="mf">60.458789</span><span class="p">],</span>
+<span class="linenos">113</span>        <span class="p">),</span>
+<span class="linenos">114</span>    <span class="p">]</span>
+<span class="linenos">115</span>    <span class="n">speed</span><span class="p">:</span> <span class="n">Annotated</span><span class="p">[</span>
+<span class="linenos">116</span>        <span class="n">Speed</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+<span class="linenos">117</span>        <span class="n">Field</span><span class="p">(</span>
+<span class="linenos">118</span>            <span class="n">kw_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">"Speed"</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Speed of the forecasted point."</span>
+<span class="linenos">119</span>        <span class="p">),</span>
+<span class="linenos">120</span>    <span class="p">]</span>
+<span class="linenos">121</span>    <span class="n">heading</span><span class="p">:</span> <span class="n">Annotated</span><span class="p">[</span>
+<span class="linenos">122</span>        <span class="n">Heading</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+<span class="linenos">123</span>        <span class="n">Field</span><span class="p">(</span>
+<span class="linenos">124</span>            <span class="n">kw_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="linenos">125</span>            <span class="n">title</span><span class="o">=</span><span class="s2">"Heading"</span><span class="p">,</span>
+<span class="linenos">126</span>            <span class="n">description</span><span class="o">=</span><span class="s2">"Heading of the forecasted point in degrees."</span><span class="p">,</span>
+<span class="linenos">127</span>        <span class="p">),</span>
+<span class="linenos">128</span>    <span class="p">]</span>
+<span class="linenos">129</span>
 <div class="viewcode-block" id="ForecastedPoint.latitude_clamping">
 <a class="viewcode-back" href="../../../step_cloud_schemas_rst/classes/step_cloud_schemas.classes.actor_trajectory_forecasted.html#step_cloud_schemas.classes.actor_trajectory_forecasted.ForecastedPoint.latitude_clamping">[docs]</a>
-<span class="linenos">134</span>    <span class="nd">@field_validator</span><span class="p">(</span><span class="s2">"latitude"</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">"before"</span><span class="p">)</span>
-<span class="linenos">135</span>    <span class="nd">@classmethod</span>
-<span class="linenos">136</span>    <span class="k">def</span><span class="w"> </span><span class="nf">latitude_clamping</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-<span class="linenos">137</span><span class="w">        </span><span class="sd">"""Clamp latitude to the valid range before validation.</span>
+<span class="linenos">130</span>    <span class="nd">@field_validator</span><span class="p">(</span><span class="s2">"latitude"</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">"before"</span><span class="p">)</span>
+<span class="linenos">131</span>    <span class="nd">@classmethod</span>
+<span class="linenos">132</span>    <span class="k">def</span><span class="w"> </span><span class="nf">latitude_clamping</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="linenos">133</span><span class="w">        </span><span class="sd">"""Clamp latitude to the valid range before validation.</span>
+<span class="linenos">134</span>
+<span class="linenos">135</span><span class="sd">        If the value is a float or int, it is clamped to [-90.0, 90.0].</span>
+<span class="linenos">136</span><span class="sd">        Other values are returned unchanged and left to Pydantic's type</span>
+<span class="linenos">137</span><span class="sd">        coercion.</span>
 <span class="linenos">138</span>
-<span class="linenos">139</span><span class="sd">        If the value is a float or int, it is clamped to [-90.0, 90.0].</span>
-<span class="linenos">140</span><span class="sd">        Other values are returned unchanged and left to Pydantic's type</span>
-<span class="linenos">141</span><span class="sd">        coercion.</span>
-<span class="linenos">142</span>
-<span class="linenos">143</span><span class="sd">        Args:</span>
-<span class="linenos">144</span><span class="sd">            value (Any): Raw latitude value supplied to the model.</span>
+<span class="linenos">139</span><span class="sd">        Args:</span>
+<span class="linenos">140</span><span class="sd">            value (Any): Raw latitude value supplied to the model.</span>
+<span class="linenos">141</span>
+<span class="linenos">142</span><span class="sd">        Returns:</span>
+<span class="linenos">143</span><span class="sd">            Any: Clamped value in [-90.0, 90.0], or the original value if not</span>
+<span class="linenos">144</span><span class="sd">                a float or int.</span>
 <span class="linenos">145</span>
-<span class="linenos">146</span><span class="sd">        Returns:</span>
-<span class="linenos">147</span><span class="sd">            Any: Clamped value in [-90.0, 90.0], or the original value if not</span>
-<span class="linenos">148</span><span class="sd">                a float or int.</span>
-<span class="linenos">149</span>
-<span class="linenos">150</span><span class="sd">        Raises:</span>
-<span class="linenos">151</span><span class="sd">            ValueError: If ``latitude`` is a non-finite number (NaN or infinity).</span>
-<span class="linenos">152</span>
-<span class="linenos">153</span><span class="sd">        Complexity:</span>
-<span class="linenos">154</span><span class="sd">            - Time: O(1), a constant number of comparisons.</span>
-<span class="linenos">155</span><span class="sd">            - Space: O(1), no additional data structures are allocated.</span>
-<span class="linenos">156</span><span class="sd">        """</span>
-<span class="linenos">157</span>        <span class="k">return</span> <span class="n">clamp</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="n">LATITUDE_MIN</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="n">LATITUDE_MAX</span><span class="p">,</span> <span class="n">field_name</span><span class="o">=</span><span class="s2">"latitude"</span><span class="p">)</span></div>
+<span class="linenos">146</span><span class="sd">        Raises:</span>
+<span class="linenos">147</span><span class="sd">            ValueError: If ``latitude`` is a non-finite number (NaN or infinity).</span>
+<span class="linenos">148</span>
+<span class="linenos">149</span><span class="sd">        Complexity:</span>
+<span class="linenos">150</span><span class="sd">            - Time: O(1), a constant number of comparisons.</span>
+<span class="linenos">151</span><span class="sd">            - Space: O(1), no additional data structures are allocated.</span>
+<span class="linenos">152</span><span class="sd">        """</span>
+<span class="linenos">153</span>        <span class="k">return</span> <span class="n">clamp</span><span class="p">(</span>
+<span class="linenos">154</span>            <span class="n">value</span><span class="p">,</span> <span class="n">minimum</span><span class="o">=</span><span class="n">LATITUDE_MIN</span><span class="p">,</span> <span class="n">maximum</span><span class="o">=</span><span class="n">LATITUDE_MAX</span><span class="p">,</span> <span class="n">field_name</span><span class="o">=</span><span class="s2">"latitude"</span>
+<span class="linenos">155</span>        <span class="p">)</span></div>
 
-<span class="linenos">158</span>
+<span class="linenos">156</span>
 <div class="viewcode-block" id="ForecastedPoint.wrap_longitude">
 <a class="viewcode-back" href="../../../step_cloud_schemas_rst/classes/step_cloud_schemas.classes.actor_trajectory_forecasted.html#step_cloud_schemas.classes.actor_trajectory_forecasted.ForecastedPoint.wrap_longitude">[docs]</a>
-<span class="linenos">159</span>    <span class="nd">@field_validator</span><span class="p">(</span><span class="s2">"longitude"</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">"before"</span><span class="p">)</span>
-<span class="linenos">160</span>    <span class="nd">@classmethod</span>
-<span class="linenos">161</span>    <span class="k">def</span><span class="w"> </span><span class="nf">wrap_longitude</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-<span class="linenos">162</span><span class="w">        </span><span class="sd">"""Wrap longitude into the valid range before validation.</span>
-<span class="linenos">163</span>
-<span class="linenos">164</span><span class="sd">        If the value is a float or int, it is wrapped into [-180.0, 180.0)</span>
-<span class="linenos">165</span><span class="sd">        using a modulo operation so that values outside the range are</span>
-<span class="linenos">166</span><span class="sd">        normalized rather than rejected (e.g. 181.0 becomes -179.0). Other</span>
-<span class="linenos">167</span><span class="sd">        values are returned unchanged and left to Pydantic's type coercion.</span>
-<span class="linenos">168</span>
-<span class="linenos">169</span><span class="sd">        Args:</span>
-<span class="linenos">170</span><span class="sd">            value (Any): Raw longitude value supplied to the model.</span>
-<span class="linenos">171</span>
-<span class="linenos">172</span><span class="sd">        Returns:</span>
-<span class="linenos">173</span><span class="sd">            Any: Wrapped value in [-180.0, 180.0), or the original value if</span>
-<span class="linenos">174</span><span class="sd">                not a float or int.</span>
-<span class="linenos">175</span>
-<span class="linenos">176</span><span class="sd">        Raises:</span>
-<span class="linenos">177</span><span class="sd">            ValueError: If ``longitude`` is a non-finite number (NaN or infinity).</span>
-<span class="linenos">178</span>
-<span class="linenos">179</span><span class="sd">        Complexity:</span>
-<span class="linenos">180</span><span class="sd">            - Time: O(1), a single modulo and arithmetic operation.</span>
-<span class="linenos">181</span><span class="sd">            - Space: O(1), no additional data structures are allocated.</span>
-<span class="linenos">182</span><span class="sd">        """</span>
-<span class="linenos">183</span>        <span class="k">return</span> <span class="n">wrap</span><span class="p">(</span>
-<span class="linenos">184</span>            <span class="n">value</span><span class="p">,</span>
-<span class="linenos">185</span>            <span class="bp">cls</span><span class="o">.</span><span class="n">LONGITUDE_MIN</span><span class="p">,</span>
-<span class="linenos">186</span>            <span class="bp">cls</span><span class="o">.</span><span class="n">LONGITUDE_RANGE</span><span class="p">,</span>
-<span class="linenos">187</span>            <span class="bp">cls</span><span class="o">.</span><span class="n">LONGITUDE_MAX</span><span class="p">,</span>
-<span class="linenos">188</span>            <span class="n">field_name</span><span class="o">=</span><span class="s2">"longitude"</span><span class="p">,</span>
-<span class="linenos">189</span>        <span class="p">)</span></div>
+<span class="linenos">157</span>    <span class="nd">@field_validator</span><span class="p">(</span><span class="s2">"longitude"</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">"before"</span><span class="p">)</span>
+<span class="linenos">158</span>    <span class="nd">@classmethod</span>
+<span class="linenos">159</span>    <span class="k">def</span><span class="w"> </span><span class="nf">wrap_longitude</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="linenos">160</span><span class="w">        </span><span class="sd">"""Wrap longitude into the valid range before validation.</span>
+<span class="linenos">161</span>
+<span class="linenos">162</span><span class="sd">        If the value is a float or int, it is wrapped into [-180.0, 180.0)</span>
+<span class="linenos">163</span><span class="sd">        using a modulo operation so that values outside the range are</span>
+<span class="linenos">164</span><span class="sd">        normalized rather than rejected (e.g. 181.0 becomes -179.0). Other</span>
+<span class="linenos">165</span><span class="sd">        values are returned unchanged and left to Pydantic's type coercion.</span>
+<span class="linenos">166</span>
+<span class="linenos">167</span><span class="sd">        Args:</span>
+<span class="linenos">168</span><span class="sd">            value (Any): Raw longitude value supplied to the model.</span>
+<span class="linenos">169</span>
+<span class="linenos">170</span><span class="sd">        Returns:</span>
+<span class="linenos">171</span><span class="sd">            Any: Wrapped value in [-180.0, 180.0), or the original value if</span>
+<span class="linenos">172</span><span class="sd">                not a float or int.</span>
+<span class="linenos">173</span>
+<span class="linenos">174</span><span class="sd">        Raises:</span>
+<span class="linenos">175</span><span class="sd">            ValueError: If ``longitude`` is a non-finite number (NaN or infinity).</span>
+<span class="linenos">176</span>
+<span class="linenos">177</span><span class="sd">        Complexity:</span>
+<span class="linenos">178</span><span class="sd">            - Time: O(1), a single modulo and arithmetic operation.</span>
+<span class="linenos">179</span><span class="sd">            - Space: O(1), no additional data structures are allocated.</span>
+<span class="linenos">180</span><span class="sd">        """</span>
+<span class="linenos">181</span>        <span class="k">return</span> <span class="n">wrap</span><span class="p">(</span>
+<span class="linenos">182</span>            <span class="n">value</span><span class="p">,</span>
+<span class="linenos">183</span>            <span class="n">minimum</span><span class="o">=</span><span class="n">LONGITUDE_MIN</span><span class="p">,</span>
+<span class="linenos">184</span>            <span class="n">value_range</span><span class="o">=</span><span class="n">LONGITUDE_RANGE</span><span class="p">,</span>
+<span class="linenos">185</span>            <span class="n">maximum</span><span class="o">=</span><span class="n">LONGITUDE_MAX</span><span class="p">,</span>
+<span class="linenos">186</span>            <span class="n">field_name</span><span class="o">=</span><span class="s2">"longitude"</span><span class="p">,</span>
+<span class="linenos">187</span>        <span class="p">)</span></div>
 
-<span class="linenos">190</span>
-<div class="viewcode-block" id="ForecastedPoint.serialize_latitude">
-<a class="viewcode-back" href="../../../step_cloud_schemas_rst/classes/step_cloud_schemas.classes.actor_trajectory_forecasted.html#step_cloud_schemas.classes.actor_trajectory_forecasted.ForecastedPoint.serialize_latitude">[docs]</a>
-<span class="linenos">191</span>    <span class="nd">@field_serializer</span><span class="p">(</span><span class="s2">"latitude"</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">"plain"</span><span class="p">)</span>
-<span class="linenos">192</span>    <span class="k">def</span><span class="w"> </span><span class="nf">serialize_latitude</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-<span class="linenos">193</span><span class="w">        </span><span class="sd">"""Serialize latitude with fixed precision.</span>
+<span class="linenos">188</span>
+<div class="viewcode-block" id="ForecastedPoint.serialize_coordinate">
+<a class="viewcode-back" href="../../../step_cloud_schemas_rst/classes/step_cloud_schemas.classes.actor_trajectory_forecasted.html#step_cloud_schemas.classes.actor_trajectory_forecasted.ForecastedPoint.serialize_coordinate">[docs]</a>
+<span class="linenos">189</span>    <span class="nd">@field_serializer</span><span class="p">(</span><span class="s2">"latitude"</span><span class="p">,</span> <span class="s2">"longitude"</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">"plain"</span><span class="p">)</span>
+<span class="linenos">190</span>    <span class="k">def</span><span class="w"> </span><span class="nf">serialize_coordinate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="linenos">191</span><span class="w">        </span><span class="sd">"""Serialize a latitude or longitude coordinate with fixed precision.</span>
+<span class="linenos">192</span>
+<span class="linenos">193</span><span class="sd">        Applied to both the ``latitude`` and ``longitude`` fields.</span>
 <span class="linenos">194</span>
 <span class="linenos">195</span><span class="sd">        Args:</span>
-<span class="linenos">196</span><span class="sd">            value (float): Latitude value to serialize.</span>
+<span class="linenos">196</span><span class="sd">            value (float): Coordinate value (latitude or longitude) to serialize.</span>
 <span class="linenos">197</span>
 <span class="linenos">198</span><span class="sd">        Returns:</span>
-<span class="linenos">199</span><span class="sd">            float: Latitude rounded to ``COORDINATE_PRECISION`` (7) decimal places.</span>
+<span class="linenos">199</span><span class="sd">            float: Coordinate value rounded to ``COORDINATE_PRECISION`` decimal places.</span>
 <span class="linenos">200</span>
 <span class="linenos">201</span><span class="sd">        Complexity:</span>
-<span class="linenos">202</span><span class="sd">            - Time: O(1), a single rounding operation.</span>
-<span class="linenos">203</span><span class="sd">            - Space: O(1), no additional data structures are allocated.</span>
-<span class="linenos">204</span><span class="sd">        """</span>
-<span class="linenos">205</span>        <span class="k">return</span> <span class="nb">round</span><span class="p">(</span><span class="n">number</span><span class="o">=</span><span class="n">value</span><span class="p">,</span> <span class="n">ndigits</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">COORDINATE_PRECISION</span><span class="p">)</span></div>
+<span class="linenos">202</span><span class="sd">            - Time: O(1). Space: O(1).</span>
+<span class="linenos">203</span><span class="sd">        """</span>
+<span class="linenos">204</span>        <span class="k">return</span> <span class="nb">round</span><span class="p">(</span><span class="n">number</span><span class="o">=</span><span class="n">value</span><span class="p">,</span> <span class="n">ndigits</span><span class="o">=</span><span class="n">COORDINATE_PRECISION</span><span class="p">)</span></div>
 
-<span class="linenos">206</span>
-<div class="viewcode-block" id="ForecastedPoint.serialize_longitude">
-<a class="viewcode-back" href="../../../step_cloud_schemas_rst/classes/step_cloud_schemas.classes.actor_trajectory_forecasted.html#step_cloud_schemas.classes.actor_trajectory_forecasted.ForecastedPoint.serialize_longitude">[docs]</a>
-<span class="linenos">207</span>    <span class="nd">@field_serializer</span><span class="p">(</span><span class="s2">"longitude"</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">"plain"</span><span class="p">)</span>
-<span class="linenos">208</span>    <span class="k">def</span><span class="w"> </span><span class="nf">serialize_longitude</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-<span class="linenos">209</span><span class="w">        </span><span class="sd">"""Serialize longitude with fixed precision.</span>
-<span class="linenos">210</span>
-<span class="linenos">211</span><span class="sd">        Args:</span>
-<span class="linenos">212</span><span class="sd">            value (float): Longitude value to serialize.</span>
-<span class="linenos">213</span>
-<span class="linenos">214</span><span class="sd">        Returns:</span>
-<span class="linenos">215</span><span class="sd">            float: Longitude rounded to ``COORDINATE_PRECISION`` (7) decimal places.</span>
-<span class="linenos">216</span>
-<span class="linenos">217</span><span class="sd">        Complexity:</span>
-<span class="linenos">218</span><span class="sd">            - Time: O(1), a single rounding operation.</span>
-<span class="linenos">219</span><span class="sd">            - Space: O(1), no additional data structures are allocated.</span>
-<span class="linenos">220</span><span class="sd">        """</span>
-<span class="linenos">221</span>        <span class="k">return</span> <span class="nb">round</span><span class="p">(</span><span class="n">number</span><span class="o">=</span><span class="n">value</span><span class="p">,</span> <span class="n">ndigits</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">COORDINATE_PRECISION</span><span class="p">)</span></div>
-
-<span class="linenos">222</span>
+<span class="linenos">205</span>
 <div class="viewcode-block" id="ForecastedPoint.get_default">
 <a class="viewcode-back" href="../../../step_cloud_schemas_rst/classes/step_cloud_schemas.classes.actor_trajectory_forecasted.html#step_cloud_schemas.classes.actor_trajectory_forecasted.ForecastedPoint.get_default">[docs]</a>
-<span class="linenos">223</span>    <span class="nd">@staticmethod</span>
-<span class="linenos">224</span>    <span class="k">def</span><span class="w"> </span><span class="nf">get_default</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="s2">"ForecastedPoint"</span><span class="p">:</span>
-<span class="linenos">225</span><span class="w">        </span><span class="sd">"""Returns a default instance of ForecastedPoint with predefined values.</span>
-<span class="linenos">226</span>
-<span class="linenos">227</span><span class="sd">        The default instance includes:</span>
-<span class="linenos">228</span>
-<span class="linenos">229</span><span class="sd">            - Time difference of 100 milliseconds</span>
-<span class="linenos">230</span><span class="sd">            - Latitude of 52.5200 degrees</span>
-<span class="linenos">231</span><span class="sd">            - Longitude of 60.458789 degrees</span>
-<span class="linenos">232</span><span class="sd">            - Speed with default values</span>
-<span class="linenos">233</span><span class="sd">            - Heading with default values</span>
-<span class="linenos">234</span>
-<span class="linenos">235</span><span class="sd">        Returns:</span>
-<span class="linenos">236</span><span class="sd">            ForecastedPoint: A default instance of the ForecastedPoint class</span>
-<span class="linenos">237</span>
-<span class="linenos">238</span><span class="sd">        Complexity:</span>
-<span class="linenos">239</span><span class="sd">            - Time: O(1), a single object construction.</span>
-<span class="linenos">240</span><span class="sd">            - Space: O(1), a single object is allocated.</span>
-<span class="linenos">241</span><span class="sd">        """</span>
-<span class="linenos">242</span>        <span class="k">return</span> <span class="n">ForecastedPoint</span><span class="p">(</span>
-<span class="linenos">243</span>            <span class="n">diffTime</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
-<span class="linenos">244</span>            <span class="n">latitude</span><span class="o">=</span><span class="mf">52.5200</span><span class="p">,</span>
-<span class="linenos">245</span>            <span class="n">longitude</span><span class="o">=</span><span class="mf">60.458789</span><span class="p">,</span>
-<span class="linenos">246</span>            <span class="n">speed</span><span class="o">=</span><span class="n">Speed</span><span class="o">.</span><span class="n">get_default</span><span class="p">(),</span>
-<span class="linenos">247</span>            <span class="n">heading</span><span class="o">=</span><span class="n">Heading</span><span class="o">.</span><span class="n">get_default</span><span class="p">(),</span>
-<span class="linenos">248</span>        <span class="p">)</span></div>
+<span class="linenos">206</span>    <span class="nd">@staticmethod</span>
+<span class="linenos">207</span>    <span class="k">def</span><span class="w"> </span><span class="nf">get_default</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="s2">"ForecastedPoint"</span><span class="p">:</span>
+<span class="linenos">208</span><span class="w">        </span><span class="sd">"""Returns a default instance of ForecastedPoint with predefined values.</span>
+<span class="linenos">209</span>
+<span class="linenos">210</span><span class="sd">        The default instance includes:</span>
+<span class="linenos">211</span>
+<span class="linenos">212</span><span class="sd">            - Time difference of 100 milliseconds</span>
+<span class="linenos">213</span><span class="sd">            - Latitude of 52.5200 degrees</span>
+<span class="linenos">214</span><span class="sd">            - Longitude of 60.458789 degrees</span>
+<span class="linenos">215</span><span class="sd">            - Speed with default values</span>
+<span class="linenos">216</span><span class="sd">            - Heading with default values</span>
+<span class="linenos">217</span>
+<span class="linenos">218</span><span class="sd">        Returns:</span>
+<span class="linenos">219</span><span class="sd">            ForecastedPoint: A default instance of the ForecastedPoint class</span>
+<span class="linenos">220</span>
+<span class="linenos">221</span><span class="sd">        Complexity:</span>
+<span class="linenos">222</span><span class="sd">            - Time: O(1), a single object construction.</span>
+<span class="linenos">223</span><span class="sd">            - Space: O(1), a single object is allocated.</span>
+<span class="linenos">224</span><span class="sd">        """</span>
+<span class="linenos">225</span>        <span class="k">return</span> <span class="n">ForecastedPoint</span><span class="p">(</span>
+<span class="linenos">226</span>            <span class="n">diffTime</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+<span class="linenos">227</span>            <span class="n">latitude</span><span class="o">=</span><span class="mf">52.5200</span><span class="p">,</span>
+<span class="linenos">228</span>            <span class="n">longitude</span><span class="o">=</span><span class="mf">60.458789</span><span class="p">,</span>
+<span class="linenos">229</span>            <span class="n">speed</span><span class="o">=</span><span class="n">Speed</span><span class="o">.</span><span class="n">get_default</span><span class="p">(),</span>
+<span class="linenos">230</span>            <span class="n">heading</span><span class="o">=</span><span class="n">Heading</span><span class="o">.</span><span class="n">get_default</span><span class="p">(),</span>
+<span class="linenos">231</span>        <span class="p">)</span></div>
 </div>
 
-<span class="linenos">249</span>
-<span class="linenos">250</span>
+<span class="linenos">232</span>
+<span class="linenos">233</span>
 <div class="viewcode-block" id="ActorTrajectoryForecasted">
 <a class="viewcode-back" href="../../../step_cloud_schemas_rst/classes/step_cloud_schemas.classes.actor_trajectory_forecasted.html#step_cloud_schemas.classes.actor_trajectory_forecasted.ActorTrajectoryForecasted">[docs]</a>
-<span class="linenos">251</span><span class="k">class</span><span class="w"> </span><span class="nc">ActorTrajectoryForecasted</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
-<span class="linenos">252</span><span class="w">    </span><span class="sd">"""Represents the forecasted trajectory of an actor.</span>
+<span class="linenos">234</span><span class="k">class</span><span class="w"> </span><span class="nc">ActorTrajectoryForecasted</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="linenos">235</span><span class="w">    </span><span class="sd">"""Represents the forecasted trajectory of an actor.</span>
+<span class="linenos">236</span>
+<span class="linenos">237</span><span class="sd">    This class represents a forecasted trajectory for an actor.</span>
+<span class="linenos">238</span>
+<span class="linenos">239</span><span class="sd">    Attributes:</span>
+<span class="linenos">240</span><span class="sd">        stationId (int): Identification of the station where the trajectory is forecasted.</span>
+<span class="linenos">241</span><span class="sd">        objectId (int | None): The unique identifier of the perceived object.</span>
+<span class="linenos">242</span><span class="sd">        stationType (TrafficParticipantType): The type of traffic participant that</span>
+<span class="linenos">243</span><span class="sd">            generated the trajectory.</span>
+<span class="linenos">244</span><span class="sd">        stationTypeConfidence (int | None): Confidence of the station type, in the</span>
+<span class="linenos">245</span><span class="sd">            range [``STATION_TYPE_CONFIDENCE_MIN``, ``STATION_TYPE_CONFIDENCE_MAX``]</span>
+<span class="linenos">246</span><span class="sd">            (0 to 100), or None if unavailable.</span>
+<span class="linenos">247</span><span class="sd">        referenceTime (str): Timestamp in ISO format used as the reference for all</span>
+<span class="linenos">248</span><span class="sd">            forecasted point time differences.</span>
+<span class="linenos">249</span><span class="sd">        firstPositionType (PositionType): The type of the first position in the trajectory.</span>
+<span class="linenos">250</span><span class="sd">            It is the only not forecasted position in the trajectory.</span>
+<span class="linenos">251</span><span class="sd">        points (list[ForecastedPoint]): List of forecasted points in the trajectory.</span>
+<span class="linenos">252</span><span class="sd">            Between 1 and 100 entries.</span>
 <span class="linenos">253</span>
-<span class="linenos">254</span><span class="sd">    This class represents a forecasted trajectory for an actor.</span>
-<span class="linenos">255</span>
-<span class="linenos">256</span><span class="sd">    Attributes:</span>
-<span class="linenos">257</span><span class="sd">        stationId (int): Identification of the station where the trajectory is forecasted.</span>
-<span class="linenos">258</span><span class="sd">        objectId (int | None): The unique identifier of the perceived object.</span>
-<span class="linenos">259</span><span class="sd">        stationType (TrafficParticipantType): The type of traffic participant that</span>
-<span class="linenos">260</span><span class="sd">            generated the trajectory.</span>
-<span class="linenos">261</span><span class="sd">        stationTypeConfidence (int | None): Confidence of the station type, in the</span>
-<span class="linenos">262</span><span class="sd">            range [``STATION_TYPE_CONFIDENCE_MIN``, ``STATION_TYPE_CONFIDENCE_MAX``]</span>
-<span class="linenos">263</span><span class="sd">            (0 to 100), or None if unavailable.</span>
-<span class="linenos">264</span><span class="sd">        referenceTime (str): Timestamp in ISO format used as the reference for all</span>
-<span class="linenos">265</span><span class="sd">            forecasted point time differences.</span>
-<span class="linenos">266</span><span class="sd">        firstPositionType (PositionType): The type of the first position in the trajectory.</span>
-<span class="linenos">267</span><span class="sd">            It is the only not forecasted position in the trajectory.</span>
-<span class="linenos">268</span><span class="sd">        points (list[ForecastedPoint]): List of forecasted points in the trajectory.</span>
-<span class="linenos">269</span><span class="sd">            Between 1 and 100 entries.</span>
-<span class="linenos">270</span>
-<span class="linenos">271</span><span class="sd">    Note:</span>
-<span class="linenos">272</span><span class="sd">        - The class is immutable (frozen) and does not allow extra attributes.</span>
-<span class="linenos">273</span><span class="sd">        - All attributes must be provided as keyword arguments.</span>
-<span class="linenos">274</span>
-<span class="linenos">275</span><span class="sd">    Complexity:</span>
-<span class="linenos">276</span><span class="sd">        - Time: O(n) for model construction/validation when ``points`` is</span>
-<span class="linenos">277</span><span class="sd">            supplied, where n is the number of forecasted points (1-100),</span>
-<span class="linenos">278</span><span class="sd">            since each is validated as a ForecastedPoint. get_default is</span>
-<span class="linenos">279</span><span class="sd">            O(1), constructing a single-element points list.</span>
-<span class="linenos">280</span><span class="sd">        - Space: O(n) for model construction/validation, to store the</span>
-<span class="linenos">281</span><span class="sd">            validated points list; get_default is O(1).</span>
-<span class="linenos">282</span><span class="sd">    """</span>
-<span class="linenos">283</span>
-<span class="linenos">284</span>    <span class="n">STATION_TYPE_CONFIDENCE_MIN</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
-<span class="linenos">285</span>    <span class="n">STATION_TYPE_CONFIDENCE_MAX</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">100</span>
-<span class="linenos">286</span>
-<span class="linenos">287</span>    <span class="n">model_config</span> <span class="o">=</span> <span class="n">ConfigDict</span><span class="p">(</span>
-<span class="linenos">288</span>        <span class="n">title</span><span class="o">=</span><span class="s2">"Actor Trajectory Forecasted"</span><span class="p">,</span>
-<span class="linenos">289</span>        <span class="n">json_schema_extra</span><span class="o">=</span><span class="p">{</span>
-<span class="linenos">290</span>            <span class="s2">"description"</span><span class="p">:</span> <span class="s2">"A class representing the forecasted trajectory of an actor"</span>
-<span class="linenos">291</span>        <span class="p">},</span>
-<span class="linenos">292</span>        <span class="n">extra</span><span class="o">=</span><span class="s2">"forbid"</span><span class="p">,</span>
-<span class="linenos">293</span>        <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-<span class="linenos">294</span>        <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-<span class="linenos">295</span>    <span class="p">)</span>
-<span class="linenos">296</span>    <span class="n">stationId</span><span class="p">:</span> <span class="n">Annotated</span><span class="p">[</span>  <span class="c1"># noqa: N815</span>
-<span class="linenos">297</span>        <span class="nb">int</span><span class="p">,</span>
-<span class="linenos">298</span>        <span class="n">Field</span><span class="p">(</span>
-<span class="linenos">299</span>            <span class="n">kw_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-<span class="linenos">300</span>            <span class="n">title</span><span class="o">=</span><span class="s2">"Station Id"</span><span class="p">,</span>
-<span class="linenos">301</span>            <span class="n">description</span><span class="o">=</span><span class="s2">"Identification of the station"</span><span class="p">,</span>
-<span class="linenos">302</span>            <span class="n">ge</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-<span class="linenos">303</span>            <span class="n">le</span><span class="o">=</span><span class="mi">4294967295</span><span class="p">,</span>
-<span class="linenos">304</span>            <span class="n">examples</span><span class="o">=</span><span class="p">[</span><span class="mi">25648</span><span class="p">],</span>
+<span class="linenos">254</span><span class="sd">    Note:</span>
+<span class="linenos">255</span><span class="sd">        - The class is immutable (frozen) and does not allow extra attributes.</span>
+<span class="linenos">256</span><span class="sd">        - All attributes must be provided as keyword arguments.</span>
+<span class="linenos">257</span>
+<span class="linenos">258</span><span class="sd">    Complexity:</span>
+<span class="linenos">259</span><span class="sd">        - Time: O(n) for model construction/validation when ``points`` is</span>
+<span class="linenos">260</span><span class="sd">            supplied, where n is the number of forecasted points (1-100),</span>
+<span class="linenos">261</span><span class="sd">            since each is validated as a ForecastedPoint. get_default is</span>
+<span class="linenos">262</span><span class="sd">            O(1), constructing a single-element points list.</span>
+<span class="linenos">263</span><span class="sd">        - Space: O(n) for model construction/validation, to store the</span>
+<span class="linenos">264</span><span class="sd">            validated points list; get_default is O(1).</span>
+<span class="linenos">265</span><span class="sd">    """</span>
+<span class="linenos">266</span>
+<span class="linenos">267</span>    <span class="n">model_config</span> <span class="o">=</span> <span class="n">ConfigDict</span><span class="p">(</span>
+<span class="linenos">268</span>        <span class="n">title</span><span class="o">=</span><span class="s2">"Actor Trajectory Forecasted"</span><span class="p">,</span>
+<span class="linenos">269</span>        <span class="n">json_schema_extra</span><span class="o">=</span><span class="p">{</span>
+<span class="linenos">270</span>            <span class="s2">"description"</span><span class="p">:</span> <span class="s2">"A class representing the forecasted trajectory of an actor"</span>
+<span class="linenos">271</span>        <span class="p">},</span>
+<span class="linenos">272</span>        <span class="n">extra</span><span class="o">=</span><span class="s2">"forbid"</span><span class="p">,</span>
+<span class="linenos">273</span>        <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="linenos">274</span>        <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="linenos">275</span>    <span class="p">)</span>
+<span class="linenos">276</span>    <span class="n">stationId</span><span class="p">:</span> <span class="n">Annotated</span><span class="p">[</span>  <span class="c1"># noqa: N815</span>
+<span class="linenos">277</span>        <span class="nb">int</span><span class="p">,</span>
+<span class="linenos">278</span>        <span class="n">Field</span><span class="p">(</span>
+<span class="linenos">279</span>            <span class="n">kw_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="linenos">280</span>            <span class="n">title</span><span class="o">=</span><span class="s2">"Station Id"</span><span class="p">,</span>
+<span class="linenos">281</span>            <span class="n">description</span><span class="o">=</span><span class="s2">"Identification of the station"</span><span class="p">,</span>
+<span class="linenos">282</span>            <span class="n">ge</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+<span class="linenos">283</span>            <span class="n">le</span><span class="o">=</span><span class="mi">4294967295</span><span class="p">,</span>
+<span class="linenos">284</span>            <span class="n">examples</span><span class="o">=</span><span class="p">[</span><span class="mi">25648</span><span class="p">],</span>
+<span class="linenos">285</span>        <span class="p">),</span>
+<span class="linenos">286</span>    <span class="p">]</span>
+<span class="linenos">287</span>    <span class="n">objectId</span><span class="p">:</span> <span class="n">Annotated</span><span class="p">[</span>  <span class="c1"># noqa: N815</span>
+<span class="linenos">288</span>        <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+<span class="linenos">289</span>        <span class="n">Field</span><span class="p">(</span>
+<span class="linenos">290</span>            <span class="n">kw_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="linenos">291</span>            <span class="n">title</span><span class="o">=</span><span class="s2">"Object Id"</span><span class="p">,</span>
+<span class="linenos">292</span>            <span class="n">description</span><span class="o">=</span><span class="s2">"The unique identifier of the perceived object"</span><span class="p">,</span>
+<span class="linenos">293</span>            <span class="n">ge</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+<span class="linenos">294</span>            <span class="n">le</span><span class="o">=</span><span class="mi">65535</span><span class="p">,</span>
+<span class="linenos">295</span>            <span class="n">examples</span><span class="o">=</span><span class="p">[</span><span class="mi">123</span><span class="p">],</span>
+<span class="linenos">296</span>        <span class="p">),</span>
+<span class="linenos">297</span>    <span class="p">]</span>
+<span class="linenos">298</span>    <span class="n">stationType</span><span class="p">:</span> <span class="n">Annotated</span><span class="p">[</span>  <span class="c1"># noqa: N815</span>
+<span class="linenos">299</span>        <span class="n">TrafficParticipantType</span><span class="p">,</span>
+<span class="linenos">300</span>        <span class="n">Field</span><span class="p">(</span>
+<span class="linenos">301</span>            <span class="n">kw_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="linenos">302</span>            <span class="n">title</span><span class="o">=</span><span class="s2">"Participant Type"</span><span class="p">,</span>
+<span class="linenos">303</span>            <span class="n">description</span><span class="o">=</span><span class="s2">"Type of the participant"</span><span class="p">,</span>
+<span class="linenos">304</span>            <span class="n">examples</span><span class="o">=</span><span class="p">[</span><span class="n">TrafficParticipantType</span><span class="o">.</span><span class="n">PASSENGER_CAR</span><span class="p">],</span>
 <span class="linenos">305</span>        <span class="p">),</span>
 <span class="linenos">306</span>    <span class="p">]</span>
-<span class="linenos">307</span>    <span class="n">objectId</span><span class="p">:</span> <span class="n">Annotated</span><span class="p">[</span>  <span class="c1"># noqa: N815</span>
+<span class="linenos">307</span>    <span class="n">stationTypeConfidence</span><span class="p">:</span> <span class="n">Annotated</span><span class="p">[</span>  <span class="c1"># noqa: N815</span>
 <span class="linenos">308</span>        <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
 <span class="linenos">309</span>        <span class="n">Field</span><span class="p">(</span>
 <span class="linenos">310</span>            <span class="n">kw_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-<span class="linenos">311</span>            <span class="n">title</span><span class="o">=</span><span class="s2">"Object Id"</span><span class="p">,</span>
-<span class="linenos">312</span>            <span class="n">description</span><span class="o">=</span><span class="s2">"The unique identifier of the perceived object"</span><span class="p">,</span>
-<span class="linenos">313</span>            <span class="n">ge</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-<span class="linenos">314</span>            <span class="n">le</span><span class="o">=</span><span class="mi">65535</span><span class="p">,</span>
-<span class="linenos">315</span>            <span class="n">examples</span><span class="o">=</span><span class="p">[</span><span class="mi">123</span><span class="p">],</span>
+<span class="linenos">311</span>            <span class="n">title</span><span class="o">=</span><span class="s2">"Participant Type Confidence"</span><span class="p">,</span>
+<span class="linenos">312</span>            <span class="n">description</span><span class="o">=</span><span class="s2">"Confidence of the participant type"</span><span class="p">,</span>
+<span class="linenos">313</span>            <span class="n">ge</span><span class="o">=</span><span class="n">OBJECT_TYPE_CONFIDENCE_MIN</span><span class="p">,</span>
+<span class="linenos">314</span>            <span class="n">le</span><span class="o">=</span><span class="n">OBJECT_TYPE_CONFIDENCE_MAX</span><span class="p">,</span>
+<span class="linenos">315</span>            <span class="n">examples</span><span class="o">=</span><span class="p">[</span><span class="mi">90</span><span class="p">],</span>
 <span class="linenos">316</span>        <span class="p">),</span>
 <span class="linenos">317</span>    <span class="p">]</span>
-<span class="linenos">318</span>    <span class="n">stationType</span><span class="p">:</span> <span class="n">Annotated</span><span class="p">[</span>  <span class="c1"># noqa: N815</span>
-<span class="linenos">319</span>        <span class="n">TrafficParticipantType</span><span class="p">,</span>
+<span class="linenos">318</span>    <span class="n">referenceTime</span><span class="p">:</span> <span class="n">Annotated</span><span class="p">[</span>  <span class="c1"># noqa: N815</span>
+<span class="linenos">319</span>        <span class="nb">str</span><span class="p">,</span>
 <span class="linenos">320</span>        <span class="n">Field</span><span class="p">(</span>
 <span class="linenos">321</span>            <span class="n">kw_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-<span class="linenos">322</span>            <span class="n">title</span><span class="o">=</span><span class="s2">"Participant Type"</span><span class="p">,</span>
-<span class="linenos">323</span>            <span class="n">description</span><span class="o">=</span><span class="s2">"Type of the participant"</span><span class="p">,</span>
-<span class="linenos">324</span>            <span class="n">examples</span><span class="o">=</span><span class="p">[</span><span class="n">TrafficParticipantType</span><span class="o">.</span><span class="n">PASSENGER_CAR</span><span class="p">],</span>
-<span class="linenos">325</span>        <span class="p">),</span>
-<span class="linenos">326</span>    <span class="p">]</span>
-<span class="linenos">327</span>    <span class="n">stationTypeConfidence</span><span class="p">:</span> <span class="n">Annotated</span><span class="p">[</span>  <span class="c1"># noqa: N815</span>
-<span class="linenos">328</span>        <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
-<span class="linenos">329</span>        <span class="n">Field</span><span class="p">(</span>
-<span class="linenos">330</span>            <span class="n">kw_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-<span class="linenos">331</span>            <span class="n">title</span><span class="o">=</span><span class="s2">"Participant Type Confidence"</span><span class="p">,</span>
-<span class="linenos">332</span>            <span class="n">description</span><span class="o">=</span><span class="s2">"Confidence of the participant type"</span><span class="p">,</span>
-<span class="linenos">333</span>            <span class="n">ge</span><span class="o">=</span><span class="n">STATION_TYPE_CONFIDENCE_MIN</span><span class="p">,</span>
-<span class="linenos">334</span>            <span class="n">le</span><span class="o">=</span><span class="n">STATION_TYPE_CONFIDENCE_MAX</span><span class="p">,</span>
-<span class="linenos">335</span>            <span class="n">examples</span><span class="o">=</span><span class="p">[</span><span class="mi">90</span><span class="p">],</span>
-<span class="linenos">336</span>        <span class="p">),</span>
-<span class="linenos">337</span>    <span class="p">]</span>
-<span class="linenos">338</span>    <span class="n">referenceTime</span><span class="p">:</span> <span class="n">Annotated</span><span class="p">[</span>  <span class="c1"># noqa: N815</span>
-<span class="linenos">339</span>        <span class="nb">str</span><span class="p">,</span>
-<span class="linenos">340</span>        <span class="n">Field</span><span class="p">(</span>
-<span class="linenos">341</span>            <span class="n">kw_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-<span class="linenos">342</span>            <span class="n">title</span><span class="o">=</span><span class="s2">"Timestamp of Reference"</span><span class="p">,</span>
-<span class="linenos">343</span>            <span class="n">description</span><span class="o">=</span><span class="s2">"Timestamp in ISO format of when a new DENM, an update DENM or a cancellation DENM is generated"</span><span class="p">,</span>
-<span class="linenos">344</span>            <span class="n">pattern</span><span class="o">=</span><span class="n">ISO_8601_TIMESTAMP_PATTERN</span><span class="p">,</span>
-<span class="linenos">345</span>            <span class="n">examples</span><span class="o">=</span><span class="p">[</span><span class="s2">"2018-04-05T17:31:00.000Z"</span><span class="p">],</span>
-<span class="linenos">346</span>        <span class="p">),</span>
-<span class="linenos">347</span>    <span class="p">]</span>
-<span class="linenos">348</span>    <span class="n">firstPositionType</span><span class="p">:</span> <span class="n">Annotated</span><span class="p">[</span>  <span class="c1"># noqa: N815</span>
-<span class="linenos">349</span>        <span class="n">PositionType</span><span class="p">,</span>
-<span class="linenos">350</span>        <span class="n">Field</span><span class="p">(</span>
-<span class="linenos">351</span>            <span class="n">kw_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-<span class="linenos">352</span>            <span class="n">title</span><span class="o">=</span><span class="s2">"First Position Type"</span><span class="p">,</span>
-<span class="linenos">353</span>            <span class="n">description</span><span class="o">=</span><span class="s2">"Representing the type of the first position"</span><span class="p">,</span>
-<span class="linenos">354</span>            <span class="n">examples</span><span class="o">=</span><span class="p">[</span><span class="n">PositionType</span><span class="o">.</span><span class="n">POSITION_GNSS</span><span class="p">],</span>
-<span class="linenos">355</span>        <span class="p">),</span>
-<span class="linenos">356</span>    <span class="p">]</span>
-<span class="linenos">357</span>    <span class="n">points</span><span class="p">:</span> <span class="n">Annotated</span><span class="p">[</span>
-<span class="linenos">358</span>        <span class="nb">list</span><span class="p">[</span><span class="n">ForecastedPoint</span><span class="p">],</span>
-<span class="linenos">359</span>        <span class="n">Field</span><span class="p">(</span>
-<span class="linenos">360</span>            <span class="n">kw_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-<span class="linenos">361</span>            <span class="n">title</span><span class="o">=</span><span class="s2">"Forecasted Points"</span><span class="p">,</span>
-<span class="linenos">362</span>            <span class="n">description</span><span class="o">=</span><span class="s2">"List of forecasted points in the trajectory"</span><span class="p">,</span>
-<span class="linenos">363</span>            <span class="n">min_length</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-<span class="linenos">364</span>            <span class="n">max_length</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
-<span class="linenos">365</span>        <span class="p">),</span>
-<span class="linenos">366</span>    <span class="p">]</span>
-<span class="linenos">367</span>
+<span class="linenos">322</span>            <span class="n">title</span><span class="o">=</span><span class="s2">"Timestamp of Reference"</span><span class="p">,</span>
+<span class="linenos">323</span>            <span class="n">description</span><span class="o">=</span><span class="s2">"Timestamp in ISO format of when a new DENM, an update DENM or a cancellation DENM is generated"</span><span class="p">,</span>
+<span class="linenos">324</span>            <span class="n">pattern</span><span class="o">=</span><span class="n">ISO_8601_TIMESTAMP_PATTERN</span><span class="p">,</span>
+<span class="linenos">325</span>            <span class="n">examples</span><span class="o">=</span><span class="p">[</span><span class="s2">"2018-04-05T17:31:00.000Z"</span><span class="p">],</span>
+<span class="linenos">326</span>        <span class="p">),</span>
+<span class="linenos">327</span>    <span class="p">]</span>
+<span class="linenos">328</span>    <span class="n">firstPositionType</span><span class="p">:</span> <span class="n">Annotated</span><span class="p">[</span>  <span class="c1"># noqa: N815</span>
+<span class="linenos">329</span>        <span class="n">PositionType</span><span class="p">,</span>
+<span class="linenos">330</span>        <span class="n">Field</span><span class="p">(</span>
+<span class="linenos">331</span>            <span class="n">kw_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="linenos">332</span>            <span class="n">title</span><span class="o">=</span><span class="s2">"First Position Type"</span><span class="p">,</span>
+<span class="linenos">333</span>            <span class="n">description</span><span class="o">=</span><span class="s2">"Representing the type of the first position"</span><span class="p">,</span>
+<span class="linenos">334</span>            <span class="n">examples</span><span class="o">=</span><span class="p">[</span><span class="n">PositionType</span><span class="o">.</span><span class="n">POSITION_GNSS</span><span class="p">],</span>
+<span class="linenos">335</span>        <span class="p">),</span>
+<span class="linenos">336</span>    <span class="p">]</span>
+<span class="linenos">337</span>    <span class="n">points</span><span class="p">:</span> <span class="n">Annotated</span><span class="p">[</span>
+<span class="linenos">338</span>        <span class="nb">list</span><span class="p">[</span><span class="n">ForecastedPoint</span><span class="p">],</span>
+<span class="linenos">339</span>        <span class="n">Field</span><span class="p">(</span>
+<span class="linenos">340</span>            <span class="n">kw_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="linenos">341</span>            <span class="n">title</span><span class="o">=</span><span class="s2">"Forecasted Points"</span><span class="p">,</span>
+<span class="linenos">342</span>            <span class="n">description</span><span class="o">=</span><span class="s2">"List of forecasted points in the trajectory"</span><span class="p">,</span>
+<span class="linenos">343</span>            <span class="n">min_length</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+<span class="linenos">344</span>            <span class="n">max_length</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+<span class="linenos">345</span>        <span class="p">),</span>
+<span class="linenos">346</span>    <span class="p">]</span>
+<span class="linenos">347</span>
 <div class="viewcode-block" id="ActorTrajectoryForecasted.get_default">
 <a class="viewcode-back" href="../../../step_cloud_schemas_rst/classes/step_cloud_schemas.classes.actor_trajectory_forecasted.html#step_cloud_schemas.classes.actor_trajectory_forecasted.ActorTrajectoryForecasted.get_default">[docs]</a>
-<span class="linenos">368</span>    <span class="nd">@staticmethod</span>
-<span class="linenos">369</span>    <span class="k">def</span><span class="w"> </span><span class="nf">get_default</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="s2">"ActorTrajectoryForecasted"</span><span class="p">:</span>
-<span class="linenos">370</span><span class="w">        </span><span class="sd">"""Returns a default instance of ActorTrajectoryForecasted with predefined</span>
-<span class="linenos">371</span><span class="sd">        values.</span>
-<span class="linenos">372</span>
-<span class="linenos">373</span><span class="sd">        The default instance includes:</span>
-<span class="linenos">374</span>
-<span class="linenos">375</span><span class="sd">            - Station ID of 25648</span>
-<span class="linenos">376</span><span class="sd">            - Object ID of 123</span>
-<span class="linenos">377</span><span class="sd">            - Station type of PASSENGER_CAR</span>
-<span class="linenos">378</span><span class="sd">            - Station type confidence of 90</span>
-<span class="linenos">379</span><span class="sd">            - Reference time of 2018-04-05T17:31:00.000Z</span>
-<span class="linenos">380</span><span class="sd">            - First position type of POSITION_GNSS</span>
-<span class="linenos">381</span><span class="sd">            - A single forecasted point with default values</span>
-<span class="linenos">382</span>
-<span class="linenos">383</span><span class="sd">        Returns:</span>
-<span class="linenos">384</span><span class="sd">            ActorTrajectoryForecasted: A default instance of the ActorTrajectoryForecasted class</span>
-<span class="linenos">385</span>
-<span class="linenos">386</span><span class="sd">        Complexity:</span>
-<span class="linenos">387</span><span class="sd">            - Time: O(1), a single object construction with a single-element points list.</span>
-<span class="linenos">388</span><span class="sd">            - Space: O(1), a single object with a fixed-size list is allocated.</span>
-<span class="linenos">389</span><span class="sd">        """</span>
-<span class="linenos">390</span>        <span class="k">return</span> <span class="n">ActorTrajectoryForecasted</span><span class="p">(</span>
-<span class="linenos">391</span>            <span class="n">stationId</span><span class="o">=</span><span class="mi">25648</span><span class="p">,</span>
-<span class="linenos">392</span>            <span class="n">objectId</span><span class="o">=</span><span class="mi">123</span><span class="p">,</span>
-<span class="linenos">393</span>            <span class="n">stationType</span><span class="o">=</span><span class="n">TrafficParticipantType</span><span class="o">.</span><span class="n">PASSENGER_CAR</span><span class="p">,</span>
-<span class="linenos">394</span>            <span class="n">stationTypeConfidence</span><span class="o">=</span><span class="mi">90</span><span class="p">,</span>
-<span class="linenos">395</span>            <span class="n">referenceTime</span><span class="o">=</span><span class="s2">"2018-04-05T17:31:00.000Z"</span><span class="p">,</span>
-<span class="linenos">396</span>            <span class="n">firstPositionType</span><span class="o">=</span><span class="n">PositionType</span><span class="o">.</span><span class="n">POSITION_GNSS</span><span class="p">,</span>
-<span class="linenos">397</span>            <span class="n">points</span><span class="o">=</span><span class="p">[</span><span class="n">ForecastedPoint</span><span class="o">.</span><span class="n">get_default</span><span class="p">()],</span>
-<span class="linenos">398</span>        <span class="p">)</span></div>
+<span class="linenos">348</span>    <span class="nd">@staticmethod</span>
+<span class="linenos">349</span>    <span class="k">def</span><span class="w"> </span><span class="nf">get_default</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="s2">"ActorTrajectoryForecasted"</span><span class="p">:</span>
+<span class="linenos">350</span><span class="w">        </span><span class="sd">"""Returns a default instance of ActorTrajectoryForecasted with predefined</span>
+<span class="linenos">351</span><span class="sd">        values.</span>
+<span class="linenos">352</span>
+<span class="linenos">353</span><span class="sd">        The default instance includes:</span>
+<span class="linenos">354</span>
+<span class="linenos">355</span><span class="sd">            - Station ID of 25648</span>
+<span class="linenos">356</span><span class="sd">            - Object ID of 123</span>
+<span class="linenos">357</span><span class="sd">            - Station type of PASSENGER_CAR</span>
+<span class="linenos">358</span><span class="sd">            - Station type confidence of 90</span>
+<span class="linenos">359</span><span class="sd">            - Reference time of 2018-04-05T17:31:00.000Z</span>
+<span class="linenos">360</span><span class="sd">            - First position type of POSITION_GNSS</span>
+<span class="linenos">361</span><span class="sd">            - A single forecasted point with default values</span>
+<span class="linenos">362</span>
+<span class="linenos">363</span><span class="sd">        Returns:</span>
+<span class="linenos">364</span><span class="sd">            ActorTrajectoryForecasted: A default instance of the ActorTrajectoryForecasted class</span>
+<span class="linenos">365</span>
+<span class="linenos">366</span><span class="sd">        Complexity:</span>
+<span class="linenos">367</span><span class="sd">            - Time: O(1), a single object construction with a single-element points list.</span>
+<span class="linenos">368</span><span class="sd">            - Space: O(1), a single object with a fixed-size list is allocated.</span>
+<span class="linenos">369</span><span class="sd">        """</span>
+<span class="linenos">370</span>        <span class="k">return</span> <span class="n">ActorTrajectoryForecasted</span><span class="p">(</span>
+<span class="linenos">371</span>            <span class="n">stationId</span><span class="o">=</span><span class="mi">25648</span><span class="p">,</span>
+<span class="linenos">372</span>            <span class="n">objectId</span><span class="o">=</span><span class="mi">123</span><span class="p">,</span>
+<span class="linenos">373</span>            <span class="n">stationType</span><span class="o">=</span><span class="n">TrafficParticipantType</span><span class="o">.</span><span class="n">PASSENGER_CAR</span><span class="p">,</span>
+<span class="linenos">374</span>            <span class="n">stationTypeConfidence</span><span class="o">=</span><span class="mi">90</span><span class="p">,</span>
+<span class="linenos">375</span>            <span class="n">referenceTime</span><span class="o">=</span><span class="s2">"2018-04-05T17:31:00.000Z"</span><span class="p">,</span>
+<span class="linenos">376</span>            <span class="n">firstPositionType</span><span class="o">=</span><span class="n">PositionType</span><span class="o">.</span><span class="n">POSITION_GNSS</span><span class="p">,</span>
+<span class="linenos">377</span>            <span class="n">points</span><span class="o">=</span><span class="p">[</span><span class="n">ForecastedPoint</span><span class="o">.</span><span class="n">get_default</span><span class="p">()],</span>
+<span class="linenos">378</span>        <span class="p">)</span></div>
 </div>
 
 </pre></div>
