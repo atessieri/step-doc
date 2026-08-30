@@ -99,9 +99,10 @@ The following PlantUML diagram illustrates the main classes and their relationsh
         ' Core Communication Managers
         package "Communication Layer" {
             class AsyncComManager {
+                - _logger: Logger
                 - _message_serializer: ItsMessageSerializer
                 - _params: AsyncComManagerParams
-                + __init__(params: AsyncComManagerParams)
+                + __init__(params: AsyncComManagerParams, logger: Logger)
                 + __aenter__() : AsyncComManager
                 + publish_its_message(message, address, position, is_mobile)
                 + subscribe(topic, qos, options) <<inherited from aiomqtt.Client>>
@@ -113,17 +114,29 @@ The following PlantUML diagram illustrates the main classes and their relationsh
                 - _async_thread: Thread
                 - _incoming_queue: AsyncioQueue
                 - _outgoing_queue: SyncQueue
+                - _worker_pool: PublishWorkerPool
+                - _health_check_thread: Thread
+                - _logger: Logger
                 - _params: SyncComManagerParams
                 - _connection_status: ConnectionStatus
-                + __init__(params: SyncComManagerParams)
+                + __init__(params: SyncComManagerParams, logger: Logger)
                 + start() : void
                 + stop() : void
                 + subscribe(topics, max_qos, no_local)
                 + publish_its_message(message, address, position, is_mobile)
                 + get_its_message_received() : FacilityMessage | None
+                + check_health(auto_restart) : void
                 - _run() : void
                 - _message_receive_thread(client)
-                - _message_send_thread(client)
+                - _health_check_loop() : void
+            }
+
+            class PublishWorkerPool {
+                + {property} is_running : bool
+                + start() : void
+                + send(envelope: PublishEnvelope) : void
+                + check_health(auto_restart) : void
+                + close() : void
             }
             
             class ItsMessagesIterator {
@@ -153,7 +166,6 @@ The following PlantUML diagram illustrates the main classes and their relationsh
                 + keepalive: int
                 + publish_topics_params: list[PublishTopicParams] | None
                 + cache_dir: str | None
-                + logger: Logger
             }
             
             class SyncComManagerParams {
@@ -368,8 +380,10 @@ The following PlantUML diagram illustrates the main classes and their relationsh
         ItsMessage *-- FacilityMessage
         
         SyncComManager *-- AsyncComManagerParams
-        SyncComManager ..> AsyncComManager : uses internally
+        SyncComManager ..> AsyncComManager : uses internally\n(subscribe/receive path)
         SyncComManager *-- SyncComManagerParams
+        SyncComManager *-- PublishWorkerPool
+        PublishWorkerPool ..> AsyncComManager : each spawned worker owns\na private instance
         SyncComManagerParams --|> AsyncComManagerParams
         
         AsyncComManagerParams *-- PublishTopicParams
@@ -436,10 +450,40 @@ The step_lib package is organized into several layers, each with specific respon
    - Supports various routing modes (single-hop, anycast, broadcast)
 
 5. **BTP Layer**
-   
+
    - Implements Basic Transport Protocol
    - Maps message types to well-known ports
    - Supports BTP-A and BTP-B message types
+
+Multiprocess Publish Worker Pool
+---------------------------------
+
+``SyncComManager`` does not publish messages through its own background
+thread. Instead, ``publish_its_message()`` hands the message straight to
+``PublishWorkerPool`` (:mod:`step_lib.its_publish_worker_pool`), which owns
+a pool of ``publish_worker_count`` dedicated **OS processes**
+(:mod:`step_lib.its_publish_worker`), each running its own private
+``AsyncComManager``. The caller's process and the pool's process are
+connected by a ZeroMQ ``PUSH``/``PULL`` pipeline: the pool binds a single
+``PUSH`` socket, every worker connects a ``PULL`` socket to that same
+endpoint, and ZMQ fans messages out to them with round-robin fair-queuing.
+
+The motivation is GIL isolation: ASN.1 UPER encoding is CPU-bound, and
+running it in a thread would contend for the caller's own GIL against
+whatever else that process is doing. Running it in separate processes means
+the caller is never blocked by publish-side encoding work. A dedicated
+health-check thread (separate again from both the caller's threads and the
+subscribe/receive event loop) periodically detects and transparently
+restarts workers that have died or hung, using both OS-level
+``is_alive()`` checks and an application-level heartbeat.
+
+This mechanism only affects the *publish* path -- subscribing and
+receiving messages (see `Sequence Diagrams`_ below) still runs through
+``SyncComManager``'s own background async thread, unchanged.
+
+See :doc:`multiprocess_architecture` for the full design: component,
+class, and sequence diagrams for pool startup, publishing, health-check
+recovery, and graceful shutdown.
 
 Sequence Diagrams
 -----------------
@@ -599,21 +643,23 @@ Synchronous Communication Flow
     .. plantuml::
         :align: center
    
-        actor "Application\n(Main Thread)" as App
+        actor "Application\n(any thread)" as App
         participant "SyncComManager" as SCM
         participant "Async Thread" as AsyncThread
-        participant "AsyncComManager" as ACM
+        participant "AsyncComManager\n(subscribe/receive)" as ACM
+        participant "PublishWorkerPool" as Pool
         participant "Incoming Queue\n(AsyncioQueue)" as InQueue
         participant "Outgoing Queue\n(SyncQueue)" as OutQueue
         participant "MQTT Broker" as Broker
-        
+
         App -> SCM: start()
         activate SCM
         SCM -> AsyncThread: create and start thread
         activate AsyncThread
+        SCM -> Pool: start()\n(spawns publish worker processes)
         SCM --> App: started
         deactivate SCM
-        
+
         AsyncThread -> AsyncThread: setup event loop
         AsyncThread -> ACM: create client
         activate ACM
@@ -623,32 +669,16 @@ Synchronous Communication Flow
         Broker --> ACM: connected
         deactivate Broker
         deactivate ACM
-        
-        ... Application publishes message ...
-        
+
+        ... Application publishes message (see multiprocess_architecture.rst\nfor the full worker-pool sequence) ...
+
         App -> SCM: publish_its_message(message, ...)
         activate SCM
-        SCM -> InQueue: put(PublishMessageCommand)
-        activate InQueue
-        InQueue --> SCM: queued
-        deactivate InQueue
-        SCM --> App: queued
+        SCM -> Pool: send(envelope)\n(direct call, no queue/thread hop)
+        Pool --> SCM: routed to a publish\nworker process (round-robin)
+        SCM --> App: published (or StepLibBackpressureError\nif every worker is saturated)
         deactivate SCM
-        
-        AsyncThread -> InQueue: get command
-        activate InQueue
-        InQueue --> AsyncThread: PublishMessageCommand
-        deactivate InQueue
-        
-        AsyncThread -> ACM: publish_its_message(...)
-        activate ACM
-        ACM -> Broker: publish
-        activate Broker
-        Broker --> ACM: published
-        deactivate Broker
-        ACM --> AsyncThread: success
-        deactivate ACM
-        
+
         ... Broker sends message ...
         
         Broker -> ACM: incoming message
@@ -695,7 +725,10 @@ Synchronous Communication Flow
         
         AsyncThread -> AsyncThread: exit thread
         deactivate AsyncThread
-        
+
+        SCM -> Pool: close()\n(graceful, then forceful,\nsee multiprocess_architecture.rst)
+        Pool --> SCM: closed
+
         SCM --> App: stopped
         deactivate SCM
         
@@ -921,11 +954,10 @@ Asynchronous Pattern (Recommended for I/O-bound applications)
                 username="vehicle",
                 password="secret",
                 station_id=12345,
-                logger=getLogger(__name__)
             )
 
             # Create and connect
-            async with AsyncComManager(params) as client:
+            async with AsyncComManager(params, logger=getLogger(__name__)) as client:
                 # Subscribe to topics
                 await client.subscribe(
                     topic=[
@@ -993,11 +1025,10 @@ Synchronous Pattern (Easier integration with legacy code)
             password="secret",
             station_id=54321,
             reconnect_interval=2,
-            logger=getLogger(__name__)
         )
 
         # Use as context manager
-        with SyncComManager(params) as manager:
+        with SyncComManager(params, logger=getLogger(__name__)) as manager:
             # Subscribe to topics
             manager.subscribe(
                 topics=["v2x/denm/#"],
@@ -1055,7 +1086,16 @@ Thread Safety
 ~~~~~~~~~~~~~
 
 - **AsyncComManager**: Uses asyncio for single-thread async operations
-- **SyncComManager**: Uses explicit locking (RLock) for connection status
+- **SyncComManager**: Uses explicit locking (RLock) to atomically guard the
+  connection status and the subscribe/receive background loop's lifecycle;
+  publishing (``publish_its_message()``) is dispatched directly to
+  ``PublishWorkerPool`` from the caller's own thread and needs no locking
+  at the ``SyncComManager`` level, since the pool serializes access to its
+  own ZMQ socket internally
+- **PublishWorkerPool**: Runs each publish worker in its own OS process
+  (not a thread), so encoding work never shares the caller's GIL; a
+  dedicated health-check thread periodically restarts dead or hung workers
+  (see :doc:`multiprocess_architecture`)
 - Message queues are thread-safe by design (asyncio.Queue, queue.Queue)
 - Event loop runs in dedicated background thread
 

@@ -71,7 +71,7 @@ The following snippet explains how to create the data-class of parameters.
     from step_cloud_schemas import MessageId
     from step_lib import MqttQoS, PublishTopicParams, SyncComManagerParams
 
-    def create_sync_com_manager_params(logger: logging.Logger) -> SyncComManagerParams:
+    def create_sync_com_manager_params() -> SyncComManagerParams:
         tls_params = TLSParameters(
             ca_certs=None,
             certfile=None,
@@ -121,10 +121,19 @@ The following snippet explains how to create the data-class of parameters.
                 ),
             ],
             cache_dir="./.cache",
-            logger=logger,
             reconnect_interval=2,
             max_incoming_queue_rooms=60,
             max_outgoing_queue_rooms=60,
+            publish_worker_count=2,
+            publish_worker_startup_timeout=15.0,
+            publish_hwm=2000,
+            publish_health_check_interval=1.0,
+            publish_heartbeat_interval=0.5,
+            publish_heartbeat_timeout=3.0,
+            publish_parent_watchdog_interval=1.0,
+            publish_graceful_shutdown_timeout=5.0,
+            publish_forceful_join_timeout=5.0,
+            publish_max_connect_attempts=5,
         )
 
 .. note::
@@ -133,6 +142,36 @@ The following snippet explains how to create the data-class of parameters.
     by different stations. If ``station_id`` is None, it isn't used; otherwise, the
     library filters received messages to those matching ``station_id`` and overrides
     the station id in published messages with it.
+
+.. note::
+
+    ``SyncComManager`` publishes through a pool of worker processes rather than
+    on the calling thread. The ``publish_worker_*`` and ``publish_*`` fields tune
+    that pool:
+
+        - ``publish_worker_count``: number of publish worker processes to spawn.
+        - ``publish_worker_startup_timeout``: seconds to wait for a spawned worker
+          to signal readiness before treating it as failed.
+        - ``publish_hwm``: high-water mark for the worker pool's ZMQ PUSH socket.
+        - ``publish_health_check_interval``: seconds between periodic worker
+          health checks.
+        - ``publish_heartbeat_interval``: seconds between worker heartbeat
+          refreshes.
+        - ``publish_heartbeat_timeout``: seconds of heartbeat staleness after
+          which a worker is considered blocked.
+        - ``publish_parent_watchdog_interval``: seconds between a worker's checks
+          that its parent process is still alive.
+        - ``publish_graceful_shutdown_timeout``: seconds to wait for workers to
+          exit gracefully during ``close()`` before escalating to a forceful
+          termination. If this manager runs inside a container/service manager,
+          keep it (plus ``publish_forceful_join_timeout``) safely below that
+          manager's own outer shutdown grace period.
+        - ``publish_forceful_join_timeout``: seconds to wait for a
+          forcefully-terminated worker to exit before escalating further.
+        - ``publish_max_connect_attempts``: consecutive failed MQTT connect
+          attempts a worker tolerates before giving up and exiting, to be picked
+          up and restarted by the pool's health check, rather than retrying
+          forever.
 
 Using Context Manager (Recommended)
 -----------------------------------
@@ -158,8 +197,8 @@ The following snippet of code:
     )
 
     # Use context manager for automatic resource cleanup
-    params = create_sync_com_manager_params(logger=logger)
-    with SyncComManager(params) as client:
+    params = create_sync_com_manager_params()
+    with SyncComManager(params, logger=logger) as client:
 
         # Subscribe to the topics
         client.subscribe(
@@ -232,8 +271,8 @@ The following snippet of code:
 
     client = None
     try:
-        params = create_sync_com_manager_params(logger=logger)
-        client = SyncComManager(params)
+        params = create_sync_com_manager_params()
+        client = SyncComManager(params, logger=logger)
 
         # Start the client
         client.start()
@@ -384,9 +423,8 @@ it to build a ready-to-use ``AsyncComManager`` instance.
                 ),
             ],
             cache_dir="./.cache",
-            logger=logger,
         )
-        return AsyncComManager(params=params)
+        return AsyncComManager(params=params, logger=logger)
 
 .. note::
 

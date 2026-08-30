@@ -1,0 +1,635 @@
+Multiprocess Publish Architecture
+==================================
+
+Overview
+--------
+
+:class:`~step_lib.SyncComManager` delegates every call to
+``publish_its_message()`` to :class:`~step_lib.its_publish_worker_pool.PublishWorkerPool`,
+a pool of dedicated **publish worker processes** rather than a background
+thread. This page documents that mechanism in depth: which processes exist,
+how they talk to each other, and how the pool detects and recovers from a
+dead or hung worker.
+
+The design originates from ``step_lib/doc/carla_its_multiprocess_design.md``,
+written for a CARLA simulation client that has to drive ``world.tick()`` and
+generate ETSI-timed CAM messages for up to 1000 simulated actors without the
+CPU-bound ASN.1 UPER encoding of those messages ever sharing a GIL with the
+simulation loop. The mechanism implemented in
+:mod:`step_lib.its_publish_worker_pool` and :mod:`step_lib.its_publish_worker`
+follows that design's core idea -- a ZeroMQ ``PUSH``/``PULL`` pipeline
+fanning work out to a pool of stateless encoder processes -- but is not
+CARLA-specific: it is the publish path used by every :class:`~step_lib.SyncComManager`,
+and it goes beyond the original design note in a few ways described in
+`Beyond the original design note`_ below.
+
+Why processes, not threads
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Encoding a facility message to ASN.1 UPER and building the GeoNetworking/BTP
+envelope around it is CPU-bound. Running that work in a thread inside the
+caller's own process would contend for the interpreter's GIL against
+whatever else the caller's process is doing (in the CARLA case: driving the
+simulation). Running it in **separate OS processes**, each with its own GIL,
+means the caller's process is never blocked by publish-side encoding work,
+no matter how many messages per second are being published.
+
+Two consequences follow directly from that choice:
+
+- The publish workers must be **stateless**: since a worker can be killed
+  and replaced at any point, no per-vehicle timing or business logic can
+  live inside one. All of that logic stays in the caller, which builds a
+  :class:`~step_lib.facilities.facility_message.FacilityMessage` and calls
+  ``publish_its_message()`` whenever *it* decides a message is due.
+- Handoff between the caller's process and a worker process must cross a
+  process boundary, which rules out sharing Python objects directly. The
+  wire format for that handoff is :class:`~step_lib.its_publish_envelope.PublishEnvelope`,
+  described in `The wire format: PublishEnvelope`_.
+
+Component Diagram
+------------------
+
+.. container:: scrollable-diagram
+
+    .. plantuml::
+        :align: center
+
+        @startuml
+        skinparam componentStyle rectangle
+        left to right direction
+
+        actor "Application" as App
+
+        package "Caller process (process A)" {
+            [SyncComManager] as SCM
+            [Subscribe/receive\nasync thread] as SubThread
+            [Health-check thread] as Health
+            [PublishWorkerPool] as Pool
+            [ZMQ PUSH socket\ntcp://127.0.0.1:*\n(bind, HWM=publish_hwm)] as Push
+            [QueueListener] as QListener
+            queue "MpQueue[LogRecord]\n(log_queue)" as LogQueue
+        }
+
+        package "Publish worker process #i\n(process B, i = 0..publish_worker_count-1)" {
+            [PublishWorker] as Worker
+            [ZMQ PULL socket\n(connect)] as Pull
+            [AsyncComManager\n(private, per worker)] as WorkerACM
+        }
+
+        database "STEP MQTT Broker" as Broker
+
+        App --> SCM : publish_its_message()\nsubscribe() / get_its_message_received()
+        SCM --> SubThread : subscribe / incoming\ncommands (queued)
+        SubThread --> Broker : MQTT subscribe / receive
+        SCM --> Pool : send(envelope)\n(direct call, caller's thread)
+        SCM --> Health : start() spawns / stop() joins
+        Health --> Pool : check_health()\n(periodic, own thread)
+        Pool --> Push : owns / binds
+        Push ..> Pull : ZMQ PUSH/PULL\nround-robin fan-out
+        Pool ..> Worker : spawn via\nmultiprocessing ("spawn" context)
+        Worker --> Pull : owns / connects
+        Worker --> WorkerACM : publish_its_message(\nenvelope.to_domain_objects())
+        WorkerACM --> Broker : MQTT publish
+        Worker ..> LogQueue : logging.QueueHandler
+        LogQueue --> QListener : drained by
+        QListener --> Health : re-emits through\napplication's own handlers
+        @enduml
+
+Two independent channels connect process A to each process B: the ZMQ
+``PUSH``/``PULL`` data path (envelopes to publish) and the
+``multiprocessing`` control primitives (``ready_event``, ``stop_event``,
+the shared ``heartbeat`` value) used for lifecycle management, plus the
+shared log queue so a worker's log records surface through the
+application's own logging configuration instead of being silently
+confined to the worker process.
+
+Only one ZMQ endpoint exists for the whole pool: :meth:`PublishWorkerPool.start`
+binds a single ``PUSH`` socket to ``tcp://127.0.0.1:*`` (a wildcard port,
+so the OS/libzmq picks a free one atomically -- no separate probe-then-bind
+step) and every worker's ``PULL`` socket connects to that same address.
+ZeroMQ fans messages out to connected ``PULL`` sockets with round-robin
+fair-queuing regardless of which side called ``bind()`` versus ``connect()``,
+so having the pool bind once (rather than one port per worker) does not
+change the distribution behavior, and avoids the per-worker port bookkeeping
+the design note's own "old design" comments call out.
+
+Class Diagram
+--------------
+
+.. container:: scrollable-diagram
+
+    .. plantuml::
+        :align: center
+
+        @startuml
+        skinparam classAttributeIconSize 0
+
+        package "step_lib.sync_com_manager" {
+            class SyncComManager {
+                - _worker_pool: PublishWorkerPool
+                - _health_check_thread: Thread
+                - _health_check_stop_event: Event
+                + start() : void
+                + stop() : void
+                + publish_its_message(message, address, position, is_mobile) : void
+                + check_health(auto_restart) : void
+                - _health_check_loop() : void
+            }
+        }
+
+        package "step_lib.sync_com_manager_params" {
+            class SyncComManagerParams {
+                + publish_worker_count: int = 4
+                + publish_worker_startup_timeout: float = 15.0
+                + publish_hwm: int = 2000
+                + publish_health_check_interval: float = 1.0
+                + publish_heartbeat_interval: float = 0.5
+                + publish_heartbeat_timeout: float = 3.0
+                + publish_parent_watchdog_interval: float = 1.0
+                + publish_graceful_shutdown_timeout: float = 5.0
+                + publish_forceful_join_timeout: float = 5.0
+                + publish_max_connect_attempts: int = 5
+            }
+        }
+
+        package "step_lib.its_publish_worker_pool" {
+            class PublishWorkerPool {
+                - _workers: dict[int, BaseProcess]
+                - _ready_events: dict[int, MpEvent]
+                - _stop_events: dict[int, MpEvent]
+                - _heartbeats: dict[int, Synchronized[float]]
+                - _connected: set[int]
+                - _sock: ZmqSocket | None
+                - _socket_lock: Lock
+                - _endpoint: str | None
+                + {property} is_running : bool
+                + start() : void
+                + send(envelope: PublishEnvelope) : void
+                + dead_workers() : list[int]
+                + blocked_workers() : list[int]
+                + check_health(auto_restart) : void
+                + close() : void
+                - _spawn_worker_with_retry(worker_index) : void
+                - _spawn_worker(worker_index) : void
+                - _await_ready(worker_index) : void
+                - _restart_worker(worker_index) : void
+            }
+        }
+
+        package "step_lib.its_publish_worker" {
+            class PublishWorker {
+                - _endpoint: str
+                - _worker_index: int
+                - _ready_event: MpEvent
+                - _stop_event: MpEvent
+                - _heartbeat: Synchronized[float]
+                - _parent_pid: int
+                - _parent_create_time: float
+                - _worker_params: SyncComManagerParams
+                + run() : void
+                - _async_main() : void
+                - _heartbeat_loop() : void
+                - _publish_loop(sock) : void
+                - _parent_watchdog_loop() : void
+                - _stop_watch_loop() : void
+                - _is_parent_alive() : bool
+            }
+
+            class _WorkerShutdownSignal
+            class _ParentProcessGoneError
+            class _StopRequestedError
+            class _MaxConnectAttemptsExceededError
+
+            _WorkerShutdownSignal <|-- _ParentProcessGoneError
+            _WorkerShutdownSignal <|-- _StopRequestedError
+            _WorkerShutdownSignal <|-- _MaxConnectAttemptsExceededError
+        }
+
+        package "step_lib.its_publish_envelope" {
+            class PublishEnvelope {
+                + itsMessage: ItsMessageRoot
+                + isCustom: bool
+                + addressIsManualConfigured: bool
+                + addressTrafficParticipantType: TrafficParticipantType
+                + addressMacId: int
+                + positionTime: str
+                + positionLatitude: float
+                + positionLongitude: float
+                + positionAccuracy: float | None
+                + positionSpeed: float | None
+                + positionHeading: float | None
+                + isStationMobile: bool
+                + {static} from_domain_objects(message, address, position, is_mobile) : PublishEnvelope
+                + to_domain_objects() : DomainObjects
+            }
+
+            class DomainObjects <<NamedTuple>> {
+                + message: FacilityMessage
+                + address: GeoNetworkAddress
+                + current_position: GpsLocation
+            }
+
+            PublishEnvelope ..> DomainObjects : to_domain_objects() returns
+        }
+
+        SyncComManager *-- PublishWorkerPool
+        SyncComManager ..> SyncComManagerParams : configured by
+        PublishWorkerPool ..> SyncComManagerParams : configured by
+        PublishWorkerPool "1" *-- "publish_worker_count" PublishWorker : spawns (\nmultiprocessing.Process,\nspawn context)
+        PublishWorkerPool ..> PublishEnvelope : send(envelope)\nJSON-encodes and PUSHes
+        PublishWorker ..> PublishEnvelope : receives JSON,\nmodel_validate_json()
+        PublishWorker *-- "1" AsyncComManager : owns a private\nclient per worker
+        PublishWorker ..> _WorkerShutdownSignal : raised by sibling\ntasks to trigger shutdown
+        @enduml
+
+Notes on the class diagram:
+
+- ``PublishWorkerPool`` and ``PublishWorker`` never share a Python object:
+  everything crossing the process boundary is either a ``multiprocessing``
+  primitive (``Event``, ``Value``) or JSON bytes over the ZMQ socket. The
+  arrows above cross that boundary conceptually, not as live references.
+- ``PublishWorker`` is constructed inside the pool's process and handed to
+  ``multiprocessing.Process(target=worker.run)`` -- the instance itself is
+  pickled across the ``spawn`` boundary, which is why every constructor
+  argument is a plain, picklable value (strings, ints, ``multiprocessing``
+  primitives) rather than a live socket or logger.
+- The four ``_WorkerShutdownSignal`` subclasses are module-private; they
+  exist purely so any one of the four sibling tasks running under a
+  worker's ``TaskGroup`` (see the sequence diagram below) can unwind the
+  other three through Python's ``except*`` exception-group handling.
+
+Sequence Diagrams
+------------------
+
+Pool Startup
+~~~~~~~~~~~~
+
+Triggered by ``SyncComManager.start()``, after the subscribe/receive
+background thread's event loop is already up.
+
+.. container:: scrollable-diagram
+
+    .. plantuml::
+        :align: center
+
+        @startuml
+        actor "Application" as App
+        participant "SyncComManager" as SCM
+        participant "PublishWorkerPool" as Pool
+        participant "ZMQ PUSH socket" as Push
+        participant "PublishWorker #i" as Worker
+        participant "Health-check\nthread" as Health
+
+        App -> SCM: start()
+        activate SCM
+        SCM -> SCM: start subscribe/receive\nasync thread, wait for loop
+        SCM -> Pool: start()
+        activate Pool
+        Pool -> Pool: create log_queue + QueueListener
+        Pool -> Push: bind("tcp://127.0.0.1:*")
+        Push --> Pool: endpoint (LAST_ENDPOINT)
+
+        loop for worker_index in 0..publish_worker_count-1
+            Pool -> Pool: _spawn_worker_with_retry(worker_index)
+            Pool -> Worker: mp.Process(target=worker.run).start()
+            activate Worker
+            Worker -> Worker: connect PULL socket to endpoint
+            Worker -> Pool: ready_event.set()
+            Pool -> Pool: _await_ready() polls\nready_event (or proc.is_alive())
+            Worker -> Worker: enter TaskGroup:\nheartbeat/publish/watchdog/stop_watch loops
+        end
+
+        Pool --> SCM: pool ready (w workers connected)
+        deactivate Pool
+        SCM -> Health: start health-check thread
+        activate Health
+        SCM --> App: started
+        deactivate SCM
+
+        note over Pool, Worker
+          If start() raises (a worker never becomes ready
+          within publish_worker_startup_timeout after
+          MAX_WORKER_SPAWN_ATTEMPTS retries), the already-started
+          subscribe/receive thread is unwound via stop() before
+          the error propagates -- start() never leaves an
+          orphaned background thread behind.
+        end note
+        @enduml
+
+Publishing a Message
+~~~~~~~~~~~~~~~~~~~~~
+
+Unlike subscribing (which is dispatched through the incoming command queue
+to the background async loop), publishing never touches that loop or its
+thread: ``publish_its_message()`` builds the envelope and sends it directly
+from the **caller's own thread**, serialized only by the pool's internal
+``_socket_lock``. This is what lets multiple caller threads -- and the
+health-check thread's own restarts -- call it concurrently without any
+locking at the ``SyncComManager`` level.
+
+.. container:: scrollable-diagram
+
+    .. plantuml::
+        :align: center
+
+        @startuml
+        actor "Application\n(any thread)" as App
+        participant "SyncComManager" as SCM
+        participant "PublishWorkerPool" as Pool
+        participant "ZMQ PUSH socket" as Push
+        participant "ZMQ PULL socket" as Pull
+        participant "PublishWorker\n(publish_loop)" as Worker
+        participant "AsyncComManager\n(private to worker)" as WorkerACM
+        participant "STEP MQTT Broker" as Broker
+
+        App -> SCM: publish_its_message(message, address,\ncurrent_position, is_station_mobile)
+        activate SCM
+        SCM -> SCM: check _worker_pool.is_running
+        SCM -> SCM: PublishEnvelope.from_domain_objects(...)
+        SCM -> Pool: send(envelope)
+        activate Pool
+        Pool -> Pool: payload = envelope.model_dump_json()
+        Pool -> Push: send(payload, zmq.NOBLOCK)\n(under _socket_lock)
+
+        alt every worker pipe at publish_hwm (backpressure)
+            Push --> Pool: zmq.Again
+            Pool --> SCM: raises zmq.Again
+            SCM --> App: raises StepLibBackpressureError
+        else pipe has room
+            Push -->> Pull: round-robin routed\nto one connected worker
+            Pool --> SCM: (returns)
+            deactivate Pool
+            SCM --> App: (returns)
+            deactivate SCM
+
+            Pull -> Worker: await sock.recv()
+            activate Worker
+            Worker -> Worker: PublishEnvelope.model_validate_json(raw)
+            alt payload fails validation
+                Worker -> Worker: log warning, discard, continue loop
+            else valid envelope
+                Worker -> Worker: envelope.to_domain_objects()
+                Worker -> WorkerACM: publish_its_message(message, address,\ncurrent_position, is_station_mobile)
+                activate WorkerACM
+                WorkerACM -> Broker: MQTT publish (topic derived\nfrom geohash + message type)
+                Broker --> WorkerACM: published
+                WorkerACM --> Worker: success
+                deactivate WorkerACM
+            end
+            deactivate Worker
+        end
+        @enduml
+
+Health Check and Recovery
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Run on the dedicated ``_health_check_thread`` (never on the subscribe/
+receive event loop, since a restart's readiness wait can genuinely block
+for seconds and must not stall inbound MQTT delivery), at a fixed cadence
+of ``publish_health_check_interval`` seconds, independent of message
+volume. Two independent failure modes are distinguished:
+
+- **Dead**: the OS process itself has exited (``proc.is_alive()`` is
+  False) -- detected instantly and cheaply.
+- **Blocked**: the process is still alive but its shared ``heartbeat``
+  timestamp has gone stale (older than ``publish_heartbeat_timeout``).
+  Since ``_heartbeat_loop`` only keeps advancing while the worker's
+  *entire* asyncio event loop keeps yielding, a stale heartbeat means
+  every task on that loop -- including ``_publish_loop`` -- has stopped
+  making progress, which plain ``is_alive()`` alone cannot detect.
+
+.. container:: scrollable-diagram
+
+    .. plantuml::
+        :align: center
+
+        @startuml
+        participant "Health-check\nthread" as Health
+        participant "PublishWorkerPool" as Pool
+        participant "PublishWorker #i\n(dead or blocked)" as Worker
+        participant "PublishWorker #i\n(replacement)" as NewWorker
+
+        loop every publish_health_check_interval seconds
+            Health -> Pool: check_health(auto_restart=True)
+            activate Pool
+
+            Pool -> Pool: dead_workers()\n(proc.is_alive() == False)
+            alt worker found dead
+                Pool -> Pool: log error(pid, exitcode)
+                Pool -> Pool: _restart_worker(worker_index)
+                Pool -> NewWorker: spawn + await ready\n(same endpoint)
+                activate NewWorker
+                NewWorker -> Pool: ready_event.set()
+                Pool -> Pool: mark connected
+                deactivate NewWorker
+            end
+
+            Pool -> Pool: blocked_workers()\n(heartbeat older than\npublish_heartbeat_timeout)
+            alt worker found blocked
+                Pool -> Pool: log error("worker blocked")
+                Pool -> Worker: terminate()
+                Pool -> Worker: join(publish_forceful_join_timeout)
+                alt still alive
+                    Pool -> Worker: kill()
+                    Pool -> Worker: join(publish_forceful_join_timeout)
+                end
+                deactivate Worker
+                Pool -> Pool: _restart_worker(worker_index)
+                Pool -> NewWorker: spawn + await ready\n(same endpoint)
+                activate NewWorker
+                NewWorker -> Pool: ready_event.set()
+                Pool -> Pool: mark connected
+                deactivate NewWorker
+            end
+            deactivate Pool
+        end
+
+        note over Worker, NewWorker
+          A worker can also self-terminate without any pool
+          intervention: _publish_loop raises
+          _MaxConnectAttemptsExceededError after
+          publish_max_connect_attempts consecutive failed MQTT
+          connects, or _parent_watchdog_loop raises
+          _ParentProcessGoneError if the pool's own process has
+          died. Either way the worker process exits, is later
+          seen by dead_workers(), and is restarted exactly like
+          an ordinary crash.
+        end note
+        @enduml
+
+A dead/blocked worker is marked *not connected* the moment it is detected,
+before the (potentially slow) respawn happens with no lock held --
+``send()`` keeps routing to the pool's other, still-healthy workers for the
+whole duration of a restart, and a concurrent ``check_health()`` pass will
+not try to restart the same slot twice.
+
+Graceful Shutdown
+~~~~~~~~~~~~~~~~~~
+
+Triggered by ``SyncComManager.stop()``. The health-check thread is stopped
+and joined *first*, so no further ``check_health()`` call can race with the
+teardown sequence that follows.
+
+.. container:: scrollable-diagram
+
+    .. plantuml::
+        :align: center
+
+        @startuml
+        actor "Application" as App
+        participant "SyncComManager" as SCM
+        participant "Health-check\nthread" as Health
+        participant "PublishWorkerPool" as Pool
+        participant "PublishWorker #i" as Worker
+
+        App -> SCM: stop()
+        activate SCM
+        SCM -> Health: health_check_stop_event.set()\njoin()
+        deactivate Health
+        SCM -> SCM: (subscribe/receive shutdown,\nsee architecture.rst)
+        SCM -> Pool: close()  [always, in finally]
+        activate Pool
+
+        Pool -> Pool: deadline = now + publish_graceful_shutdown_timeout
+        Pool -> Worker: every stop_event.set()
+        activate Worker
+        Pool -> Pool: close PUSH socket (LINGER=0)
+
+        Worker -> Worker: _stop_watch_loop raises\n_StopRequestedError
+        Worker -> Worker: TaskGroup cancels\nheartbeat/publish/watchdog loops
+        Worker -> Worker: close PULL socket, exit process
+        deactivate Worker
+
+        Pool -> Worker: join(remaining time to deadline)
+        alt every worker exited in time
+            Pool -> Pool: (nothing more to do)
+        else worker still alive past deadline
+            Pool -> Worker: terminate()
+            Pool -> Worker: join(publish_forceful_join_timeout)
+            alt still alive
+                Pool -> Worker: kill()
+                Pool -> Worker: join(publish_forceful_join_timeout)
+            end
+        end
+
+        Pool -> Pool: stop QueueListener
+        Pool --> SCM: closed
+        deactivate Pool
+        SCM --> App: stopped
+        deactivate SCM
+        @enduml
+
+The Wire Format: PublishEnvelope
+----------------------------------
+
+:class:`~step_lib.its_publish_envelope.PublishEnvelope` is the only thing
+that crosses the process boundary on the data path. It is a frozen,
+strict Pydantic model built once per publish call from the same domain
+objects ``publish_its_message()`` already accepted -- a
+:class:`~step_lib.facilities.facility_message.FacilityMessage`, a
+:class:`~step_lib.geonet.geo_network_address.GeoNetworkAddress`, and a
+:class:`~step_lib.its_message_serializer.GpsLocation` -- and reconstructed
+back into that same triple (``DomainObjects``) on the worker side.
+
+Two design choices keep this conversion lossless and cheap:
+
+- The facility message is wrapped via ``step_cloud_schemas.ItsMessageRoot``
+  (already the polymorphic CAM/CPM/DENM union used elsewhere in the
+  package) and nested directly in the envelope, not re-encoded as a
+  string -- so building an envelope is O(1) beyond the reference itself,
+  and ``model_dump_json()``/``model_validate_json()`` handle the one
+  necessary encode/decode step.
+- ``GeoNetworkAddress`` and ``GpsLocation`` are flattened into scalar
+  fields (``address*``/``position*``) rather than nested as sub-objects,
+  so the whole envelope round-trips as a single, self-contained JSON
+  object with no nested re-encoding step.
+- On the way back, ``to_domain_objects()`` reconstructs the concrete
+  ``FacilityMessage`` subclass directly from ``itsMessage.root`` (mirroring
+  ``step_lib.__main__``'s own encode path) instead of going through
+  ``from_json()`` -- this is what preserves the ``isCustom`` flag's
+  fidelity for CPM messages, since ``CpmMessageV1.from_json()`` would
+  otherwise silently default it to ``True``.
+
+Beyond the Original Design Note
+---------------------------------
+
+``carla_its_multiprocess_design.md`` describes the mechanism's foundation
+-- process isolation, the ZMQ ``PUSH``/``PULL`` pipeline, JSON-over-Pydantic
+envelopes, a periodic ``is_alive()`` health check, HWM plus
+``zmq.NOBLOCK`` for non-blocking sends. The implementation in
+:mod:`step_lib.its_publish_worker_pool` / :mod:`step_lib.its_publish_worker`
+follows all of that, and adds several things the note explicitly called
+out as deliberately out of scope for its own use case:
+
+.. list-table::
+   :widths: 30 70
+   :header-rows: 1
+
+   * - Addition
+     - Why
+   * - Heartbeat-based blocked-worker detection (``_heartbeat_loop``, ``blocked_workers()``)
+     - The design note's own "Limite accettato" section calls an
+       application-level heartbeat unnecessary for its use case, since
+       ``is_alive()`` alone was judged sufficient. ``step_lib`` is a
+       general-purpose library used well beyond CARLA, so it adds this to
+       catch a worker whose process is alive but whose event loop has
+       hung (a dependency deadlock, for instance) -- a case plain
+       ``is_alive()`` cannot see.
+   * - Parent watchdog (``_parent_watchdog_loop``)
+     - ``daemon=True`` alone only guarantees cleanup on the parent's
+       *normal* interpreter shutdown path. Comparing ``psutil``
+       ``create_time()`` alongside the PID closes the "orphaned worker
+       survives a hard-killed parent, or a reused PID" gap.
+   * - Bounded MQTT connect retries (``publish_max_connect_attempts``, ``_MaxConnectAttemptsExceededError``)
+     - Lets a worker whose MQTT connection can never succeed (but whose
+       asyncio loop is otherwise perfectly healthy, so its heartbeat never
+       goes stale) self-terminate and be picked up by the ordinary
+       dead-worker restart path, instead of retrying forever.
+   * - Explicit ``spawn`` multiprocessing context
+     - The design note's reference code relies on the platform default.
+       ``fork`` is unsafe once the parent is already multi-threaded --
+       which it already is by the time the pool starts, since
+       ``SyncComManager.start()`` starts its own background thread first
+       -- so the pool pins ``spawn`` explicitly on every platform.
+   * - Graceful-then-forceful shutdown (``close()``)
+     - The design note's ``WorkerPool.close()`` terminates every worker
+       unconditionally. This implementation signals a cooperative
+       ``stop_event`` first (so a worker can close its sockets and exit
+       cleanly) and only escalates to ``terminate()``/``kill()`` for
+       workers still alive past ``publish_graceful_shutdown_timeout``.
+   * - Cross-process log aggregation (``log_queue`` + ``QueueListener``)
+     - Each worker logs through a ``QueueHandler`` into a shared
+       ``multiprocessing.Queue``; the pool's process drains it with a
+       ``QueueListener`` attached to the application's own configured
+       handlers, so worker-process log records are not silently lost or
+       confined to a separate process.
+
+Configuration Reference
+-------------------------
+
+Every tunable described above lives on :class:`~step_lib.SyncComManagerParams`
+(inherited alongside the base :class:`~step_lib.AsyncComManagerParams`
+fields). See :doc:`step_lib_rst/step_lib.sync_com_manager_params` for the
+full field-by-field reference; the fields most relevant to this page are
+``publish_worker_count``, ``publish_hwm``, ``publish_health_check_interval``,
+``publish_heartbeat_interval``/``publish_heartbeat_timeout``,
+``publish_parent_watchdog_interval``, ``publish_graceful_shutdown_timeout``/
+``publish_forceful_join_timeout``, and ``publish_max_connect_attempts``.
+
+.. note::
+   ``publish_graceful_shutdown_timeout`` (plus ``publish_forceful_join_timeout``)
+   bounds how long ``SyncComManager.stop()`` can block on the publish
+   pool's shutdown. Deployers running the manager inside a container or
+   service manager with its own shutdown grace period should keep these
+   two settings safely below that outer deadline.
+
+See Also
+--------
+
+- :doc:`architecture` -- overall step_lib architecture, including the
+  package-wide class diagram and the subscribe/receive path (which does
+  not use this multiprocess mechanism).
+- :doc:`step_lib_rst/step_lib.its_publish_worker_pool`,
+  :doc:`step_lib_rst/step_lib.its_publish_worker`,
+  :doc:`step_lib_rst/step_lib.its_publish_envelope` -- full API reference
+  for every class introduced on this page.
