@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Architecture &mdash; STEP Library 2.0.1 documentation</title>
+  <title>Architecture &mdash; STEP Library 2.0.2 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="_static/tabs.css?v=4c969af8" />
@@ -16,7 +16,7 @@
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=f5cff4aa"></script>
+      <script src="_static/documentation_options.js?v=c2377ec0"></script>
       <script src="_static/doctools.js?v=fd6eb6e6"></script>
       <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="_static/tabs.js?v=3ee01567"></script>
@@ -81,6 +81,8 @@
 <li class="toctree-l2"><a class="reference internal" href="commands.html#decode-its-facility-packets">Decode ITS facility packets</a></li>
 <li class="toctree-l2"><a class="reference internal" href="commands.html#encode-its-facility-packets">Encode ITS facility packets</a></li>
 <li class="toctree-l2"><a class="reference internal" href="commands.html#set-the-log-level">Set the log level</a></li>
+<li class="toctree-l2"><a class="reference internal" href="commands.html#write-the-publishenvelope-json-schema">Write the PublishEnvelope JSON schema</a></li>
+<li class="toctree-l2"><a class="reference internal" href="commands.html#write-a-publishenvelope-message-example">Write a PublishEnvelope message example</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="package_script.html">Package Script</a><ul>
@@ -124,7 +126,12 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#usage-patterns">Usage Patterns</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#asynchronous-pattern-recommended-for-i-o-bound-applications">Asynchronous Pattern (Recommended for I/O-bound applications)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#synchronous-pattern-easier-integration-with-legacy-code">Synchronous Pattern (Easier integration with legacy code)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#synchronous-pattern-easier-integration-with-legacy-code">Synchronous Pattern (Easier integration with legacy code)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#with-context-manager-without-station-id-filter">With context manager, without <code class="docutils literal notranslate"><span class="pre">station_id</span></code> filter</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#without-context-manager-without-station-id-filter">Without context manager, without <code class="docutils literal notranslate"><span class="pre">station_id</span></code> filter</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#with-context-manager-with-station-id-filter">With context manager, with <code class="docutils literal notranslate"><span class="pre">station_id</span></code> filter</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#design-principles">Design Principles</a><ul>
@@ -156,6 +163,7 @@
 <li class="toctree-l1"><a class="reference internal" href="multiprocess_architecture.html">Multiprocess Publish Architecture</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="multiprocess_architecture.html#overview">Overview</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="multiprocess_architecture.html#why-processes-not-threads">Why processes, not threads</a></li>
+<li class="toctree-l3"><a class="reference internal" href="multiprocess_architecture.html#why-a-zmq-pipeline-not-another-pattern">Why a ZMQ Pipeline, not another pattern</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="multiprocess_architecture.html#component-diagram">Component Diagram</a></li>
@@ -168,9 +176,25 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="multiprocess_architecture.html#the-wire-format-publishenvelope">The Wire Format: PublishEnvelope</a></li>
-<li class="toctree-l2"><a class="reference internal" href="multiprocess_architecture.html#beyond-the-original-design-note">Beyond the Original Design Note</a></li>
+<li class="toctree-l2"><a class="reference internal" href="multiprocess_architecture.html#hardening-beyond-the-basic-pipeline">Hardening Beyond the Basic Pipeline</a></li>
 <li class="toctree-l2"><a class="reference internal" href="multiprocess_architecture.html#configuration-reference">Configuration Reference</a></li>
 <li class="toctree-l2"><a class="reference internal" href="multiprocess_architecture.html#see-also">See Also</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="ventilator_worker_protocol.html">Ventilator/Worker Communication Protocol</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="ventilator_worker_protocol.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ventilator_worker_protocol.html#message-flow">Message Flow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ventilator_worker_protocol.html#the-wire-format-json-serialization">The Wire Format: JSON Serialization</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ventilator_worker_protocol.html#malformed-payloads">Malformed Payloads</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="ventilator_worker_protocol.html#heartbeat">Heartbeat</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ventilator_worker_protocol.html#how-it-works">How it works</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="ventilator_worker_protocol.html#reconnection">Reconnection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ventilator_worker_protocol.html#worker-auto-closing">Worker Auto-Closing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ventilator_worker_protocol.html#see-also">See Also</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="docstring_coverage_report.html">API Documentation Coverage Summary</a><ul>
@@ -179,77 +203,152 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="coverage_report.html">Test Coverage Summary</a></li>
-<li class="toctree-l1"><a class="reference internal" href="messages/json_schemas.html">JSON Schemas</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="messages/json_schemas.html#json-schemas-groups">JSON Schemas Groups</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="messages/its_messages.html">ITS Messages</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="messages/cam_message.html">CAM Message</a><ul>
-<li class="toctree-l5"><a class="reference internal" href="messages/cam_data_v1_schema.html">CAM Data V1 Schema</a><ul>
-<li class="toctree-l6"><a class="reference internal" href="messages/cam_data_v1_schema.html#cam-data-version-1">CAM Data Version 1</a><ul>
-<li class="toctree-l7"><a class="reference internal" href="messages/cam_data_v1_schema.html#acceleration-component">Acceleration Component</a></li>
-<li class="toctree-l7"><a class="reference internal" href="messages/cam_data_v1_schema.html#reference-altitude">Reference Altitude</a></li>
-<li class="toctree-l7"><a class="reference internal" href="messages/cam_data_v1_schema.html#curvature">Curvature</a></li>
-<li class="toctree-l7"><a class="reference internal" href="messages/cam_data_v1_schema.html#curvature-calculation-mode">Curvature Calculation Mode</a></li>
-<li class="toctree-l7"><a class="reference internal" href="messages/cam_data_v1_schema.html#drive-direction">Drive Direction</a></li>
-<li class="toctree-l7"><a class="reference internal" href="messages/cam_data_v1_schema.html#heading">Heading</a></li>
-<li class="toctree-l7"><a class="reference internal" href="messages/cam_data_v1_schema.html#identification">Identification</a></li>
-<li class="toctree-l7"><a class="reference internal" href="messages/cam_data_v1_schema.html#position-confidence-ellipse">Position Confidence Ellipse</a></li>
-<li class="toctree-l7"><a class="reference internal" href="messages/cam_data_v1_schema.html#reference-position">Reference Position</a></li>
-<li class="toctree-l7"><a class="reference internal" href="messages/cam_data_v1_schema.html#speed">Speed</a></li>
-<li class="toctree-l7"><a class="reference internal" href="messages/cam_data_v1_schema.html#traffic-participant-type">Traffic Participant Type</a></li>
-<li class="toctree-l7"><a class="reference internal" href="messages/cam_data_v1_schema.html#vehicle-length">Vehicle Length</a></li>
-<li class="toctree-l7"><a class="reference internal" href="messages/cam_data_v1_schema.html#vehicle-length-confidence-indication">Vehicle Length Confidence Indication</a></li>
-<li class="toctree-l7"><a class="reference internal" href="messages/cam_data_v1_schema.html#vehicle-role">Vehicle Role</a></li>
-<li class="toctree-l7"><a class="reference internal" href="messages/cam_data_v1_schema.html#yaw-rate">Yaw Rate</a></li>
+<li class="toctree-l1"><a class="reference internal" href="schemas_rst/json_schemas.html">JSON Schemas</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="schemas_rst/json_schemas.html#json-schemas-groups">JSON Schemas Groups</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="schemas_rst/its_messages.html">ITS Messages</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="schemas_rst/cam_message.html">CAM Message</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cam_data_v1_schema.html">CAM Data V1 Schema</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/cam_data_v1_schema.html#cam-data-version-1">CAM Data Version 1</a><ul>
+<li class="toctree-l7"><a class="reference internal" href="schemas_rst/cam_data_v1_schema.html#acceleration-component">Acceleration Component</a></li>
+<li class="toctree-l7"><a class="reference internal" href="schemas_rst/cam_data_v1_schema.html#reference-altitude">Reference Altitude</a></li>
+<li class="toctree-l7"><a class="reference internal" href="schemas_rst/cam_data_v1_schema.html#curvature">Curvature</a></li>
+<li class="toctree-l7"><a class="reference internal" href="schemas_rst/cam_data_v1_schema.html#curvature-calculation-mode">Curvature Calculation Mode</a></li>
+<li class="toctree-l7"><a class="reference internal" href="schemas_rst/cam_data_v1_schema.html#drive-direction">Drive Direction</a></li>
+<li class="toctree-l7"><a class="reference internal" href="schemas_rst/cam_data_v1_schema.html#heading">Heading</a></li>
+<li class="toctree-l7"><a class="reference internal" href="schemas_rst/cam_data_v1_schema.html#identification">Identification</a></li>
+<li class="toctree-l7"><a class="reference internal" href="schemas_rst/cam_data_v1_schema.html#position-confidence-ellipse">Position Confidence Ellipse</a></li>
+<li class="toctree-l7"><a class="reference internal" href="schemas_rst/cam_data_v1_schema.html#reference-position">Reference Position</a></li>
+<li class="toctree-l7"><a class="reference internal" href="schemas_rst/cam_data_v1_schema.html#speed">Speed</a></li>
+<li class="toctree-l7"><a class="reference internal" href="schemas_rst/cam_data_v1_schema.html#traffic-participant-type">Traffic Participant Type</a></li>
+<li class="toctree-l7"><a class="reference internal" href="schemas_rst/cam_data_v1_schema.html#vehicle-length">Vehicle Length</a></li>
+<li class="toctree-l7"><a class="reference internal" href="schemas_rst/cam_data_v1_schema.html#vehicle-length-confidence-indication">Vehicle Length Confidence Indication</a></li>
+<li class="toctree-l7"><a class="reference internal" href="schemas_rst/cam_data_v1_schema.html#vehicle-role">Vehicle Role</a></li>
+<li class="toctree-l7"><a class="reference internal" href="schemas_rst/cam_data_v1_schema.html#yaw-rate">Yaw Rate</a></li>
 </ul>
 </li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="toctree-l4"><a class="reference internal" href="messages/cpm_message.html">CPM Message</a><ul>
-<li class="toctree-l5"><a class="reference internal" href="messages/cpm_data_v1_schema.html">CPM Data V1 Schema</a><ul>
-<li class="toctree-l6"><a class="reference internal" href="messages/cpm_data_v1_schema.html#cpm-data-version-1">CPM Data Version 1</a><ul>
-<li class="toctree-l7"><a class="reference internal" href="messages/cpm_data_v1_schema.html#reference-altitude">Reference Altitude</a></li>
-<li class="toctree-l7"><a class="reference internal" href="messages/cpm_data_v1_schema.html#heading">Heading</a></li>
-<li class="toctree-l7"><a class="reference internal" href="messages/cpm_data_v1_schema.html#object-dimension">Object Dimension</a></li>
-<li class="toctree-l7"><a class="reference internal" href="messages/cpm_data_v1_schema.html#path-point-predicted">Path Point Predicted</a></li>
-<li class="toctree-l7"><a class="reference internal" href="messages/cpm_data_v1_schema.html#perceived-object">Perceived Object</a></li>
-<li class="toctree-l7"><a class="reference internal" href="messages/cpm_data_v1_schema.html#position-confidence-ellipse">Position Confidence Ellipse</a></li>
-<li class="toctree-l7"><a class="reference internal" href="messages/cpm_data_v1_schema.html#reference-position">Reference Position</a></li>
-<li class="toctree-l7"><a class="reference internal" href="messages/cpm_data_v1_schema.html#speed">Speed</a></li>
-<li class="toctree-l7"><a class="reference internal" href="messages/cpm_data_v1_schema.html#traffic-participant-type">Traffic Participant Type</a></li>
+<li class="toctree-l4"><a class="reference internal" href="schemas_rst/cpm_message.html">CPM Message</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cpm_data_v1_schema.html">CPM Data V1 Schema</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/cpm_data_v1_schema.html#cpm-data-version-1">CPM Data Version 1</a><ul>
+<li class="toctree-l7"><a class="reference internal" href="schemas_rst/cpm_data_v1_schema.html#reference-altitude">Reference Altitude</a></li>
+<li class="toctree-l7"><a class="reference internal" href="schemas_rst/cpm_data_v1_schema.html#heading">Heading</a></li>
+<li class="toctree-l7"><a class="reference internal" href="schemas_rst/cpm_data_v1_schema.html#object-dimension">Object Dimension</a></li>
+<li class="toctree-l7"><a class="reference internal" href="schemas_rst/cpm_data_v1_schema.html#path-point-predicted">Path Point Predicted</a></li>
+<li class="toctree-l7"><a class="reference internal" href="schemas_rst/cpm_data_v1_schema.html#perceived-object">Perceived Object</a></li>
+<li class="toctree-l7"><a class="reference internal" href="schemas_rst/cpm_data_v1_schema.html#position-confidence-ellipse">Position Confidence Ellipse</a></li>
+<li class="toctree-l7"><a class="reference internal" href="schemas_rst/cpm_data_v1_schema.html#reference-position">Reference Position</a></li>
+<li class="toctree-l7"><a class="reference internal" href="schemas_rst/cpm_data_v1_schema.html#speed">Speed</a></li>
+<li class="toctree-l7"><a class="reference internal" href="schemas_rst/cpm_data_v1_schema.html#traffic-participant-type">Traffic Participant Type</a></li>
 </ul>
 </li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="toctree-l4"><a class="reference internal" href="messages/denm_message.html">DENM Message</a><ul>
-<li class="toctree-l5"><a class="reference internal" href="messages/denm_data_v1_schema.html">DENM Data V1 Schema</a><ul>
-<li class="toctree-l6"><a class="reference internal" href="messages/denm_data_v1_schema.html#denm-data-version-1">DENM Data Version 1</a><ul>
-<li class="toctree-l7"><a class="reference internal" href="messages/denm_data_v1_schema.html#action-id">Action Id</a></li>
-<li class="toctree-l7"><a class="reference internal" href="messages/denm_data_v1_schema.html#reference-altitude">Reference Altitude</a></li>
-<li class="toctree-l7"><a class="reference internal" href="messages/denm_data_v1_schema.html#cause-code">Cause Code</a></li>
-<li class="toctree-l7"><a class="reference internal" href="messages/denm_data_v1_schema.html#heading">Heading</a></li>
-<li class="toctree-l7"><a class="reference internal" href="messages/denm_data_v1_schema.html#location-container">Location Container</a></li>
-<li class="toctree-l7"><a class="reference internal" href="messages/denm_data_v1_schema.html#denm-management-container">DENM Management Container</a></li>
-<li class="toctree-l7"><a class="reference internal" href="messages/denm_data_v1_schema.html#object-dimension">Object Dimension</a></li>
-<li class="toctree-l7"><a class="reference internal" href="messages/denm_data_v1_schema.html#object-face">Object Face</a></li>
-<li class="toctree-l7"><a class="reference internal" href="messages/denm_data_v1_schema.html#path-point-predicted">Path Point Predicted</a></li>
-<li class="toctree-l7"><a class="reference internal" href="messages/denm_data_v1_schema.html#perceived-object">Perceived Object</a></li>
-<li class="toctree-l7"><a class="reference internal" href="messages/denm_data_v1_schema.html#position-confidence-ellipse">Position Confidence Ellipse</a></li>
-<li class="toctree-l7"><a class="reference internal" href="messages/denm_data_v1_schema.html#pre-crash-container">Pre-Crash Container</a></li>
-<li class="toctree-l7"><a class="reference internal" href="messages/denm_data_v1_schema.html#reference-position">Reference Position</a></li>
-<li class="toctree-l7"><a class="reference internal" href="messages/denm_data_v1_schema.html#road-type">Road Type</a></li>
-<li class="toctree-l7"><a class="reference internal" href="messages/denm_data_v1_schema.html#situation-container">Situation Container</a></li>
-<li class="toctree-l7"><a class="reference internal" href="messages/denm_data_v1_schema.html#speed">Speed</a></li>
-<li class="toctree-l7"><a class="reference internal" href="messages/denm_data_v1_schema.html#denm-termination-type">DENM Termination Type</a></li>
-<li class="toctree-l7"><a class="reference internal" href="messages/denm_data_v1_schema.html#traffic-direction-type">Traffic Direction Type</a></li>
-<li class="toctree-l7"><a class="reference internal" href="messages/denm_data_v1_schema.html#traffic-participant-type">Traffic Participant Type</a></li>
+<li class="toctree-l4"><a class="reference internal" href="schemas_rst/denm_message.html">DENM Message</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/denm_data_v1_schema.html">DENM Data V1 Schema</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/denm_data_v1_schema.html#denm-data-version-1">DENM Data Version 1</a><ul>
+<li class="toctree-l7"><a class="reference internal" href="schemas_rst/denm_data_v1_schema.html#action-id">Action Id</a></li>
+<li class="toctree-l7"><a class="reference internal" href="schemas_rst/denm_data_v1_schema.html#reference-altitude">Reference Altitude</a></li>
+<li class="toctree-l7"><a class="reference internal" href="schemas_rst/denm_data_v1_schema.html#cause-code">Cause Code</a></li>
+<li class="toctree-l7"><a class="reference internal" href="schemas_rst/denm_data_v1_schema.html#heading">Heading</a></li>
+<li class="toctree-l7"><a class="reference internal" href="schemas_rst/denm_data_v1_schema.html#location-container">Location Container</a></li>
+<li class="toctree-l7"><a class="reference internal" href="schemas_rst/denm_data_v1_schema.html#denm-management-container">DENM Management Container</a></li>
+<li class="toctree-l7"><a class="reference internal" href="schemas_rst/denm_data_v1_schema.html#object-dimension">Object Dimension</a></li>
+<li class="toctree-l7"><a class="reference internal" href="schemas_rst/denm_data_v1_schema.html#object-face">Object Face</a></li>
+<li class="toctree-l7"><a class="reference internal" href="schemas_rst/denm_data_v1_schema.html#path-point-predicted">Path Point Predicted</a></li>
+<li class="toctree-l7"><a class="reference internal" href="schemas_rst/denm_data_v1_schema.html#perceived-object">Perceived Object</a></li>
+<li class="toctree-l7"><a class="reference internal" href="schemas_rst/denm_data_v1_schema.html#position-confidence-ellipse">Position Confidence Ellipse</a></li>
+<li class="toctree-l7"><a class="reference internal" href="schemas_rst/denm_data_v1_schema.html#pre-crash-container">Pre-Crash Container</a></li>
+<li class="toctree-l7"><a class="reference internal" href="schemas_rst/denm_data_v1_schema.html#reference-position">Reference Position</a></li>
+<li class="toctree-l7"><a class="reference internal" href="schemas_rst/denm_data_v1_schema.html#road-type">Road Type</a></li>
+<li class="toctree-l7"><a class="reference internal" href="schemas_rst/denm_data_v1_schema.html#situation-container">Situation Container</a></li>
+<li class="toctree-l7"><a class="reference internal" href="schemas_rst/denm_data_v1_schema.html#speed">Speed</a></li>
+<li class="toctree-l7"><a class="reference internal" href="schemas_rst/denm_data_v1_schema.html#denm-termination-type">DENM Termination Type</a></li>
+<li class="toctree-l7"><a class="reference internal" href="schemas_rst/denm_data_v1_schema.html#traffic-direction-type">Traffic Direction Type</a></li>
+<li class="toctree-l7"><a class="reference internal" href="schemas_rst/denm_data_v1_schema.html#traffic-participant-type">Traffic Participant Type</a></li>
 </ul>
 </li>
 </ul>
 </li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="schemas_rst/its_message_schema.html">ITS Message Schema</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/its_message_schema.html#its-message">ITS Message</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/its_message_schema.html#acceleration-component">Acceleration Component</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/its_message_schema.html#action-id">Action Id</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/its_message_schema.html#reference-altitude">Reference Altitude</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/its_message_schema.html#cam-data-version-1">CAM Data Version 1</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/its_message_schema.html#cause-code">Cause Code</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/its_message_schema.html#cpm-data-version-1">CPM Data Version 1</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/its_message_schema.html#curvature">Curvature</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/its_message_schema.html#curvature-calculation-mode">Curvature Calculation Mode</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/its_message_schema.html#denm-data-version-1">DENM Data Version 1</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/its_message_schema.html#drive-direction">Drive Direction</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/its_message_schema.html#heading">Heading</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/its_message_schema.html#identification">Identification</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/its_message_schema.html#location-container">Location Container</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/its_message_schema.html#denm-management-container">DENM Management Container</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/its_message_schema.html#object-dimension">Object Dimension</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/its_message_schema.html#object-face">Object Face</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/its_message_schema.html#path-point-predicted">Path Point Predicted</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/its_message_schema.html#perceived-object">Perceived Object</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/its_message_schema.html#position-confidence-ellipse">Position Confidence Ellipse</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/its_message_schema.html#pre-crash-container">Pre-Crash Container</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/its_message_schema.html#reference-position">Reference Position</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/its_message_schema.html#road-type">Road Type</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/its_message_schema.html#situation-container">Situation Container</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/its_message_schema.html#speed">Speed</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/its_message_schema.html#denm-termination-type">DENM Termination Type</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/its_message_schema.html#traffic-direction-type">Traffic Direction Type</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/its_message_schema.html#traffic-participant-type">Traffic Participant Type</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/its_message_schema.html#vehicle-length">Vehicle Length</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/its_message_schema.html#vehicle-length-confidence-indication">Vehicle Length Confidence Indication</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/its_message_schema.html#vehicle-role">Vehicle Role</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/its_message_schema.html#yaw-rate">Yaw Rate</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="schemas_rst/publish_envelope_schema.html">Publish Envelope Schema</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="schemas_rst/publish_envelope_schema.html#publish-envelope">Publish Envelope</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/publish_envelope_schema.html#acceleration-component">Acceleration Component</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/publish_envelope_schema.html#action-id">Action Id</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/publish_envelope_schema.html#reference-altitude">Reference Altitude</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/publish_envelope_schema.html#cam-data-version-1">CAM Data Version 1</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/publish_envelope_schema.html#cause-code">Cause Code</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/publish_envelope_schema.html#cpm-data-version-1">CPM Data Version 1</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/publish_envelope_schema.html#curvature">Curvature</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/publish_envelope_schema.html#curvature-calculation-mode">Curvature Calculation Mode</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/publish_envelope_schema.html#denm-data-version-1">DENM Data Version 1</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/publish_envelope_schema.html#drive-direction">Drive Direction</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/publish_envelope_schema.html#heading">Heading</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/publish_envelope_schema.html#identification">Identification</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/publish_envelope_schema.html#its-message">ITS Message</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/publish_envelope_schema.html#location-container">Location Container</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/publish_envelope_schema.html#denm-management-container">DENM Management Container</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/publish_envelope_schema.html#object-dimension">Object Dimension</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/publish_envelope_schema.html#object-face">Object Face</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/publish_envelope_schema.html#path-point-predicted">Path Point Predicted</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/publish_envelope_schema.html#perceived-object">Perceived Object</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/publish_envelope_schema.html#position-confidence-ellipse">Position Confidence Ellipse</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/publish_envelope_schema.html#pre-crash-container">Pre-Crash Container</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/publish_envelope_schema.html#reference-position">Reference Position</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/publish_envelope_schema.html#road-type">Road Type</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/publish_envelope_schema.html#situation-container">Situation Container</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/publish_envelope_schema.html#speed">Speed</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/publish_envelope_schema.html#denm-termination-type">DENM Termination Type</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/publish_envelope_schema.html#traffic-direction-type">Traffic Direction Type</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/publish_envelope_schema.html#traffic-participant-type">Traffic Participant Type</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/publish_envelope_schema.html#vehicle-length">Vehicle Length</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/publish_envelope_schema.html#vehicle-length-confidence-indication">Vehicle Length Confidence Indication</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/publish_envelope_schema.html#vehicle-role">Vehicle Role</a></li>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/publish_envelope_schema.html#yaw-rate">Yaw Rate</a></li>
 </ul>
 </li>
 </ul>
@@ -728,8 +827,11 @@
 <li class="toctree-l6"><a class="reference internal" href="step_lib_rst/step_lib.its_publish_envelope.html#step_lib.its_publish_envelope.PublishEnvelope.isStationMobile"><code class="docutils literal notranslate"><span class="pre">PublishEnvelope.isStationMobile</span></code></a></li>
 <li class="toctree-l6"><a class="reference internal" href="step_lib_rst/step_lib.its_publish_envelope.html#step_lib.its_publish_envelope.PublishEnvelope.clamp_position_speed"><code class="docutils literal notranslate"><span class="pre">PublishEnvelope.clamp_position_speed()</span></code></a></li>
 <li class="toctree-l6"><a class="reference internal" href="step_lib_rst/step_lib.its_publish_envelope.html#step_lib.its_publish_envelope.PublishEnvelope.from_domain_objects"><code class="docutils literal notranslate"><span class="pre">PublishEnvelope.from_domain_objects()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="step_lib_rst/step_lib.its_publish_envelope.html#step_lib.its_publish_envelope.PublishEnvelope.get_default"><code class="docutils literal notranslate"><span class="pre">PublishEnvelope.get_default()</span></code></a></li>
 <li class="toctree-l6"><a class="reference internal" href="step_lib_rst/step_lib.its_publish_envelope.html#step_lib.its_publish_envelope.PublishEnvelope.latitude_clamping"><code class="docutils literal notranslate"><span class="pre">PublishEnvelope.latitude_clamping()</span></code></a></li>
 <li class="toctree-l6"><a class="reference internal" href="step_lib_rst/step_lib.its_publish_envelope.html#step_lib.its_publish_envelope.PublishEnvelope.model_config"><code class="docutils literal notranslate"><span class="pre">PublishEnvelope.model_config</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="step_lib_rst/step_lib.its_publish_envelope.html#step_lib.its_publish_envelope.PublishEnvelope.print_message_example"><code class="docutils literal notranslate"><span class="pre">PublishEnvelope.print_message_example()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="step_lib_rst/step_lib.its_publish_envelope.html#step_lib.its_publish_envelope.PublishEnvelope.print_message_schema"><code class="docutils literal notranslate"><span class="pre">PublishEnvelope.print_message_schema()</span></code></a></li>
 <li class="toctree-l6"><a class="reference internal" href="step_lib_rst/step_lib.its_publish_envelope.html#step_lib.its_publish_envelope.PublishEnvelope.serialize_coordinate"><code class="docutils literal notranslate"><span class="pre">PublishEnvelope.serialize_coordinate()</span></code></a></li>
 <li class="toctree-l6"><a class="reference internal" href="step_lib_rst/step_lib.its_publish_envelope.html#step_lib.its_publish_envelope.PublishEnvelope.serialize_position_heading"><code class="docutils literal notranslate"><span class="pre">PublishEnvelope.serialize_position_heading()</span></code></a></li>
 <li class="toctree-l6"><a class="reference internal" href="step_lib_rst/step_lib.its_publish_envelope.html#step_lib.its_publish_envelope.PublishEnvelope.serialize_position_speed"><code class="docutils literal notranslate"><span class="pre">PublishEnvelope.serialize_position_speed()</span></code></a></li>
@@ -985,6 +1087,14 @@
 <li class="toctree-l6"><a class="reference internal" href="test_rst/facilities/test.facilities.test_facility_serializer.html#test.facilities.test_facility_serializer.create_denm_message"><code class="docutils literal notranslate"><span class="pre">create_denm_message()</span></code></a></li>
 </ul>
 </li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="test_rst/file_compare/test.file_compare.html">test.file_compare package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/file_compare/test.file_compare.html#subpackages">Subpackages</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/file_compare/examples/test.file_compare.examples.html">test.file_compare.examples package</a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/file_compare/schemas/test.file_compare.schemas.html">test.file_compare.schemas package</a></li>
 </ul>
 </li>
 </ul>
@@ -1270,6 +1380,10 @@
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.TestGetLogger.test_get_logger_sets_level"><code class="docutils literal notranslate"><span class="pre">TestGetLogger.test_get_logger_sets_level()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.TestGetSchemasAndGetMessageExamples"><code class="docutils literal notranslate"><span class="pre">TestGetSchemasAndGetMessageExamples</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.TestGetSchemasAndGetMessageExamples.test_creates_directory_and_delegates"><code class="docutils literal notranslate"><span class="pre">TestGetSchemasAndGetMessageExamples.test_creates_directory_and_delegates()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.TestMain"><code class="docutils literal notranslate"><span class="pre">TestMain</span></code></a><ul>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.TestMain.mock_logger_from_get_logger"><code class="docutils literal notranslate"><span class="pre">TestMain.mock_logger_from_get_logger()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.TestMain.test_main"><code class="docutils literal notranslate"><span class="pre">TestMain.test_main()</span></code></a></li>
@@ -1395,6 +1509,8 @@
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_its_publish_envelope.html#test.test_its_publish_envelope.TestPublishEnvelope.test_frozen_and_forbids_extra_fields"><code class="docutils literal notranslate"><span class="pre">TestPublishEnvelope.test_frozen_and_forbids_extra_fields()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_its_publish_envelope.html#test.test_its_publish_envelope.TestPublishEnvelope.test_latitude_clamping"><code class="docutils literal notranslate"><span class="pre">TestPublishEnvelope.test_latitude_clamping()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_its_publish_envelope.html#test.test_its_publish_envelope.TestPublishEnvelope.test_latitude_clamping_raises_for_non_finite"><code class="docutils literal notranslate"><span class="pre">TestPublishEnvelope.test_latitude_clamping_raises_for_non_finite()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_its_publish_envelope.html#test.test_its_publish_envelope.TestPublishEnvelope.test_print_message_example"><code class="docutils literal notranslate"><span class="pre">TestPublishEnvelope.test_print_message_example()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_its_publish_envelope.html#test.test_its_publish_envelope.TestPublishEnvelope.test_print_message_schema"><code class="docutils literal notranslate"><span class="pre">TestPublishEnvelope.test_print_message_schema()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_its_publish_envelope.html#test.test_its_publish_envelope.TestPublishEnvelope.test_round_trip_through_json"><code class="docutils literal notranslate"><span class="pre">TestPublishEnvelope.test_round_trip_through_json()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_its_publish_envelope.html#test.test_its_publish_envelope.TestPublishEnvelope.test_serialize_coordinate"><code class="docutils literal notranslate"><span class="pre">TestPublishEnvelope.test_serialize_coordinate()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_its_publish_envelope.html#test.test_its_publish_envelope.TestPublishEnvelope.test_serialize_position_heading"><code class="docutils literal notranslate"><span class="pre">TestPublishEnvelope.test_serialize_position_heading()</span></code></a></li>
@@ -1426,6 +1542,7 @@
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_its_publish_worker.html#test.test_its_publish_worker.TestPublishWorker.test_publish_loop_publishes_valid_envelope"><code class="docutils literal notranslate"><span class="pre">TestPublishWorker.test_publish_loop_publishes_valid_envelope()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_its_publish_worker.html#test.test_its_publish_worker.TestPublishWorker.test_publish_loop_skips_malformed_envelope_without_reconnecting"><code class="docutils literal notranslate"><span class="pre">TestPublishWorker.test_publish_loop_skips_malformed_envelope_without_reconnecting()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_its_publish_worker.html#test.test_its_publish_worker.TestPublishWorker.test_run_sets_up_logger_and_params_then_delegates_to_async_main"><code class="docutils literal notranslate"><span class="pre">TestPublishWorker.test_run_sets_up_logger_and_params_then_delegates_to_async_main()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_its_publish_worker.html#test.test_its_publish_worker.TestPublishWorker.test_run_swallows_keyboard_interrupt_from_async_main"><code class="docutils literal notranslate"><span class="pre">TestPublishWorker.test_run_swallows_keyboard_interrupt_from_async_main()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_its_publish_worker.html#test.test_its_publish_worker.TestPublishWorker.test_stop_watch_loop_raises_once_stop_event_set"><code class="docutils literal notranslate"><span class="pre">TestPublishWorker.test_stop_watch_loop_raises_once_stop_event_set()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_its_publish_worker.html#test.test_its_publish_worker.TestPublishWorker.worker"><code class="docutils literal notranslate"><span class="pre">TestPublishWorker.worker()</span></code></a></li>
 </ul>
@@ -1653,7 +1770,7 @@ DENM (Decentralized Environmental Notification Message), and CPM (Collective Per
 <p>The step_lib package relies on the following third-party libraries:</p>
 <p><strong>Communication &amp; Messaging</strong></p>
 <ul class="simple">
-<li><p><strong>aiomqtt</strong> (&gt;=2.5.0, &lt;3.0): Asynchronous MQTT client implementation</p>
+<li><p><strong>aiomqtt</strong>: Asynchronous MQTT client implementation</p>
 <ul>
 <li><p>Provides async MQTT v5 protocol support</p></li>
 <li><p>Used by AsyncComManager for non-blocking communication</p></li>
@@ -1663,14 +1780,14 @@ DENM (Decentralized Environmental Notification Message), and CPM (Collective Per
 </ul>
 <p><strong>Data Encoding &amp; Serialization</strong></p>
 <ul class="simple">
-<li><p><strong>asn1tools</strong> (&gt;=0.167.0, &lt;1.0): ASN.1 compiler and encoder/decoder</p>
+<li><p><strong>asn1tools</strong>: ASN.1 compiler and encoder/decoder</p>
 <ul>
 <li><p>Compiles ASN.1 schema files from ETSI ITS standards</p></li>
 <li><p>Encodes/decodes CAM, DENM, and CPM messages using UPER (Unaligned Packed Encoding Rules)</p></li>
 <li><p>Used by FacilitySerializer for message transformation</p></li>
 </ul>
 </li>
-<li><p><strong>bitstring</strong> (&gt;=4.3.1, &lt;5.0): Binary data manipulation library</p>
+<li><p><strong>bitstring</strong>: Binary data manipulation library</p>
 <ul>
 <li><p>Handles bit-level operations for protocol headers</p></li>
 <li><p>Used in GeoNetworkAddress and PositionVector for precise binary field packing</p></li>
@@ -1680,14 +1797,14 @@ DENM (Decentralized Environmental Notification Message), and CPM (Collective Per
 </ul>
 <p><strong>Geospatial &amp; Caching</strong></p>
 <ul class="simple">
-<li><p><strong>pygeohash</strong> (&gt;=3.2.2, &lt;4.0): Geohash encoding for geographic locations</p>
+<li><p><strong>pygeohash</strong>: Geohash encoding for geographic locations</p>
 <ul>
 <li><p>Converts GPS coordinates to geohashes for topic organization</p></li>
 <li><p>Enables geographic-based MQTT topic routing</p></li>
 <li><p>Used in AsyncComManager for location-aware message distribution</p></li>
 </ul>
 </li>
-<li><p><strong>diskcache</strong> (&gt;=5.6.3): Persistent disk-based caching</p>
+<li><p><strong>diskcache</strong>: Persistent disk-based caching</p>
 <ul>
 <li><p>Caches compiled ASN.1 schemas for performance optimization</p></li>
 <li><p>Reduces startup time by avoiding repeated schema compilation</p></li>
@@ -1697,7 +1814,7 @@ DENM (Decentralized Environmental Notification Message), and CPM (Collective Per
 </ul>
 <p><strong>Schema Validation</strong></p>
 <ul class="simple">
-<li><p><strong>step_cloud_schemas</strong> (&gt;=1.2.29, &lt;2.0): STEP project schema definitions</p>
+<li><p><strong>step_cloud_schemas</strong>: STEP project schema definitions</p>
 <ul>
 <li><p>Provides Pydantic models for ITS message validation</p></li>
 <li><p>Contains JSON schemas for CAM, DENM, and CPM messages</p></li>
@@ -2116,6 +2233,17 @@ health-check thread (separate again from both the caller’s threads and the
 subscribe/receive event loop) periodically detects and transparently
 restarts workers that have died or hung, using both OS-level
 <code class="docutils literal notranslate"><span class="pre">is_alive()</span></code> checks and an application-level heartbeat.</p>
+<p>This pattern originates from a CARLA simulation use case (a Python client
+driving Unreal Engine, generating up to 1000 simulated vehicles’ worth of
+CAM/DENM traffic per ETSI EN 302 637-2 timing, 1-10 Hz per vehicle with
+minimal jitter): with the simulation’s own tick loop and the ITS
+encode/publish work in separate processes, each with its own GIL, load
+from one can never introduce jitter into the other. The two processes talk
+over a ZeroMQ <code class="docutils literal notranslate"><span class="pre">PUSH</span></code>/<code class="docutils literal notranslate"><span class="pre">PULL</span></code> pipeline rather than raw sockets or
+<code class="docutils literal notranslate"><span class="pre">multiprocessing.Queue</span></code> because <code class="docutils literal notranslate"><span class="pre">zmq.asyncio</span></code> gives a worker a true
+<code class="docutils literal notranslate"><span class="pre">await</span> <span class="pre">sock.recv()</span></code> coroutine (no executor thread needed to unblock a
+synchronous <code class="docutils literal notranslate"><span class="pre">recv()</span></code>) while remaining cross-platform over
+<code class="docutils literal notranslate"><span class="pre">tcp://127.0.0.1</span></code>.</p>
 <p>This mechanism only affects the <em>publish</em> path – subscribing and
 receiving messages (see <a class="reference internal" href="#sequence-diagrams">Sequence Diagrams</a> below) still runs through
 <code class="docutils literal notranslate"><span class="pre">SyncComManager</span></code>’s own background async thread, unchanged.</p>
@@ -2281,8 +2409,8 @@ App -&gt; App: process its_message.its_payload"/>
 <div class="scrollable-diagram docutils container">
 <figure class="align-center">
 <p class="plantuml">
-<object data="_images/plantuml-9da1e45760d654b71591d5845c24a3285895e7e2.svg" type="image/svg+xml" style="width:1310px;height:1466px;background:#FFFFFF;">
-<img src="_images/plantuml-9da1e45760d654b71591d5845c24a3285895e7e2.png" alt="actor &quot;Application\n(any thread)&quot; as App
+<object data="_images/plantuml-14a92330bd3009b6645a130eae2643fd65d5a8a6.svg" type="image/svg+xml" style="width:1310px;height:1507px;background:#FFFFFF;">
+<img src="_images/plantuml-14a92330bd3009b6645a130eae2643fd65d5a8a6.png" alt="actor &quot;Application\n(any thread)&quot; as App
 participant &quot;SyncComManager&quot; as SCM
 participant &quot;Async Thread&quot; as AsyncThread
 participant &quot;AsyncComManager\n(subscribe/receive)&quot; as ACM
@@ -2290,6 +2418,8 @@ participant &quot;PublishWorkerPool&quot; as Pool
 participant &quot;Incoming Queue\n(AsyncioQueue)&quot; as InQueue
 participant &quot;Outgoing Queue\n(SyncQueue)&quot; as OutQueue
 participant &quot;MQTT Broker&quot; as Broker
+
+... Startup Receive Async Thread and Workers ...
 
 App -&gt; SCM: start()
 activate SCM
@@ -2637,75 +2767,142 @@ deactivate Serializer"/>
 </section>
 <section id="synchronous-pattern-easier-integration-with-legacy-code">
 <h3>Synchronous Pattern (Easier integration with legacy code)<a class="headerlink" href="#synchronous-pattern-easier-integration-with-legacy-code" title="Link to this heading"></a></h3>
+<p>The following patterns are adapted from the full working example in
+<code class="docutils literal notranslate"><span class="pre">doc/examples/step_publish/sync_manager.py</span></code>.</p>
+<section id="with-context-manager-without-station-id-filter">
+<h4>With context manager, without <code class="docutils literal notranslate"><span class="pre">station_id</span></code> filter<a class="headerlink" href="#with-context-manager-without-station-id-filter" title="Link to this heading"></a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">SyncComManager</span></code> is used as a context manager, which takes care of starting
+and stopping the client automatically. No <code class="docutils literal notranslate"><span class="pre">station_id</span></code> filter is applied,
+so the client is not restricted to a specific station when receiving messages.</p>
 <div class="scrollable-diagram docutils container">
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">logging</span><span class="w"> </span><span class="kn">import</span> <span class="n">getLogger</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">time</span><span class="w"> </span><span class="kn">import</span> <span class="n">sleep</span>
-
-<span class="kn">from</span><span class="w"> </span><span class="nn">step_cloud_schemas</span><span class="w"> </span><span class="kn">import</span> <span class="n">ItsTime</span><span class="p">,</span> <span class="n">TrafficParticipantType</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">step_lib</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">DenmMessageV1</span><span class="p">,</span>
-    <span class="n">GeoNetworkAddress</span><span class="p">,</span>
-    <span class="n">GpsLocation</span><span class="p">,</span>
-    <span class="n">MqttQoS</span><span class="p">,</span>
-    <span class="n">SyncComManager</span><span class="p">,</span>
-    <span class="n">SyncComManagerParams</span><span class="p">,</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">current_position</span> <span class="o">=</span> <span class="n">GpsLocation</span><span class="p">(</span>
+    <span class="n">time</span><span class="o">=</span><span class="n">ItsTime</span><span class="p">(),</span>
+    <span class="n">latitude</span><span class="o">=</span><span class="n">sender_latitude</span><span class="p">,</span>
+    <span class="n">longitude</span><span class="o">=</span><span class="n">sender_longitude</span><span class="p">,</span>
+    <span class="n">accuracy</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">speed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">heading</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span>
-
-<span class="c1"># Configure connection</span>
-<span class="n">params</span> <span class="o">=</span> <span class="n">SyncComManagerParams</span><span class="p">(</span>
-    <span class="n">instance_name</span><span class="o">=</span><span class="s2">"roadside_unit_001"</span><span class="p">,</span>
-    <span class="n">host</span><span class="o">=</span><span class="s2">"mqtt.example.com"</span><span class="p">,</span>
-    <span class="n">port</span><span class="o">=</span><span class="mi">8883</span><span class="p">,</span>
-    <span class="n">username</span><span class="o">=</span><span class="s2">"rsu"</span><span class="p">,</span>
-    <span class="n">password</span><span class="o">=</span><span class="s2">"secret"</span><span class="p">,</span>
-    <span class="n">station_id</span><span class="o">=</span><span class="mi">54321</span><span class="p">,</span>
-    <span class="n">reconnect_interval</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+<span class="n">address</span> <span class="o">=</span> <span class="n">GeoNetworkAddress</span><span class="p">(</span>
+    <span class="n">is_manual_configured</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">traffic_participant_type</span><span class="o">=</span><span class="n">TrafficParticipantType</span><span class="o">.</span><span class="n">ROAD_SIDE_UNIT</span><span class="p">,</span>
+    <span class="n">mac_id</span><span class="o">=</span><span class="n">station_id</span> <span class="k">if</span> <span class="n">station_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="mi">123456789</span><span class="p">,</span>
 <span class="p">)</span>
-
-<span class="c1"># Use as context manager</span>
-<span class="k">with</span> <span class="n">SyncComManager</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">))</span> <span class="k">as</span> <span class="n">manager</span><span class="p">:</span>
-    <span class="c1"># Subscribe to topics</span>
-    <span class="n">manager</span><span class="o">.</span><span class="n">subscribe</span><span class="p">(</span>
-        <span class="n">topics</span><span class="o">=</span><span class="p">[</span><span class="s2">"v2x/denm/#"</span><span class="p">],</span>
-        <span class="n">max_qos</span><span class="o">=</span><span class="n">MqttQoS</span><span class="o">.</span><span class="n">QOS_2</span>
-    <span class="p">)</span>
-
-    <span class="c1"># Address and current position required by publish_its_message</span>
-    <span class="n">current_position</span> <span class="o">=</span> <span class="n">GpsLocation</span><span class="p">(</span>
-        <span class="n">time</span><span class="o">=</span><span class="n">ItsTime</span><span class="p">(),</span>
-        <span class="n">latitude</span><span class="o">=</span><span class="mf">48.8566</span><span class="p">,</span>
-        <span class="n">longitude</span><span class="o">=</span><span class="mf">2.3522</span><span class="p">,</span>
-        <span class="n">accuracy</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">speed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">heading</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">address</span> <span class="o">=</span> <span class="n">GeoNetworkAddress</span><span class="p">(</span>
-        <span class="n">is_manual_configured</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="n">traffic_participant_type</span><span class="o">=</span><span class="n">TrafficParticipantType</span><span class="o">.</span><span class="n">ROAD_SIDE_UNIT</span><span class="p">,</span>
-        <span class="n">mac_id</span><span class="o">=</span><span class="mi">54321</span><span class="p">,</span>
-    <span class="p">)</span>
-
-    <span class="c1"># Publish a hazard notification</span>
-    <span class="n">denm_message</span> <span class="o">=</span> <span class="n">DenmMessageV1</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>  <span class="c1"># Your DENM data</span>
-    <span class="n">manager</span><span class="o">.</span><span class="n">publish_its_message</span><span class="p">(</span>
-        <span class="n">message</span><span class="o">=</span><span class="n">denm_message</span><span class="p">,</span>
-        <span class="n">address</span><span class="o">=</span><span class="n">address</span><span class="p">,</span>
+<span class="k">with</span> <span class="n">_sync_com_manager_create</span><span class="p">(</span>
+    <span class="n">instance_name</span><span class="o">=</span><span class="n">instance_name</span><span class="p">,</span> <span class="n">station_id</span><span class="o">=</span><span class="n">station_id</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span>
+<span class="p">)</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">"Client status: </span><span class="si">{</span><span class="n">client</span><span class="o">.</span><span class="n">connection_status</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="n">_subscribe_execution</span><span class="p">(</span><span class="n">client</span><span class="o">=</span><span class="n">client</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">mqttProtocol</span><span class="p">)</span>
+    <span class="n">_publish_messages</span><span class="p">(</span>
+        <span class="n">client</span><span class="o">=</span><span class="n">client</span><span class="p">,</span>
         <span class="n">current_position</span><span class="o">=</span><span class="n">current_position</span><span class="p">,</span>
-        <span class="n">is_station_mobile</span><span class="o">=</span><span class="kc">False</span>
+        <span class="n">address</span><span class="o">=</span><span class="n">address</span><span class="p">,</span>
+        <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span>
     <span class="p">)</span>
-
-    <span class="c1"># get_its_message_received() is non-blocking; poll it periodically</span>
-    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
-        <span class="n">facility_msg</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">get_its_message_received</span><span class="p">()</span>
-        <span class="k">if</span> <span class="n">facility_msg</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Received </span><span class="si">{</span><span class="n">facility_msg</span><span class="o">.</span><span class="n">message_type</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-            <span class="c1"># Process message</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="c1"># No message received yet, wait before polling again</span>
-            <span class="n">sleep</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span>
+    <span class="c1"># Simulate other operations</span>
+    <span class="n">time_sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+    <span class="c1"># Extract messages received</span>
+    <span class="k">for</span> <span class="n">message</span> <span class="ow">in</span> <span class="n">client</span><span class="o">.</span><span class="n">its_messages_received</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">"Message received: </span><span class="si">{</span><span class="n">message</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">"Client status: </span><span class="si">{</span><span class="n">client</span><span class="o">.</span><span class="n">connection_status</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
+</section>
+<section id="without-context-manager-without-station-id-filter">
+<h4>Without context manager, without <code class="docutils literal notranslate"><span class="pre">station_id</span></code> filter<a class="headerlink" href="#without-context-manager-without-station-id-filter" title="Link to this heading"></a></h4>
+<p>The client lifecycle (<code class="docutils literal notranslate"><span class="pre">start</span></code>/<code class="docutils literal notranslate"><span class="pre">stop</span></code>) is managed manually, which is
+useful when integrating with legacy code that cannot use a <code class="docutils literal notranslate"><span class="pre">with</span></code> block.
+The client is started explicitly and stopped in a <code class="docutils literal notranslate"><span class="pre">finally</span></code> block to
+guarantee cleanup even if an exception occurs. No <code class="docutils literal notranslate"><span class="pre">station_id</span></code> filter is
+applied.</p>
+<div class="scrollable-diagram docutils container">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">current_position</span> <span class="o">=</span> <span class="n">GpsLocation</span><span class="p">(</span>
+    <span class="n">time</span><span class="o">=</span><span class="n">ItsTime</span><span class="p">(),</span>
+    <span class="n">latitude</span><span class="o">=</span><span class="n">sender_latitude</span><span class="p">,</span>
+    <span class="n">longitude</span><span class="o">=</span><span class="n">sender_longitude</span><span class="p">,</span>
+    <span class="n">accuracy</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">speed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">heading</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">address</span> <span class="o">=</span> <span class="n">GeoNetworkAddress</span><span class="p">(</span>
+    <span class="n">is_manual_configured</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">traffic_participant_type</span><span class="o">=</span><span class="n">TrafficParticipantType</span><span class="o">.</span><span class="n">ROAD_SIDE_UNIT</span><span class="p">,</span>
+    <span class="n">mac_id</span><span class="o">=</span><span class="n">station_id</span> <span class="k">if</span> <span class="n">station_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="mi">123456789</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">client</span><span class="p">:</span> <span class="n">SyncComManager</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="n">client</span> <span class="o">=</span> <span class="n">_sync_com_manager_create</span><span class="p">(</span>
+        <span class="n">instance_name</span><span class="o">=</span><span class="n">instance_name</span><span class="p">,</span>
+        <span class="n">station_id</span><span class="o">=</span><span class="n">station_id</span><span class="p">,</span>
+        <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">,</span>
+        <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">"Client status: </span><span class="si">{</span><span class="n">client</span><span class="o">.</span><span class="n">connection_status</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="c1"># Start the client</span>
+    <span class="n">client</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">"Client status: </span><span class="si">{</span><span class="n">client</span><span class="o">.</span><span class="n">connection_status</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="c1"># Subscribe to the topics</span>
+    <span class="n">_subscribe_execution</span><span class="p">(</span><span class="n">client</span><span class="o">=</span><span class="n">client</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">mqttProtocol</span><span class="p">)</span>
+    <span class="n">_publish_messages</span><span class="p">(</span>
+        <span class="n">client</span><span class="o">=</span><span class="n">client</span><span class="p">,</span>
+        <span class="n">current_position</span><span class="o">=</span><span class="n">current_position</span><span class="p">,</span>
+        <span class="n">address</span><span class="o">=</span><span class="n">address</span><span class="p">,</span>
+        <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="c1"># Simulate other operations</span>
+    <span class="n">time_sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+    <span class="c1"># Extract messages received</span>
+    <span class="k">for</span> <span class="n">message</span> <span class="ow">in</span> <span class="n">client</span><span class="o">.</span><span class="n">its_messages_received</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">"Message received: </span><span class="si">{</span><span class="n">message</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="k">finally</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">client</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">client</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+<span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">"Client status: </span><span class="si">{</span><span class="n">client</span><span class="o">.</span><span class="n">connection_status</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="with-context-manager-with-station-id-filter">
+<h4>With context manager, with <code class="docutils literal notranslate"><span class="pre">station_id</span></code> filter<a class="headerlink" href="#with-context-manager-with-station-id-filter" title="Link to this heading"></a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">SyncComManager</span></code> is again used as a context manager, but this time a
+fixed <code class="docutils literal notranslate"><span class="pre">station_id</span></code> is passed to <code class="docutils literal notranslate"><span class="pre">_sync_com_manager_create</span></code>, restricting
+the client to that specific station.</p>
+<div class="scrollable-diagram docutils container">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">current_position</span> <span class="o">=</span> <span class="n">GpsLocation</span><span class="p">(</span>
+    <span class="n">time</span><span class="o">=</span><span class="n">ItsTime</span><span class="p">(),</span>
+    <span class="n">latitude</span><span class="o">=</span><span class="n">sender_latitude</span><span class="p">,</span>
+    <span class="n">longitude</span><span class="o">=</span><span class="n">sender_longitude</span><span class="p">,</span>
+    <span class="n">accuracy</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">speed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">heading</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">address</span> <span class="o">=</span> <span class="n">GeoNetworkAddress</span><span class="p">(</span>
+    <span class="n">is_manual_configured</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">traffic_participant_type</span><span class="o">=</span><span class="n">TrafficParticipantType</span><span class="o">.</span><span class="n">ROAD_SIDE_UNIT</span><span class="p">,</span>
+    <span class="n">mac_id</span><span class="o">=</span><span class="n">MAC_ID</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="k">with</span> <span class="n">_sync_com_manager_create</span><span class="p">(</span>
+    <span class="n">instance_name</span><span class="o">=</span><span class="n">instance_name</span><span class="p">,</span> <span class="n">station_id</span><span class="o">=</span><span class="mi">123456789</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span>
+<span class="p">)</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">"Client status: </span><span class="si">{</span><span class="n">client</span><span class="o">.</span><span class="n">connection_status</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="n">_subscribe_execution</span><span class="p">(</span><span class="n">client</span><span class="o">=</span><span class="n">client</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">mqttProtocol</span><span class="p">)</span>
+    <span class="n">_publish_messages</span><span class="p">(</span>
+        <span class="n">client</span><span class="o">=</span><span class="n">client</span><span class="p">,</span>
+        <span class="n">current_position</span><span class="o">=</span><span class="n">current_position</span><span class="p">,</span>
+        <span class="n">address</span><span class="o">=</span><span class="n">address</span><span class="p">,</span>
+        <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="c1"># Simulate other operations</span>
+    <span class="n">time_sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+    <span class="c1"># Extract messages received</span>
+    <span class="k">for</span> <span class="n">message</span> <span class="ow">in</span> <span class="n">client</span><span class="o">.</span><span class="n">its_messages_received</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">"Message received: </span><span class="si">{</span><span class="n">message</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">"Client status: </span><span class="si">{</span><span class="n">client</span><span class="o">.</span><span class="n">connection_status</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</section>
 </section>
 </section>
 <section id="design-principles">

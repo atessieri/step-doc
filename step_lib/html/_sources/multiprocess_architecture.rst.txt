@@ -11,17 +11,15 @@ thread. This page documents that mechanism in depth: which processes exist,
 how they talk to each other, and how the pool detects and recovers from a
 dead or hung worker.
 
-The design originates from ``step_lib/doc/carla_its_multiprocess_design.md``,
-written for a CARLA simulation client that has to drive ``world.tick()`` and
-generate ETSI-timed CAM messages for up to 1000 simulated actors without the
+The design handles up to 1000 simulated actors without the
 CPU-bound ASN.1 UPER encoding of those messages ever sharing a GIL with the
-simulation loop. The mechanism implemented in
+other elaboration loop (e.g. simulation, computer vision). The mechanism implemented in
 :mod:`step_lib.its_publish_worker_pool` and :mod:`step_lib.its_publish_worker`
-follows that design's core idea -- a ZeroMQ ``PUSH``/``PULL`` pipeline
-fanning work out to a pool of stateless encoder processes -- but is not
-CARLA-specific: it is the publish path used by every :class:`~step_lib.SyncComManager`,
-and it goes beyond the original design note in a few ways described in
-`Beyond the original design note`_ below.
+is built around a ZeroMQ ``PUSH``/``PULL`` pipeline fanning work out to a
+pool of stateless encoder processes: it is the publish path used by every
+:class:`~step_lib.SyncComManager`, and it adds several hardening
+mechanisms beyond that basic pipeline, described in
+`Hardening Beyond the Basic Pipeline`_ below.
 
 Why processes, not threads
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -45,6 +43,54 @@ Two consequences follow directly from that choice:
   process boundary, which rules out sharing Python objects directly. The
   wire format for that handoff is :class:`~step_lib.its_publish_envelope.PublishEnvelope`,
   described in `The wire format: PublishEnvelope`_.
+
+Why a ZMQ Pipeline, not another pattern
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+ZeroMQ offers four core messaging patterns: request-reply, pub-sub,
+pipeline, and exclusive pair. This mechanism uses **pipeline**
+(``PUSH``/``PULL``), the classic "ventilator" pattern:
+
+- **Not request-reply** -- no response is expected from a worker;
+  publishing is fire-and-forget by design.
+- **Not pub-sub** -- each envelope must reach exactly one worker, never be
+  broadcast to all of them.
+- **Not exclusive pair** -- that pattern is for synchronization within a
+  single process, not multi-process IPC.
+- **Pipeline** is the correct fit: a producer (``PUSH``) pushes units of
+  work to a pool of consumers (``PULL``) without waiting for a reply --
+  exactly the fan-out semantics needed here. ZeroMQ distributes messages
+  among connected sockets with round-robin fair-queuing regardless of
+  which side calls ``bind()`` versus ``connect()``.
+
+Other transports were considered and rejected:
+
+- **Unix domain sockets / named pipes**: would need a separate OS-specific
+  abstraction (Unix vs. Windows), and a blocking ``recv()`` that has to be
+  wrapped in an executor thread on the asyncio side.
+- **``multiprocessing.Queue``/``Connection``**: the same limitation --
+  ``recv()`` blocks, so an asyncio worker would need an executor thread
+  just to poll it.
+- **pyzmq with ``zmq.asyncio``**: ``await sock.recv()`` is a genuine
+  coroutine, so no executor thread is needed in the worker; it behaves
+  identically on Windows/Linux/macOS over ``tcp://127.0.0.1`` (ZMQ's
+  ``ipc://`` transport, backed by Unix sockets, is not available on
+  Windows).
+
+This is also why the pool sends envelopes as JSON (via
+``model_dump_json()``/``model_validate_json()``) rather than pickling
+them: JSON is readable on the wire (simpler debugging) and does not risk
+arbitrary code execution on deserialization, while ``pydantic-core``'s
+Rust engine keeps the encode/decode cost low enough -- on the order of
+tens of microseconds per message -- that it is never the bottleneck; the
+CPU-bound ASN.1 UPER encoding inside each worker dominates instead.
+
+For a rough sense of scale, at the design's original target of 1000
+simulated actors publishing CAM at the ETSI-maximum 10 Hz each, that is
+10,000 msg/s; at roughly 1 KB per JSON-encoded envelope, that is only
+~10 MB/s over the loopback ``PUSH``/``PULL`` socket -- well below what a
+local TCP socket can sustain (typically several GB/s between processes on
+the same machine), so the transport itself is never the limiting factor.
 
 Component Diagram
 ------------------
@@ -110,8 +156,8 @@ step) and every worker's ``PULL`` socket connects to that same address.
 ZeroMQ fans messages out to connected ``PULL`` sockets with round-robin
 fair-queuing regardless of which side called ``bind()`` versus ``connect()``,
 so having the pool bind once (rather than one port per worker) does not
-change the distribution behavior, and avoids the per-worker port bookkeeping
-the design note's own "old design" comments call out.
+change the distribution behavior, and avoids per-worker port bookkeeping
+entirely.
 
 Class Diagram
 --------------
@@ -550,16 +596,17 @@ Two design choices keep this conversion lossless and cheap:
   fidelity for CPM messages, since ``CpmMessageV1.from_json()`` would
   otherwise silently default it to ``True``.
 
-Beyond the Original Design Note
----------------------------------
+Hardening Beyond the Basic Pipeline
+-------------------------------------
 
-``carla_its_multiprocess_design.md`` describes the mechanism's foundation
--- process isolation, the ZMQ ``PUSH``/``PULL`` pipeline, JSON-over-Pydantic
-envelopes, a periodic ``is_alive()`` health check, HWM plus
-``zmq.NOBLOCK`` for non-blocking sends. The implementation in
-:mod:`step_lib.its_publish_worker_pool` / :mod:`step_lib.its_publish_worker`
-follows all of that, and adds several things the note explicitly called
-out as deliberately out of scope for its own use case:
+The core mechanism -- process isolation, the ZMQ ``PUSH``/``PULL``
+pipeline, JSON-over-Pydantic envelopes, a periodic ``is_alive()`` health
+check, HWM plus ``zmq.NOBLOCK`` for non-blocking sends -- covers the
+common case of a healthy worker pool. Because ``step_lib`` is a
+general-purpose library used well beyond any single simulation scenario,
+the implementation in :mod:`step_lib.its_publish_worker_pool` /
+:mod:`step_lib.its_publish_worker` adds several things on top of that
+baseline:
 
 .. list-table::
    :widths: 30 70
@@ -568,13 +615,11 @@ out as deliberately out of scope for its own use case:
    * - Addition
      - Why
    * - Heartbeat-based blocked-worker detection (``_heartbeat_loop``, ``blocked_workers()``)
-     - The design note's own "Limite accettato" section calls an
-       application-level heartbeat unnecessary for its use case, since
-       ``is_alive()`` alone was judged sufficient. ``step_lib`` is a
-       general-purpose library used well beyond CARLA, so it adds this to
-       catch a worker whose process is alive but whose event loop has
-       hung (a dependency deadlock, for instance) -- a case plain
-       ``is_alive()`` cannot see.
+     - A periodic ``is_alive()`` check alone only proves the OS process is
+       still running. It adds a shared heartbeat timestamp to catch a
+       worker whose process is alive but whose event loop has hung (a
+       dependency deadlock, for instance) -- a case plain ``is_alive()``
+       cannot see.
    * - Parent watchdog (``_parent_watchdog_loop``)
      - ``daemon=True`` alone only guarantees cleanup on the parent's
        *normal* interpreter shutdown path. Comparing ``psutil``
@@ -586,14 +631,13 @@ out as deliberately out of scope for its own use case:
        goes stale) self-terminate and be picked up by the ordinary
        dead-worker restart path, instead of retrying forever.
    * - Explicit ``spawn`` multiprocessing context
-     - The design note's reference code relies on the platform default.
-       ``fork`` is unsafe once the parent is already multi-threaded --
+     - ``fork`` is unsafe once the parent is already multi-threaded --
        which it already is by the time the pool starts, since
        ``SyncComManager.start()`` starts its own background thread first
        -- so the pool pins ``spawn`` explicitly on every platform.
    * - Graceful-then-forceful shutdown (``close()``)
-     - The design note's ``WorkerPool.close()`` terminates every worker
-       unconditionally. This implementation signals a cooperative
+     - Terminating every worker unconditionally on shutdown risks losing
+       in-flight publishes. This implementation signals a cooperative
        ``stop_event`` first (so a worker can close its sockets and exit
        cleanly) and only escalates to ``terminate()``/``kill()`` for
        workers still alive past ``publish_graceful_shutdown_timeout``.
@@ -629,6 +673,9 @@ See Also
 - :doc:`architecture` -- overall step_lib architecture, including the
   package-wide class diagram and the subscribe/receive path (which does
   not use this multiprocess mechanism).
+- :doc:`ventilator_worker_protocol` -- an in-depth look at the
+  ventilator/worker wire protocol itself: JSON envelope serialization,
+  heartbeating, MQTT reconnection, and worker self-termination.
 - :doc:`step_lib_rst/step_lib.its_publish_worker_pool`,
   :doc:`step_lib_rst/step_lib.its_publish_worker`,
   :doc:`step_lib_rst/step_lib.its_publish_envelope` -- full API reference

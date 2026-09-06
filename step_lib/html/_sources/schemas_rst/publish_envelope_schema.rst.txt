@@ -1,0 +1,32 @@
+Publish Envelope Schema
+========================
+
+The Publish Envelope schema defines the wire format used to hand off a publish request from
+the caller's process to a publish worker process, over the ZMQ ``PUSH``/``PULL`` pipeline
+described in :doc:`../multiprocess_architecture`. The envelope wraps the CAM/CPM/DENM
+facility message (via ``ItsMessageRoot``) together with the destination GeoNetworking address and
+the sender's current position, flattened into scalar fields so the whole envelope round-trips as a
+single, self-contained JSON object with no nested re-encoding. The schema consists of the following
+fields:
+
+    * **itsMessage**: The CAM/CPM/DENM message content, nested directly (not re-encoded as a JSON string)
+    * **isCustom**: Whether the message uses the custom (non ETSI-standard) PDU layout
+    * **addressIsManualConfigured**: Whether the destination GeoNetworking address is manually configured
+    * **addressTrafficParticipantType**: The traffic participant type of the destination address
+    * **addressMacId**: The MAC ID of the destination address
+    * **positionTime**: The sender's position time, as an ISO-8601 string
+    * **positionLatitude**: The latitude of the sender's current position
+    * **positionLongitude**: The longitude of the sender's current position
+    * **positionAccuracy**: The accuracy of the sender's current position
+    * **positionSpeed**: The speed of the sender's current position
+    * **positionHeading**: The heading of the sender's current position
+    * **isStationMobile**: Whether the sending station is mobile
+
+For further information, please refer to the ``PublishEnvelope`` python class.
+
+Example of the message:
+
+.. literalinclude:: ../schemas_examples/publish_envelope_schema.json
+  :language: JSON
+
+.. jsonschema:: ../json_schemas/publish_envelope_schema.json

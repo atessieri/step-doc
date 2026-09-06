@@ -1,0 +1,464 @@
+Ventilator/Worker Communication Protocol
+==========================================
+
+Overview
+--------
+
+:doc:`multiprocess_architecture` covers the publish pool's process
+topology and startup/shutdown sequencing end to end. This page zooms into
+one slice of that mechanism -- the wire-level protocol running between
+:class:`~step_lib.its_publish_worker_pool.PublishWorkerPool` (the
+**ventilator**, in process A) and each
+:class:`~step_lib.its_publish_worker.PublishWorker` (a **worker**, in
+process B) -- and documents it in depth: how a message is serialized to
+JSON on the wire, how the pool tells a hung worker from an idle one
+(heartbeating), how a worker recovers from a dropped MQTT connection
+(reconnection), and how a worker decides to exit on its own
+(auto-closing).
+
+The pool's own module docstring (:mod:`step_lib.its_publish_worker_pool`)
+names the pattern directly: *"the ventilator that lives in the caller's
+process ... spawning workers that connect to it."* That is a deliberate
+nod to ZeroMQ's :xref:`Divide and Conquer`
+pattern from the :xref:`ZeroMQ Guide`
+(chapter 1), where a ventilator ``PUSH``es tasks to a pool of workers over
+a fair-queued pipeline. This implementation follows that shape --
+``PUSH``/``PULL``, round-robin fan-out, one bound endpoint -- and then
+goes further: the ventilator here also needs to know when a *worker* has
+died or hung, which is the problem the Guide's chapter 4
+:xref:`Paranoid Pirate Pattern`
+solves with application-level heartbeating between peers. ``step_lib``
+does not reproduce Paranoid Pirate's own wire-level heartbeat frames --
+the pool and its workers already share OS-level ``multiprocessing``
+primitives, which is a cheaper channel than a second pair of sockets --
+but it borrows the same idea: a value that only advances while the peer
+is genuinely making progress, checked on a timeout.
+
+.. list-table:: Terminology mapping
+   :widths: 25 35 40
+   :header-rows: 1
+
+   * - ZeroMQ Guide term
+     - step_lib class
+     - Role
+   * - Ventilator
+     - :class:`~step_lib.its_publish_worker_pool.PublishWorkerPool`
+     - Binds the one ``PUSH`` endpoint; fans envelopes out; health-checks
+       and restarts workers.
+   * - Worker
+     - :class:`~step_lib.its_publish_worker.PublishWorker`
+     - Connects a ``PULL`` socket; decodes each envelope; republishes it
+       to MQTT via its own private
+       :class:`~step_lib.async_com_manager.AsyncComManager`.
+   * - Sink
+     - *(none)*
+     - Not part of this pipeline -- a publish call has no result to
+       collect back in process A, so there is no third stage.
+
+Message Flow
+-------------
+
+.. container:: scrollable-diagram
+
+    .. plantuml::
+        :align: center
+
+        @startuml
+        actor "Application" as App
+        participant "PublishWorkerPool\n(ventilator)" as Pool
+        participant "ZMQ PUSH\n(bind, HWM)" as Push
+        participant "ZMQ PULL\n(connect)" as Pull
+        participant "PublishWorker\n(publish_loop)" as Worker
+        participant "AsyncComManager\n(private)" as ACM
+        database "STEP MQTT Broker" as Broker
+
+        App -> Pool: send(envelope: PublishEnvelope)
+        Pool -> Pool: payload = envelope.model_dump_json()
+        Pool -> Push: send(payload, zmq.NOBLOCK)
+        Push -->> Pull: round-robin routed\nto one connected worker
+        Pull -> Worker: raw = await sock.recv()
+        Worker -> Worker: PublishEnvelope\n.model_validate_json(raw)
+        Worker -> Worker: envelope.to_domain_objects()
+        Worker -> ACM: publish_its_message(...)
+        ACM -> Broker: MQTT publish
+        @enduml
+
+The Wire Format: JSON Serialization
+-------------------------------------
+
+The only thing that ever crosses the process boundary on the data path
+is a JSON payload: :class:`~step_lib.its_publish_envelope.PublishEnvelope`,
+a frozen, strict Pydantic model. ``PublishWorkerPool.send()`` encodes it
+with ``envelope.model_dump_json()`` before acquiring the socket lock (pure
+computation, no shared state, so it does not belong inside the critical
+section); the worker decodes it with
+``PublishEnvelope.model_validate_json(raw)`` inside ``_publish_loop``.
+See :doc:`schemas_rst/publish_envelope_schema` for the full field-by-field
+JSON Schema and an example payload.
+
+Why JSON, and why this particular shape, rather than pickling the
+Python objects directly:
+
+- **Cross-process safety.** ``multiprocessing`` workers are spawned with
+  the ``spawn`` start method (never the platform-default ``fork``, which
+  is unsafe once the parent is already multi-threaded -- see
+  :doc:`multiprocess_architecture`), so nothing guarantees the worker
+  process shares memory or even import state with the pool's process.
+  JSON over a socket has no such assumption to violate.
+- **A flat, self-contained object.** The envelope wraps the facility
+  message via ``step_cloud_schemas.ItsMessageRoot`` (the same polymorphic
+  CAM/CPM/DENM union used elsewhere in the package) nested directly --
+  not re-encoded as a string -- and flattens
+  :class:`~step_lib.geonet.geo_network_address.GeoNetworkAddress` and
+  :class:`~step_lib.its_message_serializer.GpsLocation` into scalar
+  ``address*``/``position*`` fields. The result is one JSON object with
+  no nested re-encoding step, so ``model_dump_json()``/
+  ``model_validate_json()`` are the *only* encode/decode work performed.
+- **Strict, frozen, closed.** ``model_config`` sets ``extra="forbid"``,
+  ``frozen=True``, and ``strict=True`` -- a malformed or unexpected
+  payload fails validation loudly (caught in ``_publish_loop`` and
+  logged/discarded, see `Malformed Payloads`_ below) rather than being
+  silently coerced or partially accepted.
+- **Clamping instead of rejecting out-of-range geometry.** Latitude,
+  longitude, speed, and heading each carry a ``field_validator`` that
+  clamps or wraps the raw value into its valid range (e.g. longitude
+  wraps modulo into ``[-180.0, 180.0)`` rather than raising) before
+  Pydantic's own type validation runs, and a matching ``field_serializer``
+  rounds the value back down to a fixed precision on the way out. A
+  message with a slightly-out-of-range value from an upstream sensor is
+  normalized, not dropped.
+- **Lossless reconstruction, not just round-tripping.**
+  ``to_domain_objects()`` rebuilds the concrete ``FacilityMessage``
+  subclass directly from ``itsMessage.root`` -- mirroring
+  ``step_lib.__main__``'s own encode path -- instead of going through
+  ``FacilityMessage.from_json()``. This is deliberate: for CPM messages,
+  ``CpmMessageV1.from_json()`` defaults ``is_custom`` to ``True``, which
+  would silently corrupt the flag ``PublishEnvelope.isCustom`` carries
+  across the wire specifically to avoid that.
+
+.. container:: scrollable-diagram
+
+    .. plantuml::
+        :align: center
+
+        @startuml
+        skinparam classAttributeIconSize 0
+
+        class PublishEnvelope <<frozen, strict, extra=forbid>> {
+            + itsMessage: ItsMessageRoot
+            + isCustom: bool
+            + addressIsManualConfigured: bool
+            + addressTrafficParticipantType: TrafficParticipantType
+            + addressMacId: int
+            + positionTime: str
+            + positionLatitude: float
+            + positionLongitude: float
+            + positionAccuracy: float | None
+            + positionSpeed: float | None
+            + positionHeading: float | None
+            + isStationMobile: bool
+            + {static} from_domain_objects(...) : PublishEnvelope
+            + to_domain_objects() : DomainObjects
+        }
+
+        note right of PublishEnvelope::positionLatitude
+          field_validator (mode="before"): clamp to [-90, 90]
+          field_serializer: round to COORDINATE_PRECISION
+        end note
+        note right of PublishEnvelope::positionLongitude
+          field_validator (mode="before"): wrap into [-180, 180)
+          field_serializer: round to COORDINATE_PRECISION
+        end note
+        note right of PublishEnvelope::positionHeading
+          field_validator (mode="before"): wrap into [0, 360)
+          field_serializer: round to HEADING_VALUE_PRECISION
+        end note
+
+        class DomainObjects <<NamedTuple>> {
+            + message: FacilityMessage
+            + address: GeoNetworkAddress
+            + current_position: GpsLocation
+        }
+
+        PublishEnvelope ..> DomainObjects : to_domain_objects()
+        @enduml
+
+Malformed Payloads
+~~~~~~~~~~~~~~~~~~~~
+
+Because the model is ``strict``/``extra="forbid"``, any payload that
+does not match the schema -- truncated JSON, a field of the wrong type,
+an unexpected key -- raises ``pydantic.ValidationError`` from
+``model_validate_json()``. ``_publish_loop`` catches exactly that
+exception, logs a warning with the raw payload, and ``continue``\ s the
+receive loop *without* tearing down the worker's MQTT connection:
+
+.. code-block:: python
+
+   try:
+       envelope = PublishEnvelope.model_validate_json(json_data=raw)
+   except ValidationError:
+       self._logger.warning(
+           msg=f"Discarding malformed publish envelope {raw.decode('utf-8')}"
+       )
+       continue
+
+A bad message is data-plane noise, not a connection problem -- it is
+handled independently of the reconnect/heartbeat machinery described
+next.
+
+Heartbeat
+----------
+
+A worker's OS process can be alive while its work has stopped -- a
+dependency deadlock, a hung call -- and plain ``multiprocessing.Process
+.is_alive()`` cannot see that, since the process itself is still
+scheduled and running. The heartbeat exists to close that gap.
+
+How it works
+~~~~~~~~~~~~~~
+
+- The pool allocates one ``multiprocessing.Value("d", ...)`` per worker
+  slot (``PublishWorkerPool._heartbeats``), created in ``_spawn_worker``
+  alongside that worker's ``ready_event``/``stop_event``, and passes it
+  into the :class:`~step_lib.its_publish_worker.PublishWorker`
+  constructor as ``heartbeat``.
+- Inside the worker, ``_heartbeat_loop`` -- one of the four coroutines
+  running concurrently under ``_async_main``'s ``TaskGroup`` -- does
+  nothing but write ``time.monotonic()`` into that shared value and
+  sleep for ``publish_heartbeat_interval`` seconds (default ``0.5``),
+  forever.
+- Because asyncio is single-threaded and cooperative, ``_heartbeat_loop``
+  only keeps advancing if the *whole event loop* keeps yielding control
+  back to the scheduler. If ``_publish_loop`` (or any sibling task) hangs
+  without awaiting anything, the heartbeat freezes right along with it --
+  which is precisely what makes a stale heartbeat a reliable signal of a
+  hung worker, not just a busy one.
+- On the pool side, ``blocked_workers()`` compares ``monotonic() -
+  heartbeat.value`` against ``publish_heartbeat_timeout`` (default
+  ``3.0`` -- six missed beats at the default interval) for every worker
+  still reported alive by ``proc.is_alive()``. ``check_health()`` calls
+  this on every ``publish_health_check_interval`` tick (default ``1.0``)
+  from the dedicated health-check thread described in
+  :doc:`multiprocess_architecture`.
+
+.. container:: scrollable-diagram
+
+    .. plantuml::
+        :align: center
+
+        @startuml
+        participant "Health-check thread" as Health
+        participant "PublishWorkerPool" as Pool
+        participant "Shared heartbeat\n(multiprocessing.Value)" as HB
+        participant "PublishWorker\n(_heartbeat_loop)" as Worker
+
+        loop every publish_heartbeat_interval
+            Worker -> HB: value = time.monotonic()
+        end
+
+        loop every publish_health_check_interval
+            Health -> Pool: check_health()
+            Pool -> HB: now - value
+            alt now - value > publish_heartbeat_timeout
+                Pool -> Pool: worker_index in blocked_workers()
+                Pool -> Worker: terminate() / kill()
+                Pool -> Pool: _restart_worker(worker_index)
+            else fresh
+                Pool -> Pool: worker considered healthy
+            end
+        end
+        @enduml
+
+A blocked worker is escalated harder than a dead one: since a hung
+worker might not even react cleanly to ``terminate()``, the pool tries
+``terminate()`` first, then ``kill()`` if the process is still alive
+after ``publish_forceful_join_timeout``, before spawning its
+replacement. A worker whose process has already exited needs none of
+that escalation.
+
+.. note::
+   ``publish_heartbeat_interval`` and ``publish_heartbeat_timeout`` are
+   independent of message traffic -- the heartbeat keeps ticking whether
+   or not any envelopes are flowing, so an idle worker is never mistaken
+   for a hung one.
+
+Reconnection
+-------------
+
+Reconnection in this pipeline is entirely about the worker's *MQTT*
+connection, not the ZMQ ``PUSH``/``PULL`` pipe. ZMQ sockets already
+reconnect transparently and queue internally by design (this is why
+``_async_main`` treats the ``PULL`` socket's own ``connect()`` as
+effectively non-blocking and non-failing, see below); MQTT is
+connection-oriented and can legitimately drop, so it needs an explicit
+retry loop.
+
+``_publish_loop`` wraps the whole per-connection lifetime -- ``async
+with AsyncComManager(...)`` plus the inner receive loop -- in an outer
+``while True``, with one small but important distinction:
+
+.. list-table::
+   :widths: 30 30 40
+   :header-rows: 1
+
+   * - Failure point
+     - Counted toward give-up?
+     - Reasoning
+   * - ``AsyncComManager(...)`` raises before the
+       connection is ever established
+     - Yes -- increments
+       ``consecutive_connect_failures``
+     - Evidence this worker specifically cannot reach the broker at all
+       (bad credentials, unreachable host, TLS misconfiguration).
+   * - A previously-successful connection drops mid-stream
+     - No -- resets the counter to ``0``
+       on the *next* successful connect,
+       and the drop itself is not counted
+     - Evidence the broker *is* reachable -- a transient network blip,
+       not a reason to give up on this worker.
+
+.. container:: scrollable-diagram
+
+    .. plantuml::
+        :align: center
+
+        @startuml
+        start
+        :consecutive_connect_failures = 0;
+        repeat
+          :connected = False;
+          if (AsyncComManager connects?) then (yes)
+            :connected = True;
+            :consecutive_connect_failures = 0;
+            :receive + publish envelopes\nuntil connection drops\nor error;
+          else (no / raises)
+          endif
+          if (connected == False?) then (yes)
+            :consecutive_connect_failures += 1;
+            if (>= publish_max_connect_attempts?) then (yes)
+              :raise _MaxConnectAttemptsExceededError;
+              stop
+            endif
+          endif
+          :await asyncio.sleep(reconnect_interval);
+        repeat while (no shutdown signal)
+        @enduml
+
+Two configuration knobs control this, both on
+:class:`~step_lib.SyncComManagerParams`:
+
+- ``reconnect_interval`` (default ``2`` seconds) -- the pause between one
+  failed/dropped connection attempt and the next.
+- ``publish_max_connect_attempts`` (default ``5``) -- the number of
+  *consecutive, pre-connection* failures tolerated before the worker
+  gives up on itself (see `Worker Auto-Closing`_ below). This bound is
+  what lets a worker whose MQTT connection can genuinely never succeed
+  exit and be recovered by the pool's ordinary dead-worker restart path,
+  instead of retrying against an unreachable broker forever.
+
+Envelope decode failures (`Malformed Payloads`_) never reach this retry
+logic at all -- they are handled inside the inner receive loop without
+raising. A publish call that fails after a successful connect is left to
+:class:`~step_lib.async_com_manager.AsyncComManager`'s own
+``MAX_TRANSMIT_ERRORS`` handling; only a failure severe enough to
+propagate out of the ``async with`` block reaches ``_publish_loop``'s
+``except Exception`` and triggers the reconnect path documented above.
+
+Worker Auto-Closing
+---------------------
+
+A worker never waits to be told to exit by an external supervisor -- it
+watches for four independent conditions itself, each running as one of
+the four coroutines under ``_async_main()``'s ``TaskGroup``, and any one
+of them raising a ``_WorkerShutdownSignal`` subclass unwinds the other
+three via Python's ``except*`` exception-group handling:
+
+.. list-table::
+   :widths: 25 30 45
+   :header-rows: 1
+
+   * - Loop
+     - Signal raised
+     - Trigger
+   * - ``_publish_loop``
+     - ``_MaxConnectAttemptsExceededError``
+     - ``publish_max_connect_attempts`` consecutive MQTT connect
+       failures (see `Reconnection`_).
+   * - ``_parent_watchdog_loop``
+     - ``_ParentProcessGoneError``
+     - The pool's own process (captured PID + ``psutil`` creation time,
+       to rule out PID reuse) is no longer running -- closes the
+       "orphaned worker" gap that ``daemon=True`` alone leaves open,
+       since that flag only guarantees cleanup on the parent's *normal*
+       interpreter shutdown path, not a hard kill.
+   * - ``_stop_watch_loop``
+     - ``_StopRequestedError``
+     - The pool set this worker's ``stop_event`` (a graceful,
+       pool-requested stop -- see ``PublishWorkerPool.close()`` in
+       :doc:`multiprocess_architecture`). Polled on a short, fixed
+       interval (``STOP_POLL_INTERVAL = 0.2s``) rather than a single
+       blocking ``Event.wait()`` in an executor thread, since such a
+       wait cannot be cancelled by asyncio task cancellation if a
+       *different* sibling task is the one that actually triggers
+       shutdown.
+   * - ``_heartbeat_loop``
+     - *(never raises)*
+     - Purely a liveness signal for the pool; it has nothing of its own
+       to detect or react to.
+
+.. container:: scrollable-diagram
+
+    .. plantuml::
+        :align: center
+
+        @startuml
+        participant "_publish_loop" as Publish
+        participant "_parent_watchdog_loop" as Watchdog
+        participant "_stop_watch_loop" as StopWatch
+        participant "_heartbeat_loop" as Heartbeat
+        participant "TaskGroup\n(_async_main)" as TG
+
+        alt max connect attempts exceeded
+            Publish -> TG: raise _MaxConnectAttemptsExceededError
+        else parent process gone
+            Watchdog -> TG: raise _ParentProcessGoneError
+        else pool requested stop
+            StopWatch -> TG: raise _StopRequestedError
+        end
+        TG -> TG: except* _WorkerShutdownSignal:\ncancel every other sibling task
+        TG -> TG: close PULL socket, terminate ZMQ context
+        TG -> TG: process exits
+        @enduml
+
+Whichever signal fires first, the outcome is the same from the pool's
+point of view: the worker process exits, ``proc.is_alive()`` eventually
+reports ``False``, ``dead_workers()`` picks it up on the next
+``check_health()`` pass, and it is respawned on the same, already-bound
+endpoint exactly like an ordinary crash -- self-closing and
+crash-recovery share one code path.
+
+.. note::
+   A self-closed worker is *not* treated as an error requiring
+   escalation the way a blocked worker is: since the process has already
+   exited on its own, ``check_health()`` only needs ``_restart_worker()``,
+   with no ``terminate()``/``kill()`` step first.
+
+See Also
+--------
+
+- :doc:`multiprocess_architecture` -- the pool's full process topology,
+  startup, health-check scheduling, and graceful/forceful shutdown
+  sequencing that this page's mechanisms plug into.
+- :xref:`ZeroMQ Guide, chapter 1 -- Divide and Conquer <Divide and Conquer>` --
+  the ventilator/worker/sink pipeline pattern this pool's ``PUSH``/``PULL``
+  topology follows.
+- :xref:`ZeroMQ Guide, chapter 4 -- The Paranoid Pirate Pattern <Paranoid Pirate Pattern>` --
+  the heartbeating/reliability pattern this pool's own
+  ``multiprocessing``-based heartbeat and parent watchdog draw on,
+  adapted to a shared-memory channel instead of a second pair of
+  sockets.
+- :doc:`step_lib_rst/step_lib.its_publish_worker_pool`,
+  :doc:`step_lib_rst/step_lib.its_publish_worker`,
+  :doc:`step_lib_rst/step_lib.its_publish_envelope` -- full API
+  reference for every class introduced on this page.
