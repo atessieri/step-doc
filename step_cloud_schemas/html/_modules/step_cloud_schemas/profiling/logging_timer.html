@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>step_cloud_schemas.profiling.logging_timer &mdash; STEP Cloud Schemas 2.2.10 documentation</title>
+  <title>step_cloud_schemas.profiling.logging_timer &mdash; STEP Cloud Schemas 2.3.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../../_static/tabs.css?v=4c969af8" />
@@ -15,7 +15,7 @@
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=6844b56b"></script>
+      <script src="../../../_static/documentation_options.js?v=c3c8ae58"></script>
       <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../../_static/tabs.js?v=3ee01567"></script>
@@ -2708,6 +2708,8 @@
 <li class="toctree-l7"><a class="reference internal" href="../../../test_rst/profiling/test.profiling.test_logging_timer.html#test.profiling.test_logging_timer.TestLoggingTimer.test___enter___enabled"><code class="docutils literal notranslate"><span class="pre">TestLoggingTimer.test___enter___enabled()</span></code></a></li>
 <li class="toctree-l7"><a class="reference internal" href="../../../test_rst/profiling/test.profiling.test_logging_timer.html#test.profiling.test_logging_timer.TestLoggingTimer.test___exit___disabled"><code class="docutils literal notranslate"><span class="pre">TestLoggingTimer.test___exit___disabled()</span></code></a></li>
 <li class="toctree-l7"><a class="reference internal" href="../../../test_rst/profiling/test.profiling.test_logging_timer.html#test.profiling.test_logging_timer.TestLoggingTimer.test___exit___enabled"><code class="docutils literal notranslate"><span class="pre">TestLoggingTimer.test___exit___enabled()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="../../../test_rst/profiling/test.profiling.test_logging_timer.html#test.profiling.test_logging_timer.TestLoggingTimer.test___exit___message_matches_pattern"><code class="docutils literal notranslate"><span class="pre">TestLoggingTimer.test___exit___message_matches_pattern()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="../../../test_rst/profiling/test.profiling.test_logging_timer.html#test.profiling.test_logging_timer.TestLoggingTimer.test_pattern_does_not_match_malformed_message"><code class="docutils literal notranslate"><span class="pre">TestLoggingTimer.test_pattern_does_not_match_malformed_message()</span></code></a></li>
 <li class="toctree-l7"><a class="reference internal" href="../../../test_rst/profiling/test.profiling.test_logging_timer.html#test.profiling.test_logging_timer.TestLoggingTimer.test_reused_instance_logs_correct_func_name_per_use"><code class="docutils literal notranslate"><span class="pre">TestLoggingTimer.test_reused_instance_logs_correct_func_name_per_use()</span></code></a></li>
 </ul>
 </li>
@@ -2860,268 +2862,280 @@
 <span class="linenos"> 73</span><span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span>
 <span class="linenos"> 74</span><span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">wraps</span>
 <span class="linenos"> 75</span><span class="kn">from</span><span class="w"> </span><span class="nn">logging</span><span class="w"> </span><span class="kn">import</span> <span class="n">Logger</span>
-<span class="linenos"> 76</span><span class="kn">from</span><span class="w"> </span><span class="nn">types</span><span class="w"> </span><span class="kn">import</span> <span class="n">TracebackType</span>
-<span class="linenos"> 77</span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParamSpec</span><span class="p">,</span> <span class="n">TypeVar</span>
-<span class="linenos"> 78</span><span class="kn">from</span><span class="w"> </span><span class="nn">uuid</span><span class="w"> </span><span class="kn">import</span> <span class="n">uuid4</span>
-<span class="linenos"> 79</span>
-<span class="linenos"> 80</span><span class="c1"># step_cloud_schemas Package Imports</span>
-<span class="linenos"> 81</span><span class="kn">from</span><span class="w"> </span><span class="nn">step_cloud_schemas.logging.log_config</span><span class="w"> </span><span class="kn">import</span> <span class="n">LogMode</span>
-<span class="linenos"> 82</span><span class="kn">from</span><span class="w"> </span><span class="nn">step_cloud_schemas.profiling.monotonic_timer</span><span class="w"> </span><span class="kn">import</span> <span class="n">MonotonicTimer</span>
-<span class="linenos"> 83</span>
-<span class="linenos"> 84</span><span class="n">P</span> <span class="o">=</span> <span class="n">ParamSpec</span><span class="p">(</span><span class="s2">"P"</span><span class="p">)</span>
-<span class="linenos"> 85</span><span class="n">R</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s2">"R"</span><span class="p">)</span>
-<span class="linenos"> 86</span>
-<span class="linenos"> 87</span>
+<span class="linenos"> 76</span><span class="kn">from</span><span class="w"> </span><span class="nn">re</span><span class="w"> </span><span class="kn">import</span> <span class="n">Pattern</span>
+<span class="linenos"> 77</span><span class="kn">from</span><span class="w"> </span><span class="nn">re</span><span class="w"> </span><span class="kn">import</span> <span class="nb">compile</span> <span class="k">as</span> <span class="n">re_compile</span>
+<span class="linenos"> 78</span><span class="kn">from</span><span class="w"> </span><span class="nn">types</span><span class="w"> </span><span class="kn">import</span> <span class="n">TracebackType</span>
+<span class="linenos"> 79</span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">ClassVar</span><span class="p">,</span> <span class="n">ParamSpec</span><span class="p">,</span> <span class="n">TypeVar</span>
+<span class="linenos"> 80</span><span class="kn">from</span><span class="w"> </span><span class="nn">uuid</span><span class="w"> </span><span class="kn">import</span> <span class="n">uuid4</span>
+<span class="linenos"> 81</span>
+<span class="linenos"> 82</span><span class="c1"># step_cloud_schemas Package Imports</span>
+<span class="linenos"> 83</span><span class="kn">from</span><span class="w"> </span><span class="nn">step_cloud_schemas.logging.log_config</span><span class="w"> </span><span class="kn">import</span> <span class="n">LogMode</span>
+<span class="linenos"> 84</span><span class="kn">from</span><span class="w"> </span><span class="nn">step_cloud_schemas.profiling.monotonic_timer</span><span class="w"> </span><span class="kn">import</span> <span class="n">MonotonicTimer</span>
+<span class="linenos"> 85</span>
+<span class="linenos"> 86</span><span class="n">P</span> <span class="o">=</span> <span class="n">ParamSpec</span><span class="p">(</span><span class="s2">"P"</span><span class="p">)</span>
+<span class="linenos"> 87</span><span class="n">R</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s2">"R"</span><span class="p">)</span>
+<span class="linenos"> 88</span>
+<span class="linenos"> 89</span>
 <div class="viewcode-block" id="LoggingTimer">
 <a class="viewcode-back" href="../../../step_cloud_schemas_rst/profiling/step_cloud_schemas.profiling.logging_timer.html#step_cloud_schemas.profiling.logging_timer.LoggingTimer">[docs]</a>
-<span class="linenos"> 88</span><span class="k">class</span><span class="w"> </span><span class="nc">LoggingTimer</span><span class="p">:</span>
-<span class="linenos"> 89</span><span class="w">    </span><span class="sd">"""Time a block of code and log the elapsed time when the block exits.</span>
-<span class="linenos"> 90</span>
-<span class="linenos"> 91</span><span class="sd">    ``LoggingTimer`` is a context-manager-only utility: it has no explicit</span>
-<span class="linenos"> 92</span><span class="sd">    ``start``/``stop`` API, since every known use case times a single,</span>
-<span class="linenos"> 93</span><span class="sd">    lexically scoped block of code. The elapsed time is logged even if the</span>
-<span class="linenos"> 94</span><span class="sd">    wrapped block raises, since ``__exit__`` always runs.</span>
-<span class="linenos"> 95</span>
-<span class="linenos"> 96</span><span class="sd">    *func_name* may be supplied at construction time, for the common case of</span>
-<span class="linenos"> 97</span><span class="sd">    a fresh instance per timed block, or left unset and supplied per use via</span>
-<span class="linenos"> 98</span><span class="sd">    ``__call__``, for reusing one instance across different functions (e.g.</span>
-<span class="linenos"> 99</span><span class="sd">    stored as an instance attribute). A ``LoggingTimer`` built this way is</span>
-<span class="linenos">100</span><span class="sd">    not safe to use concurrently or reentrantly, since ``__call__`` and</span>
-<span class="linenos">101</span><span class="sd">    ``__enter__`` mutate shared state on it; build a fresh instance per call</span>
-<span class="linenos">102</span><span class="sd">    site when timings could overlap.</span>
-<span class="linenos">103</span>
-<span class="linenos">104</span><span class="sd">    To keep the overhead as low as possible when the target level is</span>
-<span class="linenos">105</span><span class="sd">    disabled, ``logger.isEnabledFor`` is checked in ``__enter__``, and the</span>
-<span class="linenos">106</span><span class="sd">    clock is skipped entirely when the level is disabled.</span>
-<span class="linenos">107</span>
-<span class="linenos">108</span><span class="sd">    Attributes:</span>
-<span class="linenos">109</span><span class="sd">        _logger (Logger): Logger instance used to emit the execution-time message.</span>
-<span class="linenos">110</span><span class="sd">        _level (int): Underlying logging level, resolved from the</span>
-<span class="linenos">111</span><span class="sd">            constructor's ``log_level`` (LogMode) via</span>
-<span class="linenos">112</span><span class="sd">            ``LogMode.to_logging_level``, used both to gate the timing</span>
-<span class="linenos">113</span><span class="sd">            measurement and to emit the execution-time message.</span>
-<span class="linenos">114</span><span class="sd">        _prefix (str | None): Optional context label prepended to the</span>
-<span class="linenos">115</span><span class="sd">            standard execution-time message. Defaults to ``None``.</span>
-<span class="linenos">116</span><span class="sd">        _func_name (str | None): Name of the timed function or block, embedded</span>
-<span class="linenos">117</span><span class="sd">            in the log message. May be set at construction time, or later via</span>
-<span class="linenos">118</span><span class="sd">            ``__call__``; must be set by the time ``__exit__`` runs. Defaults</span>
-<span class="linenos">119</span><span class="sd">            to ``None``.</span>
-<span class="linenos">120</span><span class="sd">        _enabled (bool): Whether ``__enter__`` found the target log level</span>
-<span class="linenos">121</span><span class="sd">            enabled on the logger, and therefore started the clock. Set on</span>
-<span class="linenos">122</span><span class="sd">            every ``__enter__`` call; initialized to ``False``.</span>
-<span class="linenos">123</span><span class="sd">        _start_time_ms (float | None): Monotonic timestamp, in milliseconds,</span>
-<span class="linenos">124</span><span class="sd">            recorded by ``__enter__`` when ``_enabled`` is True. ``None``</span>
-<span class="linenos">125</span><span class="sd">            until then.</span>
-<span class="linenos">126</span>
-<span class="linenos">127</span><span class="sd">    Complexity:</span>
-<span class="linenos">128</span><span class="sd">        - Time: O(1) for construction, ``__call__``, and ``__enter__``, each</span>
-<span class="linenos">129</span><span class="sd">            a fixed number of attribute assignments plus, for ``__enter__``,</span>
-<span class="linenos">130</span><span class="sd">            one ``isEnabledFor`` check and at most one clock read.</span>
-<span class="linenos">131</span><span class="sd">            ``__exit__`` costs O(1) for its clock read plus O(m) to build the</span>
-<span class="linenos">132</span><span class="sd">            log message when enabled, where m is the combined length of</span>
-<span class="linenos">133</span><span class="sd">            *prefix* and *func_name*.</span>
-<span class="linenos">134</span><span class="sd">        - Space: O(1) for every attribute stored, aside from the O(m) log</span>
-<span class="linenos">135</span><span class="sd">            message built transiently by ``__exit__``, where m is as above.</span>
-<span class="linenos">136</span><span class="sd">    """</span>
-<span class="linenos">137</span>
-<span class="linenos">138</span>    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span>
-<span class="linenos">139</span>        <span class="s2">"_enabled"</span><span class="p">,</span>
-<span class="linenos">140</span>        <span class="s2">"_func_name"</span><span class="p">,</span>
-<span class="linenos">141</span>        <span class="s2">"_level"</span><span class="p">,</span>
-<span class="linenos">142</span>        <span class="s2">"_logger"</span><span class="p">,</span>
-<span class="linenos">143</span>        <span class="s2">"_prefix"</span><span class="p">,</span>
-<span class="linenos">144</span>        <span class="s2">"_start_time_ms"</span><span class="p">,</span>
-<span class="linenos">145</span>    <span class="p">)</span>
-<span class="linenos">146</span>
-<span class="linenos">147</span>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
-<span class="linenos">148</span>        <span class="bp">self</span><span class="p">,</span>
-<span class="linenos">149</span>        <span class="n">logger</span><span class="p">:</span> <span class="n">Logger</span><span class="p">,</span>
-<span class="linenos">150</span>        <span class="n">func_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<span class="linenos">151</span>        <span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<span class="linenos">152</span>        <span class="n">log_level</span><span class="p">:</span> <span class="n">LogMode</span> <span class="o">=</span> <span class="n">LogMode</span><span class="o">.</span><span class="n">INFO</span><span class="p">,</span>
-<span class="linenos">153</span>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">154</span><span class="w">        </span><span class="sd">"""Initialize the timer with the logger and message details used on exit.</span>
-<span class="linenos">155</span>
-<span class="linenos">156</span><span class="sd">        Args:</span>
-<span class="linenos">157</span><span class="sd">            logger (Logger): Logger instance used to emit the execution-time message.</span>
-<span class="linenos">158</span><span class="sd">            func_name (str | None): Name of the timed function or block, embedded</span>
-<span class="linenos">159</span><span class="sd">                in the log message. May be left unset here and supplied per use</span>
-<span class="linenos">160</span><span class="sd">                via ``__call__`` instead. Defaults to ``None``.</span>
-<span class="linenos">161</span><span class="sd">            prefix (str | None): Optional context label prepended to the</span>
-<span class="linenos">162</span><span class="sd">                standard execution-time message. Defaults to ``None``.</span>
-<span class="linenos">163</span><span class="sd">            log_level (LogMode): Log mode used both to resolve the logging level</span>
-<span class="linenos">164</span><span class="sd">                and to gate the timing measurement. Defaults to ``LogMode.INFO``.</span>
-<span class="linenos">165</span>
-<span class="linenos">166</span><span class="sd">        Returns:</span>
-<span class="linenos">167</span><span class="sd">            None</span>
-<span class="linenos">168</span>
-<span class="linenos">169</span><span class="sd">        Complexity:</span>
-<span class="linenos">170</span><span class="sd">            - Time: O(1), all arguments are simply stored for later use.</span>
-<span class="linenos">171</span><span class="sd">            - Space: O(1), aside from the references stored.</span>
-<span class="linenos">172</span><span class="sd">        """</span>
-<span class="linenos">173</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span> <span class="o">=</span> <span class="n">logger</span>
-<span class="linenos">174</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_level</span> <span class="o">=</span> <span class="n">LogMode</span><span class="o">.</span><span class="n">to_logging_level</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="n">log_level</span><span class="p">)</span>
-<span class="linenos">175</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_prefix</span> <span class="o">=</span> <span class="n">prefix</span>
-<span class="linenos">176</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_func_name</span> <span class="o">=</span> <span class="n">func_name</span>
-<span class="linenos">177</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_enabled</span> <span class="o">=</span> <span class="kc">False</span>
-<span class="linenos">178</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_start_time_ms</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<span class="linenos">179</span>
+<span class="linenos"> 90</span><span class="k">class</span><span class="w"> </span><span class="nc">LoggingTimer</span><span class="p">:</span>
+<span class="linenos"> 91</span><span class="w">    </span><span class="sd">"""Time a block of code and log the elapsed time when the block exits.</span>
+<span class="linenos"> 92</span>
+<span class="linenos"> 93</span><span class="sd">    ``LoggingTimer`` is a context-manager-only utility: it has no explicit</span>
+<span class="linenos"> 94</span><span class="sd">    ``start``/``stop`` API, since every known use case times a single,</span>
+<span class="linenos"> 95</span><span class="sd">    lexically scoped block of code. The elapsed time is logged even if the</span>
+<span class="linenos"> 96</span><span class="sd">    wrapped block raises, since ``__exit__`` always runs.</span>
+<span class="linenos"> 97</span>
+<span class="linenos"> 98</span><span class="sd">    *func_name* may be supplied at construction time, for the common case of</span>
+<span class="linenos"> 99</span><span class="sd">    a fresh instance per timed block, or left unset and supplied per use via</span>
+<span class="linenos">100</span><span class="sd">    ``__call__``, for reusing one instance across different functions (e.g.</span>
+<span class="linenos">101</span><span class="sd">    stored as an instance attribute). A ``LoggingTimer`` built this way is</span>
+<span class="linenos">102</span><span class="sd">    not safe to use concurrently or reentrantly, since ``__call__`` and</span>
+<span class="linenos">103</span><span class="sd">    ``__enter__`` mutate shared state on it; build a fresh instance per call</span>
+<span class="linenos">104</span><span class="sd">    site when timings could overlap.</span>
+<span class="linenos">105</span>
+<span class="linenos">106</span><span class="sd">    To keep the overhead as low as possible when the target level is</span>
+<span class="linenos">107</span><span class="sd">    disabled, ``logger.isEnabledFor`` is checked in ``__enter__``, and the</span>
+<span class="linenos">108</span><span class="sd">    clock is skipped entirely when the level is disabled.</span>
+<span class="linenos">109</span>
+<span class="linenos">110</span><span class="sd">    Attributes:</span>
+<span class="linenos">111</span><span class="sd">        _logger (Logger): Logger instance used to emit the execution-time message.</span>
+<span class="linenos">112</span><span class="sd">        _level (int): Underlying logging level, resolved from the</span>
+<span class="linenos">113</span><span class="sd">            constructor's ``log_level`` (LogMode) via</span>
+<span class="linenos">114</span><span class="sd">            ``LogMode.to_logging_level``, used both to gate the timing</span>
+<span class="linenos">115</span><span class="sd">            measurement and to emit the execution-time message.</span>
+<span class="linenos">116</span><span class="sd">        _prefix (str | None): Optional context label prepended to the</span>
+<span class="linenos">117</span><span class="sd">            standard execution-time message. Defaults to ``None``.</span>
+<span class="linenos">118</span><span class="sd">        _func_name (str | None): Name of the timed function or block, embedded</span>
+<span class="linenos">119</span><span class="sd">            in the log message. May be set at construction time, or later via</span>
+<span class="linenos">120</span><span class="sd">            ``__call__``; must be set by the time ``__exit__`` runs. Defaults</span>
+<span class="linenos">121</span><span class="sd">            to ``None``.</span>
+<span class="linenos">122</span><span class="sd">        _enabled (bool): Whether ``__enter__`` found the target log level</span>
+<span class="linenos">123</span><span class="sd">            enabled on the logger, and therefore started the clock. Set on</span>
+<span class="linenos">124</span><span class="sd">            every ``__enter__`` call; initialized to ``False``.</span>
+<span class="linenos">125</span><span class="sd">        _start_time_ms (float | None): Monotonic timestamp, in milliseconds,</span>
+<span class="linenos">126</span><span class="sd">            recorded by ``__enter__`` when ``_enabled`` is True. ``None``</span>
+<span class="linenos">127</span><span class="sd">            until then.</span>
+<span class="linenos">128</span>
+<span class="linenos">129</span><span class="sd">    Complexity:</span>
+<span class="linenos">130</span><span class="sd">        - Time: O(1) for construction, ``__call__``, and ``__enter__``, each</span>
+<span class="linenos">131</span><span class="sd">            a fixed number of attribute assignments plus, for ``__enter__``,</span>
+<span class="linenos">132</span><span class="sd">            one ``isEnabledFor`` check and at most one clock read.</span>
+<span class="linenos">133</span><span class="sd">            ``__exit__`` costs O(1) for its clock read plus O(m) to build the</span>
+<span class="linenos">134</span><span class="sd">            log message when enabled, where m is the combined length of</span>
+<span class="linenos">135</span><span class="sd">            *prefix* and *func_name*.</span>
+<span class="linenos">136</span><span class="sd">        - Space: O(1) for every attribute stored, aside from the O(m) log</span>
+<span class="linenos">137</span><span class="sd">            message built transiently by ``__exit__``, where m is as above.</span>
+<span class="linenos">138</span><span class="sd">    """</span>
+<span class="linenos">139</span>
+<span class="linenos">140</span>    <span class="c1"># Class-level regex pattern used to validate and parse the execution-time log message. Optional "[step_lib] -"</span>
+<span class="linenos">141</span>    <span class="n">pattern</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="n">Pattern</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="n">re_compile</span><span class="p">(</span>
+<span class="linenos">142</span>        <span class="n">pattern</span><span class="o">=</span><span class="p">(</span>
+<span class="linenos">143</span>            <span class="sa">r</span><span class="s2">"(?:\[(?P&lt;lib&gt;[^\]]+)\]\s*-\s*)?"</span>
+<span class="linenos">144</span>            <span class="sa">r</span><span class="s2">"Execution time \[(?P&lt;func&gt;[^\]]+)\]\s*-\s*"</span>
+<span class="linenos">145</span>            <span class="sa">r</span><span class="s2">"\[(?P&lt;uuid&gt;[0-9a-fA-F-]+)\]:\s*"</span>
+<span class="linenos">146</span>            <span class="sa">r</span><span class="s2">"(?P&lt;time&gt;[\d.]+)\s*ms"</span>
+<span class="linenos">147</span>        <span class="p">)</span>
+<span class="linenos">148</span>    <span class="p">)</span>
+<span class="linenos">149</span>
+<span class="linenos">150</span>    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span>
+<span class="linenos">151</span>        <span class="s2">"_enabled"</span><span class="p">,</span>
+<span class="linenos">152</span>        <span class="s2">"_func_name"</span><span class="p">,</span>
+<span class="linenos">153</span>        <span class="s2">"_level"</span><span class="p">,</span>
+<span class="linenos">154</span>        <span class="s2">"_logger"</span><span class="p">,</span>
+<span class="linenos">155</span>        <span class="s2">"_prefix"</span><span class="p">,</span>
+<span class="linenos">156</span>        <span class="s2">"_start_time_ms"</span><span class="p">,</span>
+<span class="linenos">157</span>    <span class="p">)</span>
+<span class="linenos">158</span>
+<span class="linenos">159</span>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+<span class="linenos">160</span>        <span class="bp">self</span><span class="p">,</span>
+<span class="linenos">161</span>        <span class="n">logger</span><span class="p">:</span> <span class="n">Logger</span><span class="p">,</span>
+<span class="linenos">162</span>        <span class="n">func_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="linenos">163</span>        <span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="linenos">164</span>        <span class="n">log_level</span><span class="p">:</span> <span class="n">LogMode</span> <span class="o">=</span> <span class="n">LogMode</span><span class="o">.</span><span class="n">INFO</span><span class="p">,</span>
+<span class="linenos">165</span>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">166</span><span class="w">        </span><span class="sd">"""Initialize the timer with the logger and message details used on exit.</span>
+<span class="linenos">167</span>
+<span class="linenos">168</span><span class="sd">        Args:</span>
+<span class="linenos">169</span><span class="sd">            logger (Logger): Logger instance used to emit the execution-time message.</span>
+<span class="linenos">170</span><span class="sd">            func_name (str | None): Name of the timed function or block, embedded</span>
+<span class="linenos">171</span><span class="sd">                in the log message. May be left unset here and supplied per use</span>
+<span class="linenos">172</span><span class="sd">                via ``__call__`` instead. Defaults to ``None``.</span>
+<span class="linenos">173</span><span class="sd">            prefix (str | None): Optional context label prepended to the</span>
+<span class="linenos">174</span><span class="sd">                standard execution-time message. Defaults to ``None``.</span>
+<span class="linenos">175</span><span class="sd">            log_level (LogMode): Log mode used both to resolve the logging level</span>
+<span class="linenos">176</span><span class="sd">                and to gate the timing measurement. Defaults to ``LogMode.INFO``.</span>
+<span class="linenos">177</span>
+<span class="linenos">178</span><span class="sd">        Returns:</span>
+<span class="linenos">179</span><span class="sd">            None</span>
+<span class="linenos">180</span>
+<span class="linenos">181</span><span class="sd">        Complexity:</span>
+<span class="linenos">182</span><span class="sd">            - Time: O(1), all arguments are simply stored for later use.</span>
+<span class="linenos">183</span><span class="sd">            - Space: O(1), aside from the references stored.</span>
+<span class="linenos">184</span><span class="sd">        """</span>
+<span class="linenos">185</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span> <span class="o">=</span> <span class="n">logger</span>
+<span class="linenos">186</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_level</span> <span class="o">=</span> <span class="n">LogMode</span><span class="o">.</span><span class="n">to_logging_level</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="n">log_level</span><span class="p">)</span>
+<span class="linenos">187</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_prefix</span> <span class="o">=</span> <span class="n">prefix</span>
+<span class="linenos">188</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_func_name</span> <span class="o">=</span> <span class="n">func_name</span>
+<span class="linenos">189</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_enabled</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="linenos">190</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_start_time_ms</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="linenos">191</span>
 <div class="viewcode-block" id="LoggingTimer.__call__">
 <a class="viewcode-back" href="../../../step_cloud_schemas_rst/profiling/step_cloud_schemas.profiling.logging_timer.html#step_cloud_schemas.profiling.logging_timer.LoggingTimer.__call__">[docs]</a>
-<span class="linenos">180</span>    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"LoggingTimer"</span><span class="p">:</span>
-<span class="linenos">181</span><span class="w">        </span><span class="sd">"""Set *func_name* for the next use of this timer as a context manager.</span>
-<span class="linenos">182</span>
-<span class="linenos">183</span><span class="sd">        Enables reusing a single ``LoggingTimer`` instance across different</span>
-<span class="linenos">184</span><span class="sd">        functions, with the name to embed in the log message supplied at</span>
-<span class="linenos">185</span><span class="sd">        each ``with`` usage site, e.g. ``with self._timer("serialize"):``.</span>
-<span class="linenos">186</span>
-<span class="linenos">187</span><span class="sd">        Args:</span>
-<span class="linenos">188</span><span class="sd">            func_name (str): Name of the timed function or block, embedded in</span>
-<span class="linenos">189</span><span class="sd">                the log message.</span>
-<span class="linenos">190</span>
-<span class="linenos">191</span><span class="sd">        Returns:</span>
-<span class="linenos">192</span><span class="sd">            LoggingTimer: This timer instance, so it can be used directly as</span>
-<span class="linenos">193</span><span class="sd">            the context manager expression.</span>
+<span class="linenos">192</span>    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"LoggingTimer"</span><span class="p">:</span>
+<span class="linenos">193</span><span class="w">        </span><span class="sd">"""Set *func_name* for the next use of this timer as a context manager.</span>
 <span class="linenos">194</span>
-<span class="linenos">195</span><span class="sd">        Complexity:</span>
-<span class="linenos">196</span><span class="sd">            - Time: O(1), *func_name* is simply stored for later use.</span>
-<span class="linenos">197</span><span class="sd">            - Space: O(1), no additional data structures are allocated.</span>
-<span class="linenos">198</span><span class="sd">        """</span>
-<span class="linenos">199</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_func_name</span> <span class="o">=</span> <span class="n">func_name</span>
-<span class="linenos">200</span>        <span class="k">return</span> <span class="bp">self</span></div>
+<span class="linenos">195</span><span class="sd">        Enables reusing a single ``LoggingTimer`` instance across different</span>
+<span class="linenos">196</span><span class="sd">        functions, with the name to embed in the log message supplied at</span>
+<span class="linenos">197</span><span class="sd">        each ``with`` usage site, e.g. ``with self._timer("serialize"):``.</span>
+<span class="linenos">198</span>
+<span class="linenos">199</span><span class="sd">        Args:</span>
+<span class="linenos">200</span><span class="sd">            func_name (str): Name of the timed function or block, embedded in</span>
+<span class="linenos">201</span><span class="sd">                the log message.</span>
+<span class="linenos">202</span>
+<span class="linenos">203</span><span class="sd">        Returns:</span>
+<span class="linenos">204</span><span class="sd">            LoggingTimer: This timer instance, so it can be used directly as</span>
+<span class="linenos">205</span><span class="sd">            the context manager expression.</span>
+<span class="linenos">206</span>
+<span class="linenos">207</span><span class="sd">        Complexity:</span>
+<span class="linenos">208</span><span class="sd">            - Time: O(1), *func_name* is simply stored for later use.</span>
+<span class="linenos">209</span><span class="sd">            - Space: O(1), no additional data structures are allocated.</span>
+<span class="linenos">210</span><span class="sd">        """</span>
+<span class="linenos">211</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_func_name</span> <span class="o">=</span> <span class="n">func_name</span>
+<span class="linenos">212</span>        <span class="k">return</span> <span class="bp">self</span></div>
 
-<span class="linenos">201</span>
+<span class="linenos">213</span>
 <div class="viewcode-block" id="LoggingTimer.__enter__">
 <a class="viewcode-back" href="../../../step_cloud_schemas_rst/profiling/step_cloud_schemas.profiling.logging_timer.html#step_cloud_schemas.profiling.logging_timer.LoggingTimer.__enter__">[docs]</a>
-<span class="linenos">202</span>    <span class="k">def</span><span class="w"> </span><span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"LoggingTimer"</span><span class="p">:</span>
-<span class="linenos">203</span><span class="w">        </span><span class="sd">"""Start timing if the target log level is enabled on the logger.</span>
-<span class="linenos">204</span>
-<span class="linenos">205</span><span class="sd">        Returns:</span>
-<span class="linenos">206</span><span class="sd">            LoggingTimer: This timer instance.</span>
-<span class="linenos">207</span>
-<span class="linenos">208</span><span class="sd">        Complexity:</span>
-<span class="linenos">209</span><span class="sd">            - Time: O(1), one ``isEnabledFor`` check and, when enabled, one clock read.</span>
-<span class="linenos">210</span><span class="sd">            - Space: O(1), no additional data structures are allocated.</span>
-<span class="linenos">211</span><span class="sd">        """</span>
-<span class="linenos">212</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_enabled</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_level</span><span class="p">)</span>
-<span class="linenos">213</span>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_enabled</span><span class="p">:</span>
-<span class="linenos">214</span>            <span class="bp">self</span><span class="o">.</span><span class="n">_start_time_ms</span> <span class="o">=</span> <span class="n">MonotonicTimer</span><span class="o">.</span><span class="n">get_time_ms</span><span class="p">()</span>
-<span class="linenos">215</span>        <span class="k">return</span> <span class="bp">self</span></div>
-
+<span class="linenos">214</span>    <span class="k">def</span><span class="w"> </span><span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"LoggingTimer"</span><span class="p">:</span>
+<span class="linenos">215</span><span class="w">        </span><span class="sd">"""Start timing if the target log level is enabled on the logger.</span>
 <span class="linenos">216</span>
+<span class="linenos">217</span><span class="sd">        Returns:</span>
+<span class="linenos">218</span><span class="sd">            LoggingTimer: This timer instance.</span>
+<span class="linenos">219</span>
+<span class="linenos">220</span><span class="sd">        Complexity:</span>
+<span class="linenos">221</span><span class="sd">            - Time: O(1), one ``isEnabledFor`` check and, when enabled, one clock read.</span>
+<span class="linenos">222</span><span class="sd">            - Space: O(1), no additional data structures are allocated.</span>
+<span class="linenos">223</span><span class="sd">        """</span>
+<span class="linenos">224</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_enabled</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_level</span><span class="p">)</span>
+<span class="linenos">225</span>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_enabled</span><span class="p">:</span>
+<span class="linenos">226</span>            <span class="bp">self</span><span class="o">.</span><span class="n">_start_time_ms</span> <span class="o">=</span> <span class="n">MonotonicTimer</span><span class="o">.</span><span class="n">get_time_ms</span><span class="p">()</span>
+<span class="linenos">227</span>        <span class="k">return</span> <span class="bp">self</span></div>
+
+<span class="linenos">228</span>
 <div class="viewcode-block" id="LoggingTimer.__exit__">
 <a class="viewcode-back" href="../../../step_cloud_schemas_rst/profiling/step_cloud_schemas.profiling.logging_timer.html#step_cloud_schemas.profiling.logging_timer.LoggingTimer.__exit__">[docs]</a>
-<span class="linenos">217</span>    <span class="k">def</span><span class="w"> </span><span class="fm">__exit__</span><span class="p">(</span>
-<span class="linenos">218</span>        <span class="bp">self</span><span class="p">,</span>
-<span class="linenos">219</span>        <span class="n">exc_type</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="ne">BaseException</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
-<span class="linenos">220</span>        <span class="n">exc_value</span><span class="p">:</span> <span class="ne">BaseException</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
-<span class="linenos">221</span>        <span class="n">traceback</span><span class="p">:</span> <span class="n">TracebackType</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
-<span class="linenos">222</span>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">223</span><span class="w">        </span><span class="sd">"""Log the elapsed time if timing was started, regardless of exceptions.</span>
-<span class="linenos">224</span>
-<span class="linenos">225</span><span class="sd">        Args:</span>
-<span class="linenos">226</span><span class="sd">            exc_type (type[BaseException] | None): Exception type if an</span>
-<span class="linenos">227</span><span class="sd">                exception was raised, otherwise ``None``.</span>
-<span class="linenos">228</span><span class="sd">            exc_value (BaseException | None): Exception instance if raised,</span>
-<span class="linenos">229</span><span class="sd">                otherwise ``None``.</span>
-<span class="linenos">230</span><span class="sd">            traceback (TracebackType | None): Exception traceback if raised,</span>
-<span class="linenos">231</span><span class="sd">                otherwise ``None``.</span>
-<span class="linenos">232</span>
-<span class="linenos">233</span><span class="sd">        Returns:</span>
-<span class="linenos">234</span><span class="sd">            None: Exceptions raised inside the block are never suppressed.</span>
-<span class="linenos">235</span>
-<span class="linenos">236</span><span class="sd">        Complexity:</span>
-<span class="linenos">237</span><span class="sd">            - Time: O(1) clock reads plus O(m) to build the log message,</span>
-<span class="linenos">238</span><span class="sd">              where m is the combined length of *prefix* and *func_name*.</span>
-<span class="linenos">239</span><span class="sd">            - Space: O(m), for the log message built, where m is as above.</span>
-<span class="linenos">240</span><span class="sd">        """</span>
-<span class="linenos">241</span>        <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_enabled</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_start_time_ms</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
-<span class="linenos">242</span>            <span class="k">return</span>
-<span class="linenos">243</span>        <span class="n">elapsed_ms</span> <span class="o">=</span> <span class="n">MonotonicTimer</span><span class="o">.</span><span class="n">get_time_ms</span><span class="p">()</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_start_time_ms</span>
-<span class="linenos">244</span>        <span class="n">prefix_str</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"[</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_prefix</span><span class="si">}</span><span class="s2">] - "</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prefix</span> <span class="k">else</span> <span class="s2">""</span>
-<span class="linenos">245</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span>
-<span class="linenos">246</span>            <span class="n">level</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_level</span><span class="p">,</span>
-<span class="linenos">247</span>            <span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">prefix_str</span><span class="si">}</span><span class="s2">Execution time [</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_func_name</span><span class="si">}</span><span class="s2">] - [</span><span class="si">{</span><span class="n">uuid4</span><span class="p">()</span><span class="si">}</span><span class="s2">]: </span><span class="si">{</span><span class="n">elapsed_ms</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2"> ms"</span><span class="p">,</span>
-<span class="linenos">248</span>        <span class="p">)</span></div>
+<span class="linenos">229</span>    <span class="k">def</span><span class="w"> </span><span class="fm">__exit__</span><span class="p">(</span>
+<span class="linenos">230</span>        <span class="bp">self</span><span class="p">,</span>
+<span class="linenos">231</span>        <span class="n">exc_type</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="ne">BaseException</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+<span class="linenos">232</span>        <span class="n">exc_value</span><span class="p">:</span> <span class="ne">BaseException</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+<span class="linenos">233</span>        <span class="n">traceback</span><span class="p">:</span> <span class="n">TracebackType</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+<span class="linenos">234</span>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">235</span><span class="w">        </span><span class="sd">"""Log the elapsed time if timing was started, regardless of exceptions.</span>
+<span class="linenos">236</span>
+<span class="linenos">237</span><span class="sd">        Args:</span>
+<span class="linenos">238</span><span class="sd">            exc_type (type[BaseException] | None): Exception type if an</span>
+<span class="linenos">239</span><span class="sd">                exception was raised, otherwise ``None``.</span>
+<span class="linenos">240</span><span class="sd">            exc_value (BaseException | None): Exception instance if raised,</span>
+<span class="linenos">241</span><span class="sd">                otherwise ``None``.</span>
+<span class="linenos">242</span><span class="sd">            traceback (TracebackType | None): Exception traceback if raised,</span>
+<span class="linenos">243</span><span class="sd">                otherwise ``None``.</span>
+<span class="linenos">244</span>
+<span class="linenos">245</span><span class="sd">        Returns:</span>
+<span class="linenos">246</span><span class="sd">            None: Exceptions raised inside the block are never suppressed.</span>
+<span class="linenos">247</span>
+<span class="linenos">248</span><span class="sd">        Complexity:</span>
+<span class="linenos">249</span><span class="sd">            - Time: O(1) clock reads plus O(m) to build the log message,</span>
+<span class="linenos">250</span><span class="sd">              where m is the combined length of *prefix* and *func_name*.</span>
+<span class="linenos">251</span><span class="sd">            - Space: O(m), for the log message built, where m is as above.</span>
+<span class="linenos">252</span><span class="sd">        """</span>
+<span class="linenos">253</span>        <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_enabled</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_start_time_ms</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
+<span class="linenos">254</span>            <span class="k">return</span>
+<span class="linenos">255</span>        <span class="n">elapsed_ms</span> <span class="o">=</span> <span class="n">MonotonicTimer</span><span class="o">.</span><span class="n">get_time_ms</span><span class="p">()</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_start_time_ms</span>
+<span class="linenos">256</span>        <span class="n">prefix_str</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"[</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_prefix</span><span class="si">}</span><span class="s2">] - "</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prefix</span> <span class="k">else</span> <span class="s2">""</span>
+<span class="linenos">257</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span>
+<span class="linenos">258</span>            <span class="n">level</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_level</span><span class="p">,</span>
+<span class="linenos">259</span>            <span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">prefix_str</span><span class="si">}</span><span class="s2">Execution time [</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_func_name</span><span class="si">}</span><span class="s2">] - [</span><span class="si">{</span><span class="n">uuid4</span><span class="p">()</span><span class="si">}</span><span class="s2">]: </span><span class="si">{</span><span class="n">elapsed_ms</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2"> ms"</span><span class="p">,</span>
+<span class="linenos">260</span>        <span class="p">)</span></div>
 </div>
 
-<span class="linenos">249</span>
-<span class="linenos">250</span>
+<span class="linenos">261</span>
+<span class="linenos">262</span>
 <div class="viewcode-block" id="log_execution_time">
 <a class="viewcode-back" href="../../../step_cloud_schemas_rst/profiling/step_cloud_schemas.profiling.logging_timer.html#step_cloud_schemas.profiling.logging_timer.log_execution_time">[docs]</a>
-<span class="linenos">251</span><span class="k">def</span><span class="w"> </span><span class="nf">log_execution_time</span><span class="p">(</span>
-<span class="linenos">252</span>    <span class="n">logger</span><span class="p">:</span> <span class="n">Logger</span><span class="p">,</span> <span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">log_level</span><span class="p">:</span> <span class="n">LogMode</span> <span class="o">=</span> <span class="n">LogMode</span><span class="o">.</span><span class="n">INFO</span>
-<span class="linenos">253</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Callable</span><span class="p">[</span><span class="n">P</span><span class="p">,</span> <span class="n">R</span><span class="p">]],</span> <span class="n">Callable</span><span class="p">[</span><span class="n">P</span><span class="p">,</span> <span class="n">R</span><span class="p">]]:</span>
-<span class="linenos">254</span><span class="w">    </span><span class="sd">"""Create a decorator that logs the wrapped function's execution time.</span>
-<span class="linenos">255</span>
-<span class="linenos">256</span><span class="sd">    The returned decorator times each call with a fresh ``LoggingTimer``,</span>
-<span class="linenos">257</span><span class="sd">    built from *logger*, *prefix*, and *log_level*, all fixed at decoration</span>
-<span class="linenos">258</span><span class="sd">    time. A new ``LoggingTimer`` is built on every call, rather than once at</span>
-<span class="linenos">259</span><span class="sd">    decoration time, so that recursive or concurrent calls to the wrapped</span>
-<span class="linenos">260</span><span class="sd">    function each get their own independent timing state instead of sharing</span>
-<span class="linenos">261</span><span class="sd">    one mutable timer.</span>
-<span class="linenos">262</span>
-<span class="linenos">263</span><span class="sd">    Args:</span>
-<span class="linenos">264</span><span class="sd">        logger (Logger): Logger instance used to emit the execution-time message.</span>
-<span class="linenos">265</span><span class="sd">        prefix (str | None): Optional context label prepended to the</span>
-<span class="linenos">266</span><span class="sd">            standard execution-time message. Defaults to ``None``.</span>
-<span class="linenos">267</span><span class="sd">        log_level (LogMode): Log mode used both to resolve the logging level</span>
-<span class="linenos">268</span><span class="sd">            and to gate the timing measurement. Defaults to ``LogMode.INFO``.</span>
-<span class="linenos">269</span>
-<span class="linenos">270</span><span class="sd">    Returns:</span>
-<span class="linenos">271</span><span class="sd">        Callable[[Callable[P, R]], Callable[P, R]]: A decorator that wraps a</span>
-<span class="linenos">272</span><span class="sd">        function with execution-time logging.</span>
-<span class="linenos">273</span>
-<span class="linenos">274</span><span class="sd">    Complexity:</span>
-<span class="linenos">275</span><span class="sd">        - Time: O(1) to build the decorator itself. Each call to the wrapped</span>
-<span class="linenos">276</span><span class="sd">          function additionally costs O(1) to build a new ``LoggingTimer``,</span>
-<span class="linenos">277</span><span class="sd">          on top of whatever time the wrapped function itself takes.</span>
-<span class="linenos">278</span><span class="sd">        - Space: O(1) per call for the ``LoggingTimer`` built for that call;</span>
-<span class="linenos">279</span><span class="sd">          nothing is retained between calls.</span>
-<span class="linenos">280</span><span class="sd">    """</span>
+<span class="linenos">263</span><span class="k">def</span><span class="w"> </span><span class="nf">log_execution_time</span><span class="p">(</span>
+<span class="linenos">264</span>    <span class="n">logger</span><span class="p">:</span> <span class="n">Logger</span><span class="p">,</span> <span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">log_level</span><span class="p">:</span> <span class="n">LogMode</span> <span class="o">=</span> <span class="n">LogMode</span><span class="o">.</span><span class="n">INFO</span>
+<span class="linenos">265</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Callable</span><span class="p">[</span><span class="n">P</span><span class="p">,</span> <span class="n">R</span><span class="p">]],</span> <span class="n">Callable</span><span class="p">[</span><span class="n">P</span><span class="p">,</span> <span class="n">R</span><span class="p">]]:</span>
+<span class="linenos">266</span><span class="w">    </span><span class="sd">"""Create a decorator that logs the wrapped function's execution time.</span>
+<span class="linenos">267</span>
+<span class="linenos">268</span><span class="sd">    The returned decorator times each call with a fresh ``LoggingTimer``,</span>
+<span class="linenos">269</span><span class="sd">    built from *logger*, *prefix*, and *log_level*, all fixed at decoration</span>
+<span class="linenos">270</span><span class="sd">    time. A new ``LoggingTimer`` is built on every call, rather than once at</span>
+<span class="linenos">271</span><span class="sd">    decoration time, so that recursive or concurrent calls to the wrapped</span>
+<span class="linenos">272</span><span class="sd">    function each get their own independent timing state instead of sharing</span>
+<span class="linenos">273</span><span class="sd">    one mutable timer.</span>
+<span class="linenos">274</span>
+<span class="linenos">275</span><span class="sd">    Args:</span>
+<span class="linenos">276</span><span class="sd">        logger (Logger): Logger instance used to emit the execution-time message.</span>
+<span class="linenos">277</span><span class="sd">        prefix (str | None): Optional context label prepended to the</span>
+<span class="linenos">278</span><span class="sd">            standard execution-time message. Defaults to ``None``.</span>
+<span class="linenos">279</span><span class="sd">        log_level (LogMode): Log mode used both to resolve the logging level</span>
+<span class="linenos">280</span><span class="sd">            and to gate the timing measurement. Defaults to ``LogMode.INFO``.</span>
 <span class="linenos">281</span>
-<span class="linenos">282</span>    <span class="k">def</span><span class="w"> </span><span class="nf">decorator</span><span class="p">(</span><span class="n">func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[</span><span class="n">P</span><span class="p">,</span> <span class="n">R</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[</span><span class="n">P</span><span class="p">,</span> <span class="n">R</span><span class="p">]:</span>
-<span class="linenos">283</span><span class="w">        </span><span class="sd">"""Wrap *func* so every call is timed and logged.</span>
-<span class="linenos">284</span>
-<span class="linenos">285</span><span class="sd">        Args:</span>
-<span class="linenos">286</span><span class="sd">            func (Callable[P, R]): Function to wrap with execution-time logging.</span>
-<span class="linenos">287</span>
-<span class="linenos">288</span><span class="sd">        Returns:</span>
-<span class="linenos">289</span><span class="sd">            Callable[P, R]: The wrapped function.</span>
-<span class="linenos">290</span>
-<span class="linenos">291</span><span class="sd">        Complexity:</span>
-<span class="linenos">292</span><span class="sd">            - Time: O(1) to build the wrapper itself.</span>
-<span class="linenos">293</span><span class="sd">            - Space: O(1), aside from the closure over *func*.</span>
-<span class="linenos">294</span><span class="sd">        """</span>
-<span class="linenos">295</span>
-<span class="linenos">296</span>        <span class="nd">@wraps</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
-<span class="linenos">297</span>        <span class="k">def</span><span class="w"> </span><span class="nf">wrapper</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">R</span><span class="p">:</span>
-<span class="linenos">298</span><span class="w">            </span><span class="sd">"""Call *func* inside a ``LoggingTimer`` scoped to this single call.</span>
+<span class="linenos">282</span><span class="sd">    Returns:</span>
+<span class="linenos">283</span><span class="sd">        Callable[[Callable[P, R]], Callable[P, R]]: A decorator that wraps a</span>
+<span class="linenos">284</span><span class="sd">        function with execution-time logging.</span>
+<span class="linenos">285</span>
+<span class="linenos">286</span><span class="sd">    Complexity:</span>
+<span class="linenos">287</span><span class="sd">        - Time: O(1) to build the decorator itself. Each call to the wrapped</span>
+<span class="linenos">288</span><span class="sd">          function additionally costs O(1) to build a new ``LoggingTimer``,</span>
+<span class="linenos">289</span><span class="sd">          on top of whatever time the wrapped function itself takes.</span>
+<span class="linenos">290</span><span class="sd">        - Space: O(1) per call for the ``LoggingTimer`` built for that call;</span>
+<span class="linenos">291</span><span class="sd">          nothing is retained between calls.</span>
+<span class="linenos">292</span><span class="sd">    """</span>
+<span class="linenos">293</span>
+<span class="linenos">294</span>    <span class="k">def</span><span class="w"> </span><span class="nf">decorator</span><span class="p">(</span><span class="n">func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[</span><span class="n">P</span><span class="p">,</span> <span class="n">R</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[</span><span class="n">P</span><span class="p">,</span> <span class="n">R</span><span class="p">]:</span>
+<span class="linenos">295</span><span class="w">        </span><span class="sd">"""Wrap *func* so every call is timed and logged.</span>
+<span class="linenos">296</span>
+<span class="linenos">297</span><span class="sd">        Args:</span>
+<span class="linenos">298</span><span class="sd">            func (Callable[P, R]): Function to wrap with execution-time logging.</span>
 <span class="linenos">299</span>
-<span class="linenos">300</span><span class="sd">            Args:</span>
-<span class="linenos">301</span><span class="sd">                *args (P.args): Positional arguments forwarded to *func*.</span>
-<span class="linenos">302</span><span class="sd">                **kwargs (P.kwargs): Keyword arguments forwarded to *func*.</span>
-<span class="linenos">303</span>
-<span class="linenos">304</span><span class="sd">            Returns:</span>
-<span class="linenos">305</span><span class="sd">                R: The value returned by *func*.</span>
-<span class="linenos">306</span>
-<span class="linenos">307</span><span class="sd">            Complexity:</span>
-<span class="linenos">308</span><span class="sd">                - Time: O(1) additional overhead beyond invoking *func*, plus</span>
-<span class="linenos">309</span><span class="sd">                  the time complexity of *func* itself.</span>
-<span class="linenos">310</span><span class="sd">                - Space: O(1) additional space beyond what *func* and its</span>
-<span class="linenos">311</span><span class="sd">                  arguments use, for the per-call ``LoggingTimer``.</span>
-<span class="linenos">312</span><span class="sd">            """</span>
-<span class="linenos">313</span>            <span class="k">with</span> <span class="n">LoggingTimer</span><span class="p">(</span>
-<span class="linenos">314</span>                <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span>
-<span class="linenos">315</span>                <span class="n">func_name</span><span class="o">=</span><span class="n">func</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
-<span class="linenos">316</span>                <span class="n">prefix</span><span class="o">=</span><span class="n">prefix</span><span class="p">,</span>
-<span class="linenos">317</span>                <span class="n">log_level</span><span class="o">=</span><span class="n">log_level</span><span class="p">,</span>
-<span class="linenos">318</span>            <span class="p">):</span>
-<span class="linenos">319</span>                <span class="k">return</span> <span class="n">func</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-<span class="linenos">320</span>
-<span class="linenos">321</span>        <span class="k">return</span> <span class="n">wrapper</span>
-<span class="linenos">322</span>
-<span class="linenos">323</span>    <span class="k">return</span> <span class="n">decorator</span></div>
+<span class="linenos">300</span><span class="sd">        Returns:</span>
+<span class="linenos">301</span><span class="sd">            Callable[P, R]: The wrapped function.</span>
+<span class="linenos">302</span>
+<span class="linenos">303</span><span class="sd">        Complexity:</span>
+<span class="linenos">304</span><span class="sd">            - Time: O(1) to build the wrapper itself.</span>
+<span class="linenos">305</span><span class="sd">            - Space: O(1), aside from the closure over *func*.</span>
+<span class="linenos">306</span><span class="sd">        """</span>
+<span class="linenos">307</span>
+<span class="linenos">308</span>        <span class="nd">@wraps</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
+<span class="linenos">309</span>        <span class="k">def</span><span class="w"> </span><span class="nf">wrapper</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">R</span><span class="p">:</span>
+<span class="linenos">310</span><span class="w">            </span><span class="sd">"""Call *func* inside a ``LoggingTimer`` scoped to this single call.</span>
+<span class="linenos">311</span>
+<span class="linenos">312</span><span class="sd">            Args:</span>
+<span class="linenos">313</span><span class="sd">                *args (P.args): Positional arguments forwarded to *func*.</span>
+<span class="linenos">314</span><span class="sd">                **kwargs (P.kwargs): Keyword arguments forwarded to *func*.</span>
+<span class="linenos">315</span>
+<span class="linenos">316</span><span class="sd">            Returns:</span>
+<span class="linenos">317</span><span class="sd">                R: The value returned by *func*.</span>
+<span class="linenos">318</span>
+<span class="linenos">319</span><span class="sd">            Complexity:</span>
+<span class="linenos">320</span><span class="sd">                - Time: O(1) additional overhead beyond invoking *func*, plus</span>
+<span class="linenos">321</span><span class="sd">                  the time complexity of *func* itself.</span>
+<span class="linenos">322</span><span class="sd">                - Space: O(1) additional space beyond what *func* and its</span>
+<span class="linenos">323</span><span class="sd">                  arguments use, for the per-call ``LoggingTimer``.</span>
+<span class="linenos">324</span><span class="sd">            """</span>
+<span class="linenos">325</span>            <span class="k">with</span> <span class="n">LoggingTimer</span><span class="p">(</span>
+<span class="linenos">326</span>                <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span>
+<span class="linenos">327</span>                <span class="n">func_name</span><span class="o">=</span><span class="n">func</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
+<span class="linenos">328</span>                <span class="n">prefix</span><span class="o">=</span><span class="n">prefix</span><span class="p">,</span>
+<span class="linenos">329</span>                <span class="n">log_level</span><span class="o">=</span><span class="n">log_level</span><span class="p">,</span>
+<span class="linenos">330</span>            <span class="p">):</span>
+<span class="linenos">331</span>                <span class="k">return</span> <span class="n">func</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+<span class="linenos">332</span>
+<span class="linenos">333</span>        <span class="k">return</span> <span class="n">wrapper</span>
+<span class="linenos">334</span>
+<span class="linenos">335</span>    <span class="k">return</span> <span class="n">decorator</span></div>
 
 </pre></div>
 
