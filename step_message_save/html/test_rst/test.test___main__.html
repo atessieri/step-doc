@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>test.test___main__ module &mdash; STEP Client 1.0.4 documentation</title>
+  <title>test.test___main__ module &mdash; STEP Client 1.0.5 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/tabs.css?v=4c969af8" />
@@ -16,7 +16,7 @@
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=71272d9f"></script>
+      <script src="../_static/documentation_options.js?v=d55fa986"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/tabs.js?v=3ee01567"></script>
@@ -250,6 +250,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../step_message_save_rst/step_message_save.step_exception.html">step_message_save.step_exception module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../step_message_save_rst/step_message_save.step_exception.html#step_message_save.step_exception.ShutdownRequestedError"><code class="docutils literal notranslate"><span class="pre">ShutdownRequestedError</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../step_message_save_rst/step_message_save.step_exception.html#step_message_save.step_exception.StepCliError"><code class="docutils literal notranslate"><span class="pre">StepCliError</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../step_message_save_rst/step_message_save.step_exception.html#step_message_save.step_exception.StepMessageSaveError"><code class="docutils literal notranslate"><span class="pre">StepMessageSaveError</span></code></a></li>
 </ul>
@@ -378,9 +379,13 @@
 <li class="toctree-l4"><a class="reference internal" href="#test.test___main__.test_log_received_message"><code class="docutils literal notranslate"><span class="pre">test_log_received_message()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#test.test___main__.test_main"><code class="docutils literal notranslate"><span class="pre">test_main()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#test.test___main__.test_main_async"><code class="docutils literal notranslate"><span class="pre">test_main_async()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#test.test___main__.test_main_async_non_windows_signal_handlers"><code class="docutils literal notranslate"><span class="pre">test_main_async_non_windows_signal_handlers()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#test.test___main__.test_main_async_shutdown_requested"><code class="docutils literal notranslate"><span class="pre">test_main_async_shutdown_requested()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#test.test___main__.test_main_interrupt_exception"><code class="docutils literal notranslate"><span class="pre">test_main_interrupt_exception()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#test.test___main__.test_signal_handler_raises_keyboard_interrupt"><code class="docutils literal notranslate"><span class="pre">test_signal_handler_raises_keyboard_interrupt()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#test.test___main__.test_signal_handler_schedules_shutdown_when_published"><code class="docutils literal notranslate"><span class="pre">test_signal_handler_schedules_shutdown_when_published()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#test.test___main__.test_step_receive_run"><code class="docutils literal notranslate"><span class="pre">test_step_receive_run()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#test.test___main__.test_wait_for_shutdown"><code class="docutils literal notranslate"><span class="pre">test_wait_for_shutdown()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="test.test_step_broker.html">test.test_step_broker module</a><ul>
@@ -818,6 +823,38 @@ active, logs them, and retries after the configured reconnect interval</p></li>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="test.test___main__.test_main_async_non_windows_signal_handlers">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">test.test___main__.</span></span><span class="sig-name descname"><span class="pre">test_main_async_non_windows_signal_handlers</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mocker</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MockerFixture</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test___main__.html#test_main_async_non_windows_signal_handlers"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test___main__.test_main_async_non_windows_signal_handlers" title="Link to this definition"></a></dt>
+<dd><p>Test that <code class="docutils literal notranslate"><span class="pre">_main_async</span></code> registers SIGINT/SIGTERM handlers on the running
+loop, instead of publishing <code class="docutils literal notranslate"><span class="pre">WindowsOsShutdownState</span></code>, when not running on
+Windows.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>mocker</strong> (<em>MockerFixture</em>) – pytest-mock fixture for creating mock objects.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="test.test___main__.test_main_async_shutdown_requested">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">test.test___main__.</span></span><span class="sig-name descname"><span class="pre">test_main_async_shutdown_requested</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mocker</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MockerFixture</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test___main__.html#test_main_async_shutdown_requested"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test___main__.test_main_async_shutdown_requested" title="Link to this definition"></a></dt>
+<dd><p>Test that <code class="docutils literal notranslate"><span class="pre">_main_async</span></code> returns <code class="docutils literal notranslate"><span class="pre">ExitCode.ABORTED</span></code> and logs the
+interruption, without retrying, once <code class="docutils literal notranslate"><span class="pre">ShutdownRequestedError</span></code> propagates out
+of the task group.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>mocker</strong> (<em>MockerFixture</em>) – pytest-mock fixture for creating mock objects.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="test.test___main__.test_main_interrupt_exception">
 <span class="sig-prename descclassname"><span class="pre">test.test___main__.</span></span><span class="sig-name descname"><span class="pre">test_main_interrupt_exception</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mocker</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MockerFixture</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_windows</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">has_sigbreak</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logger_enabled</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test___main__.html#test_main_interrupt_exception"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test___main__.test_main_interrupt_exception" title="Link to this definition"></a></dt>
 <dd><p>Test that <code class="docutils literal notranslate"><span class="pre">main</span></code> handles <code class="docutils literal notranslate"><span class="pre">KeyboardInterrupt</span></code> correctly.</p>
@@ -851,11 +888,28 @@ handling branch under test.</p></li>
 <dl class="py function">
 <dt class="sig sig-object py" id="test.test___main__.test_signal_handler_raises_keyboard_interrupt">
 <span class="sig-prename descclassname"><span class="pre">test.test___main__.</span></span><span class="sig-name descname"><span class="pre">test_signal_handler_raises_keyboard_interrupt</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test___main__.html#test_signal_handler_raises_keyboard_interrupt"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test___main__.test_signal_handler_raises_keyboard_interrupt" title="Link to this definition"></a></dt>
-<dd><p>Test that <code class="docutils literal notranslate"><span class="pre">_signal_handler</span></code> always raises <code class="docutils literal notranslate"><span class="pre">KeyboardInterrupt</span></code> regardless of
-input.</p>
+<dd><p>Test that <code class="docutils literal notranslate"><span class="pre">_signal_handler</span></code> raises <code class="docutils literal notranslate"><span class="pre">KeyboardInterrupt</span></code> when
+<code class="docutils literal notranslate"><span class="pre">WindowsOsShutdownState</span></code> has no loop/<code class="docutils literal notranslate"><span class="pre">stop_event</span></code> published, i.e.
+<code class="docutils literal notranslate"><span class="pre">_main_async</span></code> is not currently running.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="test.test___main__.test_signal_handler_schedules_shutdown_when_published">
+<span class="sig-prename descclassname"><span class="pre">test.test___main__.</span></span><span class="sig-name descname"><span class="pre">test_signal_handler_schedules_shutdown_when_published</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mocker</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MockerFixture</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test___main__.html#test_signal_handler_schedules_shutdown_when_published"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test___main__.test_signal_handler_schedules_shutdown_when_published" title="Link to this definition"></a></dt>
+<dd><p>Test that <code class="docutils literal notranslate"><span class="pre">_signal_handler</span></code> schedules the shutdown on the published loop,
+instead of raising <code class="docutils literal notranslate"><span class="pre">KeyboardInterrupt</span></code>, when <code class="docutils literal notranslate"><span class="pre">WindowsOsShutdownState</span></code> has a
+loop/<code class="docutils literal notranslate"><span class="pre">stop_event</span></code> pair published (i.e. <code class="docutils literal notranslate"><span class="pre">_main_async</span></code> is currently running).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>mocker</strong> (<em>MockerFixture</em>) – pytest-mock fixture for creating mock objects.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
 </dd>
 </dl>
 </dd></dl>
@@ -874,6 +928,18 @@ puts their JSON serialization on the queue.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="test.test___main__.test_wait_for_shutdown">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">test.test___main__.</span></span><span class="sig-name descname"><span class="pre">test_wait_for_shutdown</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test___main__.html#test_wait_for_shutdown"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test___main__.test_wait_for_shutdown" title="Link to this definition"></a></dt>
+<dd><p>Test that <code class="docutils literal notranslate"><span class="pre">_wait_for_shutdown</span></code> raises <code class="docutils literal notranslate"><span class="pre">ShutdownRequestedError</span></code> once the
+given <code class="docutils literal notranslate"><span class="pre">stop_event</span></code> is already set.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
 </dd>
 </dl>
 </dd></dl>

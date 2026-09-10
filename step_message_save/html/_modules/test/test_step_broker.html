@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>test.test_step_broker &mdash; STEP Client 1.0.4 documentation</title>
+  <title>test.test_step_broker &mdash; STEP Client 1.0.5 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=4c969af8" />
@@ -15,7 +15,7 @@
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=71272d9f"></script>
+      <script src="../../_static/documentation_options.js?v=d55fa986"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/tabs.js?v=3ee01567"></script>
@@ -247,6 +247,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../step_message_save_rst/step_message_save.step_exception.html">step_message_save.step_exception module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../step_message_save_rst/step_message_save.step_exception.html#step_message_save.step_exception.ShutdownRequestedError"><code class="docutils literal notranslate"><span class="pre">ShutdownRequestedError</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../step_message_save_rst/step_message_save.step_exception.html#step_message_save.step_exception.StepCliError"><code class="docutils literal notranslate"><span class="pre">StepCliError</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../step_message_save_rst/step_message_save.step_exception.html#step_message_save.step_exception.StepMessageSaveError"><code class="docutils literal notranslate"><span class="pre">StepMessageSaveError</span></code></a></li>
 </ul>
@@ -375,9 +376,13 @@
 <li class="toctree-l4"><a class="reference internal" href="../../test_rst/test.test___main__.html#test.test___main__.test_log_received_message"><code class="docutils literal notranslate"><span class="pre">test_log_received_message()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../test_rst/test.test___main__.html#test.test___main__.test_main"><code class="docutils literal notranslate"><span class="pre">test_main()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../test_rst/test.test___main__.html#test.test___main__.test_main_async"><code class="docutils literal notranslate"><span class="pre">test_main_async()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../test_rst/test.test___main__.html#test.test___main__.test_main_async_non_windows_signal_handlers"><code class="docutils literal notranslate"><span class="pre">test_main_async_non_windows_signal_handlers()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../test_rst/test.test___main__.html#test.test___main__.test_main_async_shutdown_requested"><code class="docutils literal notranslate"><span class="pre">test_main_async_shutdown_requested()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../test_rst/test.test___main__.html#test.test___main__.test_main_interrupt_exception"><code class="docutils literal notranslate"><span class="pre">test_main_interrupt_exception()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../test_rst/test.test___main__.html#test.test___main__.test_signal_handler_raises_keyboard_interrupt"><code class="docutils literal notranslate"><span class="pre">test_signal_handler_raises_keyboard_interrupt()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../test_rst/test.test___main__.html#test.test___main__.test_signal_handler_schedules_shutdown_when_published"><code class="docutils literal notranslate"><span class="pre">test_signal_handler_schedules_shutdown_when_published()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../test_rst/test.test___main__.html#test.test___main__.test_step_receive_run"><code class="docutils literal notranslate"><span class="pre">test_step_receive_run()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../test_rst/test.test___main__.html#test.test___main__.test_wait_for_shutdown"><code class="docutils literal notranslate"><span class="pre">test_wait_for_shutdown()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../test_rst/test.test_step_broker.html">test.test_step_broker module</a><ul>
@@ -599,8 +604,8 @@
 <span class="linenos"> 90</span><span class="sd">        external dependencies and validates that:</span>
 <span class="linenos"> 91</span>
 <span class="linenos"> 92</span><span class="sd">            - The broker stores the given config and logger</span>
-<span class="linenos"> 93</span><span class="sd">            - An ``ssl.SSLContext`` is built, with the minimum TLS version pinned,</span>
-<span class="linenos"> 94</span><span class="sd">              only when SSL is enabled</span>
+<span class="linenos"> 93</span><span class="sd">            - An ``ssl.SSLContext`` is built via ``ssl.create_default_context``, with</span>
+<span class="linenos"> 94</span><span class="sd">              the minimum TLS version pinned, only when SSL is enabled</span>
 <span class="linenos"> 95</span><span class="sd">            - The CA certificates file and client certificate/key are loaded into the</span>
 <span class="linenos"> 96</span><span class="sd">              context only when configured</span>
 <span class="linenos"> 97</span><span class="sd">            - Certificate verification is disabled, with a warning logged, when</span>
@@ -652,7 +657,7 @@
 <span class="linenos">143</span>        <span class="n">mock_logger</span><span class="o">.</span><span class="n">warning</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">()</span>
 <span class="linenos">144</span>        <span class="n">mock_ssl_context</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">(</span><span class="n">spec</span><span class="o">=</span><span class="n">ssl</span><span class="o">.</span><span class="n">SSLContext</span><span class="p">)</span>
 <span class="linenos">145</span>        <span class="n">mock_ssl_context_class</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">patch</span><span class="p">(</span>
-<span class="linenos">146</span>            <span class="s2">"step_message_save.step_broker.ssl.SSLContext"</span><span class="p">,</span>
+<span class="linenos">146</span>            <span class="s2">"step_message_save.step_broker.ssl.create_default_context"</span><span class="p">,</span>
 <span class="linenos">147</span>            <span class="n">return_value</span><span class="o">=</span><span class="n">mock_ssl_context</span><span class="p">,</span>
 <span class="linenos">148</span>        <span class="p">)</span>
 <span class="linenos">149</span>        <span class="n">mock_async_com_manager_params_object</span> <span class="o">=</span> <span class="n">mocker</span><span class="o">.</span><span class="n">MagicMock</span><span class="p">(</span>
@@ -676,8 +681,8 @@
 <span class="linenos">167</span>            <span class="n">mock_ssl_context_class</span><span class="o">.</span><span class="n">assert_not_called</span><span class="p">()</span>
 <span class="linenos">168</span>            <span class="n">expected_tls_context</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="linenos">169</span>        <span class="k">else</span><span class="p">:</span>
-<span class="linenos">170</span>            <span class="n">mock_ssl_context_class</span><span class="o">.</span><span class="n">assert_called_once_with</span><span class="p">(</span><span class="n">ssl</span><span class="o">.</span><span class="n">PROTOCOL_TLS_CLIENT</span><span class="p">)</span>
-<span class="linenos">171</span>            <span class="k">assert</span> <span class="n">mock_ssl_context</span><span class="o">.</span><span class="n">minimum_version</span> <span class="o">==</span> <span class="n">ssl</span><span class="o">.</span><span class="n">TLSVersion</span><span class="o">.</span><span class="n">TLSv1_2</span>
+<span class="linenos">170</span>            <span class="n">mock_ssl_context_class</span><span class="o">.</span><span class="n">assert_called_once_with</span><span class="p">()</span>
+<span class="linenos">171</span>            <span class="k">assert</span> <span class="n">mock_ssl_context</span><span class="o">.</span><span class="n">minimum_version</span> <span class="o">==</span> <span class="n">ssl</span><span class="o">.</span><span class="n">TLSVersion</span><span class="o">.</span><span class="n">MAXIMUM_SUPPORTED</span>
 <span class="linenos">172</span>            <span class="k">if</span> <span class="n">ssl_ca_certs_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
 <span class="linenos">173</span>                <span class="n">mock_ssl_context</span><span class="o">.</span><span class="n">load_verify_locations</span><span class="o">.</span><span class="n">assert_called_once_with</span><span class="p">(</span>
 <span class="linenos">174</span>                    <span class="n">cafile</span><span class="o">=</span><span class="n">ssl_ca_certs_file</span>

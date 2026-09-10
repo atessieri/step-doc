@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>step_message_save.step_message_save_config module &mdash; STEP Client 1.0.4 documentation</title>
+  <title>step_message_save.step_message_save_config module &mdash; STEP Client 1.0.5 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/tabs.css?v=4c969af8" />
@@ -16,7 +16,7 @@
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=71272d9f"></script>
+      <script src="../_static/documentation_options.js?v=d55fa986"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/tabs.js?v=3ee01567"></script>
@@ -250,6 +250,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="step_message_save.step_exception.html">step_message_save.step_exception module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="step_message_save.step_exception.html#step_message_save.step_exception.ShutdownRequestedError"><code class="docutils literal notranslate"><span class="pre">ShutdownRequestedError</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="step_message_save.step_exception.html#step_message_save.step_exception.StepCliError"><code class="docutils literal notranslate"><span class="pre">StepCliError</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="step_message_save.step_exception.html#step_message_save.step_exception.StepMessageSaveError"><code class="docutils literal notranslate"><span class="pre">StepMessageSaveError</span></code></a></li>
 </ul>
@@ -378,9 +379,13 @@
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_log_received_message"><code class="docutils literal notranslate"><span class="pre">test_log_received_message()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_main"><code class="docutils literal notranslate"><span class="pre">test_main()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_main_async"><code class="docutils literal notranslate"><span class="pre">test_main_async()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_main_async_non_windows_signal_handlers"><code class="docutils literal notranslate"><span class="pre">test_main_async_non_windows_signal_handlers()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_main_async_shutdown_requested"><code class="docutils literal notranslate"><span class="pre">test_main_async_shutdown_requested()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_main_interrupt_exception"><code class="docutils literal notranslate"><span class="pre">test_main_interrupt_exception()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_signal_handler_raises_keyboard_interrupt"><code class="docutils literal notranslate"><span class="pre">test_signal_handler_raises_keyboard_interrupt()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_signal_handler_schedules_shutdown_when_published"><code class="docutils literal notranslate"><span class="pre">test_signal_handler_schedules_shutdown_when_published()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_step_receive_run"><code class="docutils literal notranslate"><span class="pre">test_step_receive_run()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_wait_for_shutdown"><code class="docutils literal notranslate"><span class="pre">test_wait_for_shutdown()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../test_rst/test.test_step_broker.html">test.test_step_broker module</a><ul>
@@ -1330,10 +1335,13 @@ for the StepMessageSaveConfig. The file is saved with the name defined in
 <dd class="field-odd"><p><strong>path</strong> (<em>Path</em>) – The directory path where the configuration file will be saved.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>None</p>
+<dd class="field-even"><p>The template file is written to disk; nothing is returned.</p>
 </dd>
-<dt class="field-odd">Complexity<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+<dt class="field-even">Complexity<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
 <li><p><strong>- Time</strong> – O(f), where f is the total number of fields across the STEP client
 configuration model and its nested models; building and serializing the
 default configuration visits each field once.</p></li>
@@ -1355,10 +1363,13 @@ a file at the specified path, using the filename defined in
 <dd class="field-odd"><p><strong>path</strong> (<em>Path</em>) – Directory path where the schema file will be created.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>None</p>
+<dd class="field-even"><p>The schema file is written to disk; nothing is returned.</p>
 </dd>
-<dt class="field-odd">Complexity<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+<dt class="field-even">Complexity<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
 <li><p><strong>- Time</strong> – O(f), where f is the total number of fields across the STEP client
 configuration model and its nested models; schema generation walks each
 field once.</p></li>

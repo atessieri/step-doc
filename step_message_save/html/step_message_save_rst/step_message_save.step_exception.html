@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>step_message_save.step_exception module &mdash; STEP Client 1.0.4 documentation</title>
+  <title>step_message_save.step_exception module &mdash; STEP Client 1.0.5 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/tabs.css?v=4c969af8" />
@@ -16,7 +16,7 @@
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=71272d9f"></script>
+      <script src="../_static/documentation_options.js?v=d55fa986"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/tabs.js?v=3ee01567"></script>
@@ -250,6 +250,7 @@
 </ul>
 </li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">step_message_save.step_exception module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#step_message_save.step_exception.ShutdownRequestedError"><code class="docutils literal notranslate"><span class="pre">ShutdownRequestedError</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#step_message_save.step_exception.StepCliError"><code class="docutils literal notranslate"><span class="pre">StepCliError</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#step_message_save.step_exception.StepMessageSaveError"><code class="docutils literal notranslate"><span class="pre">StepMessageSaveError</span></code></a></li>
 </ul>
@@ -378,9 +379,13 @@
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_log_received_message"><code class="docutils literal notranslate"><span class="pre">test_log_received_message()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_main"><code class="docutils literal notranslate"><span class="pre">test_main()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_main_async"><code class="docutils literal notranslate"><span class="pre">test_main_async()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_main_async_non_windows_signal_handlers"><code class="docutils literal notranslate"><span class="pre">test_main_async_non_windows_signal_handlers()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_main_async_shutdown_requested"><code class="docutils literal notranslate"><span class="pre">test_main_async_shutdown_requested()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_main_interrupt_exception"><code class="docutils literal notranslate"><span class="pre">test_main_interrupt_exception()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_signal_handler_raises_keyboard_interrupt"><code class="docutils literal notranslate"><span class="pre">test_signal_handler_raises_keyboard_interrupt()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_signal_handler_schedules_shutdown_when_published"><code class="docutils literal notranslate"><span class="pre">test_signal_handler_schedules_shutdown_when_published()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_step_receive_run"><code class="docutils literal notranslate"><span class="pre">test_step_receive_run()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_wait_for_shutdown"><code class="docutils literal notranslate"><span class="pre">test_wait_for_shutdown()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../test_rst/test.test_step_broker.html">test.test_step_broker module</a><ul>
@@ -521,6 +526,25 @@ fixed amount of data.</p></li>
 </ul>
 </dd>
 </dl>
+<dl class="py exception">
+<dt class="sig sig-object py" id="step_message_save.step_exception.ShutdownRequestedError">
+<span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">step_message_save.step_exception.</span></span><span class="sig-name descname"><span class="pre">ShutdownRequestedError</span></span><a class="reference internal" href="../_modules/step_message_save/step_exception.html#ShutdownRequestedError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#step_message_save.step_exception.ShutdownRequestedError" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#step_message_save.step_exception.StepMessageSaveError" title="step_message_save.step_exception.StepMessageSaveError"><code class="xref py py-class docutils literal notranslate"><span class="pre">StepMessageSaveError</span></code></a></p>
+<p>Internal signal raised to unwind <code class="docutils literal notranslate"><span class="pre">_main_async</span></code>’s <code class="docutils literal notranslate"><span class="pre">TaskGroup</span></code> once a
+graceful shutdown has been requested via <code class="docutils literal notranslate"><span class="pre">SIGINT</span></code>/<code class="docutils literal notranslate"><span class="pre">SIGTERM</span></code>/<code class="docutils literal notranslate"><span class="pre">SIGBREAK</span></code>.</p>
+<p>Never raised across module boundaries: it only ever originates from
+<code class="docutils literal notranslate"><span class="pre">step_client.__main__._wait_for_shutdown</span></code> and is only ever caught inside
+<code class="docutils literal notranslate"><span class="pre">step_client.__main__._main_async</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Complexity<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>- Time</strong> – O(1), a plain marker exception with no added fields or logic.</p></li>
+<li><p><strong>- Space</strong> – O(1), no instance stores more than the fixed, empty slot set.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py exception">
 <dt class="sig sig-object py" id="step_message_save.step_exception.StepCliError">
 <span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">step_message_save.step_exception.</span></span><span class="sig-name descname"><span class="pre">StepCliError</span></span><a class="reference internal" href="../_modules/step_message_save/step_exception.html#StepCliError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#step_message_save.step_exception.StepCliError" title="Link to this definition"></a></dt>
