@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>STEP Connection Guide &mdash; STEP Library 2.0.4 documentation</title>
+  <title>STEP Connection Guide &mdash; STEP Library 2.0.5 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="_static/tabs.css?v=4c969af8" />
@@ -16,7 +16,7 @@
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=adc66a14"></script>
+      <script src="_static/documentation_options.js?v=09beee0d"></script>
       <script src="_static/doctools.js?v=fd6eb6e6"></script>
       <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="_static/tabs.js?v=3ee01567"></script>
@@ -2409,7 +2409,11 @@ both synchronous and asynchronous approaches.</p>
     <span class="n">VehicleLengthConfidenceIndication</span><span class="p">,</span>
     <span class="n">VehicleRole</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">step_publish.step_publish_config</span><span class="w"> </span><span class="kn">import</span> <span class="n">MqttProtocolConfig</span><span class="p">,</span> <span class="n">StepBrokerConfig</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">step_publish.step_publish_config</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">MqttCredential</span><span class="p">,</span>
+    <span class="n">MqttProtocolConfig</span><span class="p">,</span>
+    <span class="n">StepBrokerConfig</span><span class="p">,</span>
+<span class="p">)</span>
 
 <span class="c1"># step_lib Package Imports</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">step_lib</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
@@ -2427,7 +2431,11 @@ both synchronous and asynchronous approaches.</p>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_async_com_manager_create</span><span class="p">(</span>
-    <span class="n">instance_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">station_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">StepBrokerConfig</span><span class="p">,</span> <span class="n">logger</span><span class="p">:</span> <span class="n">Logger</span>
+    <span class="n">instance_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">station_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">config</span><span class="p">:</span> <span class="n">StepBrokerConfig</span><span class="p">,</span>
+    <span class="n">mqtt_credential</span><span class="p">:</span> <span class="n">MqttCredential</span><span class="p">,</span>
+    <span class="n">logger</span><span class="p">:</span> <span class="n">Logger</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AsyncComManager</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Create and configure an AsyncComManager instance for MQTT communication.</span>
 
@@ -2439,6 +2447,7 @@ both synchronous and asynchronous approaches.</p>
 <span class="sd">        station_id (int | None): Optional station identifier for the communication instance.</span>
 <span class="sd">        config (StepBrokerConfig): Configuration object containing MQTT client, protocol, and</span>
 <span class="sd">            cache settings.</span>
+<span class="sd">        mqtt_credential (MqttCredential): The MQTT credential containing connection details for the broker.</span>
 <span class="sd">        logger (Logger): Logger instance for logging communication events and errors.</span>
 
 <span class="sd">    Returns:</span>
@@ -2451,9 +2460,9 @@ both synchronous and asynchronous approaches.</p>
 <span class="sd">        - Publish topics are converted from config format to PublishTopicParams if provided.</span>
 
 <span class="sd">    Complexity:</span>
-<span class="sd">        Time: O(p), where p is the number of entries in</span>
-<span class="sd">            config.mqttProtocol.publishTopics (O(1) when publishTopics is None).</span>
-<span class="sd">        Space: O(p), for the list of PublishTopicParams built from the configuration.</span>
+<span class="sd">        - Time: O(p), where p is the number of entries in</span>
+<span class="sd">          config.mqttProtocol.publishTopics (O(1) when publishTopics is None).</span>
+<span class="sd">        - Space: O(p), for the list of PublishTopicParams built from the configuration.</span>
 <span class="sd">    """</span>
     <span class="n">tls_params</span><span class="p">:</span> <span class="n">TLSParameters</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">mqttClient</span><span class="o">.</span><span class="n">sslEnable</span><span class="p">:</span>
@@ -2472,10 +2481,10 @@ both synchronous and asynchronous approaches.</p>
         <span class="p">)</span>
     <span class="n">async_com_manager_params</span> <span class="o">=</span> <span class="n">AsyncComManagerParams</span><span class="p">(</span>
         <span class="n">instance_name</span><span class="o">=</span><span class="n">instance_name</span><span class="p">,</span>
-        <span class="n">host</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">mqttClient</span><span class="o">.</span><span class="n">host</span><span class="p">,</span>
-        <span class="n">port</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">mqttClient</span><span class="o">.</span><span class="n">port</span><span class="p">,</span>
-        <span class="n">username</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">mqttClient</span><span class="o">.</span><span class="n">username</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">,</span>
-        <span class="n">password</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">mqttClient</span><span class="o">.</span><span class="n">password</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">,</span>
+        <span class="n">host</span><span class="o">=</span><span class="n">mqtt_credential</span><span class="o">.</span><span class="n">url</span><span class="p">,</span>
+        <span class="n">port</span><span class="o">=</span><span class="n">mqtt_credential</span><span class="o">.</span><span class="n">port</span><span class="p">,</span>
+        <span class="n">username</span><span class="o">=</span><span class="n">mqtt_credential</span><span class="o">.</span><span class="n">username</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">,</span>
+        <span class="n">password</span><span class="o">=</span><span class="n">mqtt_credential</span><span class="o">.</span><span class="n">password</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">,</span>
         <span class="n">timeout</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">mqttProtocol</span><span class="o">.</span><span class="n">timeout</span><span class="p">,</span>
         <span class="n">station_id</span><span class="o">=</span><span class="n">station_id</span><span class="p">,</span>
         <span class="n">keepalive</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">mqttProtocol</span><span class="o">.</span><span class="n">keepalive</span><span class="p">,</span>
@@ -2530,8 +2539,8 @@ both synchronous and asynchronous approaches.</p>
 <span class="sd">        CamDataV1: A structured CAM message object containing vehicle state and attributes.</span>
 
 <span class="sd">    Complexity:</span>
-<span class="sd">        Time: O(1), a fixed number of hard-coded fields is assembled.</span>
-<span class="sd">        Space: O(1), a single fixed-size object graph is allocated.</span>
+<span class="sd">        - Time: O(1), a fixed number of hard-coded fields is assembled.</span>
+<span class="sd">        - Space: O(1), a single fixed-size object graph is allocated.</span>
 <span class="sd">    """</span>
     <span class="k">return</span> <span class="n">CamDataV1</span><span class="p">(</span>
         <span class="nb">type</span><span class="o">=</span><span class="n">MessageId</span><span class="o">.</span><span class="n">CAM_PDU</span><span class="p">,</span>
@@ -2589,9 +2598,9 @@ both synchronous and asynchronous approaches.</p>
 <span class="sd">        - Perceived Objects: A list of objects with their respective positions and dimensions</span>
 
 <span class="sd">    Complexity:</span>
-<span class="sd">        Time: O(1), a fixed number of hard-coded fields and a single perceived object</span>
-<span class="sd">            is assembled.</span>
-<span class="sd">        Space: O(1), a single fixed-size object graph is allocated.</span>
+<span class="sd">        - Time: O(1), a fixed number of hard-coded fields and a single perceived object</span>
+<span class="sd">          is assembled.</span>
+<span class="sd">        - Space: O(1), a single fixed-size object graph is allocated.</span>
 <span class="sd">    """</span>
     <span class="n">now</span> <span class="o">=</span> <span class="n">ItsTime</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">CpmDataV1</span><span class="p">(</span>
@@ -2671,8 +2680,8 @@ both synchronous and asynchronous approaches.</p>
 <span class="sd">        - Time to Collision: 1.256 seconds</span>
 
 <span class="sd">    Complexity:</span>
-<span class="sd">        Time: O(1), a fixed number of hard-coded fields is assembled.</span>
-<span class="sd">        Space: O(1), a single fixed-size object graph is allocated.</span>
+<span class="sd">        - Time: O(1), a fixed number of hard-coded fields is assembled.</span>
+<span class="sd">        - Space: O(1), a single fixed-size object graph is allocated.</span>
 <span class="sd">    """</span>
     <span class="n">reference_time</span> <span class="o">=</span> <span class="n">ItsTime</span><span class="o">.</span><span class="n">create_from_iso_time</span><span class="p">(</span><span class="n">time_str</span><span class="o">=</span><span class="s2">"2024-12-20T17:31:38.729Z"</span><span class="p">)</span>
     <span class="n">measurement_time</span> <span class="o">=</span> <span class="n">reference_time</span> <span class="o">+</span> <span class="mi">2</span>
@@ -2763,9 +2772,9 @@ both synchronous and asynchronous approaches.</p>
 <span class="sd">        until canceled or until the client stops yielding messages.</span>
 
 <span class="sd">    Complexity:</span>
-<span class="sd">        Time: O(k), where k is the number of messages received before the</span>
-<span class="sd">            coroutine is canceled or the client stops yielding messages.</span>
-<span class="sd">        Space: O(1), each message is logged as it arrives and not retained.</span>
+<span class="sd">        - Time: O(k), where k is the number of messages received before the</span>
+<span class="sd">          coroutine is canceled or the client stops yielding messages.</span>
+<span class="sd">        - Space: O(1), each message is logged as it arrives and not retained.</span>
 <span class="sd">    """</span>
     <span class="k">async</span> <span class="k">for</span> <span class="n">message</span> <span class="ow">in</span> <span class="n">client</span><span class="o">.</span><span class="n">its_messages</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">):</span>
@@ -2802,9 +2811,9 @@ both synchronous and asynchronous approaches.</p>
 <span class="sd">        None: This function does not return a value.</span>
 
 <span class="sd">    Complexity:</span>
-<span class="sd">        Time: O(t), where t is the number of entries in config.subscriptionTopics</span>
-<span class="sd">            (O(1) when subscriptionTopics is None).</span>
-<span class="sd">        Space: O(t), for the list of subscription tuples built from the configuration.</span>
+<span class="sd">        - Time: O(t), where t is the number of entries in config.subscriptionTopics</span>
+<span class="sd">          (O(1) when subscriptionTopics is None).</span>
+<span class="sd">        - Space: O(t), for the list of subscription tuples built from the configuration.</span>
 <span class="sd">    """</span>
     <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">subscriptionTopics</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">sub_results</span> <span class="o">=</span> <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">subscribe</span><span class="p">(</span>
@@ -2844,6 +2853,7 @@ both synchronous and asynchronous approaches.</p>
     <span class="n">sender_latitude</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
     <span class="n">sender_longitude</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
     <span class="n">config</span><span class="p">:</span> <span class="n">StepBrokerConfig</span><span class="p">,</span>
+    <span class="n">mqtt_credential</span><span class="p">:</span> <span class="n">MqttCredential</span><span class="p">,</span>
     <span class="n">logger</span><span class="p">:</span> <span class="n">Logger</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Demonstrate asynchronous publishing of ITS messages using a context manager.</span>
@@ -2861,18 +2871,19 @@ both synchronous and asynchronous approaches.</p>
 <span class="sd">        sender_latitude (float): Latitude coordinate for the sender's location.</span>
 <span class="sd">        sender_longitude (float): Longitude coordinate for the sender's location.</span>
 <span class="sd">        config (StepBrokerConfig): The configuration for the step broker.</span>
+<span class="sd">        mqtt_credential (MqttCredential): The MQTT credential containing connection details for the broker.</span>
 <span class="sd">        logger (Logger): The logger instance for logging.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        None: This function does not return a value.</span>
 
 <span class="sd">    Complexity:</span>
-<span class="sd">        Time: O(p + t + k), where p is the number of publish topics and t the number</span>
-<span class="sd">            of subscription topics in config (client setup), and k is the number of</span>
-<span class="sd">            ITS messages received by the concurrent _receive_messages task before it</span>
-<span class="sd">            is canceled after the 2-second wait.</span>
-<span class="sd">        Space: O(p + t), for the topic structures built during setup (received</span>
-<span class="sd">            messages are logged as they arrive and not retained).</span>
+<span class="sd">        - Time: O(p + t + k), where p is the number of publish topics and t the number</span>
+<span class="sd">          of subscription topics in config (client setup), and k is the number of</span>
+<span class="sd">          ITS messages received by the concurrent _receive_messages task before it</span>
+<span class="sd">          is canceled after the 2-second wait.</span>
+<span class="sd">        - Space: O(p + t), for the topic structures built during setup (received</span>
+<span class="sd">          messages are logged as they arrive and not retained).</span>
 <span class="sd">    """</span>
     <span class="k">if</span> <span class="n">logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">):</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">"Starting async test with context manager"</span><span class="p">)</span>
@@ -2881,6 +2892,7 @@ both synchronous and asynchronous approaches.</p>
             <span class="n">instance_name</span><span class="o">=</span><span class="n">instance_name</span><span class="p">,</span>
             <span class="n">station_id</span><span class="o">=</span><span class="n">station_id</span><span class="p">,</span>
             <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">,</span>
+            <span class="n">mqtt_credential</span><span class="o">=</span><span class="n">mqtt_credential</span><span class="p">,</span>
             <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span>
         <span class="p">)</span> <span class="k">as</span> <span class="n">client</span><span class="p">,</span>
         <span class="n">TaskGroup</span><span class="p">()</span> <span class="k">as</span> <span class="n">tg</span><span class="p">,</span>
@@ -3018,7 +3030,11 @@ both synchronous and asynchronous approaches.</p>
     <span class="n">VehicleLengthConfidenceIndication</span><span class="p">,</span>
     <span class="n">VehicleRole</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">step_publish.step_publish_config</span><span class="w"> </span><span class="kn">import</span> <span class="n">MqttProtocolConfig</span><span class="p">,</span> <span class="n">StepBrokerConfig</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">step_publish.step_publish_config</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">MqttCredential</span><span class="p">,</span>
+    <span class="n">MqttProtocolConfig</span><span class="p">,</span>
+    <span class="n">StepBrokerConfig</span><span class="p">,</span>
+<span class="p">)</span>
 
 <span class="c1"># step_lib Package Imports</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">step_lib</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
@@ -3039,7 +3055,11 @@ both synchronous and asynchronous approaches.</p>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_sync_com_manager_create</span><span class="p">(</span>
-    <span class="n">instance_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">station_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">StepBrokerConfig</span><span class="p">,</span> <span class="n">logger</span><span class="p">:</span> <span class="n">Logger</span>
+    <span class="n">instance_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">station_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">config</span><span class="p">:</span> <span class="n">StepBrokerConfig</span><span class="p">,</span>
+    <span class="n">mqtt_credential</span><span class="p">:</span> <span class="n">MqttCredential</span><span class="p">,</span>
+    <span class="n">logger</span><span class="p">:</span> <span class="n">Logger</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SyncComManager</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Create a synchronous communication manager for STEP broker.</span>
 
@@ -3052,6 +3072,7 @@ both synchronous and asynchronous approaches.</p>
 <span class="sd">        station_id (int | None): The station identifier. Can be None if not applicable.</span>
 <span class="sd">        config (StepBrokerConfig): Configuration object containing MQTT client, protocol,</span>
 <span class="sd">            and cache directory settings.</span>
+<span class="sd">        mqtt_credential (MqttCredential): The MQTT credential containing connection details for the broker.</span>
 <span class="sd">        logger (Logger): Logger instance for logging operations and debug information.</span>
 
 <span class="sd">    Returns:</span>
@@ -3067,9 +3088,9 @@ both synchronous and asynchronous approaches.</p>
 <span class="sd">          MQTT protocol parameters</span>
 
 <span class="sd">    Complexity:</span>
-<span class="sd">        Time: O(p), where p is the number of entries in</span>
-<span class="sd">            config.mqttProtocol.publishTopics (O(1) when publishTopics is None).</span>
-<span class="sd">        Space: O(p), for the list of PublishTopicParams built from the configuration.</span>
+<span class="sd">        - Time: O(p), where p is the number of entries in</span>
+<span class="sd">          config.mqttProtocol.publishTopics (O(1) when publishTopics is None).</span>
+<span class="sd">        - Space: O(p), for the list of PublishTopicParams built from the configuration.</span>
 <span class="sd">    """</span>
     <span class="n">tls_params</span><span class="p">:</span> <span class="n">TLSParameters</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">mqttClient</span><span class="o">.</span><span class="n">sslEnable</span><span class="p">:</span>
@@ -3088,10 +3109,10 @@ both synchronous and asynchronous approaches.</p>
         <span class="p">)</span>
     <span class="n">sync_com_manager_params</span> <span class="o">=</span> <span class="n">SyncComManagerParams</span><span class="p">(</span>
         <span class="n">instance_name</span><span class="o">=</span><span class="n">instance_name</span><span class="p">,</span>
-        <span class="n">host</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">mqttClient</span><span class="o">.</span><span class="n">host</span><span class="p">,</span>
-        <span class="n">port</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">mqttClient</span><span class="o">.</span><span class="n">port</span><span class="p">,</span>
-        <span class="n">username</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">mqttClient</span><span class="o">.</span><span class="n">username</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">,</span>
-        <span class="n">password</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">mqttClient</span><span class="o">.</span><span class="n">password</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">,</span>
+        <span class="n">host</span><span class="o">=</span><span class="n">mqtt_credential</span><span class="o">.</span><span class="n">url</span><span class="p">,</span>
+        <span class="n">port</span><span class="o">=</span><span class="n">mqtt_credential</span><span class="o">.</span><span class="n">port</span><span class="p">,</span>
+        <span class="n">username</span><span class="o">=</span><span class="n">mqtt_credential</span><span class="o">.</span><span class="n">username</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">,</span>
+        <span class="n">password</span><span class="o">=</span><span class="n">mqtt_credential</span><span class="o">.</span><span class="n">password</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">,</span>
         <span class="n">timeout</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">mqttProtocol</span><span class="o">.</span><span class="n">timeout</span><span class="p">,</span>
         <span class="n">station_id</span><span class="o">=</span><span class="n">station_id</span><span class="p">,</span>
         <span class="n">keepalive</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">mqttProtocol</span><span class="o">.</span><span class="n">keepalive</span><span class="p">,</span>
@@ -3173,8 +3194,8 @@ both synchronous and asynchronous approaches.</p>
 <span class="sd">            - vehicleRole: Designated role of the vehicle</span>
 
 <span class="sd">    Complexity:</span>
-<span class="sd">        Time: O(1), the dictionary has a fixed number of hard-coded keys.</span>
-<span class="sd">        Space: O(1), a single fixed-size dictionary is allocated.</span>
+<span class="sd">        - Time: O(1), the dictionary has a fixed number of hard-coded keys.</span>
+<span class="sd">        - Space: O(1), a single fixed-size dictionary is allocated.</span>
 <span class="sd">    """</span>
     <span class="k">return</span> <span class="p">{</span>
         <span class="s2">"type"</span><span class="p">:</span> <span class="n">MessageId</span><span class="o">.</span><span class="n">CAM_PDU</span><span class="p">,</span>
@@ -3227,8 +3248,8 @@ both synchronous and asynchronous approaches.</p>
 <span class="sd">        CamDataV1: A structured CAM message object containing vehicle state and attributes.</span>
 
 <span class="sd">    Complexity:</span>
-<span class="sd">        Time: O(1), a fixed number of hard-coded fields is assembled.</span>
-<span class="sd">        Space: O(1), a single fixed-size object graph is allocated.</span>
+<span class="sd">        - Time: O(1), a fixed number of hard-coded fields is assembled.</span>
+<span class="sd">        - Space: O(1), a single fixed-size object graph is allocated.</span>
 <span class="sd">    """</span>
     <span class="k">return</span> <span class="n">CamDataV1</span><span class="p">(</span>
         <span class="nb">type</span><span class="o">=</span><span class="n">MessageId</span><span class="o">.</span><span class="n">CAM_PDU</span><span class="p">,</span>
@@ -3286,9 +3307,9 @@ both synchronous and asynchronous approaches.</p>
 <span class="sd">        - Perceived Objects: A list of objects with their respective positions and dimensions</span>
 
 <span class="sd">    Complexity:</span>
-<span class="sd">        Time: O(1), a fixed number of hard-coded fields and a single perceived object</span>
-<span class="sd">            is assembled.</span>
-<span class="sd">        Space: O(1), a single fixed-size object graph is allocated.</span>
+<span class="sd">        - Time: O(1), a fixed number of hard-coded fields and a single perceived object</span>
+<span class="sd">          is assembled.</span>
+<span class="sd">        - Space: O(1), a single fixed-size object graph is allocated.</span>
 <span class="sd">    """</span>
     <span class="n">now</span> <span class="o">=</span> <span class="n">ItsTime</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">CpmDataV1</span><span class="p">(</span>
@@ -3368,8 +3389,8 @@ both synchronous and asynchronous approaches.</p>
 <span class="sd">        - Time to Collision: 1.256 seconds</span>
 
 <span class="sd">    Complexity:</span>
-<span class="sd">        Time: O(1), a fixed number of hard-coded fields is assembled.</span>
-<span class="sd">        Space: O(1), a single fixed-size object graph is allocated.</span>
+<span class="sd">        - Time: O(1), a fixed number of hard-coded fields is assembled.</span>
+<span class="sd">        - Space: O(1), a single fixed-size object graph is allocated.</span>
 <span class="sd">    """</span>
     <span class="n">reference_time</span> <span class="o">=</span> <span class="n">ItsTime</span><span class="o">.</span><span class="n">create_from_iso_time</span><span class="p">(</span><span class="n">time_str</span><span class="o">=</span><span class="s2">"2024-12-20T17:31:38.729Z"</span><span class="p">)</span>
     <span class="n">measurement_time</span> <span class="o">=</span> <span class="n">reference_time</span> <span class="o">+</span> <span class="mi">2</span>
@@ -3466,9 +3487,9 @@ both synchronous and asynchronous approaches.</p>
 <span class="sd">        - The function logs successful subscriptions at INFO level.</span>
 
 <span class="sd">    Complexity:</span>
-<span class="sd">        Time: O(t), where t is the number of entries in config.subscriptionTopics</span>
-<span class="sd">            (O(1) when subscriptionTopics is None).</span>
-<span class="sd">        Space: O(t), for the list of topic strings built from the configuration.</span>
+<span class="sd">        - Time: O(t), where t is the number of entries in config.subscriptionTopics</span>
+<span class="sd">          (O(1) when subscriptionTopics is None).</span>
+<span class="sd">        - Space: O(t), for the list of topic strings built from the configuration.</span>
 <span class="sd">    """</span>
     <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">subscriptionTopics</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">client</span><span class="o">.</span><span class="n">subscribe</span><span class="p">(</span>
@@ -3501,6 +3522,12 @@ both synchronous and asynchronous approaches.</p>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        None: This function does not return a value.</span>
+
+<span class="sd">    Complexity:</span>
+<span class="sd">        - Time: O(1), dominated by the single delegated</span>
+<span class="sd">          ``client.publish_its_message`` call for one message.</span>
+<span class="sd">        - Space: O(1), no additional data structures are built beyond the</span>
+<span class="sd">          message already provided.</span>
 <span class="sd">    """</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">client</span><span class="o">.</span><span class="n">publish_its_message</span><span class="p">(</span>
@@ -3542,8 +3569,8 @@ both synchronous and asynchronous approaches.</p>
 <span class="sd">        None: This function does not return a value.</span>
 
 <span class="sd">    Complexity:</span>
-<span class="sd">        Time: O(1), a fixed number (four) of hard-coded messages is built and published.</span>
-<span class="sd">        Space: O(1), each message object is a single fixed-size object graph.</span>
+<span class="sd">        - Time: O(1), a fixed number (four) of hard-coded messages is built and published.</span>
+<span class="sd">        - Space: O(1), each message object is a single fixed-size object graph.</span>
 <span class="sd">    """</span>
     <span class="c1"># CAM message as ORM</span>
     <span class="n">cam_message</span> <span class="o">=</span> <span class="n">_create_cam_data</span><span class="p">()</span>
@@ -3595,12 +3622,13 @@ both synchronous and asynchronous approaches.</p>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">sync_test_publish_with_context_manager</span><span class="p">(</span>
+    <span class="o">*</span><span class="p">,</span>
     <span class="n">instance_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">station_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">sender_latitude</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
     <span class="n">sender_longitude</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
     <span class="n">config</span><span class="p">:</span> <span class="n">StepBrokerConfig</span><span class="p">,</span>
-    <span class="o">*</span><span class="p">,</span>
+    <span class="n">mqtt_credential</span><span class="p">:</span> <span class="n">MqttCredential</span><span class="p">,</span>
     <span class="n">logger</span><span class="p">:</span> <span class="n">Logger</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Test the publishing functionality using a context manager.</span>
@@ -3615,17 +3643,18 @@ both synchronous and asynchronous approaches.</p>
 <span class="sd">        sender_latitude (float): The latitude of the sender's location.</span>
 <span class="sd">        sender_longitude (float): The longitude of the sender's location.</span>
 <span class="sd">        config (StepBrokerConfig): Configuration object for the step broker.</span>
+<span class="sd">        mqtt_credential (MqttCredential): The MQTT credential containing connection details for the broker.</span>
 <span class="sd">        logger (Logger): Logger instance for recording operation details.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        None: This function does not return a value.</span>
 
 <span class="sd">    Complexity:</span>
-<span class="sd">        Time: O(p + t + r), where p is the number of publish topics and t the number</span>
-<span class="sd">            of subscription topics in config (client setup), and r is the number of</span>
-<span class="sd">            ITS messages received from the broker during the 2-second wait.</span>
-<span class="sd">        Space: O(p + t + r), for the topic structures built during setup and the</span>
-<span class="sd">            received messages buffered in client.its_messages_received.</span>
+<span class="sd">        - Time: O(p + t + r), where p is the number of publish topics and t the number</span>
+<span class="sd">          of subscription topics in config (client setup), and r is the number of</span>
+<span class="sd">          ITS messages received from the broker during the 2-second wait.</span>
+<span class="sd">        - Space: O(p + t + r), for the topic structures built during setup and the</span>
+<span class="sd">          received messages buffered in client.its_messages_received.</span>
 <span class="sd">    """</span>
     <span class="k">if</span> <span class="n">logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">):</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">"Starting sync test with context manager"</span><span class="p">)</span>
@@ -3643,7 +3672,11 @@ both synchronous and asynchronous approaches.</p>
         <span class="n">mac_id</span><span class="o">=</span><span class="n">station_id</span> <span class="k">if</span> <span class="n">station_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="mi">123456789</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="k">with</span> <span class="n">_sync_com_manager_create</span><span class="p">(</span>
-        <span class="n">instance_name</span><span class="o">=</span><span class="n">instance_name</span><span class="p">,</span> <span class="n">station_id</span><span class="o">=</span><span class="n">station_id</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span>
+        <span class="n">instance_name</span><span class="o">=</span><span class="n">instance_name</span><span class="p">,</span>
+        <span class="n">station_id</span><span class="o">=</span><span class="n">station_id</span><span class="p">,</span>
+        <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">,</span>
+        <span class="n">mqtt_credential</span><span class="o">=</span><span class="n">mqtt_credential</span><span class="p">,</span>
+        <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span>
     <span class="p">)</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">):</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">"Client status: </span><span class="si">{</span><span class="n">client</span><span class="o">.</span><span class="n">connection_status</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
@@ -3665,12 +3698,13 @@ both synchronous and asynchronous approaches.</p>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">sync_test_publish_without_context_manager</span><span class="p">(</span>
+    <span class="o">*</span><span class="p">,</span>
     <span class="n">instance_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">station_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">sender_latitude</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
     <span class="n">sender_longitude</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
     <span class="n">config</span><span class="p">:</span> <span class="n">StepBrokerConfig</span><span class="p">,</span>
-    <span class="o">*</span><span class="p">,</span>
+    <span class="n">mqtt_credential</span><span class="p">:</span> <span class="n">MqttCredential</span><span class="p">,</span>
     <span class="n">logger</span><span class="p">:</span> <span class="n">Logger</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Synchronously test publishing ITS messages without using a context manager.</span>
@@ -3685,6 +3719,7 @@ both synchronous and asynchronous approaches.</p>
 <span class="sd">        sender_latitude (float): The latitude coordinate of the sender's position.</span>
 <span class="sd">        sender_longitude (float): The longitude coordinate of the sender's position.</span>
 <span class="sd">        config (StepBrokerConfig): Configuration object containing MQTT and broker settings.</span>
+<span class="sd">        mqtt_credential (MqttCredential): The MQTT credential containing connection details for the broker.</span>
 <span class="sd">        logger (Logger): Logger instance for recording execution information and events.</span>
 
 <span class="sd">    Returns:</span>
@@ -3710,11 +3745,11 @@ both synchronous and asynchronous approaches.</p>
 <span class="sd">        - Ensures proper cleanup by stopping the client in the finally block</span>
 
 <span class="sd">    Complexity:</span>
-<span class="sd">        Time: O(p + t + r), where p is the number of publish topics and t the number</span>
-<span class="sd">            of subscription topics in config (client setup), and r is the number of</span>
-<span class="sd">            ITS messages received from the broker during the 2-second wait.</span>
-<span class="sd">        Space: O(p + t + r), for the topic structures built during setup and the</span>
-<span class="sd">            received messages buffered in client.its_messages_received.</span>
+<span class="sd">        - Time: O(p + t + r), where p is the number of publish topics and t the number</span>
+<span class="sd">          of subscription topics in config (client setup), and r is the number of</span>
+<span class="sd">          ITS messages received from the broker during the 2-second wait.</span>
+<span class="sd">        - Space: O(p + t + r), for the topic structures built during setup and the</span>
+<span class="sd">          received messages buffered in client.its_messages_received.</span>
 <span class="sd">    """</span>
     <span class="k">if</span> <span class="n">logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">):</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">"Starting sync test without context manager"</span><span class="p">)</span>
@@ -3737,6 +3772,7 @@ both synchronous and asynchronous approaches.</p>
             <span class="n">instance_name</span><span class="o">=</span><span class="n">instance_name</span><span class="p">,</span>
             <span class="n">station_id</span><span class="o">=</span><span class="n">station_id</span><span class="p">,</span>
             <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">,</span>
+            <span class="n">mqtt_credential</span><span class="o">=</span><span class="n">mqtt_credential</span><span class="p">,</span>
             <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span>
         <span class="p">)</span>
 
@@ -3769,10 +3805,12 @@ both synchronous and asynchronous approaches.</p>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">sync_test_publish_with_context_manager_with_station_filter</span><span class="p">(</span>
+    <span class="o">*</span><span class="p">,</span>
     <span class="n">instance_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">sender_latitude</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
     <span class="n">sender_longitude</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
     <span class="n">config</span><span class="p">:</span> <span class="n">StepBrokerConfig</span><span class="p">,</span>
+    <span class="n">mqtt_credential</span><span class="p">:</span> <span class="n">MqttCredential</span><span class="p">,</span>
     <span class="n">logger</span><span class="p">:</span> <span class="n">Logger</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Synchronously test publishing ITS messages using a context manager with station</span>
@@ -3788,6 +3826,7 @@ both synchronous and asynchronous approaches.</p>
 <span class="sd">        sender_latitude (float): The latitude coordinate of the sender's position.</span>
 <span class="sd">        sender_longitude (float): The longitude coordinate of the sender's position.</span>
 <span class="sd">        config (StepBrokerConfig): Configuration object containing broker settings including MQTT protocol details.</span>
+<span class="sd">        mqtt_credential (MqttCredential): The MQTT credential containing connection details for the broker.</span>
 <span class="sd">        logger (Logger): Logger instance for recording operation information and status updates.</span>
 
 <span class="sd">    Returns:</span>
@@ -3799,6 +3838,7 @@ both synchronous and asynchronous approaches.</p>
 <span class="sd">        ...     sender_latitude=48.8566,</span>
 <span class="sd">        ...     sender_longitude=2.3522,</span>
 <span class="sd">        ...     config=broker_config,</span>
+<span class="sd">        ...     mqtt_credential=my_mqtt_credential,</span>
 <span class="sd">        ...     logger=my_logger,</span>
 <span class="sd">        ... )</span>
 
@@ -3810,11 +3850,11 @@ both synchronous and asynchronous approaches.</p>
 <span class="sd">        - The context manager ensures proper connection cleanup after execution.</span>
 
 <span class="sd">    Complexity:</span>
-<span class="sd">        Time: O(p + t + r), where p is the number of publish topics and t the number</span>
-<span class="sd">            of subscription topics in config (client setup), and r is the number of</span>
-<span class="sd">            ITS messages received from the broker during the 2-second wait.</span>
-<span class="sd">        Space: O(p + t + r), for the topic structures built during setup and the</span>
-<span class="sd">            received messages buffered in client.its_messages_received.</span>
+<span class="sd">        - Time: O(p + t + r), where p is the number of publish topics and t the number</span>
+<span class="sd">          of subscription topics in config (client setup), and r is the number of</span>
+<span class="sd">          ITS messages received from the broker during the 2-second wait.</span>
+<span class="sd">        - Space: O(p + t + r), for the topic structures built during setup and the</span>
+<span class="sd">          received messages buffered in client.its_messages_received.</span>
 <span class="sd">    """</span>
     <span class="k">if</span> <span class="n">logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">):</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">"Starting sync test with context manager"</span><span class="p">)</span>
@@ -3832,7 +3872,11 @@ both synchronous and asynchronous approaches.</p>
         <span class="n">mac_id</span><span class="o">=</span><span class="n">MAC_ID</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="k">with</span> <span class="n">_sync_com_manager_create</span><span class="p">(</span>
-        <span class="n">instance_name</span><span class="o">=</span><span class="n">instance_name</span><span class="p">,</span> <span class="n">station_id</span><span class="o">=</span><span class="mi">123456789</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span>
+        <span class="n">instance_name</span><span class="o">=</span><span class="n">instance_name</span><span class="p">,</span>
+        <span class="n">station_id</span><span class="o">=</span><span class="mi">123456789</span><span class="p">,</span>
+        <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">,</span>
+        <span class="n">mqtt_credential</span><span class="o">=</span><span class="n">mqtt_credential</span><span class="p">,</span>
+        <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span>
     <span class="p">)</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">):</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">"Client status: </span><span class="si">{</span><span class="n">client</span><span class="o">.</span><span class="n">connection_status</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
