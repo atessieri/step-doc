@@ -67,6 +67,8 @@ Main Components:
        ``asyncio.Queue`` connecting them; this is the part of the application that
        actually reads from ``StepBroker`` and appends to the output file
     #. **StepMessageSaveConfig**: Configuration management for the client
+    #. **MQTT Credential Loading** (``_get_mqtt_credential()`` in ``__main__.py``):
+       Reads the MQTT broker connection secrets from environment variables
     #. **StepLogger**: Logging utilities used by the client (from the
        ``step_cloud_schemas`` library)
     #. **StepException**: Custom exceptions for error handling
@@ -191,6 +193,36 @@ Key features of ``StepMessageSaveConfig`` include:
 The design of ``StepMessageSaveConfig`` emphasizes immutability and strong validation, helping
 prevent configuration-related issues during runtime while providing a clear, structured
 approach to configuration management.
+
+MQTT Credential Loading
+^^^^^^^^^^^^^^^^^^^^^^^
+
+MQTT broker connection secrets are kept out of the (persisted) JSON configuration
+file and are instead read from the process environment by ``_get_mqtt_credential()``
+in ``__main__.py``, which is called once in ``main()`` right after the logger is set
+up and before ``_main_async()`` is started.
+
+Key aspects of this component:
+
+    #. **``.env`` File Support**: Calls ``load_dotenv()`` (from ``python-dotenv``)
+       before reading any variable, so the values may come from a ``.env`` file in
+       the working directory or from variables already present in the process
+       environment.
+    #. **Required Variables**: Reads ``MQTT_URL`` and ``MQTT_PORT`` (the
+       ``MQTT_URL_VAR_NAME``/``MQTT_PORT_VAR_NAME`` constants); if either is unset,
+       ``_get_mqtt_credential()`` raises ``ValueError``, which propagates up and is
+       caught by the top-level exception handling in ``main()``.
+    #. **Optional Variables**: Reads ``MQTT_USERNAME`` and ``MQTT_PASSWORD``
+       (``MQTT_USERNAME_VAR_NAME``/``MQTT_PASSWORD_VAR_NAME``); both may be absent,
+       in which case the broker connection is attempted without authentication.
+    #. **MqttCredential**: The four values are assembled into an
+       ``MqttCredential`` ``NamedTuple`` (defined in ``step_message_save_config.py``),
+       kept separate from ``StepMessageSaveConfig`` specifically so secrets never end
+       up embedded in the configuration document. The resulting instance is passed
+       into ``_main_async()`` and from there into ``StepBroker``, which uses it to
+       authenticate the MQTT connection.
+    #. **Startup Logging**: Once loaded, the resolved host, port, and username (but
+       never the password) are logged at INFO level for diagnostic purposes.
 
 StepLogger
 ^^^^^^^^^^
