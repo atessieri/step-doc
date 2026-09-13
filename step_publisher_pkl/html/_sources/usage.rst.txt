@@ -97,11 +97,34 @@ to the STEP MQTT broker. Key concepts include:
   * **Topic Management**: Flexible topic configuration for publishing CAM messages 
     with geohash precision support
 
+Environment Variables
+----------------------
+
+MQTT broker connection secrets are kept out of the (persisted) JSON configuration file
+and are instead read from the process environment. On startup, the publisher calls
+``python-dotenv``'s ``load_dotenv()``, which automatically loads a ``.env`` file from the
+current working directory (or an ancestor of it) into the environment before the following
+variables are read:
+
+  * ``MQTT_URL`` (required): MQTT broker host address, without protocol or port
+  * ``MQTT_PORT`` (required): MQTT broker port number
+  * ``MQTT_USERNAME`` (optional): Username for broker authentication
+  * ``MQTT_PASSWORD`` (optional): Password for broker authentication
+
+``MQTT_URL`` and ``MQTT_PORT`` raise an error if left unset; ``MQTT_USERNAME`` and
+``MQTT_PASSWORD`` default to unset, allowing anonymous broker connections.
+
+An example ``.env`` file is provided below and can be copied to ``.env`` in the directory
+you run ``step_publisher_pkl`` from, then filled in with your broker's connection details:
+
+.. literalinclude:: env/.env.example
+  :language: bash
+
 Configuration
 -------------
 
-STEP Publisher Pickle requires configuration for MQTT broker connections, 
-pickle folder path, and logging settings. 
+STEP Publisher Pickle requires configuration for MQTT broker connections,
+pickle folder path, and logging settings.
 The configuration is managed through a JSON file.
 
 Creating a Configuration File
