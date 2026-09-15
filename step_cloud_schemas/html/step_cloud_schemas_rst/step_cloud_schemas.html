@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>step_cloud_schemas package &mdash; STEP Cloud Schemas 2.3.2 documentation</title>
+  <title>step_cloud_schemas package &mdash; STEP Cloud Schemas 2.4.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/tabs.css?v=4c969af8" />
@@ -16,7 +16,7 @@
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=5048a02b"></script>
+      <script src="../_static/documentation_options.js?v=4d935f96"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/tabs.js?v=3ee01567"></script>
@@ -2837,88 +2837,58 @@ allocated here.</p></li>
 </dd>
 </dl>
 <dl class="simple">
-<dt>Modules:</dt><dd><dl class="simple">
-<dt>classes: Core ITS data models (CAM/CPM/DENM building blocks, WGS84</dt><dd><p>position/geocoding, ITS time, and traffic/vehicle enumerations).</p>
-</dd>
-<dt>cloud_events_messages: CloudEvents envelope wrappers around the ITS</dt><dd><p>messages, one module per STEP component (Adapter, Client, Producer,
-Crash Prediction, Monitoring).</p>
-</dd>
-<dt>interface: High-level composite types (ActorId, PositionInfoRecord) that</dt><dd><p>bridge the low-level classes to application code.</p>
-</dd>
-<dt>its_messages: The CAM/CPM/DENM root message models and the</dt><dd><p>discriminated-union ItsMessageRoot wrapper.</p>
-</dd>
-<dt>logging: Pydantic logging configuration models and the StepLogger</dt><dd><p>factory that builds <code class="docutils literal notranslate"><span class="pre">logging.Logger</span></code> instances from them.</p>
-</dd>
-<dt>profiling: Lightweight checkpoint/timer utilities for measuring and</dt><dd><p>logging elapsed time.</p>
-</dd>
-<dt>__main__: Command-line interface for generating JSON schemas and example</dt><dd><p>messages to disk.</p>
-</dd>
-</dl>
+<dt>Modules:</dt><dd><ul class="simple">
+<li><p>classes: Core ITS data models (CAM/CPM/DENM building blocks, WGS84
+position/geocoding, ITS time, and traffic/vehicle enumerations).</p></li>
+<li><p>cloud_events_messages: CloudEvents envelope wrappers around the ITS
+messages, one module per STEP component (Adapter, Client, Producer,
+Crash Prediction, Monitoring).</p></li>
+<li><p>interface: High-level composite types (ActorId, PositionInfoRecord) that
+bridge the low-level classes to application code.</p></li>
+<li><p>its_messages: The CAM/CPM/DENM root message models and the
+discriminated-union ItsMessageRoot wrapper.</p></li>
+<li><p>logging: Pydantic logging configuration models and the StepLogger
+factory that builds <code class="docutils literal notranslate"><span class="pre">logging.Logger</span></code> instances from them.</p></li>
+<li><p>profiling: Lightweight checkpoint/timer utilities for measuring and
+logging elapsed time.</p></li>
+<li><p>__main__: Command-line interface for generating JSON schemas and example
+messages to disk.</p></li>
+</ul>
 </dd>
 <dt>Complexity summary:</dt><dd><ul class="simple">
-<li><dl class="simple">
-<dt>classes.geocode.Geocode: time O(n) for its vectorized batch methods</dt><dd><p>(n = points/pairs processed, unbounded), space O(n); O(1) for its
-scalar methods.</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>classes.perceived_object / pre_crash_container / actor_trajectory_forecasted</dt><dd><p>/ position_array_v1 / station_collision_array_v1: time/space O(n) for
+<li><p>classes.geocode.Geocode: time O(n) for its vectorized batch methods
+(n = points/pairs processed, unbounded), space O(n); O(1) for its
+scalar methods.</p></li>
+<li><p>classes.perceived_object / pre_crash_container / actor_trajectory_forecasted
+/ position_array_v1 / station_collision_array_v1: time/space O(n) for
 model construction when their point/station lists are supplied
-(n bounded by each field’s max_length, 40-255).</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>cloud_events_messages.cloud_events_step_producer.ProducerCloudEventsStationCollisionArrayV1</dt><dd><p>and cloud_events_step_monitoring.CloudEventsForecastedTrajectoryMessage:
-time/space O(n) for model construction (n bounded by max_length).</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>its_messages.cpm_data_v1.CpmDataV1 / denm_data_v1.DenmDataV1: time/space</dt><dd><p>O(n) for model construction when their nested list is supplied
+(n bounded by each field’s max_length, 40-255).</p></li>
+<li><p>cloud_events_messages.cloud_events_step_producer.ProducerCloudEventsStationCollisionArrayV1
+and cloud_events_step_monitoring.CloudEventsForecastedTrajectoryMessage:
+time/space O(n) for model construction (n bounded by max_length).</p></li>
+<li><p>its_messages.cpm_data_v1.CpmDataV1 / denm_data_v1.DenmDataV1: time/space
+O(n) for model construction when their nested list is supplied
 (n bounded by max_length); O(m) for print_message_schema, m = number
-of schema fields/nodes.</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>logging.step_logger.StepLogger: time/space O(k) for get_logger (k =</dt><dd><p>handler configs) or O(h) for logger_force_write (h = attached
-handlers).</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>interface.actor_id.ActorId / position_info_record.PositionInfoRecord:</dt><dd><p>time/space O(1) throughout.</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>profiling (checkpoint/monotonic_timer/logging_timer): time/space O(1)</dt><dd><p>throughout, aside from O(m) to build a log message of length m in
-LoggingTimer.__exit__.</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>__main__: time/space O(1) throughout; runtime otherwise dominated by</dt><dd><p>the fixed sequence of schema/example calls it triggers.</p>
-</dd>
-</dl>
-</li>
+of schema fields/nodes.</p></li>
+<li><p>logging.step_logger.StepLogger: time/space O(k) for get_logger (k =
+handler configs) or O(h) for logger_force_write (h = attached
+handlers).</p></li>
+<li><p>interface.actor_id.ActorId / position_info_record.PositionInfoRecord:
+time/space O(1) throughout.</p></li>
+<li><p>profiling (checkpoint/monotonic_timer/logging_timer): time/space O(1)
+throughout, aside from O(m) to build a log message of length m in
+LoggingTimer.__exit__.</p></li>
+<li><p>__main__: time/space O(1) throughout; runtime otherwise dominated by
+the fixed sequence of schema/example calls it triggers.</p></li>
 </ul>
 </dd>
 <dt>Maximum complexity:</dt><dd><ul class="simple">
-<li><dl class="simple">
-<dt>Time: O(n) in classes.geocode.Geocode’s vectorized batch methods</dt><dd><p>(n = points/pairs processed, unbounded by any fixed maximum) - the
+<li><p>Time: O(n) in classes.geocode.Geocode’s vectorized batch methods
+(n = points/pairs processed, unbounded by any fixed maximum) - the
 only unbounded case; every other O(n)/O(m) figure above is bounded
-by a small, fixed max_length/schema-size constant.</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>Space: O(n), tied between classes.geocode.Geocode’s vectorized batch</dt><dd><p>methods and the various bounded list-validating models listed above.</p>
-</dd>
-</dl>
-</li>
+by a small, fixed max_length/schema-size constant.</p></li>
+<li><p>Space: O(n), tied between classes.geocode.Geocode’s vectorized batch
+methods and the various bounded list-validating models listed above.</p></li>
 </ul>
 </dd>
 </dl>

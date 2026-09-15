@@ -87,7 +87,8 @@ The constructor takes four arguments, all but *logger* optional:
 
 * *func_name* (``str | None``) — name of the timed function or block,
   embedded in the log message. May be supplied at construction time, left
-  unset and supplied later via ``__call__``, or both (a later ``__call__``
+  unset and supplied later via ``__call__`` (as the function/method itself,
+  not a string — its ``__name__`` is used), or both (a later ``__call__``
   overrides it). Defaults to ``None``.
 * *prefix* (``str | None``) — optional context label prepended to the
   message as a leading ``"[<prefix>] - "`` segment. Defaults to ``None``.
@@ -123,27 +124,30 @@ described in :mod:`step_cloud_schemas.logging.log_config`)::
 Fresh instance per block, *func_name* via ``__call__``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Equivalent to the pattern above, but with *func_name* supplied inline via
-``__call__`` instead of as a constructor keyword — useful when the
-constructor call and the ``with`` usage are naturally written together:
+Equivalent to the pattern above, but with the timed function supplied inline
+via ``__call__`` instead of a *func_name* constructor keyword — useful when
+the constructor call and the ``with`` usage are naturally written together.
+``__call__`` reads the passed callable's ``__name__``; it is never itself
+invoked:
 
 .. code-block:: python
 
-    with LoggingTimer(logger)("serialize"):
-        # ... timed code ...
-        pass
+    def serialize(self, ...):
+        with LoggingTimer(logger)(self.serialize):
+            # ... timed code ...
+            pass
 
-This produces the same log line as above, since ``__call__`` sets
-*func_name* and returns the same instance, which is then used as the context
-manager.
+This produces the same log line as above, since ``__call__`` derives
+*func_name* from the callable's ``__name__`` and returns the same instance,
+which is then used as the context manager.
 
 Reused instance across different functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 *func_name* can be left unset at construction and supplied per use via
 ``__call__``, so a single instance — e.g. stored once as an instance
-attribute — can be reused across different functions, each supplying its own
-name at the ``with`` usage site:
+attribute — can be reused across different functions, each supplying itself
+via ``__call__`` at the ``with`` usage site:
 
 .. code-block:: python
 
@@ -152,19 +156,19 @@ name at the ``with`` usage site:
             self._timer = LoggingTimer(logger)
 
         def serialize(self, ...):
-            with self._timer("serialize"):
+            with self._timer(self.serialize):
                 # ... timed code ...
                 pass
 
         def parse(self, ...):
-            with self._timer("parse"):
+            with self._timer(self.parse):
                 # ... timed code ...
                 pass
 
-Each call to ``self._timer(...)`` overwrites the instance's stored
-*func_name* — including overriding one originally passed to the
-constructor, if any — so ``__exit__`` always logs whichever name was set
-most recently.
+Each call to ``self._timer(...)`` derives *func_name* from the passed
+method's ``__name__`` and overwrites the instance's stored value —
+including overriding one originally passed to the constructor, if any — so
+``__exit__`` always logs whichever name was set most recently.
 
 .. warning::
 

@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Profiling &mdash; STEP Cloud Schemas 2.3.2 documentation</title>
+  <title>Profiling &mdash; STEP Cloud Schemas 2.4.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="_static/tabs.css?v=4c969af8" />
@@ -16,7 +16,7 @@
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=5048a02b"></script>
+      <script src="_static/documentation_options.js?v=4d935f96"></script>
       <script src="_static/doctools.js?v=fd6eb6e6"></script>
       <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="_static/tabs.js?v=3ee01567"></script>
@@ -2866,7 +2866,8 @@ logged even if the wrapped block raises, since <code class="docutils literal not
 <ul class="simple">
 <li><p><em>func_name</em> (<code class="docutils literal notranslate"><span class="pre">str</span> <span class="pre">|</span> <span class="pre">None</span></code>) — name of the timed function or block,
 embedded in the log message. May be supplied at construction time, left
-unset and supplied later via <code class="docutils literal notranslate"><span class="pre">__call__</span></code>, or both (a later <code class="docutils literal notranslate"><span class="pre">__call__</span></code>
+unset and supplied later via <code class="docutils literal notranslate"><span class="pre">__call__</span></code> (as the function/method itself,
+not a string — its <code class="docutils literal notranslate"><span class="pre">__name__</span></code> is used), or both (a later <code class="docutils literal notranslate"><span class="pre">__call__</span></code>
 overrides it). Defaults to <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></li>
 <li><p><em>prefix</em> (<code class="docutils literal notranslate"><span class="pre">str</span> <span class="pre">|</span> <span class="pre">None</span></code>) — optional context label prepended to the
 message as a leading <code class="docutils literal notranslate"><span class="pre">&quot;[&lt;prefix&gt;]</span> <span class="pre">-</span> <span class="pre">&quot;</span></code> segment. Defaults to <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></li>
@@ -2898,43 +2899,46 @@ described in <a class="reference internal" href="step_cloud_schemas_rst/logging/
 </section>
 <section id="fresh-instance-per-block-func-name-via-call">
 <h3>Fresh instance per block, <em>func_name</em> via <code class="docutils literal notranslate"><span class="pre">__call__</span></code><a class="headerlink" href="#fresh-instance-per-block-func-name-via-call" title="Link to this heading"></a></h3>
-<p>Equivalent to the pattern above, but with <em>func_name</em> supplied inline via
-<code class="docutils literal notranslate"><span class="pre">__call__</span></code> instead of as a constructor keyword — useful when the
-constructor call and the <code class="docutils literal notranslate"><span class="pre">with</span></code> usage are naturally written together:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">LoggingTimer</span><span class="p">(</span><span class="n">logger</span><span class="p">)(</span><span class="s2">"serialize"</span><span class="p">):</span>
-    <span class="c1"># ... timed code ...</span>
-    <span class="k">pass</span>
+<p>Equivalent to the pattern above, but with the timed function supplied inline
+via <code class="docutils literal notranslate"><span class="pre">__call__</span></code> instead of a <em>func_name</em> constructor keyword — useful when
+the constructor call and the <code class="docutils literal notranslate"><span class="pre">with</span></code> usage are naturally written together.
+<code class="docutils literal notranslate"><span class="pre">__call__</span></code> reads the passed callable’s <code class="docutils literal notranslate"><span class="pre">__name__</span></code>; it is never itself
+invoked:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">serialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">...</span><span class="p">):</span>
+    <span class="k">with</span> <span class="n">LoggingTimer</span><span class="p">(</span><span class="n">logger</span><span class="p">)(</span><span class="bp">self</span><span class="o">.</span><span class="n">serialize</span><span class="p">):</span>
+        <span class="c1"># ... timed code ...</span>
+        <span class="k">pass</span>
 </pre></div>
 </div>
-<p>This produces the same log line as above, since <code class="docutils literal notranslate"><span class="pre">__call__</span></code> sets
-<em>func_name</em> and returns the same instance, which is then used as the context
-manager.</p>
+<p>This produces the same log line as above, since <code class="docutils literal notranslate"><span class="pre">__call__</span></code> derives
+<em>func_name</em> from the callable’s <code class="docutils literal notranslate"><span class="pre">__name__</span></code> and returns the same instance,
+which is then used as the context manager.</p>
 </section>
 <section id="reused-instance-across-different-functions">
 <h3>Reused instance across different functions<a class="headerlink" href="#reused-instance-across-different-functions" title="Link to this heading"></a></h3>
 <p><em>func_name</em> can be left unset at construction and supplied per use via
 <code class="docutils literal notranslate"><span class="pre">__call__</span></code>, so a single instance — e.g. stored once as an instance
-attribute — can be reused across different functions, each supplying its own
-name at the <code class="docutils literal notranslate"><span class="pre">with</span></code> usage site:</p>
+attribute — can be reused across different functions, each supplying itself
+via <code class="docutils literal notranslate"><span class="pre">__call__</span></code> at the <code class="docutils literal notranslate"><span class="pre">with</span></code> usage site:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">TrajectoryService</span><span class="p">:</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">logger</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">Logger</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_timer</span> <span class="o">=</span> <span class="n">LoggingTimer</span><span class="p">(</span><span class="n">logger</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">serialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">...</span><span class="p">):</span>
-        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_timer</span><span class="p">(</span><span class="s2">"serialize"</span><span class="p">):</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_timer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">serialize</span><span class="p">):</span>
             <span class="c1"># ... timed code ...</span>
             <span class="k">pass</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">parse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">...</span><span class="p">):</span>
-        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_timer</span><span class="p">(</span><span class="s2">"parse"</span><span class="p">):</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_timer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parse</span><span class="p">):</span>
             <span class="c1"># ... timed code ...</span>
             <span class="k">pass</span>
 </pre></div>
 </div>
-<p>Each call to <code class="docutils literal notranslate"><span class="pre">self._timer(...)</span></code> overwrites the instance’s stored
-<em>func_name</em> — including overriding one originally passed to the
-constructor, if any — so <code class="docutils literal notranslate"><span class="pre">__exit__</span></code> always logs whichever name was set
-most recently.</p>
+<p>Each call to <code class="docutils literal notranslate"><span class="pre">self._timer(...)</span></code> derives <em>func_name</em> from the passed
+method’s <code class="docutils literal notranslate"><span class="pre">__name__</span></code> and overwrites the instance’s stored value —
+including overriding one originally passed to the constructor, if any — so
+<code class="docutils literal notranslate"><span class="pre">__exit__</span></code> always logs whichever name was set most recently.</p>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
 <p>A <code class="docutils literal notranslate"><span class="pre">LoggingTimer</span></code> reused this way is <strong>not</strong> safe to use concurrently or
