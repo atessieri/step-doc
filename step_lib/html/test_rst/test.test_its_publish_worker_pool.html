@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>test.test_its_publish_worker_pool module &mdash; STEP Library 2.0.6 documentation</title>
+  <title>test.test_its_publish_worker_pool module &mdash; STEP Library 2.0.7 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/tabs.css?v=4c969af8" />
@@ -16,7 +16,7 @@
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=3e466467"></script>
+      <script src="../_static/documentation_options.js?v=9a3ee07e"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/tabs.js?v=3ee01567"></script>
@@ -1591,6 +1591,7 @@
 </li>
 <li class="toctree-l4"><a class="reference internal" href="#test.test_its_publish_worker_pool.TestPublishWorkerPoolSend"><code class="docutils literal notranslate"><span class="pre">TestPublishWorkerPoolSend</span></code></a><ul>
 <li class="toctree-l5"><a class="reference internal" href="#test.test_its_publish_worker_pool.TestPublishWorkerPoolSend.test_send_encodes_before_acquiring_socket_lock"><code class="docutils literal notranslate"><span class="pre">TestPublishWorkerPoolSend.test_send_encodes_before_acquiring_socket_lock()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#test.test_its_publish_worker_pool.TestPublishWorkerPoolSend.test_send_raises_step_lib_error_when_close_completes_before_lock_acquired"><code class="docutils literal notranslate"><span class="pre">TestPublishWorkerPoolSend.test_send_raises_step_lib_error_when_close_completes_before_lock_acquired()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#test.test_its_publish_worker_pool.TestPublishWorkerPoolSend.test_send_raises_when_not_running"><code class="docutils literal notranslate"><span class="pre">TestPublishWorkerPoolSend.test_send_raises_when_not_running()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#test.test_its_publish_worker_pool.TestPublishWorkerPoolSend.test_send_translates_closed_socket_zmqerror_to_steplib_error"><code class="docutils literal notranslate"><span class="pre">TestPublishWorkerPoolSend.test_send_translates_closed_socket_zmqerror_to_steplib_error()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#test.test_its_publish_worker_pool.TestPublishWorkerPoolSend.test_send_translates_zmq_again"><code class="docutils literal notranslate"><span class="pre">TestPublishWorkerPoolSend.test_send_translates_zmq_again()</span></code></a></li>
@@ -2183,6 +2184,29 @@ concurrent socket operations.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>pool</strong> (<a class="reference internal" href="../step_lib_rst/step_lib.its_publish_worker_pool.html#step_lib.its_publish_worker_pool.PublishWorkerPool" title="step_lib.its_publish_worker_pool.PublishWorkerPool"><em>PublishWorkerPool</em></a>) – The pool fixture.</p></li>
 <li><p><strong>mocker</strong> (<em>MockerFixture</em>) – The pytest-mock fixture.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="test.test_its_publish_worker_pool.TestPublishWorkerPoolSend.test_send_raises_step_lib_error_when_close_completes_before_lock_acquired">
+<span class="sig-name descname"><span class="pre">test_send_raises_step_lib_error_when_close_completes_before_lock_acquired</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pool</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../step_lib_rst/step_lib.its_publish_worker_pool.html#step_lib.its_publish_worker_pool.PublishWorkerPool" title="step_lib.its_publish_worker_pool.PublishWorkerPool"><span class="pre">PublishWorkerPool</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">mocker</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MockerFixture</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_its_publish_worker_pool.html#TestPublishWorkerPoolSend.test_send_raises_step_lib_error_when_close_completes_before_lock_acquired"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_its_publish_worker_pool.TestPublishWorkerPoolSend.test_send_raises_step_lib_error_when_close_completes_before_lock_acquired" title="Link to this definition"></a></dt>
+<dd><p>Test that send() raises StepLibError, not AttributeError, when a
+concurrent close() runs to completion in the window between send()’s
+outer not-running check and its acquisition of _socket_lock –
+the direct regression test for a race where self._sock could
+become None (via close(), itself now also fully inside the lock)
+after send() had already decided the pool looked running.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pool</strong> (<a class="reference internal" href="../step_lib_rst/step_lib.its_publish_worker_pool.html#step_lib.its_publish_worker_pool.PublishWorkerPool" title="step_lib.its_publish_worker_pool.PublishWorkerPool"><em>PublishWorkerPool</em></a>) – The pool fixture.</p></li>
+<li><p><strong>mocker</strong> (<em>MockerFixture</em>) – The pytest-mock fixture used to make the
+JSON-encoding step slow enough for close() to interleave.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
