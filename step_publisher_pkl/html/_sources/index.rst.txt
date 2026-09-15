@@ -82,20 +82,21 @@ STEP Publisher Pickle: Overview
 
 
 
-The **STEP Publisher Pickle** is a specialized component of the STEP (Safer Transport for Europe Platform) 
-ecosystem, designed to integrate CARLA simulator-generated vehicle trajectory data with real-world ITS 
-infrastructure. This MQTT-based publisher translates CARLA simulation scenarios stored in pickle files 
-into Cooperative Awareness Messages (CAM) for the STEP broker, enabling realistic vehicle trajectory 
+The **STEP Publisher Pickle** is a specialized component of the STEP (Safer Transport for Europe Platform)
+ecosystem, designed to integrate vehicle trajectory/ITS message data with real-world ITS
+infrastructure. This MQTT-based publisher translates scenario data stored in JSONL, pickle, or GPX
+files into Cooperative Awareness (CAM), Collective Perception (CPM), or Decentralized Environmental
+Notification (DENM) messages for the STEP broker, enabling realistic vehicle trajectory
 testing within the ITS ecosystem.
 
 Purpose
 -------
 
-The **STEP Publisher Pickle** serves as a bridge between CARLA simulator and the STEP platform,
-publishing vehicle position data from CARLA-generated pickle files as ITS ETSI messages. It loads
-vehicle trajectory data including GNSS positions, speed, heading, and timestamp information, then
-publishes them as Cooperative Awareness Messages (CAM) to the STEP MQTT broker with realistic
-timing and multi-vehicle support.
+The **STEP Publisher Pickle** serves as a bridge between recorded/simulated trajectory data and the
+STEP platform, publishing vehicle position data from JSONL, pickle, or GPX scenario files as ITS
+ETSI messages. It loads vehicle trajectory/message data including GNSS positions, speed, heading,
+and timestamp information, then publishes them as CAM, CPM, or DENM messages to the STEP MQTT
+broker with realistic timing and multi-vehicle support.
 
 Environment Variables
 ----------------------
@@ -110,37 +111,39 @@ Goal
 ----
 
 The **STEP Publisher Pickle** exists so that developers, testers, and CI/CD pipelines can exercise
-the STEP ecosystem's CAM ingestion, MQTT broker, and downstream ITS services with realistic,
-repeatable vehicle traffic, without needing a live CARLA simulator run or real vehicles on the road.
-It replays previously recorded CARLA trajectory scenarios (pickle files) as a stream of
-ETSI-compliant CAM messages, published to the STEP MQTT broker with the same timing, multi-vehicle
-concurrency, and message structure a real deployment would produce. This gives the rest of the
-STEP platform a lightweight, deterministic traffic generator for integration testing and
-development.
+the STEP ecosystem's ITS message ingestion, MQTT broker, and downstream services with realistic,
+repeatable vehicle traffic, without needing a live simulator run or real vehicles on the road.
+It replays previously recorded trajectory/message scenarios (JSONL, pickle, or GPX files) as a
+stream of ETSI-compliant CAM, CPM, or DENM messages, published to the STEP MQTT broker with the
+same timing, multi-vehicle concurrency, and message structure a real deployment would produce.
+This gives the rest of the STEP platform a lightweight, deterministic traffic generator for
+integration testing and development.
 
 Key Features
 ------------
 
-CARLA Simulator Integration
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-- **Pickle File Processing**: Loads vehicle trajectory data from CARLA-generated pickle files 
-  containing timestamped GNSS positions, speed, heading, and vehicle dynamics
-- **Time Reference Mapping**: Establishes mapping between CARLA simulation timestamps and real-world 
-  time for synchronized playback of recorded vehicle movements
-- **Multi-Vehicle Support**: Processes multiple vehicle trajectories from CARLA scenarios concurrently
-- **Station Position Management**: Manages vehicle position data as queues for efficient sequential 
-  access and consumption
-
-CAM Message Publishing
+Scenario Data Loading
 ~~~~~~~~~~~~~~~~~~~~~~
 
-- **ETSI TS 103 900 Compliance**: Publishes Cooperative Awareness Messages following ITS standards
-- **Message Encoding**: Converts CARLA trajectory data into structured CAM format with proper 
+- **Pluggable File Loaders**: Auto-detects and loads scenario data from JSONL ITS messages,
+  pickle actor/vehicle trajectories, pickle camera/CPM data, or GPX track files (see
+  :doc:`input_files`)
+- **Time Reference Mapping**: Establishes mapping between scenario timestamps and real-world
+  time for synchronized playback of recorded vehicle movements
+- **Multi-Vehicle Support**: Processes multiple vehicle trajectories/messages concurrently
+- **Station Message Management**: Manages vehicle message data as time-ordered sorted queues
+  for efficient sequential access and consumption
+
+ITS Message Publishing
+~~~~~~~~~~~~~~~~~~~~~~
+
+- **ETSI Compliance**: Publishes Cooperative Awareness (CAM), Collective Perception (CPM), and
+  Decentralized Environmental Notification (DENM) messages following ITS standards
+- **Message Encoding**: Converts scenario data into structured CAM/CPM/DENM format with proper
   ITS message components (Identification, ItsTime, ReferencePosition, Speed, Heading)
-- **GeoNetwork Addressing**: Configures proper addressing with traffic participant type and MAC ID 
+- **GeoNetwork Addressing**: Configures proper addressing with traffic participant type and MAC ID
   for ITS message routing
-- **Realistic Timing**: Maintains precise timing intervals between position updates using ItsTime 
+- **Realistic Timing**: Maintains precise timing intervals between message updates using ItsTime
   calculations
 
 MQTT Communication
@@ -167,31 +170,35 @@ Core Components
 Scenario Management
 ~~~~~~~~~~~~~~~~~~~
 
-The ``Scenario`` class provides comprehensive management of CARLA-generated vehicle trajectory 
-data for publishing to the STEP broker. It serves as the main data loader and orchestrator 
-for multi-vehicle trajectory playback and handles:
+The ``Scenario`` class provides comprehensive management of vehicle trajectory/ITS message
+data for publishing to the STEP broker. It serves as the main data loader and orchestrator
+for multi-vehicle playback and handles:
 
-  - Loading vehicle trajectory data from CARLA-generated pickle files
-  - Establishing time reference mapping between CARLA simulation time and real-world time
-  - Managing vehicle position data as queues (using ``deque``) for efficient sequential access
-  - Converting raw trajectory data to structured CAM format with proper ITS components
-  - Providing vehicle IDs and position arrays through generator methods
-  - Maintaining separate position queues for each vehicle enabling concurrent publishing
+  - Loading vehicle trajectory/ITS message data through a pluggable set of ``FileLoader``
+    implementations (JSONL ITS messages, pickle actor/vehicle trajectories, pickle
+    camera/CPM data, and GPX track files), auto-detected per input file
+  - Establishing time reference mapping between scenario time and real-world time
+  - Managing vehicle message data as sorted queues (using ``SortedList``) for efficient
+    time-ordered sequential access
+  - Converting raw trajectory/message data to structured CAM, CPM, or DENM messages with
+    proper ITS components, depending on the loader and source data
+  - Providing vehicle IDs and messages through generator methods
+  - Maintaining separate message queues for each vehicle enabling concurrent publishing
 
 Key responsibilities:
   - Managing vehicle data lifecycle from loading to consumption
   - Coordinating time reference for realistic playback timing
-  - Providing ``pop_position_arrays()`` generator for sequential position consumption
-  - Calculating next position times for maintaining realistic timing intervals
+  - Providing ``pop_message()`` generator for sequential, time-ordered message consumption
+  - Calculating next message times for maintaining realistic timing intervals
 
 STEP Broker Client
 ~~~~~~~~~~~~~~~~~~~
 
-The ``StepBroker`` class provides MQTT communication with the STEP broker for publishing 
-CAM messages. Extending ``AsyncComManager``, it implements:
+The ``StepBroker`` class provides MQTT communication with the STEP broker for publishing
+CAM, CPM, and DENM messages. Extending ``AsyncComManager``, it implements:
 
   - **Secure MQTT Connection**: TLS/SSL connections with certificate authentication
-  - **Message Publication**: Publishing CAM messages via ``client_publish_its_message()`` method
+  - **Message Publication**: Publishing facility messages (CAM/CPM/DENM) via ``client_publish_its_message()`` method
   - **Message Encoding**: Converting ``CamMessageV1`` objects to ITS message format
   - **GeoNetwork Configuration**: Setting up addressing with traffic participant type and MAC ID
   - **Context Management**: Asynchronous resource handling through ``__aenter__`` and ``__aexit__``
@@ -239,8 +246,13 @@ Exception Handling
 The exception system provides:
 
   - **Base Exception**: ``StepPublisherPklError`` for all publisher-related errors
-  - **CLI Exception**: ``StepCliError`` for command-line specific errors (argument parsing, 
+  - **CLI Exception**: ``StepCliError`` for command-line specific errors (argument parsing,
     configuration loading)
+  - **Loader Exception**: ``LoaderError`` raised by a ``FileLoader`` when a file does not
+    match, or cannot be parsed as, the format it handles; ``Scenario.load_data()`` catches
+    it to try the next candidate loader
+  - **Shutdown Exception**: ``ShutdownRequestedError`` used internally to unwind the
+    publisher's ``TaskGroup`` once a graceful shutdown has been requested via a signal
   - **Logging Integration**: Proper exception logging with appropriate severity levels
   - **Default Configurations**: Pre-configured default instances for quick setup and development
   - **Actor Dataset Configuration**: Specialized configuration for timing parameters and 
@@ -266,11 +278,12 @@ Event-Driven Processing
 The publisher follows an event-driven architecture pattern:
 
   #. **Configuration Loading**: Loads configuration from JSON file via command-line arguments
-  #. **Scenario Loading**: Reads CARLA-generated vehicle trajectory data from pickle files
+  #. **Scenario Loading**: Reads vehicle trajectory/ITS message data from the configured
+     input files (JSONL, pickle actor, pickle camera, or GPX), auto-detected per file
   #. **Broker Connection**: Establishes secure MQTT connection to STEP broker with TLS/SSL
-  #. **Task Creation**: Creates concurrent publisher tasks using ``asyncio.TaskGroup`` for 
+  #. **Task Creation**: Creates concurrent publisher tasks using ``asyncio.TaskGroup`` for
      each vehicle in the scenario
-  #. **Position Publishing**: Publishes CAM messages with timing based on ItsTime calculations
+  #. **Message Publishing**: Publishes CAM, CPM, or DENM messages with timing based on ItsTime calculations
   #. **Timing Management**: Sleeps between position updates to maintain realistic intervals
   #. **Graceful Shutdown**: Handles interruption signals and performs proper resource cleanup
 
@@ -287,12 +300,14 @@ The architecture utilizes:
 Message Flow
 ~~~~~~~~~~~~
 
-#. **Pickle File Loading**: CARLA vehicle trajectories loaded from configured pickle folder
+#. **Input File Loading**: Vehicle trajectory/ITS message data loaded from the configured
+   input files via the pluggable ``FileLoader`` implementations (JSONL, pickle actor, pickle
+   camera, GPX)
 #. **Time Reference Establishment**: Scenario time mapped to real-world time for synchronized playback
 #. **Vehicle Iteration**: For each vehicle, separate concurrent publisher task created
-#. **Position Consumption**: Positions consumed sequentially via ``pop_position_arrays()`` generator
-#. **CAM Conversion**: Trajectory data wrapped in ``CamMessageV1`` format
-#. **MQTT Publishing**: CAM messages published to STEP broker via ``client_publish_its_message()``
+#. **Message Consumption**: Messages consumed in time order via the ``pop_message()`` generator
+#. **Message Conversion**: Data wrapped in ``CamMessageV1``, ``CpmMessageV1``, or ``DenmMessageV1`` format
+#. **MQTT Publishing**: Messages published to STEP broker via ``client_publish_its_message()``
 #. **Timing Calculation**: Time differences calculated using ``ItsTime.time_difference()``
 #. **Realistic Delays**: Sleep intervals maintain original CARLA scenario timing
 
