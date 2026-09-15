@@ -60,7 +60,7 @@ Core Dependencies
    message generation and processing.
 
 **step_redis**
-   STEP-specific Redis integration library that provides the messaging and stream processing 
+   STEP-specific Redis integration library that provides the messaging and stream processing
    foundation as a black box interface. Core functionality includes:
 
       * **Connection Pooling**: Efficient Redis connection management with automatic reconnection
@@ -68,9 +68,14 @@ Core Dependencies
       * **Message Serialization**: Automatic conversion between Python objects and Redis stream data
       * **Error Handling**: Robust error handling and recovery mechanisms for Redis operations
 
-   Provides the base classes ``StepRedisPool`` and ``StepRedisStream``, along with specialized 
-   implementations like ``StepProducerRedisStream`` and ``StepClientRedisStream`` for different 
+   Provides the base classes ``StepRedisPool`` and ``StepRedisStream``, along with specialized
+   implementations like ``StepProducerRedisStream`` and ``StepClientRedisStream`` for different
    stream operations. The STEP Producer uses these classes directly without custom extensions.
+
+**python-dotenv**
+   Loads Redis connection credentials from a ``.env`` file into the process environment at
+   startup, so secrets are kept out of the (persisted) JSON configuration document. Used by
+   ``_get_redis_credential()`` in the main application module (see :doc:`usage`).
 
 Architecture Integration
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -102,8 +107,10 @@ Main Components:
    #. **Redis Integration (step_redis)**: Redis connection pooling and stream processing via 
       StepRedisPool and StepRedisStream base classes
    #. **StepProducerConfig**: Configuration management for the Producer
-   #. **StepLogger**: Logging utilities specific to the STEP Producer
+   #. **StepLogger** (from ``step_cloud_schemas``): Logging utilities used by the STEP Producer
    #. **StepException**: Custom exceptions for error handling
+   #. **Main Application (__main__)**: Command-line interface, environment-based Redis
+      credentials, and asynchronous task orchestration
 
 DenServiceManager
 ^^^^^^^^^^^^^^^^^
@@ -218,9 +225,11 @@ maintain message continuity.
 
 **Expiration Management:**
 
-The component implements sophisticated expiration logic through ``get_interval_oldest_update_ms()``, calculating 
-appropriate cleanup intervals based on the oldest record's reference time while respecting maximum interval 
-constraints. This enables adaptive cleanup scheduling that responds to actual system load and message aging patterns.
+The component implements sophisticated expiration logic through
+``get_denm_records_clean_reference_expired()``, removing records whose reference time has
+fallen outside the configured maximum delay while respecting each record's own validity
+duration. This enables adaptive cleanup scheduling that responds to actual system load and
+message aging patterns.
 
 OrderedListRecord Module
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -419,9 +428,13 @@ message processing.
 StepLogger
 ^^^^^^^^^^
 
-The ``StepLogger`` component provides specialized logging functionality for the STEP Producer
-architecture, enabling comprehensive and configurable logging throughout the application. 
-It serves as a wrapper around Python's standard logging facilities with additional features 
+.. note::
+   ``StepLogger`` is not part of the ``step_producer`` package itself — it is imported from
+   the external ``step_cloud_schemas`` dependency and used by the STEP Producer for logging.
+
+The ``StepLogger`` component provides specialized logging functionality used by the STEP Producer
+architecture, enabling comprehensive and configurable logging throughout the application.
+It serves as a wrapper around Python's standard logging facilities with additional features
 tailored to STEP Producer's needs.
 
 Key features of ``StepLogger`` include:
@@ -461,14 +474,52 @@ various error scenarios including CLI errors, interruptions, and other exception
 
 Key features include:
 
-   #. **StepCliError**: Custom exception class for command-line interface errors, 
-      inherits from Python's built-in ``Exception`` class
+   #. **StepCliError**: Custom exception class for command-line interface errors,
+      inherits from ``StepProducerError``
    #. **Error Context**: Provides mechanisms to include additional context or 
       information about errors when raising exceptions
    #. **Graceful Shutdown**: Designed for scenarios requiring graceful shutdown 
       with proper resource cleanup
    #. **Integration with Logging**: Works seamlessly with ``StepLogger`` component 
       to capture detailed error information for debugging and operational monitoring
+
+Main Application (__main__)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The main application module provides the command-line interface and orchestrates the
+asynchronous processing workflow. It implements the primary execution logic that
+coordinates all other components.
+
+Key features of the main application include:
+
+   #. **Command-Line Interface**: Provides a CLI (``_args_parse()``) with options for:
+
+      * ``--version``/``-v``: Display version information
+      * ``--conf_schema``/``-s``: Generate JSON configuration schema
+      * ``--conf_template``/``-t``: Generate configuration template
+      * ``--config``/``-c`` and ``--instance``/``-i``: Load configuration and run the service
+
+   #. **Environment-Based Credentials**: ``_get_redis_credential()`` loads a ``.env`` file
+      via ``load_dotenv()`` and reads ``REDIS_URL``, ``REDIS_PORT``, ``REDIS_USERNAME``, and
+      ``REDIS_PASSWORD`` from the environment into a ``RedisCredential`` (see :doc:`usage`);
+      ``REDIS_URL`` and ``REDIS_PORT`` are required, the username and password are optional.
+   #. **Asynchronous Task Orchestration**: ``_main_async()`` uses ``asyncio.TaskGroup`` to run
+      three concurrent tasks - ``_stream_receive_run()`` (stream reception and dispatch),
+      ``_periodical_cleanup_run()`` (expired DENM cleanup), and ``_redis_health_check_run()``
+      (Redis connection health check) - alongside a shutdown watcher task.
+   #. **Graceful Shutdown**: On POSIX, ``loop.add_signal_handler()`` registers SIGINT/SIGTERM
+      handlers that set a ``stop_event``; a sibling ``_wait_for_shutdown()`` task then raises
+      ``ShutdownRequestedError`` to unwind the ``TaskGroup`` deterministically. On Windows,
+      ``WindowsOsShutdownState`` (from ``step_cloud_schemas``) and a ``SIGBREAK`` handler
+      provide the equivalent behavior.
+   #. **Automatic Reconnection**: On an unhandled exception, ``_main_async()`` waits
+      ``config.reconnectInterval`` seconds and retries the Redis connection and task setup.
+   #. **Exit Code Management**: Defines standard exit codes through the ``ExitCode`` enum:
+
+      * OK (0): Successful execution
+      * USAGE (1): Invalid command-line usage
+      * ERROR (2): General execution error
+      * ABORTED (3): Process interrupted by signal
 
 Component Diagram
 ^^^^^^^^^^^^^^^^^
@@ -496,7 +547,6 @@ components and how they interact with Redis streams and external data sources.
             end note
          }
          [StepProducerConfig] as Config
-         [StepLogger] as Logger
       }
       package "Redis Integration" {
          [StepRedisPool] as RedisPool <<step_redis>>
@@ -507,6 +557,9 @@ components and how they interact with Redis streams and external data sources.
             message queuing
             (provided by step_redis)
          end note
+      }
+      package "step_cloud_schemas" {
+         [StepLogger] as Logger <<step_cloud_schemas>>
       }
       DSM -- DSDM : delegates data operations
       DSM -- ProducerRedisStream : publishes DENM messages
@@ -553,12 +606,12 @@ and attributes of each class and how they interact with one another.
          +__init__
          +insert_station_collision_array
          +get_denm_records_clean_reference_expired
-         +get_interval_oldest_update_ms
          +remove_denm_record
          -_station_order
          -_create_denm_record_info
          -_create_action_id
          -_create_record_key
+         -_is_denm_valid
       }
 
       class DenmRecordInfo {
@@ -630,7 +683,7 @@ and attributes of each class and how they interact with one another.
          {abstract} Message routing
       }
 
-      class StepLogger {
+      class StepLogger <<from step_cloud_schemas>> {
          +{static} setup_logging
          +{static} get_logger
       }

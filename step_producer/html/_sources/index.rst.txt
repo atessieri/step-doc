@@ -1,15 +1,16 @@
 STEP Producer: Overview
 =======================
 
+.. raw:: html
+
+   <a class="back-to-portal" href="../../index.html">Back to STEP Documentation</a>
+
 .. |DEV_STAT| image:: https://img.shields.io/badge/status-beta-yellow.svg
    :target: https://gitlab.automotive.vodafone.com/vfa-init/pnrr/step_producer
    :alt: Development Status
 .. |GOOGLE_STYLE| image:: https://img.shields.io/badge/%20style-google-3666d6.svg
    :target: https://google.github.io/styleguide/pyguide.html#s3.8-comments-and-docstrings
    :alt: Google Style
-.. |DOC_FORMATTER| image:: https://img.shields.io/badge/%20formatter-docformatter-green.svg
-   :target: https://github.com/PyCQA/docformatter
-   :alt: Docstring Style
 .. |ISORT| image:: https://img.shields.io/badge/%20imports-isort-%231674b1
    :target: https://pycqa.github.io/isort/
    :alt: Isort
@@ -50,7 +51,7 @@ STEP Producer: Overview
 +----------------------+----------------------------------------------------------+
 | **Code Quality**     | |RUFF| |ISORT| |MYPY| |PYLINT|                           |
 +----------------------+----------------------------------------------------------+
-| **Documentation**    | |SPHINX_DOCS| |GOOGLE_STYLE| |DOC_FORMATTER|             |
+| **Documentation**    | |SPHINX_DOCS| |GOOGLE_STYLE|                             |
 +----------------------+----------------------------------------------------------+
 | **Testing**          | |PYTEST|                                                 |
 +----------------------+----------------------------------------------------------+
@@ -79,23 +80,41 @@ STEP Producer: Overview
    usage
    package_script
    architecture
+   docstring_coverage_report
+   coverage_report
    schemas_rst/json_schemas
    step_producer_rst/step_producer
    test_rst/test
 
-The **step_producer** is a critical component of the STEP (Safer Transport for Europe Platform) ecosystem, 
-specifically designed for processing and managing Decentralized Environmental Notification Messages (DENM) 
-within Intelligent Transportation Systems (ITS) environments. This Redis-based microservice implements 
-the DEN (Decentralized Environmental Notification) service for collision prediction and environmental 
-hazard notifications.
+The **step_producer** is the DENM-generation stage of the STEP (Safer Transport for Europe Platform)
+processing pipeline. It sits between **step_crash_prediction**, which analyzes vehicle telemetry and
+detects collision risks, and **step_client**, which bridges the resulting messages onto the STEP MQTT
+broker for delivery to vehicles and roadside infrastructure. step_producer's sole responsibility is to
+turn each predicted collision into one or more standards-compliant Decentralized Environmental
+Notification Messages (DENM) and to manage their lifecycle for as long as the hazard is relevant.
+
+Environment Variables
+----------------------
+
+Redis connection secrets are kept out of the (persisted) JSON configuration file and are
+instead read from the process environment at startup, optionally loaded from a ``.env``
+file, via the ``REDIS_URL``, ``REDIS_PORT``, ``REDIS_USERNAME``, and ``REDIS_PASSWORD``
+variables; the URL and port are required, while the username and password are optional. See
+the :doc:`usage<usage>` section for the full variable reference and an example ``.env`` file.
 
 Purpose
 -------
 
-The step_producer serves as an asynchronous service that processes real-time data streams and manages 
-the complete lifecycle of DENM messages according to ETSI ITS standards. It transforms collision prediction 
-data into standardized DENM messages, ensuring compliance with European telecommunications standards 
-for vehicular communication networks.
+step_producer consumes ``StationCollisionArrayV1`` events published by step_crash_prediction on a Redis
+input stream and, for each pair of involved stations, creates or updates a DENM record describing the
+collision risk, following the ETSI EN 302 637-3 message format. It keeps these records indexed and alive
+for a configurable time window after the estimated collision, automatically expiring and cancelling them
+once that window elapses, and also removes a record early if an explicit termination (negation) message
+for it arrives on the same input stream. The resulting DENM messages are published on an output Redis
+stream, where step_client picks them up for delivery to the STEP MQTT broker. In short, step_producer
+owns the DENM message lifecycle - creation, update, expiration, and cancellation - while collision
+detection (step_crash_prediction) and message transport to the field (step_client) are handled by other
+services in the pipeline.
 
 Key Features
 ------------
@@ -161,7 +180,7 @@ DEN Service Data Manager
 
 The ``DenServiceDataManager`` class provides comprehensive management of DENM records, implementing:
 
-- **DenmRecord**: Data container for individual DENM messages with metadata
+- **DenmRecordInfo**: Data container for individual DENM messages with metadata
 - **Multi-Index Storage**: Efficient record retrieval using sorted lists and hash-based indices
 - **Collision Processing**: Conversion of station collision arrays into structured DENM records
 - **Automatic Cleanup**: Time-based expiration and cleanup of outdated records
@@ -169,7 +188,8 @@ The ``DenServiceDataManager`` class provides comprehensive management of DENM re
 Redis Integration
 ~~~~~~~~~~~~~~~~~
 
-The Redis integration components (``StepProducerRedisPool`` and ``StepProducerRedisStream``) provide:
+The Redis integration components, provided by the ``step_redis`` package (``StepRedisPool``,
+``StepProducerRedisStream``, ``StepClientRedisStream``, and ``StepRedisStream``), provide:
 
 - **Connection Management**: Specialized Redis connection pools with configurable limits
 - **Stream Operations**: Creation and management of client input/output streams
@@ -189,7 +209,8 @@ The configuration system (``StepProducerConfig``) offers:
 Logging Infrastructure
 ~~~~~~~~~~~~~~~~~~~~~~
 
-The logging system (``StepLogger``) provides:
+The logging system (``StepLogger``, from the external ``step_cloud_schemas`` dependency)
+provides:
 
 - **Multiple Handlers**: Stream, file, rotating file, and null handlers
 - **UTC Formatting**: Standardized UTC timestamp formatting
@@ -253,7 +274,6 @@ Development Dependencies
 
 - **pytest**: Testing framework
 - **autoflake**: Code formatting and optimization
-- **docformatter**: Documentation formatting
 - **beautifulsoup4**: HTML parsing for documentation
 
 Deployment
@@ -292,8 +312,8 @@ Generate configuration templates and schemas:
 
 .. code-block:: bash
 
-   python -m step_producer --conf_template
-   python -m step_producer --conf_schema
+   python -m step_producer --conf_template my_config_template.json
+   python -m step_producer --conf_schema my_config_schema.json
 
 Integration Mode
 ~~~~~~~~~~~~~~~~

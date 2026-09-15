@@ -16,8 +16,7 @@ Prerequisites
 Before using the STEP Producer, make sure you have:
 
     #. Python 3.13 or higher installed
-    #. Access to a STEP MQTT broker
-    #. A Redis server for stream processing (optional, but recommended)
+    #. A Redis server for stream processing
     #. The step_producer package installed in your environment
 
 Installation
@@ -38,9 +37,9 @@ Or if you're using a development version:
 Basic Concepts
 --------------
 
-STEP Producer operates as a bridge between MQTT messaging and
-Redis streams, specifically designed for ITS message exchange. 
-Key concepts include:
+STEP Producer consumes collision prediction data from a Redis input stream and
+publishes the resulting DENM messages to a Redis output stream, specifically
+designed for ITS message exchange. Key concepts include:
 
 * **DENM (Decentralized Environmental Notification Messages)**: Environmental hazard notifications 
   that inform other ITS stations about potential dangers like collisions, road conditions, or traffic incidents
@@ -61,10 +60,33 @@ Key concepts include:
 * **Automatic Reconnection**: Built-in retry mechanism with configurable 
   intervals for handling connection failures
 
+Environment Variables
+----------------------
+
+Redis connection secrets are kept out of the (persisted) JSON configuration file
+and are instead read from the process environment. On startup, ``_get_redis_credential()``
+calls ``python-dotenv``'s ``load_dotenv()``, which automatically loads a ``.env`` file from
+the current working directory (or an ancestor of it) into the environment before the
+following variables are read:
+
+  * ``REDIS_URL`` (required): Redis server host address, without protocol or port
+  * ``REDIS_PORT`` (required): Redis server port number
+  * ``REDIS_USERNAME`` (optional): Username for Redis authentication
+  * ``REDIS_PASSWORD`` (optional): Password for Redis authentication
+
+``REDIS_URL`` and ``REDIS_PORT`` raise a ``ValueError`` if left unset; ``REDIS_USERNAME`` and
+``REDIS_PASSWORD`` default to unset.
+
+An example ``.env`` file is provided below and can be copied to ``.env`` in the directory
+you run ``step_producer`` from, then filled in with your Redis server's connection details:
+
+.. literalinclude:: env/.env.example
+  :language: bash
+
 Configuration
 -------------
 
-STEP Producer requires configuration for Redis 
+STEP Producer requires configuration for Redis
 connections. The configuration is managed through a JSON file.
 
 Creating a Configuration File
@@ -83,9 +105,12 @@ Key Configuration Parameters
   
 * **Base Configuration**:
 
-  * instanceName: Unique name for this client instance
   * stationId: Station identification number
-  * timeout: Timeout used for various operations
+  * timeAfterCollision: Time to keep broadcasting a DENM after the collision (seconds)
+  * denmLastUpdateMaxDelay: Maximum delay for a DENM record's reference time before
+    it is treated as expired (milliseconds)
+  * denmCheckLastUpdateInterval: Interval for checking DENM updates (seconds)
+  * reconnectInterval: Time between reconnection attempts (seconds)
 
 * **Redis Configuration**:
   
