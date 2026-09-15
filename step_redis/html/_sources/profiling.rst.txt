@@ -21,8 +21,9 @@ Log Message Format
 
 Each ``step_redis`` stream class constructs its timer once, in ``__init__``,
 with a fixed ``prefix="step_redis"`` and ``log_level=LogMode.INFO``, then
-reuses that single instance across its methods, supplying a different
-``func_name`` per call site via ``__call__``:
+reuses that single instance across its methods, supplying the timed method
+itself per call site via ``__call__`` (which reads its ``__name__`` to derive
+``func_name``):
 
 .. code-block:: python
 
@@ -31,7 +32,7 @@ reuses that single instance across its methods, supplying a different
     )
 
     async def publish_denm_message(self, message: DenmDataV1) -> None:
-        with self._logging_timer(func_name="client-publish_denm_message"):
+        with self._logging_timer(self.publish_denm_message):
             ...
 
 On exit from the ``with`` block, ``LoggingTimer`` logs, at ``INFO`` level
