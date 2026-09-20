@@ -89,11 +89,17 @@ Key responsibilities of ``StepBroker`` include:
        conversion is handled separately, by ``StepClientRedisStream`` and the
        application's message-dispatch logic in ``__main__.py``, not by ``StepBroker``
        itself.
-    #. **Integration with Redis**: Coordinates with ``StepClientRedisStream`` to queue
-       received messages in Redis streams and publish client-generated messages.
-    #. **Context Management**: Overrides ``__aenter__`` to subscribe to execution events
-       on entry; ``__aexit__`` is inherited unchanged from the parent ``AsyncComManager``
-       (``aiomqtt.Client``) for clean resource handling.
+    #. **Sender Location**: Publishes client messages with the configured station ID,
+       latitude and longitude via ``client_publish_its_message()``.
+    #. **Context Management**: Overrides ``__aenter__`` only to return the broker instance
+       after the parent ``AsyncComManager`` has connected; it does not subscribe.
+       ``subscribe_execution()`` must be awaited explicitly afterwards (``_main_async`` in
+       ``__main__.py`` does so). ``__aexit__`` is inherited unchanged from the parent
+       ``AsyncComManager`` (``aiomqtt.Client``) for clean resource handling.
+
+``StepBroker`` has no Redis awareness: forwarding received messages to Redis streams
+(``StepAdapterRedisStream``/``StepProducerRedisStream``) and reading client messages from
+Redis (``StepClientRedisStream``) is done by the functions in ``__main__.py``.
 
 The ``StepBroker`` class uses asynchronous patterns throughout to ensure non-blocking operations, 
 making it suitable for high-throughput messaging environments in ITS applications.
@@ -152,9 +158,9 @@ implementations:
        asynchronous connection pooling with SSL/TLS support, TCP keepalive configuration, 
        and async context manager protocol.
     
-    #. **StepRedisStream**: Abstract base implementation for Redis Streams operations, 
-       providing message publishing, consumer group management, stream creation, and 
-       asynchronous message consumption.
+    #. **StepRedisStream**: Base implementation for Redis Streams operations (concrete,
+       not abstract), providing message publishing, consumer group management, stream
+       creation, asynchronous message consumption, TTL management and health checking.
 
 **Specialized Implementations:**
 
@@ -185,14 +191,19 @@ The pool is configured through ``StepRedisPoolParams``, a frozen dataclass conta
       interval, probe count)
     * **SSL/TLS Support**: optional SSL with client certificates, CA certificates, 
       and certificate verification
-    * **Pool Behavior**: maximum connections, connection timeout, health check interval
-    * **Protocol Settings**: Redis protocol version (default: 3)
+    * **Pool Behavior**: maximum connections, connection-available timeout, health check
+      interval
+    * **Protocol Settings**: Redis protocol version
+    * **Retry Behavior**: ``retry_count`` retries (with jittered exponential backoff) of a
+      command after a ``ConnectionError`` only, e.g. when the server closed an idle
+      connection; ``TimeoutError`` is deliberately not retried so a blocking
+      ``XREADGROUP`` timeout surfaces immediately. ``0`` disables retries.
 
 **SSL/TLS Implementation:**
 
 When SSL is enabled (``ssl_enable=True``), the pool uses ``SSLConnection`` with:
 
-    * TLS version 1.2 as minimum (``ssl_min_version=PROTOCOL_TLSv1_2``)
+    * TLS version 1.2 as minimum (``ssl_min_version=ssl.TLSVersion.TLSv1_2``)
     * Optional client certificate authentication (``ssl_keyfile``, ``ssl_certfile``)
     * CA certificate validation (``ssl_ca_certs``)
     * Hostname verification when certificates are required
@@ -202,7 +213,7 @@ When SSL is enabled (``ssl_enable=True``), the pool uses ``SSLConnection`` with:
 
 All connections (SSL and non-SSL) configure TCP keepalive using:
 
-    * ``TCP_KEEPIDLE``: Seconds before sending keepalive probes
+    * ``TCP_KEEPIDLE`` (``TCP_KEEPALIVE`` on macOS): Seconds before sending keepalive probes
     * ``TCP_KEEPINTVL``: Interval between keepalive probes
     * ``TCP_KEEPCNT``: Maximum number of keepalive probes
 
@@ -210,7 +221,7 @@ All connections (SSL and non-SSL) configure TCP keepalive using:
 
 The pool implements the async context manager protocol:
 
-    * ``__aenter__``: Returns the pool instance and logs entry
+    * ``__aenter__``: Returns the pool instance and logs entry (debug level)
     * ``__aexit__``: Calls ``aclose()`` to properly disconnect all connections and 
       release resources
 
@@ -224,18 +235,21 @@ Configured through ``StepRedisStreamParams``, a frozen dataclass with validation
 
     * ``stream_id``: Stream identifier (minimum 1 character)
     * ``group_id``: Consumer group identifier (optional, required for consumption)
-    * ``wait_timeout_ms``: Blocking read timeout in milliseconds (optional, required 
-      for consumption)
-    * ``max_length``: Maximum stream length for XADD approximate trimming (optional, 
-      required for publishing)
+    * ``wait_timeout_ms``: Blocking read timeout in milliseconds (optional, non-negative,
+      required for consumption)
+    * ``published_message_max_retained``: Maximum stream length for XADD approximate
+      trimming (optional, positive integer, required for publishing)
     * ``consumer_name``: Unique consumer identifier (minimum 1 character)
-    * ``ttl_seconds``: Time-to-live for stream key expiration (optional, positive integer)
+    * ``ttl_seconds``: Time-to-live for stream key expiration (optional, positive integer;
+      when ``wait_timeout_ms`` is also set it must be strictly greater than
+      ``wait_timeout_ms`` converted to seconds)
 
 **Stream Creation:**
 
 The ``create_input_stream()`` method:
 
     #. Creates a Redis stream if it doesn't exist (``mkstream=True``)
+    #. Raises ``ValueError`` if ``group_id`` is not configured
     #. Creates a consumer group using ``XGROUP CREATE``
     #. Handles ``BUSYGROUP`` error if the group already exists
     #. Updates stream TTL if ``ttl_seconds`` is configured
@@ -244,11 +258,11 @@ The ``create_input_stream()`` method:
 
 The ``publish_message(message: str)`` method:
 
-    #. Validates that ``max_length`` is configured
+    #. Raises ``ValueError`` if ``published_message_max_retained`` is not configured
     #. Uses ``XADD`` to append the message to the stream
     #. Stores message as ``{"payload": message}`` field
     #. Applies approximate trimming with ``maxlen`` to maintain stream size
-    #. Returns the message ID assigned by Redis
+    #. Returns ``None``; the message ID assigned by Redis is only logged (debug level)
 
 **Message Consumption:**
 
@@ -262,6 +276,7 @@ The ``receive_message()`` async generator:
     #. Yields message payload as string
     #. Updates stream TTL after each read attempt if configured
     #. Handles ``RedisTimeoutError`` when no messages arrive within timeout
+    #. Recreates the consumer group and retries on a ``NOGROUP`` error
 
 **TTL Management:**
 
@@ -273,7 +288,14 @@ The stream provides methods for Time-To-Live management:
 
 **Health Checking:**
 
-The ``ping()`` method sends a ``PING`` command to verify Redis connectivity.
+The ``ping()`` method sends a ``PING`` command to verify Redis connectivity, logging and
+re-raising ``RedisConnectionError``/``RedisTimeoutError``.
+
+The ``run_health_check()`` method loops forever, sleeping for the pool's
+``health_check_interval`` seconds and then calling ``ping()``. An interval of ``0``
+disables it (it just blocks). The STEP Client runs it in ``_redis_health_check_run()`` as a
+sibling task in the ``TaskGroup``, so a failed ping cancels the other tasks and triggers
+the reconnect logic in ``_main_async()``.
 
 **StepClientRedisStream - STEP Client Integration**
 
@@ -302,7 +324,8 @@ The ``receive_client_message()`` async generator:
     #. Calls the parent ``receive_message()`` method
     #. Validates received JSON using ``ClientCloudEventsJsonRoot.model_validate_json()``
     #. Enforces strict validation (``strict=True``)
-    #. Yields validated CloudEvents message objects
+    #. Yields validated CloudEvents message objects; a message failing validation is
+       logged and discarded without stopping the iteration
 
 **Usage in STEP Client Application**
 
@@ -383,7 +406,10 @@ The Redis integration in STEP Client provides:
 The implementation handles Redis-specific errors:
 
     * **RedisResponseError**: Catches ``BUSYGROUP`` when consumer group already exists
+    * **RedisResponseError** (``NOGROUP``): The consumer group is recreated and the read retried
     * **RedisTimeoutError**: Logged when no messages arrive within timeout period
+    * **RedisConnectionError**: Retried by the pool up to ``retry_count`` times; from
+      ``ping()``/``run_health_check()`` it is logged and re-raised
     * **KeyError**: Handles missing keys in stream response with warnings
     * **ValueError**: Raises when required configuration parameters are missing
 
@@ -445,13 +471,18 @@ distinguish STEP Client errors from other unhandled exceptions:
 
     #. **StepClientError**: Base exception for the STEP Client. A plain subclass of
        ``Exception`` with no additional attributes; it is raised, for example, by
-       ``StepBroker.subscribe_execution()`` when a topic subscription fails or its
-       returned QoS doesn't match the configured one.
+       ``StepBroker.subscribe_execution()`` when the number of subscription results
+       differs from the number of configured topics, or a granted QoS exceeds the
+       configured ``maxSubscriptionQos``.
     #. **StepCliError**: Subclass of ``StepClientError`` raised for CLI-specific
        errors in ``main()`` — such as passing ``-c/--config`` without ``-i/--instance``
        or vice versa.
+    #. **ShutdownRequestedError**: Subclass of ``StepClientError`` used as an internal
+       signal only. It is raised by ``_wait_for_shutdown`` and caught inside
+       ``_main_async`` to unwind the ``TaskGroup`` on a graceful shutdown request
+       (``SIGINT``/``SIGTERM``/``SIGBREAK``); it is never raised across module boundaries.
 
-Both classes are message-only exceptions (the message is carried via the standard
+All classes are message-only exceptions (the message is carried via the standard
 ``Exception`` args, not a dedicated attribute); there is no structured error context,
 error-type classification, or recovery-hint mechanism beyond what the raised message
 string conveys. Callers catch and log these via the standard Python exception handling
@@ -613,8 +644,9 @@ Sequence Diagram - Message Publication
 The following sequence diagram depicts the process of publishing a DENM message 
 from a STEP Producer through Redis Stream to the STEP MQTT broker. It demonstrates 
 the actual implementation flow from ``_stream_receive_run()`` in __main__.py, showing 
-how ``StepClientRedisStream`` receives messages from Redis, validates them as CloudEvents, 
-and passes them to ``StepBroker`` for ITS encoding and MQTT publication.
+how ``StepClientRedisStream`` receives messages from Redis and validates them as CloudEvents,
+then ``_stream_receive_run()`` passes the DENM to ``StepBroker`` for ITS encoding and MQTT
+publication.
 
 .. container:: scrollable-diagram
 
@@ -626,6 +658,7 @@ and passes them to ``StepBroker`` for ITS encoding and MQTT publication.
       participant "STEP Producer" as Producer
       participant "Redis Stream" as RedisDB
       participant "StepClientRedisStream" as ClientStream
+      participant "_stream_receive_run" as Main
       participant "StepBroker" as Gateway
       participant "STEP MQTT Broker" as MQTT
 
@@ -644,8 +677,9 @@ and passes them to ``StepBroker`` for ITS encoding and MQTT publication.
          structure with Pydantic
       end note
       
-      ClientStream -> ClientStream : Extract DENM data
-      ClientStream -> Gateway : client_publish_its_message(DenmMessageV1)
+      ClientStream --> Main : ClientCloudEventsJsonRoot
+      Main -> Main : Extract DENM data
+      Main -> Gateway : client_publish_its_message(DenmMessageV1)
       
       Gateway -> Gateway : Encode to ITS ASN.1 format
       note over Gateway
@@ -655,7 +689,7 @@ and passes them to ``StepBroker`` for ITS encoding and MQTT publication.
       
       Gateway -> MQTT : MQTT PUBLISH (topic, ITS_bytes, QoS)
       MQTT --> Gateway : PUBACK
-      Gateway --> ClientStream : Success
+      Gateway --> Main : Success
       
       @enduml
    
@@ -664,9 +698,10 @@ Sequence Diagram - Message Subscription
 
 The sequence diagram below illustrates the process of subscribing to MQTT topics 
 and receiving ITS messages from the broker. It shows the actual implementation flow 
-from ``_step_receive_run()`` in __main__.py, demonstrating how ``StepBroker`` receives 
-and decodes messages, then routes them to appropriate Redis streams based on message 
-type (CAM messages to StepAdapterRedisStream, DENM messages to StepProducerRedisStream).
+from ``_step_receive_run()`` in __main__.py, demonstrating how ``StepBroker`` receives
+and decodes messages, then ``_step_receive_run()`` routes them to the appropriate Redis
+streams based on message type (CAM and CPM messages to StepAdapterRedisStream, DENM
+messages to StepProducerRedisStream).
 
 .. container:: scrollable-diagram
 
@@ -677,6 +712,7 @@ type (CAM messages to StepAdapterRedisStream, DENM messages to StepProducerRedis
 
       participant "STEP MQTT Broker" as MQTT
       participant "StepBroker" as Gateway
+      participant "_step_receive_run" as Main
       participant "StepAdapterRedisStream" as AdapterStream
       participant "StepProducerRedisStream" as ProducerStream
       participant "Redis Database" as RedisDB
@@ -693,10 +729,12 @@ type (CAM messages to StepAdapterRedisStream, DENM messages to StepProducerRedis
          Use step_lib.FacilityMessage
          for decoding
       end note
-      
+
+      Gateway --> Main : its_messages (decoded FacilityMessage)
+
       alt CAM Message
-         Gateway -> Gateway : Extract CamDataV1
-         Gateway -> AdapterStream : publish_cam_message(CamDataV1)
+         Main -> Main : Extract CamDataV1
+         Main -> AdapterStream : publish_cam_message(CamDataV1)
          AdapterStream -> AdapterStream : Wrap in CloudEvents envelope
          note over AdapterStream
             AdapterCloudEventsCamDataV1
@@ -707,8 +745,8 @@ type (CAM messages to StepAdapterRedisStream, DENM messages to StepProducerRedis
          
          RedisDB -> Adapter : Consumer reads from stream
       else CPM Message
-         Gateway -> Gateway : Extract CpmDataV1
-         Gateway -> AdapterStream : publish_cpm_message(CpmDataV1)
+         Main -> Main : Extract CpmDataV1
+         Main -> AdapterStream : publish_cpm_message(CpmDataV1)
          AdapterStream -> AdapterStream : Wrap in CloudEvents envelope
          note over AdapterStream
             AdapterCloudEventsCpmDataV1
@@ -719,8 +757,8 @@ type (CAM messages to StepAdapterRedisStream, DENM messages to StepProducerRedis
 
          RedisDB -> Adapter : Consumer reads from stream
       else DENM Message
-         Gateway -> Gateway : Extract DenmDataV1
-         Gateway -> ProducerStream : publish_denm_message(DenmDataV1)
+         Main -> Main : Extract DenmDataV1
+         Main -> ProducerStream : publish_denm_message(DenmDataV1)
          ProducerStream -> ProducerStream : Wrap in CloudEvents envelope
          note over ProducerStream
             ProducerCloudEventsDenmDataV1

@@ -17,7 +17,7 @@ Before using the STEP Client, make sure you have:
 
     #. Python 3.13 or higher installed
     #. Access to a STEP MQTT broker
-    #. A Redis server for stream processing (optional, but recommended)
+    #. A Redis server for stream processing (required)
     #. The step_client package installed in your environment
 
 Installation
@@ -51,8 +51,9 @@ Key concepts include:
 Configuration
 -------------
 
-STEP Client requires configuration for both MQTT and optional Redis 
-connections. The configuration is managed through a JSON file.
+STEP Client requires configuration for both MQTT and Redis connections. The
+configuration is managed through a JSON file, while the broker and Redis
+addresses and credentials are read from environment variables.
 
 Creating a Configuration File
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -61,9 +62,11 @@ To create a default configuration template:
 
 .. code-block:: bash
 
-    step_client --conf_template my_config_template.json
+    step_client --conf_template my_config_template_dir
 
-This generates a template that you can customize for your specific needs.
+This creates the directory (if missing) and writes
+``step_client_config_v1_schema_template.json`` in it, a template that you can
+customize for your specific needs.
 
 Key Configuration Parameters
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -82,6 +85,12 @@ Key Configuration Parameters
   * ``MQTT_PORT``: MQTT broker port, e.g. 1883 for non-TLS, 8883 for TLS (required)
   * ``MQTT_USERNAME`` / ``MQTT_PASSWORD``: Authentication credentials (optional)
 
+* **Redis Connection** (environment variables, not the config file):
+
+  * ``REDIS_URL``: Redis server hostname or IP (required)
+  * ``REDIS_PORT``: Redis server port (required)
+  * ``REDIS_USERNAME`` / ``REDIS_PASSWORD``: Authentication credentials (optional)
+
 * **MQTT Protocol Configuration**:
   
   * keepalive: Keep-alive interval in seconds
@@ -89,7 +98,7 @@ Key Configuration Parameters
   * subscriptionTopics: List of topics to subscribe to
   * publishTopics: Configuration for topics to publish to
   
-* **Redis Configuration** (optional):
+* **Redis Configuration** (required):
   
   * connection: Redis server connection details
   * streams: Configuration for Redis streams (inputs and outputs)
@@ -97,7 +106,8 @@ Key Configuration Parameters
 * **General Configuration**:
 
   * stationId: Station identification number
-  * reconnectInterval: Time between reconnection attempts
+  * latitude / longitude: Position of the station in degrees
+  * reconnectInterval: Time in seconds between reconnection attempts
 
   The instance name is not part of the configuration file; it is supplied on the
   command line via ``-i/--instance`` (required together with ``-c/--config``).
@@ -117,7 +127,7 @@ To run the STEP Client as a standalone service:
 
 .. code-block:: bash
 
-    step_client --config /path/to/config.json
+    step_client --config /path/to/config.json --instance my_instance
 
 This will start the client, which will:
 
@@ -133,7 +143,7 @@ The STEP Client supports several command-line options:
 
     * ``--config``, ``-c``: Path to configuration file
     * ``--instance``, ``-i``: Instance name (required together with ``--config``)
-    * ``--conf_schema``, ``-s``: Write the configuration JSON schema to a file
-    * ``--conf_template``, ``-t``: Generate a configuration template
+    * ``--conf_schema``, ``-s``: Write the configuration JSON schema into a directory
+    * ``--conf_template``, ``-t``: Generate a configuration template into a directory
     * ``--version``, ``-v``: Show version information
     * ``--help``, ``-h``: Show help information

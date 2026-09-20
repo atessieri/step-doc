@@ -37,10 +37,10 @@ The following command line options are available:
     Show the program version and exit.
 
 ``-s, --conf_schema <schema file>``
-    Write the configuration JSON schema to the specified file.
+    Write the configuration JSON schema into the specified directory (created if missing).
 
 ``-t, --conf_template <template file>``
-    Write a configuration template to the specified file.
+    Write a configuration template into the specified directory (created if missing).
 
 ``-c, --config <config file>``
     Load the configuration from the specified file and run the client. Must be used
@@ -81,9 +81,10 @@ To generate a JSON schema file documenting all configuration options:
 
 .. code-block:: bash
 
-    step_client --conf_schema /path/to/schema_file.json
+    step_client --conf_schema /path/to/schema_dir
 
-This command creates a JSON schema file at the specified path. The file describes
+This command creates the directory if needed and writes
+``step_client_config_v1_schema.json`` in it. The file describes
 all available configuration options, their types, defaults, and constraints. 
 The schema can be used for validation or as a reference for creating custom configurations.
 
@@ -94,9 +95,10 @@ To generate a configuration template file with default values:
 
 .. code-block:: bash
 
-    step_client --conf_template /path/to/template_file.json
+    step_client --conf_template /path/to/template_dir
 
-This command creates a JSON configuration file with default values 
+This command creates the directory if needed and writes
+``step_client_config_v1_schema_template.json`` in it, a JSON configuration file with default values
 for all settings. Users can modify this file as needed to customize their configuration.
 
 Running with Configuration
@@ -122,8 +124,13 @@ The configuration file is a JSON document that defines the behavior of the step_
 * Redis client connection
 * Redis streams
 * Logging configuration
-* Client instance name
+* Station ID and position (latitude/longitude)
 * Reconnection interval
+
+The instance name is not part of the file; it is given with ``-i/--instance``. The MQTT
+and Redis addresses and credentials are read from environment variables
+(``MQTT_URL``, ``MQTT_PORT``, ``REDIS_URL``, ``REDIS_PORT``, and the optional
+``*_USERNAME``/``*_PASSWORD``), not from the file.
 
 Here's an example of the configuration structure:
 
@@ -149,25 +156,25 @@ Generate a configuration schema:
 
 .. code-block:: bash
 
-    step_client --conf_schema ./schema.json
+    step_client --conf_schema ./schema
 
 Create a configuration template:
 
 .. code-block:: bash
 
-    step_client --conf_template ./template.json
+    step_client --conf_template ./template
 
 Run with specific configuration:
 
 .. code-block:: bash
 
-    step_client --config ./my_config.json
+    step_client --config ./my_config.json --instance my_instance
 
 Generate both schema and template:
 
 .. code-block:: bash
 
-    step_client --conf_schema ./schema.json --conf_template ./template.json
+    step_client --conf_schema ./schema --conf_template ./template
 
 Program Operation
 =================
@@ -177,11 +184,12 @@ When running with a configuration file, the step_client performs the following o
    #. Connects to the Redis server using the provided connection settings
    #. Connects to the STEP gateway using MQTT settings
    #. Subscribes to the specified MQTT topics
-   #. Starts three asynchronous tasks:
+   #. Starts four asynchronous tasks:
 
       - One task listens for MQTT ITS ETSI messages from the STEP gateway and publishes them to Redis streams
       - Another task listens for messages from Redis streams and publishes them to the STEP gateway
       - A third task runs a periodic Redis stream health check to keep the connection pool validated
+      - A fourth task watches for a shutdown request (``SIGINT``/``SIGTERM``, or ``SIGBREAK`` on Windows) and unwinds the others
 
    #. Automatically handles reconnection if connections are lost (using the specified reconnect interval)
    #. Manages graceful shutdown when interrupted
