@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>step_message_save.step_exception &mdash; STEP Client 1.1.2 documentation</title>
+  <title>step_message_save.step_exception &mdash; STEP Client 1.1.3 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=4c969af8" />
@@ -15,7 +15,7 @@
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=6f037312"></script>
+      <script src="../../_static/documentation_options.js?v=cb7bf70b"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/tabs.js?v=3ee01567"></script>
@@ -544,73 +544,83 @@
            <div itemprop="articleBody">
              
   <h1>Source code for step_message_save.step_exception</h1><div class="highlight"><pre>
-<span></span><span class="linenos"> 1</span><span class="sd">"""This module contains the exception class for the STEP Client.</span>
+<span></span><span class="linenos"> 1</span><span class="sd">"""This module contains the exception classes for the STEP Message Save program.</span>
 <span class="linenos"> 2</span>
-<span class="linenos"> 3</span><span class="sd">The STEP Client library defines a hierarchy of exceptions to handle</span>
-<span class="linenos"> 4</span><span class="sd">various error conditions that may arise during the operation of the client.</span>
-<span class="linenos"> 5</span><span class="sd">The base exception class is `StepMessageSaveError`, which serves as the parent for</span>
-<span class="linenos"> 6</span><span class="sd">all specific exceptions related to the STEP Client. The `StepCliError` class is</span>
-<span class="linenos"> 7</span><span class="sd">a specific exception that is raised for errors that occur within the command-line</span>
-<span class="linenos"> 8</span><span class="sd">interface (CLI) layer of the STEP Client.</span>
+<span class="linenos"> 3</span><span class="sd">The package defines a hierarchy of exceptions to handle various error conditions</span>
+<span class="linenos"> 4</span><span class="sd">that may arise during its operation. The base exception class is</span>
+<span class="linenos"> 5</span><span class="sd">`StepMessageSaveError`, which serves as the parent for all specific exceptions.</span>
+<span class="linenos"> 6</span><span class="sd">The `StepCliError` class is raised for errors that occur within the command-line</span>
+<span class="linenos"> 7</span><span class="sd">interface (CLI) layer, and `ShutdownRequestedError` is an internal signal used to</span>
+<span class="linenos"> 8</span><span class="sd">unwind the main asyncio task group on a graceful shutdown.</span>
 <span class="linenos"> 9</span>
 <span class="linenos">10</span><span class="sd">Complexity:</span>
 <span class="linenos">11</span><span class="sd">    - Time: O(1), raising, catching, and formatting an exception message operates on a</span>
 <span class="linenos">12</span><span class="sd">      fixed amount of data.</span>
 <span class="linenos">13</span><span class="sd">    - Space: O(1), an exception instance holds a constant number of attributes.</span>
-<span class="linenos">14</span><span class="sd">"""</span>
-<span class="linenos">15</span>
-<span class="linenos">16</span>
+<span class="linenos">14</span>
+<span class="linenos">15</span><span class="sd">Classes:</span>
+<span class="linenos">16</span><span class="sd">    - StepMessageSaveError: Base exception of the package. Complexity: time O(1),</span>
+<span class="linenos">17</span><span class="sd">      space O(1).</span>
+<span class="linenos">18</span><span class="sd">    - StepCliError: Exception for CLI-layer errors. Complexity: time O(1),</span>
+<span class="linenos">19</span><span class="sd">      space O(1).</span>
+<span class="linenos">20</span><span class="sd">    - ShutdownRequestedError: Internal graceful-shutdown signal. Complexity: time</span>
+<span class="linenos">21</span><span class="sd">      O(1), space O(1).</span>
+<span class="linenos">22</span><span class="sd">"""</span>
+<span class="linenos">23</span>
+<span class="linenos">24</span>
 <div class="viewcode-block" id="StepMessageSaveError">
 <a class="viewcode-back" href="../../step_message_save_rst/step_message_save.step_exception.html#step_message_save.step_exception.StepMessageSaveError">[docs]</a>
-<span class="linenos">17</span><span class="k">class</span><span class="w"> </span><span class="nc">StepMessageSaveError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
-<span class="linenos">18</span><span class="w">    </span><span class="sd">"""Base STEP Client exception.</span>
-<span class="linenos">19</span>
-<span class="linenos">20</span><span class="sd">    Complexity:</span>
-<span class="linenos">21</span><span class="sd">        - Time: O(1), construction and string formatting operate on a fixed amount of data.</span>
-<span class="linenos">22</span><span class="sd">        - Space: O(1), the instance holds a constant number of attributes.</span>
-<span class="linenos">23</span><span class="sd">    """</span>
-<span class="linenos">24</span>
-<span class="linenos">25</span>    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">()</span></div>
-
-<span class="linenos">26</span>
+<span class="linenos">25</span><span class="k">class</span><span class="w"> </span><span class="nc">StepMessageSaveError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<span class="linenos">26</span><span class="w">    </span><span class="sd">"""Base STEP Message Save exception.</span>
 <span class="linenos">27</span>
+<span class="linenos">28</span><span class="sd">    Complexity:</span>
+<span class="linenos">29</span><span class="sd">        - Time: O(1), construction and string formatting operate on a fixed amount of data.</span>
+<span class="linenos">30</span><span class="sd">        - Space: O(1), the instance holds a constant number of attributes.</span>
+<span class="linenos">31</span><span class="sd">    """</span>
+<span class="linenos">32</span>
+<span class="linenos">33</span>    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">()</span></div>
+
+<span class="linenos">34</span>
+<span class="linenos">35</span>
 <div class="viewcode-block" id="StepCliError">
 <a class="viewcode-back" href="../../step_message_save_rst/step_message_save.step_exception.html#step_message_save.step_exception.StepCliError">[docs]</a>
-<span class="linenos">28</span><span class="k">class</span><span class="w"> </span><span class="nc">StepCliError</span><span class="p">(</span><span class="n">StepMessageSaveError</span><span class="p">):</span>
-<span class="linenos">29</span><span class="w">    </span><span class="sd">"""Exception raised for CLI-specific errors in the STEP Client.</span>
-<span class="linenos">30</span>
-<span class="linenos">31</span><span class="sd">    This exception is raised when errors occur during command-line interface operations</span>
-<span class="linenos">32</span><span class="sd">    that are specific to the CLI layer, such as argument parsing errors, command</span>
-<span class="linenos">33</span><span class="sd">    execution failures, or CLI-specific validation issues.</span>
-<span class="linenos">34</span>
-<span class="linenos">35</span><span class="sd">    Inherits from StepMessageSaveError to maintain the exception hierarchy for the STEP</span>
-<span class="linenos">36</span><span class="sd">    Client library.</span>
-<span class="linenos">37</span>
-<span class="linenos">38</span><span class="sd">    Complexity:</span>
-<span class="linenos">39</span><span class="sd">        - Time: O(1), construction and string formatting operate on a fixed amount of data.</span>
-<span class="linenos">40</span><span class="sd">        - Space: O(1), the instance holds a constant number of attributes.</span>
-<span class="linenos">41</span><span class="sd">    """</span>
+<span class="linenos">36</span><span class="k">class</span><span class="w"> </span><span class="nc">StepCliError</span><span class="p">(</span><span class="n">StepMessageSaveError</span><span class="p">):</span>
+<span class="linenos">37</span><span class="w">    </span><span class="sd">"""Exception raised for CLI-specific errors in STEP Message Save.</span>
+<span class="linenos">38</span>
+<span class="linenos">39</span><span class="sd">    This exception is raised when errors occur during command-line interface operations</span>
+<span class="linenos">40</span><span class="sd">    that are specific to the CLI layer, such as argument parsing errors, command</span>
+<span class="linenos">41</span><span class="sd">    execution failures, or CLI-specific validation issues.</span>
 <span class="linenos">42</span>
-<span class="linenos">43</span>    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">()</span></div>
-
-<span class="linenos">44</span>
+<span class="linenos">43</span><span class="sd">    Inherits from StepMessageSaveError to maintain the exception hierarchy of the</span>
+<span class="linenos">44</span><span class="sd">    package.</span>
 <span class="linenos">45</span>
+<span class="linenos">46</span><span class="sd">    Complexity:</span>
+<span class="linenos">47</span><span class="sd">        - Time: O(1), construction and string formatting operate on a fixed amount of data.</span>
+<span class="linenos">48</span><span class="sd">        - Space: O(1), the instance holds a constant number of attributes.</span>
+<span class="linenos">49</span><span class="sd">    """</span>
+<span class="linenos">50</span>
+<span class="linenos">51</span>    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">()</span></div>
+
+<span class="linenos">52</span>
+<span class="linenos">53</span>
 <div class="viewcode-block" id="ShutdownRequestedError">
 <a class="viewcode-back" href="../../step_message_save_rst/step_message_save.step_exception.html#step_message_save.step_exception.ShutdownRequestedError">[docs]</a>
-<span class="linenos">46</span><span class="k">class</span><span class="w"> </span><span class="nc">ShutdownRequestedError</span><span class="p">(</span><span class="n">StepMessageSaveError</span><span class="p">):</span>
-<span class="linenos">47</span><span class="w">    </span><span class="sd">"""Internal signal raised to unwind ``_main_async``'s ``TaskGroup`` once a</span>
-<span class="linenos">48</span><span class="sd">    graceful shutdown has been requested via ``SIGINT``/``SIGTERM``/``SIGBREAK``.</span>
-<span class="linenos">49</span>
-<span class="linenos">50</span><span class="sd">    Never raised across module boundaries: it only ever originates from</span>
-<span class="linenos">51</span><span class="sd">    ``step_client.__main__._wait_for_shutdown`` and is only ever caught inside</span>
-<span class="linenos">52</span><span class="sd">    ``step_client.__main__._main_async``.</span>
-<span class="linenos">53</span>
-<span class="linenos">54</span><span class="sd">    Complexity:</span>
-<span class="linenos">55</span><span class="sd">        - Time: O(1), a plain marker exception with no added fields or logic.</span>
-<span class="linenos">56</span><span class="sd">        - Space: O(1), no instance stores more than the fixed, empty slot set.</span>
-<span class="linenos">57</span><span class="sd">    """</span>
-<span class="linenos">58</span>
-<span class="linenos">59</span>    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">()</span></div>
+<span class="linenos">54</span><span class="k">class</span><span class="w"> </span><span class="nc">ShutdownRequestedError</span><span class="p">(</span><span class="n">StepMessageSaveError</span><span class="p">):</span>
+<span class="linenos">55</span><span class="w">    </span><span class="sd">"""Internal signal to unwind the main ``TaskGroup`` on a graceful shutdown.</span>
+<span class="linenos">56</span>
+<span class="linenos">57</span><span class="sd">    Raised to unwind ``_main_async``'s ``TaskGroup`` once a graceful shutdown has been</span>
+<span class="linenos">58</span><span class="sd">    requested via ``SIGINT``/``SIGTERM``/``SIGBREAK``.</span>
+<span class="linenos">59</span>
+<span class="linenos">60</span><span class="sd">    Never raised across module boundaries: it only ever originates from</span>
+<span class="linenos">61</span><span class="sd">    ``step_message_save.__main__._wait_for_shutdown`` and is only ever caught inside</span>
+<span class="linenos">62</span><span class="sd">    ``step_message_save.__main__._main_async``.</span>
+<span class="linenos">63</span>
+<span class="linenos">64</span><span class="sd">    Complexity:</span>
+<span class="linenos">65</span><span class="sd">        - Time: O(1), a plain marker exception with no added fields or logic.</span>
+<span class="linenos">66</span><span class="sd">        - Space: O(1), no instance stores more than the fixed, empty slot set.</span>
+<span class="linenos">67</span><span class="sd">    """</span>
+<span class="linenos">68</span>
+<span class="linenos">69</span>    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">()</span></div>
 
 </pre></div>
 

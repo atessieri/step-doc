@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>step_message_save.step_message_save_config module &mdash; STEP Client 1.1.2 documentation</title>
+  <title>step_message_save.step_message_save_config module &mdash; STEP Client 1.1.3 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/tabs.css?v=4c969af8" />
@@ -16,7 +16,7 @@
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=6f037312"></script>
+      <script src="../_static/documentation_options.js?v=cb7bf70b"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/tabs.js?v=3ee01567"></script>
@@ -586,6 +586,32 @@ field once.</p></li>
 </ul>
 </dd>
 </dl>
+<dl class="simple">
+<dt>Classes:</dt><dd><ul class="simple">
+<li><p>MqttCredential: Frozen dataclass holding the broker URL, port, and optional
+credentials. Complexity: time O(1), space O(1).</p></li>
+<li><p>StepConfigVersion: Enumeration of the configuration version. Complexity: time
+O(1), space O(1).</p></li>
+<li><p>MqttClientConfig: SSL/TLS settings of the MQTT client. Complexity: time O(1),
+space O(1).</p></li>
+<li><p>MessageType: Enumeration of the C-ITS message types (CAM, CPM, DENM).
+Complexity: time O(1), space O(1).</p></li>
+<li><p>MqttQoSConfig: Enumeration of the MQTT QoS levels. Complexity: time O(1),
+space O(1).</p></li>
+<li><p>SubscriptionTopicParams: Message type and topic of one subscription.
+Complexity: time O(1), space O(1).</p></li>
+<li><p>MqttProtocolConfig: MQTT protocol settings and subscription topics.
+Complexity: time O(s), space O(s), s = number of subscription topics.</p></li>
+<li><p>StepBrokerConfig: MQTT client and protocol settings plus cache directory.
+Complexity: time O(s), space O(s), s = number of subscription topics.</p></li>
+<li><p>_ConfigGenerateJsonSchema: JSON schema generator adding a custom <code class="docutils literal notranslate"><span class="pre">$id</span></code> and
+<code class="docutils literal notranslate"><span class="pre">$schema</span></code>. Complexity: time O(f), space O(f).</p></li>
+<li><p>StepMessageSaveConfig: Top-level configuration of the program. Complexity:
+time O(f) (print_config_schema/print_config_example), space O(f), f = total
+number of fields across the configuration hierarchy.</p></li>
+</ul>
+</dd>
+</dl>
 <dl class="py class">
 <dt class="sig sig-object py" id="step_message_save.step_message_save_config.MessageType">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">step_message_save.step_message_save_config.</span></span><span class="sig-name descname"><span class="pre">MessageType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#step_message_save.step_message_save_config.MessageType" title="Link to this definition"></a></dt>
@@ -769,10 +795,6 @@ values for each field.</p>
 <p>The default values are set as follows:</p>
 <blockquote>
 <div><ul class="simple">
-<li><p>host: Default host set to “localhost”.</p></li>
-<li><p>port: Default port set to 8883.</p></li>
-<li><p>username: Default username set to “username”.</p></li>
-<li><p>password: Default password set to “password”.</p></li>
 <li><p>sslEnable: Default SSL enable set to True.</p></li>
 <li><p>sslClientKeyFile: Default SSL client key file set to “/path/to/client.key”.</p></li>
 <li><p>sslClientKeyFilePassword: Default SSL client key file password set to “&lt;password&gt;”.</p></li>
@@ -1190,8 +1212,8 @@ cache directory configuration.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="step_message_save.step_message_save_config.StepBrokerConfig.cacheDir">
 <span class="sig-name descname"><span class="pre">cacheDir</span></span><a class="headerlink" href="#step_message_save.step_message_save_config.StepBrokerConfig.cacheDir" title="Link to this definition"></a></dt>
-<dd><p>Optional cache directory path. Default is “.cache”.
-Must be at least 1 character long if provided.</p>
+<dd><p>Optional cache directory path. <code class="docutils literal notranslate"><span class="pre">get_default()</span></code> uses
+“.cache”. Must be at least 1 character long if provided.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>str | None</p>
@@ -1401,10 +1423,10 @@ each of constant size.</p></li>
 <dl class="py method">
 <dt class="sig sig-object py" id="step_message_save.step_message_save_config.StepMessageSaveConfig.print_config_example">
 <span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">print_config_example</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#step_message_save.step_message_save_config.StepMessageSaveConfig.print_config_example" title="Link to this definition"></a></dt>
-<dd><p>Write a default JSON schema configuration file to the specified path.</p>
-<p>This method creates a JSON file containing the default configuration schema
-for the StepMessageSaveConfig. The file is saved with the name defined in
-<code class="docutils literal notranslate"><span class="pre">STEP_CONFIG_SCHEMA</span></code> with a <code class="docutils literal notranslate"><span class="pre">.json</span></code> extension.</p>
+<dd><p>Write a default configuration template file to the specified path.</p>
+<p>This method creates a JSON file containing the default configuration
+values of the StepMessageSaveConfig. The file is saved with the name defined in
+<code class="docutils literal notranslate"><span class="pre">STEP_CONFIG_SCHEMA</span></code> with a <code class="docutils literal notranslate"><span class="pre">_template.json</span></code> suffix.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>path</strong> (<em>Path</em>) – The directory path where the configuration file will be saved.</p>
