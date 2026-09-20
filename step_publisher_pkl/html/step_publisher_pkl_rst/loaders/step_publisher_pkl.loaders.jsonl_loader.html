@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>step_publisher_pkl.loaders.jsonl_loader module &mdash; STEP Publisher Pickle 1.3.2 documentation</title>
+  <title>step_publisher_pkl.loaders.jsonl_loader module &mdash; STEP Publisher Pickle 1.3.3 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=4c969af8" />
@@ -16,7 +16,7 @@
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=8ca9e7a0"></script>
+      <script src="../../_static/documentation_options.js?v=28d163b9"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/tabs.js?v=3ee01567"></script>
@@ -519,6 +519,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../test_rst/test.test___main__.html#test.test___main__.test_publisher_run"><code class="docutils literal notranslate"><span class="pre">test_publisher_run()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../test_rst/test.test___main__.html#test.test___main__.test_signal_handler_raises_keyboard_interrupt"><code class="docutils literal notranslate"><span class="pre">test_signal_handler_raises_keyboard_interrupt()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../test_rst/test.test___main__.html#test.test___main__.test_signal_handler_schedules_shutdown"><code class="docutils literal notranslate"><span class="pre">test_signal_handler_schedules_shutdown()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../test_rst/test.test___main__.html#test.test___main__.test_signals_install"><code class="docutils literal notranslate"><span class="pre">test_signals_install()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../test_rst/test.test_scenario.html">test.test_scenario module</a><ul>
@@ -716,10 +717,9 @@ and validated.</p></li>
 <dt class="sig sig-object py" id="step_publisher_pkl.loaders.jsonl_loader.JsonlLoader.__call__">
 <span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">FacilityMessage</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../../_modules/step_publisher_pkl/loaders/jsonl_loader.html#JsonlLoader.__call__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#step_publisher_pkl.loaders.jsonl_loader.JsonlLoader.__call__" title="Link to this definition"></a></dt>
 <dd><p>Parse file_path as a JSONL file of ITS messages.</p>
-<p>The first line must validate as an ItsMessageRoot for file_path to be
-accepted as JSONL at all. From the second line on, an invalid line or
-an unsupported message type is skipped with a warning rather than
-failing the whole file.</p>
+<p>Every line must validate as an ItsMessageRoot holding a CAM, CPM, or
+DENM message; the first invalid line or unsupported message type
+rejects the whole file.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>file_path</strong> (<em>Path</em>) – Path to the JSONL file to parse.</p>
@@ -731,8 +731,8 @@ failing the whole file.</p>
 <dd class="field-odd"><p>list[FacilityMessage]</p>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference internal" href="../step_publisher_pkl.step_exception.html#step_publisher_pkl.step_exception.LoaderError" title="step_publisher_pkl.step_exception.LoaderError"><strong>LoaderError</strong></a> – file_path cannot be opened/decoded, or its first line
-    is not a valid ITS message.</p>
+<dd class="field-even"><p><a class="reference internal" href="../step_publisher_pkl.step_exception.html#step_publisher_pkl.step_exception.LoaderError" title="step_publisher_pkl.step_exception.LoaderError"><strong>LoaderError</strong></a> – file_path cannot be opened/decoded, or any line is
+    not a valid ITS message of a supported type.</p>
 </dd>
 <dt class="field-odd">Complexity<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">

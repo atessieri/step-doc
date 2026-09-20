@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>step_publisher_pkl.loaders.jsonl_loader &mdash; STEP Publisher Pickle 1.3.2 documentation</title>
+  <title>step_publisher_pkl.loaders.jsonl_loader &mdash; STEP Publisher Pickle 1.3.3 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../../_static/tabs.css?v=4c969af8" />
@@ -15,7 +15,7 @@
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=8ca9e7a0"></script>
+      <script src="../../../_static/documentation_options.js?v=28d163b9"></script>
       <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../../_static/tabs.js?v=3ee01567"></script>
@@ -516,6 +516,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../test_rst/test.test___main__.html#test.test___main__.test_publisher_run"><code class="docutils literal notranslate"><span class="pre">test_publisher_run()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../test_rst/test.test___main__.html#test.test___main__.test_signal_handler_raises_keyboard_interrupt"><code class="docutils literal notranslate"><span class="pre">test_signal_handler_raises_keyboard_interrupt()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../test_rst/test.test___main__.html#test.test___main__.test_signal_handler_schedules_shutdown"><code class="docutils literal notranslate"><span class="pre">test_signal_handler_schedules_shutdown()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../test_rst/test.test___main__.html#test.test___main__.test_signals_install"><code class="docutils literal notranslate"><span class="pre">test_signals_install()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../../test_rst/test.test_scenario.html">test.test_scenario module</a><ul>
@@ -733,49 +734,48 @@
 <span class="linenos">45</span>    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">FacilityMessage</span><span class="p">]:</span>
 <span class="linenos">46</span><span class="w">        </span><span class="sd">"""Parse file_path as a JSONL file of ITS messages.</span>
 <span class="linenos">47</span>
-<span class="linenos">48</span><span class="sd">        The first line must validate as an ItsMessageRoot for file_path to be</span>
-<span class="linenos">49</span><span class="sd">        accepted as JSONL at all. From the second line on, an invalid line or</span>
-<span class="linenos">50</span><span class="sd">        an unsupported message type is skipped with a warning rather than</span>
-<span class="linenos">51</span><span class="sd">        failing the whole file.</span>
-<span class="linenos">52</span>
-<span class="linenos">53</span><span class="sd">        Args:</span>
-<span class="linenos">54</span><span class="sd">            file_path (Path): Path to the JSONL file to parse.</span>
-<span class="linenos">55</span>
-<span class="linenos">56</span><span class="sd">        Returns:</span>
-<span class="linenos">57</span><span class="sd">            list[FacilityMessage]: The messages found in the file.</span>
-<span class="linenos">58</span>
-<span class="linenos">59</span><span class="sd">        Raises:</span>
-<span class="linenos">60</span><span class="sd">            LoaderError: file_path cannot be opened/decoded, or its first line</span>
-<span class="linenos">61</span><span class="sd">                is not a valid ITS message.</span>
-<span class="linenos">62</span>
-<span class="linenos">63</span><span class="sd">        Complexity:</span>
-<span class="linenos">64</span><span class="sd">            - Time: O(l), where l is the number of lines in the file.</span>
-<span class="linenos">65</span><span class="sd">            - Space: O(l), one FacilityMessage is stored per valid line.</span>
-<span class="linenos">66</span><span class="sd">        """</span>
-<span class="linenos">67</span>        <span class="n">messages</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">FacilityMessage</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
-<span class="linenos">68</span>        <span class="k">try</span><span class="p">:</span>
-<span class="linenos">69</span>            <span class="k">with</span> <span class="n">file_path</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">"r"</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
-<span class="linenos">70</span>                <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">file</span><span class="p">:</span>
-<span class="linenos">71</span>                    <span class="n">message_root</span> <span class="o">=</span> <span class="n">ItsMessageRoot</span><span class="o">.</span><span class="n">model_validate_json</span><span class="p">(</span><span class="n">json_data</span><span class="o">=</span><span class="n">line</span><span class="p">)</span>
-<span class="linenos">72</span>                    <span class="n">message</span><span class="p">:</span> <span class="n">FacilityMessage</span>
-<span class="linenos">73</span>                    <span class="k">match</span> <span class="n">message_root</span><span class="o">.</span><span class="n">root</span><span class="p">:</span>
-<span class="linenos">74</span>                        <span class="k">case</span> <span class="n">CamDataV1</span><span class="p">():</span>
-<span class="linenos">75</span>                            <span class="n">message</span> <span class="o">=</span> <span class="n">CamMessageV1</span><span class="p">(</span><span class="n">message_param</span><span class="o">=</span><span class="n">message_root</span><span class="o">.</span><span class="n">root</span><span class="p">)</span>
-<span class="linenos">76</span>                        <span class="k">case</span> <span class="n">CpmDataV1</span><span class="p">():</span>
-<span class="linenos">77</span>                            <span class="n">message</span> <span class="o">=</span> <span class="n">CpmMessageV1</span><span class="p">(</span><span class="n">message_param</span><span class="o">=</span><span class="n">message_root</span><span class="o">.</span><span class="n">root</span><span class="p">)</span>
-<span class="linenos">78</span>                        <span class="k">case</span> <span class="n">DenmDataV1</span><span class="p">():</span>
-<span class="linenos">79</span>                            <span class="n">message</span> <span class="o">=</span> <span class="n">DenmMessageV1</span><span class="p">(</span><span class="n">message_param</span><span class="o">=</span><span class="n">message_root</span><span class="o">.</span><span class="n">root</span><span class="p">)</span>
-<span class="linenos">80</span>                        <span class="k">case</span><span class="w"> </span><span class="k">_</span><span class="p">:</span>
-<span class="linenos">81</span>                            <span class="k">raise</span> <span class="n">LoaderError</span><span class="p">(</span>
-<span class="linenos">82</span>                                <span class="sa">f</span><span class="s2">"Unsupported ITS message type: </span><span class="si">{</span><span class="n">message_root</span><span class="o">.</span><span class="n">root</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">"</span>
-<span class="linenos">83</span>                            <span class="p">)</span>
-<span class="linenos">84</span>                    <span class="n">messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
-<span class="linenos">85</span>        <span class="c1"># pydantic.ValidationError is a ValueError subclass, so ValueError already covers it</span>
-<span class="linenos">86</span>        <span class="k">except</span> <span class="p">(</span><span class="ne">OSError</span><span class="p">,</span> <span class="ne">UnicodeDecodeError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">)</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
-<span class="linenos">87</span>            <span class="k">raise</span> <span class="n">LoaderError</span><span class="p">(</span>
-<span class="linenos">88</span>                <span class="sa">f</span><span class="s2">"File </span><span class="si">{</span><span class="n">file_path</span><span class="si">}</span><span class="s2"> is not a valid JSONL file with ITS messages: </span><span class="si">{</span><span class="n">exc</span><span class="si">}</span><span class="s2">"</span>
-<span class="linenos">89</span>            <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
-<span class="linenos">90</span>        <span class="k">return</span> <span class="n">messages</span></div>
+<span class="linenos">48</span><span class="sd">        Every line must validate as an ItsMessageRoot holding a CAM, CPM, or</span>
+<span class="linenos">49</span><span class="sd">        DENM message; the first invalid line or unsupported message type</span>
+<span class="linenos">50</span><span class="sd">        rejects the whole file.</span>
+<span class="linenos">51</span>
+<span class="linenos">52</span><span class="sd">        Args:</span>
+<span class="linenos">53</span><span class="sd">            file_path (Path): Path to the JSONL file to parse.</span>
+<span class="linenos">54</span>
+<span class="linenos">55</span><span class="sd">        Returns:</span>
+<span class="linenos">56</span><span class="sd">            list[FacilityMessage]: The messages found in the file.</span>
+<span class="linenos">57</span>
+<span class="linenos">58</span><span class="sd">        Raises:</span>
+<span class="linenos">59</span><span class="sd">            LoaderError: file_path cannot be opened/decoded, or any line is</span>
+<span class="linenos">60</span><span class="sd">                not a valid ITS message of a supported type.</span>
+<span class="linenos">61</span>
+<span class="linenos">62</span><span class="sd">        Complexity:</span>
+<span class="linenos">63</span><span class="sd">            - Time: O(l), where l is the number of lines in the file.</span>
+<span class="linenos">64</span><span class="sd">            - Space: O(l), one FacilityMessage is stored per valid line.</span>
+<span class="linenos">65</span><span class="sd">        """</span>
+<span class="linenos">66</span>        <span class="n">messages</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">FacilityMessage</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="linenos">67</span>        <span class="k">try</span><span class="p">:</span>
+<span class="linenos">68</span>            <span class="k">with</span> <span class="n">file_path</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">"r"</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
+<span class="linenos">69</span>                <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">file</span><span class="p">:</span>
+<span class="linenos">70</span>                    <span class="n">message_root</span> <span class="o">=</span> <span class="n">ItsMessageRoot</span><span class="o">.</span><span class="n">model_validate_json</span><span class="p">(</span><span class="n">json_data</span><span class="o">=</span><span class="n">line</span><span class="p">)</span>
+<span class="linenos">71</span>                    <span class="n">message</span><span class="p">:</span> <span class="n">FacilityMessage</span>
+<span class="linenos">72</span>                    <span class="k">match</span> <span class="n">message_root</span><span class="o">.</span><span class="n">root</span><span class="p">:</span>
+<span class="linenos">73</span>                        <span class="k">case</span> <span class="n">CamDataV1</span><span class="p">():</span>
+<span class="linenos">74</span>                            <span class="n">message</span> <span class="o">=</span> <span class="n">CamMessageV1</span><span class="p">(</span><span class="n">message_param</span><span class="o">=</span><span class="n">message_root</span><span class="o">.</span><span class="n">root</span><span class="p">)</span>
+<span class="linenos">75</span>                        <span class="k">case</span> <span class="n">CpmDataV1</span><span class="p">():</span>
+<span class="linenos">76</span>                            <span class="n">message</span> <span class="o">=</span> <span class="n">CpmMessageV1</span><span class="p">(</span><span class="n">message_param</span><span class="o">=</span><span class="n">message_root</span><span class="o">.</span><span class="n">root</span><span class="p">)</span>
+<span class="linenos">77</span>                        <span class="k">case</span> <span class="n">DenmDataV1</span><span class="p">():</span>
+<span class="linenos">78</span>                            <span class="n">message</span> <span class="o">=</span> <span class="n">DenmMessageV1</span><span class="p">(</span><span class="n">message_param</span><span class="o">=</span><span class="n">message_root</span><span class="o">.</span><span class="n">root</span><span class="p">)</span>
+<span class="linenos">79</span>                        <span class="k">case</span><span class="w"> </span><span class="k">_</span><span class="p">:</span>
+<span class="linenos">80</span>                            <span class="k">raise</span> <span class="n">LoaderError</span><span class="p">(</span>
+<span class="linenos">81</span>                                <span class="sa">f</span><span class="s2">"Unsupported ITS message type: </span><span class="si">{</span><span class="n">message_root</span><span class="o">.</span><span class="n">root</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">"</span>
+<span class="linenos">82</span>                            <span class="p">)</span>
+<span class="linenos">83</span>                    <span class="n">messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+<span class="linenos">84</span>        <span class="c1"># pydantic.ValidationError is a ValueError subclass, so ValueError already covers it</span>
+<span class="linenos">85</span>        <span class="k">except</span> <span class="p">(</span><span class="ne">OSError</span><span class="p">,</span> <span class="ne">UnicodeDecodeError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">)</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+<span class="linenos">86</span>            <span class="k">raise</span> <span class="n">LoaderError</span><span class="p">(</span>
+<span class="linenos">87</span>                <span class="sa">f</span><span class="s2">"File </span><span class="si">{</span><span class="n">file_path</span><span class="si">}</span><span class="s2"> is not a valid JSONL file with ITS messages: </span><span class="si">{</span><span class="n">exc</span><span class="si">}</span><span class="s2">"</span>
+<span class="linenos">88</span>            <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
+<span class="linenos">89</span>        <span class="k">return</span> <span class="n">messages</span></div>
 </div>
 
 </pre></div>

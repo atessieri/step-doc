@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>step_publisher_pkl package &mdash; STEP Publisher Pickle 1.3.2 documentation</title>
+  <title>step_publisher_pkl package &mdash; STEP Publisher Pickle 1.3.3 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/tabs.css?v=4c969af8" />
@@ -16,7 +16,7 @@
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=8ca9e7a0"></script>
+      <script src="../_static/documentation_options.js?v=28d163b9"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/tabs.js?v=3ee01567"></script>
@@ -519,6 +519,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_publisher_run"><code class="docutils literal notranslate"><span class="pre">test_publisher_run()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_signal_handler_raises_keyboard_interrupt"><code class="docutils literal notranslate"><span class="pre">test_signal_handler_raises_keyboard_interrupt()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_signal_handler_schedules_shutdown"><code class="docutils literal notranslate"><span class="pre">test_signal_handler_schedules_shutdown()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_signals_install"><code class="docutils literal notranslate"><span class="pre">test_signals_install()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../test_rst/test.test_scenario.html">test.test_scenario module</a><ul>
@@ -723,13 +724,14 @@ concurrent message publishing while maintaining realistic timing between positio
 <li><p>Handle graceful shutdown and cleanup</p></li>
 </ol>
 </dd>
-<dt>Data Format:</dt><dd><p>Each entry in <code class="docutils literal notranslate"><span class="pre">inputFiles</span></code> is auto-detected by Scenario.load_data() as one of three
-supported formats, tried in the following order:</p>
+<dt>Data Format:</dt><dd><p>Each entry in <code class="docutils literal notranslate"><span class="pre">inputFiles</span></code> is auto-detected by Scenario.load_data() as one of four
+supported formats. The loader owning the file’s extension is tried first, then the
+remaining loaders in the order below:</p>
 <blockquote>
 <div><ol class="arabic">
 <li><p><strong>JSONL ITS messages</strong> (<code class="docutils literal notranslate"><span class="pre">.jsonl</span></code>-style text file): One JSON document per line,
 each validating as an ItsMessageRoot (CamDataV1, CpmDataV1, or DenmDataV1).
-Detected by successfully parsing and validating the first line.</p></li>
+A file with any invalid line or unsupported message type is rejected as a whole.</p></li>
 <li><p><strong>Pickle actor/vehicle trajectories</strong> (<code class="docutils literal notranslate"><span class="pre">.pkl</span></code>): An unpickled dictionary shaped
 as <code class="docutils literal notranslate"><span class="pre">{&quot;trajectories&quot;:</span> <span class="pre">{&quot;vehicles&quot;:</span> <span class="pre">{&lt;station_id&gt;:</span> <span class="pre">[&lt;point&gt;,</span> <span class="pre">...]}}}</span></code>, where each
 point contains:</p>
@@ -744,21 +746,27 @@ point contains:</p>
 </li>
 <li><p><strong>Pickle camera/CPM data</strong> (<code class="docutils literal notranslate"><span class="pre">.pkl</span></code>): An unpickled list of dictionaries, each
 directly convertible to a CpmDataV1 (Collective Perception Message) object.</p></li>
+<li><p><strong>GPX track</strong> (<code class="docutils literal notranslate"><span class="pre">.gpx</span></code>): Each track named <code class="docutils literal notranslate"><span class="pre">Path</span> <span class="pre">actor</span> <span class="pre">&lt;station_id&gt;_&lt;object_id&gt;</span></code>
+yields one CAM message per track point.</p></li>
 </ol>
 </div></blockquote>
-<p>A file that fails validation against all three formats is skipped with a warning.</p>
+<p>A file that fails validation against all four formats is skipped with a warning.</p>
 </dd>
 <dt>Usage Example:</dt><dd><p>Command line execution with configuration file:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="o">-</span><span class="n">m</span> <span class="n">step_publisher_pkl</span> <span class="o">-</span><span class="n">c</span> <span class="n">config</span><span class="o">.</span><span class="n">json</span> <span class="o">-</span><span class="n">i</span> <span class="n">publisher_instance_1</span>
 </pre></div>
 </div>
 <p>Programmatic usage:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">step_publisher_pkl.scenario</span><span class="w"> </span><span class="kn">import</span> <span class="n">Scenario</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">step_publisher_pkl.loaders</span><span class="w"> </span><span class="kn">import</span> <span class="n">PickleActorLoader</span><span class="p">,</span> <span class="n">PickleCameraLoader</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">step_publisher_pkl.scenario</span><span class="w"> </span><span class="kn">import</span> <span class="n">Scenario</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">logging</span><span class="w"> </span><span class="kn">import</span> <span class="n">getLogger</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">getLogger</span><span class="p">()</span>
 <span class="n">scenario</span> <span class="o">=</span> <span class="n">Scenario</span><span class="p">(</span>
-    <span class="n">stations_blacklist</span><span class="o">=</span><span class="nb">set</span><span class="p">(),</span> <span class="n">wait_time_before_starting_ms</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span>
+    <span class="n">stations_blacklist</span><span class="o">=</span><span class="nb">set</span><span class="p">(),</span>
+    <span class="n">wait_time_before_starting_ms</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+    <span class="n">loaders</span><span class="o">=</span><span class="p">[</span><span class="n">PickleActorLoader</span><span class="p">(),</span> <span class="n">PickleCameraLoader</span><span class="p">()],</span>
+    <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="n">scenario</span><span class="o">.</span><span class="n">load_data</span><span class="p">(</span><span class="n">input_files</span><span class="o">=</span><span class="p">[</span><span class="s2">"./data.pkl"</span><span class="p">])</span>
 
@@ -784,8 +792,10 @@ step_publisher_pkl_config and defines no classes or functions of its own.</p></l
 <dt>Modules:</dt><dd><ul class="simple">
 <li><p>__main__: Command-line application: parses arguments, loads configuration,
 and drives the asyncio publisher event loop.</p></li>
-<li><p>scenario: Loads vehicle trajectories/ITS messages from JSONL or pickle files
-and serves them per vehicle with real-world timing.</p></li>
+<li><p>loaders: Pluggable FileLoader implementations (JSONL, pickle actor, pickle
+camera, GPX) that parse one file format each into FacilityMessage lists.</p></li>
+<li><p>scenario: Loads vehicle trajectories/ITS messages through the configured
+FileLoader implementations and serves them per vehicle with real-world timing.</p></li>
 <li><p>step_broker: MQTT/TLS gateway client for publishing ITS facility messages to
 the STEP broker.</p></li>
 <li><p>step_exception: Exception hierarchy for CLI-specific errors.</p></li>
@@ -796,9 +806,13 @@ MQTT protocol, STEP broker, and top-level application settings.</p></li>
 <dt>Complexity summary:</dt><dd><p>Let f be the number of input files, s the total number of trajectory points/messages
 loaded across all files, and v the number of vehicles (stations) in the scenario.</p>
 <ul class="simple">
-<li><p>__main__._publisher_run / _main_async: time O(s) aggregated over every vehicle
-(O(n) per vehicle) / O(v) for task creation, space O(v).</p></li>
-<li><p>scenario.Scenario.load_data / _update_time_stations: time O(s), space O(s).</p></li>
+<li><p>__main__._publisher_run / _main_async: time O(s log s) aggregated over every
+vehicle (O(n log n) per vehicle, popping from a sorted collection) / O(v) for
+task creation, space O(v).</p></li>
+<li><p>loaders: GpxLoader / PickleActorLoader / PickleCameraLoader / JsonlLoader
+__call__: time O(p), space O(p), p = number of points/items/lines in the file.</p></li>
+<li><p>scenario.Scenario.load_data / _store_messages / _update_time_stations: time
+O(s log s), space O(s).</p></li>
 <li><p>step_broker.StepBroker.__init__: time O(p), space O(p), p = number of
 configured publish topics.</p></li>
 <li><p>step_exception: all exception classes are O(1) time and space.</p></li>
@@ -808,10 +822,11 @@ configuration fields.</p></li>
 </ul>
 </dd>
 <dt>Maximum complexity:</dt><dd><ul class="simple">
-<li><p>Time: O(s) in scenario.Scenario.load_data (and the end-to-end
-load-and-publish workflow it feeds), since the total number of trajectory
-points/messages s is unbounded and always greater than or equal to the
-number of vehicles v or the fixed configuration field count n.</p></li>
+<li><p>Time: O(s log s) in scenario.Scenario.load_data (and the end-to-end
+load-and-publish workflow it feeds), since each of the s trajectory
+points/messages is inserted into a sorted collection and s is unbounded and
+always greater than or equal to the number of vehicles v or the fixed
+configuration field count n.</p></li>
 <li><p>Space: O(s) in scenario.Scenario.load_data / _update_time_stations, since
 all loaded messages are held in memory simultaneously until consumed.</p></li>
 </ul>
