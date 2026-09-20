@@ -844,27 +844,29 @@ Collision Message Processing Performance
 For processing a collision array containing :math:`k+1` vehicles which generates :math:`k` 
 DENM records:
 
-1. **Record Key Generation**: :math:`O(k)` - Linear iteration through collision array
-2. **Existing Record Lookup**: :math:`O(k)` - Hash table lookup for each collision record
-3. **New Record Insertion (updating or creation)**: 
+1. **Station Ordering**: :math:`O(k*log(k))` - Comparison sort of the collision array stations
+2. **Record Key Generation**: :math:`O(k)` - Linear iteration through the ordered stations
+3. **Existing Record Lookup**: :math:`O(k)` - Hash table lookup for each collision record
+4. **New Record Insertion (updating or creation)**: 
    
-   * Sorted list insertion: :math:`O(k*log(n))` - Each new record requires binary search positioning
+   * Sorted list insertion (and removal, when updating): :math:`O(k*log(n))` - Each record requires binary search positioning
    * Hash index updates: :math:`O(k)` - Constant time insertion per index
    
-4. **DENM Message Creation**: :math:`O(k)` - Linear with number of collision records
-5. **Redis Stream Publication**: :math:`O(k)` - Linear network operations
+5. **DENM Message Creation**: :math:`O(k)` - Linear with number of collision records
+6. **Redis Stream Publication**: :math:`O(k)` - Linear network operations
 
-**Overall Complexity**: :math:`O(k*log(n))`
+**Overall Complexity**: :math:`O(k*log(k) + k*log(n))`
 
 **Performance Implications**:
 
-* **Best Case**: All collision records already exist → :math:`O(k)` for lookups only
-* **Worst Case**: All collision records are new → :math:`O(k*log(n))` for full processing
-* **Space Complexity**: :math:`O(n)` for maintaining active DENM records
+* **Best Case**: All collision records already exist → still :math:`O(k*log(k) + k*log(n))`, since
+  each existing record is removed from and re-inserted into the sorted list
+* **Worst Case**: All collision records are new → :math:`O(k*log(k) + k*log(n))` for full processing
+* **Space Complexity**: :math:`O(k)` additional per message, plus :math:`O(n)` for maintaining active DENM records
 
 **Scalability Considerations:**
 
-* With k=10 collision records and :math:`n=10000` active DENMs in the system: ~130 operations
+* With k=10 collision records and :math:`n=10000` active DENMs in the system: ~170 operations
 * System performance degrades logarithmically with active record count
 * Memory usage scales linearly with concurrent collision scenarios
 
