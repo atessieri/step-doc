@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>step_producer.__main__ &mdash; STEP Producer 1.1.1 documentation</title>
+  <title>step_producer.__main__ &mdash; STEP Producer 1.1.2 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=4c969af8" />
@@ -15,7 +15,7 @@
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=58fbf978"></script>
+      <script src="../../_static/documentation_options.js?v=6f037312"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/tabs.js?v=3ee01567"></script>
@@ -1770,37 +1770,36 @@
 <span class="linenos">1078</span>                <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span> <span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">"    - step_redis: </span><span class="si">{</span><span class="n">step_redis</span><span class="o">.</span><span class="n">__version__</span><span class="si">}</span><span class="s2">"</span>
 <span class="linenos">1079</span>            <span class="p">)</span>
 <span class="linenos">1080</span>            <span class="n">redis_credential</span> <span class="o">=</span> <span class="n">_get_redis_credential</span><span class="p">(</span><span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span>
-<span class="linenos">1081</span>            <span class="n">loop_factory</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">SelectorEventLoop</span> <span class="k">if</span> <span class="n">IS_WINDOWS</span> <span class="k">else</span> <span class="kc">None</span>
-<span class="linenos">1082</span>            <span class="k">with</span> <span class="n">Runner</span><span class="p">(</span><span class="n">loop_factory</span><span class="o">=</span><span class="n">loop_factory</span><span class="p">)</span> <span class="k">as</span> <span class="n">runner</span><span class="p">:</span>
-<span class="linenos">1083</span>                <span class="n">result</span> <span class="o">=</span> <span class="n">runner</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
-<span class="linenos">1084</span>                    <span class="n">coro</span><span class="o">=</span><span class="n">_main_async</span><span class="p">(</span>
-<span class="linenos">1085</span>                        <span class="n">instance_name</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">instance_name</span><span class="p">,</span>
-<span class="linenos">1086</span>                        <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">,</span>
-<span class="linenos">1087</span>                        <span class="n">redis_credential</span><span class="o">=</span><span class="n">redis_credential</span><span class="p">,</span>
-<span class="linenos">1088</span>                        <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span>
-<span class="linenos">1089</span>                    <span class="p">)</span>
-<span class="linenos">1090</span>                <span class="p">)</span>
-<span class="linenos">1091</span>                <span class="c1"># Loop still open: asyncio's own handlers are active, re-register ours</span>
-<span class="linenos">1092</span>                <span class="n">_signals_install</span><span class="p">()</span>
-<span class="linenos">1093</span>                <span class="c1"># Forced to remove all lingering resources</span>
-<span class="linenos">1094</span>                <span class="c1"># before closing the event loop</span>
-<span class="linenos">1095</span>                <span class="n">collect</span><span class="p">()</span>
-<span class="linenos">1096</span>            <span class="c1"># Loop closed: asyncio reset SIGINT/SIGTERM to its defaults, re-register</span>
-<span class="linenos">1097</span>            <span class="n">_signals_install</span><span class="p">()</span>
-<span class="linenos">1098</span>    <span class="k">except</span> <span class="ne">KeyboardInterrupt</span><span class="p">:</span>
-<span class="linenos">1099</span>        <span class="k">if</span> <span class="n">logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">):</span>
-<span class="linenos">1100</span>            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">"Program interrupted"</span><span class="p">)</span>
-<span class="linenos">1101</span>        <span class="n">result</span> <span class="o">=</span> <span class="n">ExitCode</span><span class="o">.</span><span class="n">ABORTED</span>
-<span class="linenos">1102</span>    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
-<span class="linenos">1103</span>        <span class="k">if</span> <span class="n">logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">ERROR</span><span class="p">):</span>
-<span class="linenos">1104</span>            <span class="n">logger</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">"Exception unmanaged"</span><span class="p">)</span>
-<span class="linenos">1105</span>        <span class="n">result</span> <span class="o">=</span> <span class="n">ExitCode</span><span class="o">.</span><span class="n">ERROR</span>
-<span class="linenos">1106</span>    <span class="k">return</span> <span class="n">result</span><span class="o">.</span><span class="n">value</span></div>
+<span class="linenos">1081</span>            <span class="k">with</span> <span class="n">Runner</span><span class="p">()</span> <span class="k">as</span> <span class="n">runner</span><span class="p">:</span>
+<span class="linenos">1082</span>                <span class="n">result</span> <span class="o">=</span> <span class="n">runner</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
+<span class="linenos">1083</span>                    <span class="n">coro</span><span class="o">=</span><span class="n">_main_async</span><span class="p">(</span>
+<span class="linenos">1084</span>                        <span class="n">instance_name</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">instance_name</span><span class="p">,</span>
+<span class="linenos">1085</span>                        <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">,</span>
+<span class="linenos">1086</span>                        <span class="n">redis_credential</span><span class="o">=</span><span class="n">redis_credential</span><span class="p">,</span>
+<span class="linenos">1087</span>                        <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span>
+<span class="linenos">1088</span>                    <span class="p">)</span>
+<span class="linenos">1089</span>                <span class="p">)</span>
+<span class="linenos">1090</span>                <span class="c1"># Loop still open: asyncio's own handlers are active, re-register ours</span>
+<span class="linenos">1091</span>                <span class="n">_signals_install</span><span class="p">()</span>
+<span class="linenos">1092</span>                <span class="c1"># Forced to remove all lingering resources</span>
+<span class="linenos">1093</span>                <span class="c1"># before closing the event loop</span>
+<span class="linenos">1094</span>                <span class="n">collect</span><span class="p">()</span>
+<span class="linenos">1095</span>            <span class="c1"># Loop closed: asyncio reset SIGINT/SIGTERM to its defaults, re-register</span>
+<span class="linenos">1096</span>            <span class="n">_signals_install</span><span class="p">()</span>
+<span class="linenos">1097</span>    <span class="k">except</span> <span class="ne">KeyboardInterrupt</span><span class="p">:</span>
+<span class="linenos">1098</span>        <span class="k">if</span> <span class="n">logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">):</span>
+<span class="linenos">1099</span>            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">"Program interrupted"</span><span class="p">)</span>
+<span class="linenos">1100</span>        <span class="n">result</span> <span class="o">=</span> <span class="n">ExitCode</span><span class="o">.</span><span class="n">ABORTED</span>
+<span class="linenos">1101</span>    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+<span class="linenos">1102</span>        <span class="k">if</span> <span class="n">logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">ERROR</span><span class="p">):</span>
+<span class="linenos">1103</span>            <span class="n">logger</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">"Exception unmanaged"</span><span class="p">)</span>
+<span class="linenos">1104</span>        <span class="n">result</span> <span class="o">=</span> <span class="n">ExitCode</span><span class="o">.</span><span class="n">ERROR</span>
+<span class="linenos">1105</span>    <span class="k">return</span> <span class="n">result</span><span class="o">.</span><span class="n">value</span></div>
 
+<span class="linenos">1106</span>
 <span class="linenos">1107</span>
-<span class="linenos">1108</span>
-<span class="linenos">1109</span><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">"__main__"</span><span class="p">:</span>
-<span class="linenos">1110</span>    <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
+<span class="linenos">1108</span><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">"__main__"</span><span class="p">:</span>
+<span class="linenos">1109</span>    <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
 </pre></div>
 
            </div>
