@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>STEP Connection Guide &mdash; STEP Library 2.0.7 documentation</title>
+  <title>STEP Connection Guide &mdash; STEP Library 2.0.8 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="_static/tabs.css?v=4c969af8" />
@@ -16,7 +16,7 @@
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=9a3ee07e"></script>
+      <script src="_static/documentation_options.js?v=722443bc"></script>
       <script src="_static/doctools.js?v=fd6eb6e6"></script>
       <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="_static/tabs.js?v=3ee01567"></script>
@@ -1925,10 +1925,45 @@ The following snippet of code:</p>
 <li><p>Processes the received messages in the queue</p></li>
 </ol>
 </div></blockquote>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">step_cloud_schemas</span><span class="w"> </span><span class="kn">import</span> <span class="n">ItsTime</span><span class="p">,</span> <span class="n">TrafficParticipantType</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">step_cloud_schemas</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">AccelerationComponent</span><span class="p">,</span>
+    <span class="n">ActionId</span><span class="p">,</span>
+    <span class="n">Altitude</span><span class="p">,</span>
+    <span class="n">CamDataV1</span><span class="p">,</span>
+    <span class="n">CauseCode</span><span class="p">,</span>
+    <span class="n">CpmDataV1</span><span class="p">,</span>
+    <span class="n">Curvature</span><span class="p">,</span>
+    <span class="n">CurvatureCalculationMode</span><span class="p">,</span>
+    <span class="n">DenmDataV1</span><span class="p">,</span>
+    <span class="n">DriveDirection</span><span class="p">,</span>
+    <span class="n">Heading</span><span class="p">,</span>
+    <span class="n">Identification</span><span class="p">,</span>
+    <span class="n">ItsTime</span><span class="p">,</span>
+    <span class="n">LocationContainer</span><span class="p">,</span>
+    <span class="n">ManagementContainerDenm</span><span class="p">,</span>
+    <span class="n">MessageId</span><span class="p">,</span>
+    <span class="n">ObjectDimension</span><span class="p">,</span>
+    <span class="n">ObjectFace</span><span class="p">,</span>
+    <span class="n">PathPointPredicted</span><span class="p">,</span>
+    <span class="n">PerceivedObject</span><span class="p">,</span>
+    <span class="n">PositionConfidenceEllipse</span><span class="p">,</span>
+    <span class="n">PreCrashContainer</span><span class="p">,</span>
+    <span class="n">ReferencePosition</span><span class="p">,</span>
+    <span class="n">RoadType</span><span class="p">,</span>
+    <span class="n">SituationContainer</span><span class="p">,</span>
+    <span class="n">Speed</span><span class="p">,</span>
+    <span class="n">Termination</span><span class="p">,</span>
+    <span class="n">TrafficDirection</span><span class="p">,</span>
+    <span class="n">TrafficParticipantType</span><span class="p">,</span>
+    <span class="n">VehicleLength</span><span class="p">,</span>
+    <span class="n">VehicleLengthConfidenceIndication</span><span class="p">,</span>
+    <span class="n">VehicleRole</span><span class="p">,</span>
+    <span class="n">YawRate</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">step_lib</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">CamMessageV1</span><span class="p">,</span>
     <span class="n">CpmMessageV1</span><span class="p">,</span>
+    <span class="n">DenmMessageV1</span><span class="p">,</span>
     <span class="n">GeoNetworkAddress</span><span class="p">,</span>
     <span class="n">GpsLocation</span><span class="p">,</span>
     <span class="n">MqttQoS</span><span class="p">,</span>
@@ -1966,7 +2001,40 @@ The following snippet of code:</p>
     <span class="p">)</span>
 
     <span class="c1"># Publish CAM message</span>
-    <span class="n">cam_message</span> <span class="o">=</span> <span class="n">CamMessageV1</span><span class="p">()</span>  <span class="c1"># Create your CAM message</span>
+    <span class="n">cam_message</span> <span class="o">=</span> <span class="n">CamMessageV1</span><span class="p">(</span>
+        <span class="n">message_param</span><span class="o">=</span><span class="n">CamDataV1</span><span class="p">(</span>
+            <span class="nb">type</span><span class="o">=</span><span class="n">MessageId</span><span class="o">.</span><span class="n">CAM_PDU</span><span class="p">,</span>
+            <span class="n">creationTime</span><span class="o">=</span><span class="s2">"2022-04-05T17:31:00.000Z"</span><span class="p">,</span>
+            <span class="n">stationInfo</span><span class="o">=</span><span class="n">Identification</span><span class="p">(</span>
+                <span class="n">stationId</span><span class="o">=</span><span class="mi">1236</span><span class="p">,</span>
+                <span class="n">stationType</span><span class="o">=</span><span class="n">TrafficParticipantType</span><span class="o">.</span><span class="n">PASSENGER_CAR</span><span class="p">,</span>
+                <span class="n">stationTypeConfidence</span><span class="o">=</span><span class="mi">90</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">position</span><span class="o">=</span><span class="n">ReferencePosition</span><span class="p">(</span>
+                <span class="n">latitude</span><span class="o">=</span><span class="mf">45.587878</span><span class="p">,</span>
+                <span class="n">longitude</span><span class="o">=</span><span class="mf">60.458789</span><span class="p">,</span>
+                <span class="n">positionConfidence</span><span class="o">=</span><span class="n">PositionConfidenceEllipse</span><span class="p">(</span>
+                    <span class="n">semiMajorAxisLengthConfidence</span><span class="o">=</span><span class="mf">1.23</span><span class="p">,</span>
+                    <span class="n">semiMinorAxisLengthConfidence</span><span class="o">=</span><span class="mf">1.23</span><span class="p">,</span>
+                    <span class="n">semiMajorAxisOrientation</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+                <span class="p">),</span>
+                <span class="n">altitude</span><span class="o">=</span><span class="n">Altitude</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">120.0</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">1.0</span><span class="p">),</span>
+            <span class="p">),</span>
+            <span class="n">heading</span><span class="o">=</span><span class="n">Heading</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">12.3</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">5.0</span><span class="p">),</span>
+            <span class="n">speed</span><span class="o">=</span><span class="n">Speed</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">123.67</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">0.5</span><span class="p">),</span>
+            <span class="n">driveDirection</span><span class="o">=</span><span class="n">DriveDirection</span><span class="o">.</span><span class="n">FORWARD</span><span class="p">,</span>
+            <span class="n">vehicleLength</span><span class="o">=</span><span class="n">VehicleLength</span><span class="p">(</span>
+                <span class="n">vehicleLengthValue</span><span class="o">=</span><span class="mf">12.3</span><span class="p">,</span>
+                <span class="n">vehicleLengthConfidenceIndication</span><span class="o">=</span><span class="n">VehicleLengthConfidenceIndication</span><span class="o">.</span><span class="n">NO_TRAILER_PRESENT</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">vehicleWidth</span><span class="o">=</span><span class="mf">1.6</span><span class="p">,</span>
+            <span class="n">longitudinalAcceleration</span><span class="o">=</span><span class="n">AccelerationComponent</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">1.3</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">5.0</span><span class="p">),</span>
+            <span class="n">curvature</span><span class="o">=</span><span class="n">Curvature</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">0.02</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">0.0001</span><span class="p">),</span>
+            <span class="n">curvatureCalculationMode</span><span class="o">=</span><span class="n">CurvatureCalculationMode</span><span class="o">.</span><span class="n">YAW_RATE_NOT_USED</span><span class="p">,</span>
+            <span class="n">yawRate</span><span class="o">=</span><span class="n">YawRate</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">0.13</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">5.0</span><span class="p">),</span>
+            <span class="n">vehicleRole</span><span class="o">=</span><span class="n">VehicleRole</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
     <span class="n">client</span><span class="o">.</span><span class="n">publish_its_message</span><span class="p">(</span>
         <span class="n">message</span><span class="o">=</span><span class="n">cam_message</span><span class="p">,</span>
         <span class="n">address</span><span class="o">=</span><span class="n">address</span><span class="p">,</span>
@@ -1975,7 +2043,45 @@ The following snippet of code:</p>
     <span class="p">)</span>
 
     <span class="c1"># Publish CPM message</span>
-    <span class="n">cpm_message</span> <span class="o">=</span> <span class="n">CpmMessageV1</span><span class="p">()</span>  <span class="c1"># Create your CPM message</span>
+    <span class="n">perceived_position</span> <span class="o">=</span> <span class="n">ReferencePosition</span><span class="p">(</span>
+        <span class="n">latitude</span><span class="o">=</span><span class="mf">45.587878</span><span class="p">,</span>
+        <span class="n">longitude</span><span class="o">=</span><span class="mf">60.458789</span><span class="p">,</span>
+        <span class="n">positionConfidence</span><span class="o">=</span><span class="n">PositionConfidenceEllipse</span><span class="p">(</span>
+            <span class="n">semiMajorAxisLengthConfidence</span><span class="o">=</span><span class="mf">1.23</span><span class="p">,</span>
+            <span class="n">semiMinorAxisLengthConfidence</span><span class="o">=</span><span class="mf">1.23</span><span class="p">,</span>
+            <span class="n">semiMajorAxisOrientation</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="p">),</span>
+        <span class="n">altitude</span><span class="o">=</span><span class="n">Altitude</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">120.0</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">1.0</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">cpm_message</span> <span class="o">=</span> <span class="n">CpmMessageV1</span><span class="p">(</span>
+        <span class="n">message_param</span><span class="o">=</span><span class="n">CpmDataV1</span><span class="p">(</span>
+            <span class="nb">type</span><span class="o">=</span><span class="n">MessageId</span><span class="o">.</span><span class="n">CPM_PDU</span><span class="p">,</span>
+            <span class="n">referenceTime</span><span class="o">=</span><span class="s2">"2022-04-05T17:31:00.000Z"</span><span class="p">,</span>
+            <span class="n">stationId</span><span class="o">=</span><span class="mi">25648</span><span class="p">,</span>
+            <span class="n">referencePosition</span><span class="o">=</span><span class="n">perceived_position</span><span class="p">,</span>
+            <span class="n">perceivedObjects</span><span class="o">=</span><span class="p">[</span>
+                <span class="n">PerceivedObject</span><span class="p">(</span>
+                    <span class="n">objectId</span><span class="o">=</span><span class="mi">123</span><span class="p">,</span>
+                    <span class="n">objectType</span><span class="o">=</span><span class="n">TrafficParticipantType</span><span class="o">.</span><span class="n">PASSENGER_CAR</span><span class="p">,</span>
+                    <span class="n">objectTypeConfidence</span><span class="o">=</span><span class="mi">90</span><span class="p">,</span>
+                    <span class="n">measurementTime</span><span class="o">=</span><span class="s2">"2022-04-05T17:31:00.000Z"</span><span class="p">,</span>
+                    <span class="n">position</span><span class="o">=</span><span class="n">perceived_position</span><span class="p">,</span>
+                    <span class="n">speed</span><span class="o">=</span><span class="n">Speed</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">123.67</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">0.5</span><span class="p">),</span>
+                    <span class="n">heading</span><span class="o">=</span><span class="n">Heading</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">12.3</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">5.0</span><span class="p">),</span>
+                    <span class="n">objectDimensionZ</span><span class="o">=</span><span class="n">ObjectDimension</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">12.3</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">0.5</span><span class="p">),</span>
+                    <span class="n">objectDimensionY</span><span class="o">=</span><span class="n">ObjectDimension</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">12.3</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">0.5</span><span class="p">),</span>
+                    <span class="n">objectDimensionX</span><span class="o">=</span><span class="n">ObjectDimension</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">12.3</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">0.5</span><span class="p">),</span>
+                    <span class="n">objectPerceptionQuality</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+                    <span class="n">positionPredicted</span><span class="o">=</span><span class="p">[</span>
+                        <span class="n">PathPointPredicted</span><span class="p">(</span>
+                            <span class="n">time</span><span class="o">=</span><span class="s2">"2022-04-05T17:31:00.000Z"</span><span class="p">,</span>
+                            <span class="n">position</span><span class="o">=</span><span class="n">perceived_position</span><span class="p">,</span>
+                        <span class="p">),</span>
+                    <span class="p">],</span>
+                <span class="p">),</span>
+            <span class="p">],</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
     <span class="n">client</span><span class="o">.</span><span class="n">publish_its_message</span><span class="p">(</span>
         <span class="n">message</span><span class="o">=</span><span class="n">cpm_message</span><span class="p">,</span>
         <span class="n">address</span><span class="o">=</span><span class="n">address</span><span class="p">,</span>
@@ -1984,7 +2090,72 @@ The following snippet of code:</p>
     <span class="p">)</span>
 
     <span class="c1"># Publish DENM message</span>
-    <span class="n">denm_message</span> <span class="o">=</span> <span class="n">DenmMessageV1</span><span class="p">()</span>  <span class="c1"># Create your DENM message</span>
+    <span class="n">event_position</span> <span class="o">=</span> <span class="n">ReferencePosition</span><span class="p">(</span>
+        <span class="n">latitude</span><span class="o">=</span><span class="mf">45.587878</span><span class="p">,</span>
+        <span class="n">longitude</span><span class="o">=</span><span class="mf">60.458789</span><span class="p">,</span>
+        <span class="n">positionConfidence</span><span class="o">=</span><span class="n">PositionConfidenceEllipse</span><span class="p">(</span>
+            <span class="n">semiMajorAxisLengthConfidence</span><span class="o">=</span><span class="mf">1.23</span><span class="p">,</span>
+            <span class="n">semiMinorAxisLengthConfidence</span><span class="o">=</span><span class="mf">1.23</span><span class="p">,</span>
+            <span class="n">semiMajorAxisOrientation</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="p">),</span>
+        <span class="n">altitude</span><span class="o">=</span><span class="n">Altitude</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">120.0</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">1.0</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">denm_message</span> <span class="o">=</span> <span class="n">DenmMessageV1</span><span class="p">(</span>
+        <span class="n">message_param</span><span class="o">=</span><span class="n">DenmDataV1</span><span class="p">(</span>
+            <span class="nb">type</span><span class="o">=</span><span class="n">MessageId</span><span class="o">.</span><span class="n">DENM_PDU</span><span class="p">,</span>
+            <span class="n">stationId</span><span class="o">=</span><span class="mi">25648</span><span class="p">,</span>
+            <span class="n">managementContainer</span><span class="o">=</span><span class="n">ManagementContainerDenm</span><span class="p">(</span>
+                <span class="n">actionId</span><span class="o">=</span><span class="n">ActionId</span><span class="p">(</span><span class="n">originatingStationId</span><span class="o">=</span><span class="mi">123</span><span class="p">,</span> <span class="n">sequenceNumber</span><span class="o">=</span><span class="mi">25</span><span class="p">),</span>
+                <span class="n">detectionTime</span><span class="o">=</span><span class="s2">"2022-04-05T17:30:59.000Z"</span><span class="p">,</span>
+                <span class="n">referenceTime</span><span class="o">=</span><span class="s2">"2022-04-05T17:31:00.000Z"</span><span class="p">,</span>
+                <span class="n">termination</span><span class="o">=</span><span class="n">Termination</span><span class="o">.</span><span class="n">CANCELLATION</span><span class="p">,</span>
+                <span class="n">eventPosition</span><span class="o">=</span><span class="n">event_position</span><span class="p">,</span>
+                <span class="n">awarenessDistance</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+                <span class="n">trafficDirection</span><span class="o">=</span><span class="n">TrafficDirection</span><span class="o">.</span><span class="n">ALL_TRAFFIC_DIR</span><span class="p">,</span>
+                <span class="n">validityDuration</span><span class="o">=</span><span class="mi">60</span><span class="p">,</span>
+                <span class="n">transmissionInterval</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+                <span class="n">stationType</span><span class="o">=</span><span class="n">TrafficParticipantType</span><span class="o">.</span><span class="n">PASSENGER_CAR</span><span class="p">,</span>
+                <span class="n">referenceStationId</span><span class="o">=</span><span class="mi">25648</span><span class="p">,</span>
+                <span class="n">referenceObjectId</span><span class="o">=</span><span class="mi">123</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">situationContainer</span><span class="o">=</span><span class="n">SituationContainer</span><span class="p">(</span>
+                <span class="n">informationQuality</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+                <span class="n">eventType</span><span class="o">=</span><span class="n">CauseCode</span><span class="o">.</span><span class="n">COLLISION_RISK</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">locationContainer</span><span class="o">=</span><span class="n">LocationContainer</span><span class="p">(</span>
+                <span class="n">eventSpeed</span><span class="o">=</span><span class="n">Speed</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">123.67</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">0.5</span><span class="p">),</span>
+                <span class="n">eventPositionHeading</span><span class="o">=</span><span class="n">Heading</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">12.3</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">5.0</span><span class="p">),</span>
+                <span class="n">roadType</span><span class="o">=</span><span class="n">RoadType</span><span class="o">.</span><span class="n">URBAN_NO_STRUCT_SEP_TO_OPPOSITE_LANES</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">preCrashContainer</span><span class="o">=</span><span class="n">PreCrashContainer</span><span class="p">(</span>
+                <span class="n">perceivedObject</span><span class="o">=</span><span class="n">PerceivedObject</span><span class="p">(</span>
+                    <span class="n">objectId</span><span class="o">=</span><span class="mi">123</span><span class="p">,</span>
+                    <span class="n">objectType</span><span class="o">=</span><span class="n">TrafficParticipantType</span><span class="o">.</span><span class="n">PASSENGER_CAR</span><span class="p">,</span>
+                    <span class="n">objectTypeConfidence</span><span class="o">=</span><span class="mi">90</span><span class="p">,</span>
+                    <span class="n">measurementTime</span><span class="o">=</span><span class="s2">"2022-04-05T17:31:00.000Z"</span><span class="p">,</span>
+                    <span class="n">position</span><span class="o">=</span><span class="n">event_position</span><span class="p">,</span>
+                    <span class="n">speed</span><span class="o">=</span><span class="n">Speed</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">123.67</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">0.5</span><span class="p">),</span>
+                    <span class="n">heading</span><span class="o">=</span><span class="n">Heading</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">12.3</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">5.0</span><span class="p">),</span>
+                    <span class="n">objectDimensionZ</span><span class="o">=</span><span class="n">ObjectDimension</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">12.3</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">0.5</span><span class="p">),</span>
+                    <span class="n">objectDimensionY</span><span class="o">=</span><span class="n">ObjectDimension</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">12.3</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">0.5</span><span class="p">),</span>
+                    <span class="n">objectDimensionX</span><span class="o">=</span><span class="n">ObjectDimension</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">12.3</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">0.5</span><span class="p">),</span>
+                    <span class="n">objectPerceptionQuality</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+                    <span class="n">positionPredicted</span><span class="o">=</span><span class="p">[</span>
+                        <span class="n">PathPointPredicted</span><span class="p">(</span>
+                            <span class="n">time</span><span class="o">=</span><span class="s2">"2022-04-05T17:31:00.000Z"</span><span class="p">,</span>
+                            <span class="n">position</span><span class="o">=</span><span class="n">event_position</span><span class="p">,</span>
+                        <span class="p">),</span>
+                    <span class="p">],</span>
+                <span class="p">),</span>
+                <span class="n">stationIdInvolved</span><span class="o">=</span><span class="mi">25648</span><span class="p">,</span>
+                <span class="n">timeToCollision</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+                <span class="n">impactSection</span><span class="o">=</span><span class="n">ObjectFace</span><span class="o">.</span><span class="n">FRONT</span><span class="p">,</span>
+                <span class="n">estimatedBrakingDistance</span><span class="o">=</span><span class="mf">100.0</span><span class="p">,</span>
+                <span class="n">estimatedCollisionLatitude</span><span class="o">=</span><span class="mf">37.7749</span><span class="p">,</span>
+                <span class="n">estimatedCollisionLongitude</span><span class="o">=-</span><span class="mf">122.4194</span><span class="p">,</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
     <span class="n">client</span><span class="o">.</span><span class="n">publish_its_message</span><span class="p">(</span>
         <span class="n">message</span><span class="o">=</span><span class="n">denm_message</span><span class="p">,</span>
         <span class="n">address</span><span class="o">=</span><span class="n">address</span><span class="p">,</span>
@@ -2055,7 +2226,40 @@ The following snippet of code:</p>
     <span class="p">)</span>
 
     <span class="c1"># Publish CAM message</span>
-    <span class="n">cam_message</span> <span class="o">=</span> <span class="n">CamMessageV1</span><span class="p">()</span>  <span class="c1"># Create your CAM message</span>
+    <span class="n">cam_message</span> <span class="o">=</span> <span class="n">CamMessageV1</span><span class="p">(</span>
+        <span class="n">message_param</span><span class="o">=</span><span class="n">CamDataV1</span><span class="p">(</span>
+            <span class="nb">type</span><span class="o">=</span><span class="n">MessageId</span><span class="o">.</span><span class="n">CAM_PDU</span><span class="p">,</span>
+            <span class="n">creationTime</span><span class="o">=</span><span class="s2">"2022-04-05T17:31:00.000Z"</span><span class="p">,</span>
+            <span class="n">stationInfo</span><span class="o">=</span><span class="n">Identification</span><span class="p">(</span>
+                <span class="n">stationId</span><span class="o">=</span><span class="mi">1236</span><span class="p">,</span>
+                <span class="n">stationType</span><span class="o">=</span><span class="n">TrafficParticipantType</span><span class="o">.</span><span class="n">PASSENGER_CAR</span><span class="p">,</span>
+                <span class="n">stationTypeConfidence</span><span class="o">=</span><span class="mi">90</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">position</span><span class="o">=</span><span class="n">ReferencePosition</span><span class="p">(</span>
+                <span class="n">latitude</span><span class="o">=</span><span class="mf">45.587878</span><span class="p">,</span>
+                <span class="n">longitude</span><span class="o">=</span><span class="mf">60.458789</span><span class="p">,</span>
+                <span class="n">positionConfidence</span><span class="o">=</span><span class="n">PositionConfidenceEllipse</span><span class="p">(</span>
+                    <span class="n">semiMajorAxisLengthConfidence</span><span class="o">=</span><span class="mf">1.23</span><span class="p">,</span>
+                    <span class="n">semiMinorAxisLengthConfidence</span><span class="o">=</span><span class="mf">1.23</span><span class="p">,</span>
+                    <span class="n">semiMajorAxisOrientation</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+                <span class="p">),</span>
+                <span class="n">altitude</span><span class="o">=</span><span class="n">Altitude</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">120.0</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">1.0</span><span class="p">),</span>
+            <span class="p">),</span>
+            <span class="n">heading</span><span class="o">=</span><span class="n">Heading</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">12.3</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">5.0</span><span class="p">),</span>
+            <span class="n">speed</span><span class="o">=</span><span class="n">Speed</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">123.67</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">0.5</span><span class="p">),</span>
+            <span class="n">driveDirection</span><span class="o">=</span><span class="n">DriveDirection</span><span class="o">.</span><span class="n">FORWARD</span><span class="p">,</span>
+            <span class="n">vehicleLength</span><span class="o">=</span><span class="n">VehicleLength</span><span class="p">(</span>
+                <span class="n">vehicleLengthValue</span><span class="o">=</span><span class="mf">12.3</span><span class="p">,</span>
+                <span class="n">vehicleLengthConfidenceIndication</span><span class="o">=</span><span class="n">VehicleLengthConfidenceIndication</span><span class="o">.</span><span class="n">NO_TRAILER_PRESENT</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">vehicleWidth</span><span class="o">=</span><span class="mf">1.6</span><span class="p">,</span>
+            <span class="n">longitudinalAcceleration</span><span class="o">=</span><span class="n">AccelerationComponent</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">1.3</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">5.0</span><span class="p">),</span>
+            <span class="n">curvature</span><span class="o">=</span><span class="n">Curvature</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">0.02</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">0.0001</span><span class="p">),</span>
+            <span class="n">curvatureCalculationMode</span><span class="o">=</span><span class="n">CurvatureCalculationMode</span><span class="o">.</span><span class="n">YAW_RATE_NOT_USED</span><span class="p">,</span>
+            <span class="n">yawRate</span><span class="o">=</span><span class="n">YawRate</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">0.13</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">5.0</span><span class="p">),</span>
+            <span class="n">vehicleRole</span><span class="o">=</span><span class="n">VehicleRole</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
     <span class="n">client</span><span class="o">.</span><span class="n">publish_its_message</span><span class="p">(</span>
         <span class="n">message</span><span class="o">=</span><span class="n">cam_message</span><span class="p">,</span>
         <span class="n">address</span><span class="o">=</span><span class="n">address</span><span class="p">,</span>
@@ -2064,7 +2268,45 @@ The following snippet of code:</p>
     <span class="p">)</span>
 
     <span class="c1"># Publish CPM message</span>
-    <span class="n">cpm_message</span> <span class="o">=</span> <span class="n">CpmMessageV1</span><span class="p">()</span>  <span class="c1"># Create your CPM message</span>
+    <span class="n">perceived_position</span> <span class="o">=</span> <span class="n">ReferencePosition</span><span class="p">(</span>
+        <span class="n">latitude</span><span class="o">=</span><span class="mf">45.587878</span><span class="p">,</span>
+        <span class="n">longitude</span><span class="o">=</span><span class="mf">60.458789</span><span class="p">,</span>
+        <span class="n">positionConfidence</span><span class="o">=</span><span class="n">PositionConfidenceEllipse</span><span class="p">(</span>
+            <span class="n">semiMajorAxisLengthConfidence</span><span class="o">=</span><span class="mf">1.23</span><span class="p">,</span>
+            <span class="n">semiMinorAxisLengthConfidence</span><span class="o">=</span><span class="mf">1.23</span><span class="p">,</span>
+            <span class="n">semiMajorAxisOrientation</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="p">),</span>
+        <span class="n">altitude</span><span class="o">=</span><span class="n">Altitude</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">120.0</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">1.0</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">cpm_message</span> <span class="o">=</span> <span class="n">CpmMessageV1</span><span class="p">(</span>
+        <span class="n">message_param</span><span class="o">=</span><span class="n">CpmDataV1</span><span class="p">(</span>
+            <span class="nb">type</span><span class="o">=</span><span class="n">MessageId</span><span class="o">.</span><span class="n">CPM_PDU</span><span class="p">,</span>
+            <span class="n">referenceTime</span><span class="o">=</span><span class="s2">"2022-04-05T17:31:00.000Z"</span><span class="p">,</span>
+            <span class="n">stationId</span><span class="o">=</span><span class="mi">25648</span><span class="p">,</span>
+            <span class="n">referencePosition</span><span class="o">=</span><span class="n">perceived_position</span><span class="p">,</span>
+            <span class="n">perceivedObjects</span><span class="o">=</span><span class="p">[</span>
+                <span class="n">PerceivedObject</span><span class="p">(</span>
+                    <span class="n">objectId</span><span class="o">=</span><span class="mi">123</span><span class="p">,</span>
+                    <span class="n">objectType</span><span class="o">=</span><span class="n">TrafficParticipantType</span><span class="o">.</span><span class="n">PASSENGER_CAR</span><span class="p">,</span>
+                    <span class="n">objectTypeConfidence</span><span class="o">=</span><span class="mi">90</span><span class="p">,</span>
+                    <span class="n">measurementTime</span><span class="o">=</span><span class="s2">"2022-04-05T17:31:00.000Z"</span><span class="p">,</span>
+                    <span class="n">position</span><span class="o">=</span><span class="n">perceived_position</span><span class="p">,</span>
+                    <span class="n">speed</span><span class="o">=</span><span class="n">Speed</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">123.67</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">0.5</span><span class="p">),</span>
+                    <span class="n">heading</span><span class="o">=</span><span class="n">Heading</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">12.3</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">5.0</span><span class="p">),</span>
+                    <span class="n">objectDimensionZ</span><span class="o">=</span><span class="n">ObjectDimension</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">12.3</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">0.5</span><span class="p">),</span>
+                    <span class="n">objectDimensionY</span><span class="o">=</span><span class="n">ObjectDimension</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">12.3</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">0.5</span><span class="p">),</span>
+                    <span class="n">objectDimensionX</span><span class="o">=</span><span class="n">ObjectDimension</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">12.3</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">0.5</span><span class="p">),</span>
+                    <span class="n">objectPerceptionQuality</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+                    <span class="n">positionPredicted</span><span class="o">=</span><span class="p">[</span>
+                        <span class="n">PathPointPredicted</span><span class="p">(</span>
+                            <span class="n">time</span><span class="o">=</span><span class="s2">"2022-04-05T17:31:00.000Z"</span><span class="p">,</span>
+                            <span class="n">position</span><span class="o">=</span><span class="n">perceived_position</span><span class="p">,</span>
+                        <span class="p">),</span>
+                    <span class="p">],</span>
+                <span class="p">),</span>
+            <span class="p">],</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
     <span class="n">client</span><span class="o">.</span><span class="n">publish_its_message</span><span class="p">(</span>
         <span class="n">message</span><span class="o">=</span><span class="n">cpm_message</span><span class="p">,</span>
         <span class="n">address</span><span class="o">=</span><span class="n">address</span><span class="p">,</span>
@@ -2073,7 +2315,72 @@ The following snippet of code:</p>
     <span class="p">)</span>
 
     <span class="c1"># Publish DENM message</span>
-    <span class="n">denm_message</span> <span class="o">=</span> <span class="n">DenmMessageV1</span><span class="p">()</span>  <span class="c1"># Create your DENM message</span>
+    <span class="n">event_position</span> <span class="o">=</span> <span class="n">ReferencePosition</span><span class="p">(</span>
+        <span class="n">latitude</span><span class="o">=</span><span class="mf">45.587878</span><span class="p">,</span>
+        <span class="n">longitude</span><span class="o">=</span><span class="mf">60.458789</span><span class="p">,</span>
+        <span class="n">positionConfidence</span><span class="o">=</span><span class="n">PositionConfidenceEllipse</span><span class="p">(</span>
+            <span class="n">semiMajorAxisLengthConfidence</span><span class="o">=</span><span class="mf">1.23</span><span class="p">,</span>
+            <span class="n">semiMinorAxisLengthConfidence</span><span class="o">=</span><span class="mf">1.23</span><span class="p">,</span>
+            <span class="n">semiMajorAxisOrientation</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="p">),</span>
+        <span class="n">altitude</span><span class="o">=</span><span class="n">Altitude</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">120.0</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">1.0</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">denm_message</span> <span class="o">=</span> <span class="n">DenmMessageV1</span><span class="p">(</span>
+        <span class="n">message_param</span><span class="o">=</span><span class="n">DenmDataV1</span><span class="p">(</span>
+            <span class="nb">type</span><span class="o">=</span><span class="n">MessageId</span><span class="o">.</span><span class="n">DENM_PDU</span><span class="p">,</span>
+            <span class="n">stationId</span><span class="o">=</span><span class="mi">25648</span><span class="p">,</span>
+            <span class="n">managementContainer</span><span class="o">=</span><span class="n">ManagementContainerDenm</span><span class="p">(</span>
+                <span class="n">actionId</span><span class="o">=</span><span class="n">ActionId</span><span class="p">(</span><span class="n">originatingStationId</span><span class="o">=</span><span class="mi">123</span><span class="p">,</span> <span class="n">sequenceNumber</span><span class="o">=</span><span class="mi">25</span><span class="p">),</span>
+                <span class="n">detectionTime</span><span class="o">=</span><span class="s2">"2022-04-05T17:30:59.000Z"</span><span class="p">,</span>
+                <span class="n">referenceTime</span><span class="o">=</span><span class="s2">"2022-04-05T17:31:00.000Z"</span><span class="p">,</span>
+                <span class="n">termination</span><span class="o">=</span><span class="n">Termination</span><span class="o">.</span><span class="n">CANCELLATION</span><span class="p">,</span>
+                <span class="n">eventPosition</span><span class="o">=</span><span class="n">event_position</span><span class="p">,</span>
+                <span class="n">awarenessDistance</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+                <span class="n">trafficDirection</span><span class="o">=</span><span class="n">TrafficDirection</span><span class="o">.</span><span class="n">ALL_TRAFFIC_DIR</span><span class="p">,</span>
+                <span class="n">validityDuration</span><span class="o">=</span><span class="mi">60</span><span class="p">,</span>
+                <span class="n">transmissionInterval</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+                <span class="n">stationType</span><span class="o">=</span><span class="n">TrafficParticipantType</span><span class="o">.</span><span class="n">PASSENGER_CAR</span><span class="p">,</span>
+                <span class="n">referenceStationId</span><span class="o">=</span><span class="mi">25648</span><span class="p">,</span>
+                <span class="n">referenceObjectId</span><span class="o">=</span><span class="mi">123</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">situationContainer</span><span class="o">=</span><span class="n">SituationContainer</span><span class="p">(</span>
+                <span class="n">informationQuality</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+                <span class="n">eventType</span><span class="o">=</span><span class="n">CauseCode</span><span class="o">.</span><span class="n">COLLISION_RISK</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">locationContainer</span><span class="o">=</span><span class="n">LocationContainer</span><span class="p">(</span>
+                <span class="n">eventSpeed</span><span class="o">=</span><span class="n">Speed</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">123.67</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">0.5</span><span class="p">),</span>
+                <span class="n">eventPositionHeading</span><span class="o">=</span><span class="n">Heading</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">12.3</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">5.0</span><span class="p">),</span>
+                <span class="n">roadType</span><span class="o">=</span><span class="n">RoadType</span><span class="o">.</span><span class="n">URBAN_NO_STRUCT_SEP_TO_OPPOSITE_LANES</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">preCrashContainer</span><span class="o">=</span><span class="n">PreCrashContainer</span><span class="p">(</span>
+                <span class="n">perceivedObject</span><span class="o">=</span><span class="n">PerceivedObject</span><span class="p">(</span>
+                    <span class="n">objectId</span><span class="o">=</span><span class="mi">123</span><span class="p">,</span>
+                    <span class="n">objectType</span><span class="o">=</span><span class="n">TrafficParticipantType</span><span class="o">.</span><span class="n">PASSENGER_CAR</span><span class="p">,</span>
+                    <span class="n">objectTypeConfidence</span><span class="o">=</span><span class="mi">90</span><span class="p">,</span>
+                    <span class="n">measurementTime</span><span class="o">=</span><span class="s2">"2022-04-05T17:31:00.000Z"</span><span class="p">,</span>
+                    <span class="n">position</span><span class="o">=</span><span class="n">event_position</span><span class="p">,</span>
+                    <span class="n">speed</span><span class="o">=</span><span class="n">Speed</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">123.67</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">0.5</span><span class="p">),</span>
+                    <span class="n">heading</span><span class="o">=</span><span class="n">Heading</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">12.3</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">5.0</span><span class="p">),</span>
+                    <span class="n">objectDimensionZ</span><span class="o">=</span><span class="n">ObjectDimension</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">12.3</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">0.5</span><span class="p">),</span>
+                    <span class="n">objectDimensionY</span><span class="o">=</span><span class="n">ObjectDimension</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">12.3</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">0.5</span><span class="p">),</span>
+                    <span class="n">objectDimensionX</span><span class="o">=</span><span class="n">ObjectDimension</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">12.3</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">0.5</span><span class="p">),</span>
+                    <span class="n">objectPerceptionQuality</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+                    <span class="n">positionPredicted</span><span class="o">=</span><span class="p">[</span>
+                        <span class="n">PathPointPredicted</span><span class="p">(</span>
+                            <span class="n">time</span><span class="o">=</span><span class="s2">"2022-04-05T17:31:00.000Z"</span><span class="p">,</span>
+                            <span class="n">position</span><span class="o">=</span><span class="n">event_position</span><span class="p">,</span>
+                        <span class="p">),</span>
+                    <span class="p">],</span>
+                <span class="p">),</span>
+                <span class="n">stationIdInvolved</span><span class="o">=</span><span class="mi">25648</span><span class="p">,</span>
+                <span class="n">timeToCollision</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+                <span class="n">impactSection</span><span class="o">=</span><span class="n">ObjectFace</span><span class="o">.</span><span class="n">FRONT</span><span class="p">,</span>
+                <span class="n">estimatedBrakingDistance</span><span class="o">=</span><span class="mf">100.0</span><span class="p">,</span>
+                <span class="n">estimatedCollisionLatitude</span><span class="o">=</span><span class="mf">37.7749</span><span class="p">,</span>
+                <span class="n">estimatedCollisionLongitude</span><span class="o">=-</span><span class="mf">122.4194</span><span class="p">,</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
     <span class="n">client</span><span class="o">.</span><span class="n">publish_its_message</span><span class="p">(</span>
         <span class="n">message</span><span class="o">=</span><span class="n">denm_message</span><span class="p">,</span>
         <span class="n">address</span><span class="o">=</span><span class="n">address</span><span class="p">,</span>
@@ -2204,12 +2511,52 @@ The following snippet of code:</p>
 <span class="kn">from</span><span class="w"> </span><span class="nn">asyncio</span><span class="w"> </span><span class="kn">import</span> <span class="n">sleep</span> <span class="k">as</span> <span class="n">asyncio_sleep</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">paho.mqtt.subscribeoptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">SubscribeOptions</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">step_cloud_schemas</span><span class="w"> </span><span class="kn">import</span> <span class="n">ItsTime</span><span class="p">,</span> <span class="n">TrafficParticipantType</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">step_lib</span><span class="w"> </span><span class="kn">import</span> <span class="n">GeoNetworkAddress</span><span class="p">,</span> <span class="n">GpsLocation</span><span class="p">,</span> <span class="n">MqttQoS</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">step_cloud_schemas</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">AccelerationComponent</span><span class="p">,</span>
+    <span class="n">ActionId</span><span class="p">,</span>
+    <span class="n">Altitude</span><span class="p">,</span>
+    <span class="n">CamDataV1</span><span class="p">,</span>
+    <span class="n">CauseCode</span><span class="p">,</span>
+    <span class="n">CpmDataV1</span><span class="p">,</span>
+    <span class="n">Curvature</span><span class="p">,</span>
+    <span class="n">CurvatureCalculationMode</span><span class="p">,</span>
+    <span class="n">DenmDataV1</span><span class="p">,</span>
+    <span class="n">DriveDirection</span><span class="p">,</span>
+    <span class="n">Heading</span><span class="p">,</span>
+    <span class="n">Identification</span><span class="p">,</span>
+    <span class="n">ItsTime</span><span class="p">,</span>
+    <span class="n">LocationContainer</span><span class="p">,</span>
+    <span class="n">ManagementContainerDenm</span><span class="p">,</span>
+    <span class="n">MessageId</span><span class="p">,</span>
+    <span class="n">ObjectDimension</span><span class="p">,</span>
+    <span class="n">ObjectFace</span><span class="p">,</span>
+    <span class="n">PathPointPredicted</span><span class="p">,</span>
+    <span class="n">PerceivedObject</span><span class="p">,</span>
+    <span class="n">PositionConfidenceEllipse</span><span class="p">,</span>
+    <span class="n">PreCrashContainer</span><span class="p">,</span>
+    <span class="n">ReferencePosition</span><span class="p">,</span>
+    <span class="n">RoadType</span><span class="p">,</span>
+    <span class="n">SituationContainer</span><span class="p">,</span>
+    <span class="n">Speed</span><span class="p">,</span>
+    <span class="n">Termination</span><span class="p">,</span>
+    <span class="n">TrafficDirection</span><span class="p">,</span>
+    <span class="n">TrafficParticipantType</span><span class="p">,</span>
+    <span class="n">VehicleLength</span><span class="p">,</span>
+    <span class="n">VehicleLengthConfidenceIndication</span><span class="p">,</span>
+    <span class="n">VehicleRole</span><span class="p">,</span>
+    <span class="n">YawRate</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">step_lib</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">CamMessageV1</span><span class="p">,</span>
+    <span class="n">CpmMessageV1</span><span class="p">,</span>
+    <span class="n">DenmMessageV1</span><span class="p">,</span>
+    <span class="n">GeoNetworkAddress</span><span class="p">,</span>
+    <span class="n">GpsLocation</span><span class="p">,</span>
+    <span class="n">MqttQoS</span><span class="p">,</span>
+<span class="p">)</span>
 
-<span class="c1"># create_async_com_manager is the function defined above; receive_messages,</span>
-<span class="c1"># create_cam_orm_message, create_cpm_orm_message, and create_denm_orm_message</span>
-<span class="c1"># are application-defined helpers (not part of step_lib)</span>
+<span class="c1"># create_async_com_manager is the function defined above; receive_messages</span>
+<span class="c1"># is an application-defined helper (not part of step_lib)</span>
 
 <span class="c1"># Use context manager for automatic resource cleanup</span>
 <span class="k">async</span> <span class="k">with</span> <span class="n">create_async_com_manager</span><span class="p">(</span><span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
@@ -2259,23 +2606,162 @@ The following snippet of code:</p>
         <span class="n">receive_message_task</span> <span class="o">=</span> <span class="n">tg</span><span class="o">.</span><span class="n">create_task</span><span class="p">(</span>
             <span class="n">coro</span><span class="o">=</span><span class="n">receive_messages</span><span class="p">(</span><span class="n">client</span><span class="o">=</span><span class="n">client</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span>
         <span class="p">)</span>
-        <span class="c1"># CAM message as ORM</span>
+        <span class="c1"># CAM message</span>
+        <span class="n">cam_message</span> <span class="o">=</span> <span class="n">CamMessageV1</span><span class="p">(</span>
+            <span class="n">message_param</span><span class="o">=</span><span class="n">CamDataV1</span><span class="p">(</span>
+                <span class="nb">type</span><span class="o">=</span><span class="n">MessageId</span><span class="o">.</span><span class="n">CAM_PDU</span><span class="p">,</span>
+                <span class="n">creationTime</span><span class="o">=</span><span class="s2">"2022-04-05T17:31:00.000Z"</span><span class="p">,</span>
+                <span class="n">stationInfo</span><span class="o">=</span><span class="n">Identification</span><span class="p">(</span>
+                    <span class="n">stationId</span><span class="o">=</span><span class="mi">1236</span><span class="p">,</span>
+                    <span class="n">stationType</span><span class="o">=</span><span class="n">TrafficParticipantType</span><span class="o">.</span><span class="n">PASSENGER_CAR</span><span class="p">,</span>
+                    <span class="n">stationTypeConfidence</span><span class="o">=</span><span class="mi">90</span><span class="p">,</span>
+                <span class="p">),</span>
+                <span class="n">position</span><span class="o">=</span><span class="n">ReferencePosition</span><span class="p">(</span>
+                    <span class="n">latitude</span><span class="o">=</span><span class="mf">45.587878</span><span class="p">,</span>
+                    <span class="n">longitude</span><span class="o">=</span><span class="mf">60.458789</span><span class="p">,</span>
+                    <span class="n">positionConfidence</span><span class="o">=</span><span class="n">PositionConfidenceEllipse</span><span class="p">(</span>
+                        <span class="n">semiMajorAxisLengthConfidence</span><span class="o">=</span><span class="mf">1.23</span><span class="p">,</span>
+                        <span class="n">semiMinorAxisLengthConfidence</span><span class="o">=</span><span class="mf">1.23</span><span class="p">,</span>
+                        <span class="n">semiMajorAxisOrientation</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+                    <span class="p">),</span>
+                    <span class="n">altitude</span><span class="o">=</span><span class="n">Altitude</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">120.0</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">1.0</span><span class="p">),</span>
+                <span class="p">),</span>
+                <span class="n">heading</span><span class="o">=</span><span class="n">Heading</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">12.3</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">5.0</span><span class="p">),</span>
+                <span class="n">speed</span><span class="o">=</span><span class="n">Speed</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">123.67</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">0.5</span><span class="p">),</span>
+                <span class="n">driveDirection</span><span class="o">=</span><span class="n">DriveDirection</span><span class="o">.</span><span class="n">FORWARD</span><span class="p">,</span>
+                <span class="n">vehicleLength</span><span class="o">=</span><span class="n">VehicleLength</span><span class="p">(</span>
+                    <span class="n">vehicleLengthValue</span><span class="o">=</span><span class="mf">12.3</span><span class="p">,</span>
+                    <span class="n">vehicleLengthConfidenceIndication</span><span class="o">=</span><span class="n">VehicleLengthConfidenceIndication</span><span class="o">.</span><span class="n">NO_TRAILER_PRESENT</span><span class="p">,</span>
+                <span class="p">),</span>
+                <span class="n">vehicleWidth</span><span class="o">=</span><span class="mf">1.6</span><span class="p">,</span>
+                <span class="n">longitudinalAcceleration</span><span class="o">=</span><span class="n">AccelerationComponent</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">1.3</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">5.0</span><span class="p">),</span>
+                <span class="n">curvature</span><span class="o">=</span><span class="n">Curvature</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">0.02</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">0.0001</span><span class="p">),</span>
+                <span class="n">curvatureCalculationMode</span><span class="o">=</span><span class="n">CurvatureCalculationMode</span><span class="o">.</span><span class="n">YAW_RATE_NOT_USED</span><span class="p">,</span>
+                <span class="n">yawRate</span><span class="o">=</span><span class="n">YawRate</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">0.13</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">5.0</span><span class="p">),</span>
+                <span class="n">vehicleRole</span><span class="o">=</span><span class="n">VehicleRole</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
         <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">publish_its_message</span><span class="p">(</span>
-            <span class="n">message</span><span class="o">=</span><span class="n">create_cam_orm_message</span><span class="p">(),</span>
+            <span class="n">message</span><span class="o">=</span><span class="n">cam_message</span><span class="p">,</span>
             <span class="n">address</span><span class="o">=</span><span class="n">address</span><span class="p">,</span>
             <span class="n">current_position</span><span class="o">=</span><span class="n">current_position</span><span class="p">,</span>
             <span class="n">is_station_mobile</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="c1"># CPM message as ORM</span>
+        <span class="c1"># CPM message</span>
+        <span class="n">perceived_position</span> <span class="o">=</span> <span class="n">ReferencePosition</span><span class="p">(</span>
+            <span class="n">latitude</span><span class="o">=</span><span class="mf">45.587878</span><span class="p">,</span>
+            <span class="n">longitude</span><span class="o">=</span><span class="mf">60.458789</span><span class="p">,</span>
+            <span class="n">positionConfidence</span><span class="o">=</span><span class="n">PositionConfidenceEllipse</span><span class="p">(</span>
+                <span class="n">semiMajorAxisLengthConfidence</span><span class="o">=</span><span class="mf">1.23</span><span class="p">,</span>
+                <span class="n">semiMinorAxisLengthConfidence</span><span class="o">=</span><span class="mf">1.23</span><span class="p">,</span>
+                <span class="n">semiMajorAxisOrientation</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">altitude</span><span class="o">=</span><span class="n">Altitude</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">120.0</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">1.0</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="n">cpm_message</span> <span class="o">=</span> <span class="n">CpmMessageV1</span><span class="p">(</span>
+            <span class="n">message_param</span><span class="o">=</span><span class="n">CpmDataV1</span><span class="p">(</span>
+                <span class="nb">type</span><span class="o">=</span><span class="n">MessageId</span><span class="o">.</span><span class="n">CPM_PDU</span><span class="p">,</span>
+                <span class="n">referenceTime</span><span class="o">=</span><span class="s2">"2022-04-05T17:31:00.000Z"</span><span class="p">,</span>
+                <span class="n">stationId</span><span class="o">=</span><span class="mi">25648</span><span class="p">,</span>
+                <span class="n">referencePosition</span><span class="o">=</span><span class="n">perceived_position</span><span class="p">,</span>
+                <span class="n">perceivedObjects</span><span class="o">=</span><span class="p">[</span>
+                    <span class="n">PerceivedObject</span><span class="p">(</span>
+                        <span class="n">objectId</span><span class="o">=</span><span class="mi">123</span><span class="p">,</span>
+                        <span class="n">objectType</span><span class="o">=</span><span class="n">TrafficParticipantType</span><span class="o">.</span><span class="n">PASSENGER_CAR</span><span class="p">,</span>
+                        <span class="n">objectTypeConfidence</span><span class="o">=</span><span class="mi">90</span><span class="p">,</span>
+                        <span class="n">measurementTime</span><span class="o">=</span><span class="s2">"2022-04-05T17:31:00.000Z"</span><span class="p">,</span>
+                        <span class="n">position</span><span class="o">=</span><span class="n">perceived_position</span><span class="p">,</span>
+                        <span class="n">speed</span><span class="o">=</span><span class="n">Speed</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">123.67</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">0.5</span><span class="p">),</span>
+                        <span class="n">heading</span><span class="o">=</span><span class="n">Heading</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">12.3</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">5.0</span><span class="p">),</span>
+                        <span class="n">objectDimensionZ</span><span class="o">=</span><span class="n">ObjectDimension</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">12.3</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">0.5</span><span class="p">),</span>
+                        <span class="n">objectDimensionY</span><span class="o">=</span><span class="n">ObjectDimension</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">12.3</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">0.5</span><span class="p">),</span>
+                        <span class="n">objectDimensionX</span><span class="o">=</span><span class="n">ObjectDimension</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">12.3</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">0.5</span><span class="p">),</span>
+                        <span class="n">objectPerceptionQuality</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+                        <span class="n">positionPredicted</span><span class="o">=</span><span class="p">[</span>
+                            <span class="n">PathPointPredicted</span><span class="p">(</span>
+                                <span class="n">time</span><span class="o">=</span><span class="s2">"2022-04-05T17:31:00.000Z"</span><span class="p">,</span>
+                                <span class="n">position</span><span class="o">=</span><span class="n">perceived_position</span><span class="p">,</span>
+                            <span class="p">),</span>
+                        <span class="p">],</span>
+                    <span class="p">),</span>
+                <span class="p">],</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
         <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">publish_its_message</span><span class="p">(</span>
-            <span class="n">message</span><span class="o">=</span><span class="n">create_cpm_orm_message</span><span class="p">(),</span>
+            <span class="n">message</span><span class="o">=</span><span class="n">cpm_message</span><span class="p">,</span>
             <span class="n">address</span><span class="o">=</span><span class="n">address</span><span class="p">,</span>
             <span class="n">current_position</span><span class="o">=</span><span class="n">current_position</span><span class="p">,</span>
             <span class="n">is_station_mobile</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="c1"># DENM message as ORM</span>
+        <span class="c1"># DENM message</span>
+        <span class="n">event_position</span> <span class="o">=</span> <span class="n">ReferencePosition</span><span class="p">(</span>
+            <span class="n">latitude</span><span class="o">=</span><span class="mf">45.587878</span><span class="p">,</span>
+            <span class="n">longitude</span><span class="o">=</span><span class="mf">60.458789</span><span class="p">,</span>
+            <span class="n">positionConfidence</span><span class="o">=</span><span class="n">PositionConfidenceEllipse</span><span class="p">(</span>
+                <span class="n">semiMajorAxisLengthConfidence</span><span class="o">=</span><span class="mf">1.23</span><span class="p">,</span>
+                <span class="n">semiMinorAxisLengthConfidence</span><span class="o">=</span><span class="mf">1.23</span><span class="p">,</span>
+                <span class="n">semiMajorAxisOrientation</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">altitude</span><span class="o">=</span><span class="n">Altitude</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">120.0</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">1.0</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="n">denm_message</span> <span class="o">=</span> <span class="n">DenmMessageV1</span><span class="p">(</span>
+            <span class="n">message_param</span><span class="o">=</span><span class="n">DenmDataV1</span><span class="p">(</span>
+                <span class="nb">type</span><span class="o">=</span><span class="n">MessageId</span><span class="o">.</span><span class="n">DENM_PDU</span><span class="p">,</span>
+                <span class="n">stationId</span><span class="o">=</span><span class="mi">25648</span><span class="p">,</span>
+                <span class="n">managementContainer</span><span class="o">=</span><span class="n">ManagementContainerDenm</span><span class="p">(</span>
+                    <span class="n">actionId</span><span class="o">=</span><span class="n">ActionId</span><span class="p">(</span><span class="n">originatingStationId</span><span class="o">=</span><span class="mi">123</span><span class="p">,</span> <span class="n">sequenceNumber</span><span class="o">=</span><span class="mi">25</span><span class="p">),</span>
+                    <span class="n">detectionTime</span><span class="o">=</span><span class="s2">"2022-04-05T17:30:59.000Z"</span><span class="p">,</span>
+                    <span class="n">referenceTime</span><span class="o">=</span><span class="s2">"2022-04-05T17:31:00.000Z"</span><span class="p">,</span>
+                    <span class="n">termination</span><span class="o">=</span><span class="n">Termination</span><span class="o">.</span><span class="n">CANCELLATION</span><span class="p">,</span>
+                    <span class="n">eventPosition</span><span class="o">=</span><span class="n">event_position</span><span class="p">,</span>
+                    <span class="n">awarenessDistance</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+                    <span class="n">trafficDirection</span><span class="o">=</span><span class="n">TrafficDirection</span><span class="o">.</span><span class="n">ALL_TRAFFIC_DIR</span><span class="p">,</span>
+                    <span class="n">validityDuration</span><span class="o">=</span><span class="mi">60</span><span class="p">,</span>
+                    <span class="n">transmissionInterval</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+                    <span class="n">stationType</span><span class="o">=</span><span class="n">TrafficParticipantType</span><span class="o">.</span><span class="n">PASSENGER_CAR</span><span class="p">,</span>
+                    <span class="n">referenceStationId</span><span class="o">=</span><span class="mi">25648</span><span class="p">,</span>
+                    <span class="n">referenceObjectId</span><span class="o">=</span><span class="mi">123</span><span class="p">,</span>
+                <span class="p">),</span>
+                <span class="n">situationContainer</span><span class="o">=</span><span class="n">SituationContainer</span><span class="p">(</span>
+                    <span class="n">informationQuality</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+                    <span class="n">eventType</span><span class="o">=</span><span class="n">CauseCode</span><span class="o">.</span><span class="n">COLLISION_RISK</span><span class="p">,</span>
+                <span class="p">),</span>
+                <span class="n">locationContainer</span><span class="o">=</span><span class="n">LocationContainer</span><span class="p">(</span>
+                    <span class="n">eventSpeed</span><span class="o">=</span><span class="n">Speed</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">123.67</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">0.5</span><span class="p">),</span>
+                    <span class="n">eventPositionHeading</span><span class="o">=</span><span class="n">Heading</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">12.3</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">5.0</span><span class="p">),</span>
+                    <span class="n">roadType</span><span class="o">=</span><span class="n">RoadType</span><span class="o">.</span><span class="n">URBAN_NO_STRUCT_SEP_TO_OPPOSITE_LANES</span><span class="p">,</span>
+                <span class="p">),</span>
+                <span class="n">preCrashContainer</span><span class="o">=</span><span class="n">PreCrashContainer</span><span class="p">(</span>
+                    <span class="n">perceivedObject</span><span class="o">=</span><span class="n">PerceivedObject</span><span class="p">(</span>
+                        <span class="n">objectId</span><span class="o">=</span><span class="mi">123</span><span class="p">,</span>
+                        <span class="n">objectType</span><span class="o">=</span><span class="n">TrafficParticipantType</span><span class="o">.</span><span class="n">PASSENGER_CAR</span><span class="p">,</span>
+                        <span class="n">objectTypeConfidence</span><span class="o">=</span><span class="mi">90</span><span class="p">,</span>
+                        <span class="n">measurementTime</span><span class="o">=</span><span class="s2">"2022-04-05T17:31:00.000Z"</span><span class="p">,</span>
+                        <span class="n">position</span><span class="o">=</span><span class="n">event_position</span><span class="p">,</span>
+                        <span class="n">speed</span><span class="o">=</span><span class="n">Speed</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">123.67</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">0.5</span><span class="p">),</span>
+                        <span class="n">heading</span><span class="o">=</span><span class="n">Heading</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">12.3</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">5.0</span><span class="p">),</span>
+                        <span class="n">objectDimensionZ</span><span class="o">=</span><span class="n">ObjectDimension</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">12.3</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">0.5</span><span class="p">),</span>
+                        <span class="n">objectDimensionY</span><span class="o">=</span><span class="n">ObjectDimension</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">12.3</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">0.5</span><span class="p">),</span>
+                        <span class="n">objectDimensionX</span><span class="o">=</span><span class="n">ObjectDimension</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">12.3</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">0.5</span><span class="p">),</span>
+                        <span class="n">objectPerceptionQuality</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+                        <span class="n">positionPredicted</span><span class="o">=</span><span class="p">[</span>
+                            <span class="n">PathPointPredicted</span><span class="p">(</span>
+                                <span class="n">time</span><span class="o">=</span><span class="s2">"2022-04-05T17:31:00.000Z"</span><span class="p">,</span>
+                                <span class="n">position</span><span class="o">=</span><span class="n">event_position</span><span class="p">,</span>
+                            <span class="p">),</span>
+                        <span class="p">],</span>
+                    <span class="p">),</span>
+                    <span class="n">stationIdInvolved</span><span class="o">=</span><span class="mi">25648</span><span class="p">,</span>
+                    <span class="n">timeToCollision</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+                    <span class="n">impactSection</span><span class="o">=</span><span class="n">ObjectFace</span><span class="o">.</span><span class="n">FRONT</span><span class="p">,</span>
+                    <span class="n">estimatedBrakingDistance</span><span class="o">=</span><span class="mf">100.0</span><span class="p">,</span>
+                    <span class="n">estimatedCollisionLatitude</span><span class="o">=</span><span class="mf">37.7749</span><span class="p">,</span>
+                    <span class="n">estimatedCollisionLongitude</span><span class="o">=-</span><span class="mf">122.4194</span><span class="p">,</span>
+                <span class="p">),</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
         <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">publish_its_message</span><span class="p">(</span>
-            <span class="n">message</span><span class="o">=</span><span class="n">create_denm_orm_message</span><span class="p">(),</span>
+            <span class="n">message</span><span class="o">=</span><span class="n">denm_message</span><span class="p">,</span>
             <span class="n">address</span><span class="o">=</span><span class="n">address</span><span class="p">,</span>
             <span class="n">current_position</span><span class="o">=</span><span class="n">current_position</span><span class="p">,</span>
             <span class="n">is_station_mobile</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>

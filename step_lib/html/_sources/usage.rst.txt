@@ -186,10 +186,45 @@ The following snippet of code:
 
 .. code-block:: python
 
-    from step_cloud_schemas import ItsTime, TrafficParticipantType
+    from step_cloud_schemas import (
+        AccelerationComponent,
+        ActionId,
+        Altitude,
+        CamDataV1,
+        CauseCode,
+        CpmDataV1,
+        Curvature,
+        CurvatureCalculationMode,
+        DenmDataV1,
+        DriveDirection,
+        Heading,
+        Identification,
+        ItsTime,
+        LocationContainer,
+        ManagementContainerDenm,
+        MessageId,
+        ObjectDimension,
+        ObjectFace,
+        PathPointPredicted,
+        PerceivedObject,
+        PositionConfidenceEllipse,
+        PreCrashContainer,
+        ReferencePosition,
+        RoadType,
+        SituationContainer,
+        Speed,
+        Termination,
+        TrafficDirection,
+        TrafficParticipantType,
+        VehicleLength,
+        VehicleLengthConfidenceIndication,
+        VehicleRole,
+        YawRate,
+    )
     from step_lib import (
         CamMessageV1,
         CpmMessageV1,
+        DenmMessageV1,
         GeoNetworkAddress,
         GpsLocation,
         MqttQoS,
@@ -227,7 +262,40 @@ The following snippet of code:
         )
 
         # Publish CAM message
-        cam_message = CamMessageV1()  # Create your CAM message
+        cam_message = CamMessageV1(
+            message_param=CamDataV1(
+                type=MessageId.CAM_PDU,
+                creationTime="2022-04-05T17:31:00.000Z",
+                stationInfo=Identification(
+                    stationId=1236,
+                    stationType=TrafficParticipantType.PASSENGER_CAR,
+                    stationTypeConfidence=90,
+                ),
+                position=ReferencePosition(
+                    latitude=45.587878,
+                    longitude=60.458789,
+                    positionConfidence=PositionConfidenceEllipse(
+                        semiMajorAxisLengthConfidence=1.23,
+                        semiMinorAxisLengthConfidence=1.23,
+                        semiMajorAxisOrientation=1.0,
+                    ),
+                    altitude=Altitude(value=120.0, confidence=1.0),
+                ),
+                heading=Heading(value=12.3, confidence=5.0),
+                speed=Speed(value=123.67, confidence=0.5),
+                driveDirection=DriveDirection.FORWARD,
+                vehicleLength=VehicleLength(
+                    vehicleLengthValue=12.3,
+                    vehicleLengthConfidenceIndication=VehicleLengthConfidenceIndication.NO_TRAILER_PRESENT,
+                ),
+                vehicleWidth=1.6,
+                longitudinalAcceleration=AccelerationComponent(value=1.3, confidence=5.0),
+                curvature=Curvature(value=0.02, confidence=0.0001),
+                curvatureCalculationMode=CurvatureCalculationMode.YAW_RATE_NOT_USED,
+                yawRate=YawRate(value=0.13, confidence=5.0),
+                vehicleRole=VehicleRole.DEFAULT,
+            )
+        )
         client.publish_its_message(
             message=cam_message,
             address=address,
@@ -236,7 +304,45 @@ The following snippet of code:
         )
 
         # Publish CPM message
-        cpm_message = CpmMessageV1()  # Create your CPM message
+        perceived_position = ReferencePosition(
+            latitude=45.587878,
+            longitude=60.458789,
+            positionConfidence=PositionConfidenceEllipse(
+                semiMajorAxisLengthConfidence=1.23,
+                semiMinorAxisLengthConfidence=1.23,
+                semiMajorAxisOrientation=1.0,
+            ),
+            altitude=Altitude(value=120.0, confidence=1.0),
+        )
+        cpm_message = CpmMessageV1(
+            message_param=CpmDataV1(
+                type=MessageId.CPM_PDU,
+                referenceTime="2022-04-05T17:31:00.000Z",
+                stationId=25648,
+                referencePosition=perceived_position,
+                perceivedObjects=[
+                    PerceivedObject(
+                        objectId=123,
+                        objectType=TrafficParticipantType.PASSENGER_CAR,
+                        objectTypeConfidence=90,
+                        measurementTime="2022-04-05T17:31:00.000Z",
+                        position=perceived_position,
+                        speed=Speed(value=123.67, confidence=0.5),
+                        heading=Heading(value=12.3, confidence=5.0),
+                        objectDimensionZ=ObjectDimension(value=12.3, confidence=0.5),
+                        objectDimensionY=ObjectDimension(value=12.3, confidence=0.5),
+                        objectDimensionX=ObjectDimension(value=12.3, confidence=0.5),
+                        objectPerceptionQuality=5,
+                        positionPredicted=[
+                            PathPointPredicted(
+                                time="2022-04-05T17:31:00.000Z",
+                                position=perceived_position,
+                            ),
+                        ],
+                    ),
+                ],
+            )
+        )
         client.publish_its_message(
             message=cpm_message,
             address=address,
@@ -245,7 +351,72 @@ The following snippet of code:
         )
 
         # Publish DENM message
-        denm_message = DenmMessageV1()  # Create your DENM message
+        event_position = ReferencePosition(
+            latitude=45.587878,
+            longitude=60.458789,
+            positionConfidence=PositionConfidenceEllipse(
+                semiMajorAxisLengthConfidence=1.23,
+                semiMinorAxisLengthConfidence=1.23,
+                semiMajorAxisOrientation=1.0,
+            ),
+            altitude=Altitude(value=120.0, confidence=1.0),
+        )
+        denm_message = DenmMessageV1(
+            message_param=DenmDataV1(
+                type=MessageId.DENM_PDU,
+                stationId=25648,
+                managementContainer=ManagementContainerDenm(
+                    actionId=ActionId(originatingStationId=123, sequenceNumber=25),
+                    detectionTime="2022-04-05T17:30:59.000Z",
+                    referenceTime="2022-04-05T17:31:00.000Z",
+                    termination=Termination.CANCELLATION,
+                    eventPosition=event_position,
+                    awarenessDistance=100,
+                    trafficDirection=TrafficDirection.ALL_TRAFFIC_DIR,
+                    validityDuration=60,
+                    transmissionInterval=1000,
+                    stationType=TrafficParticipantType.PASSENGER_CAR,
+                    referenceStationId=25648,
+                    referenceObjectId=123,
+                ),
+                situationContainer=SituationContainer(
+                    informationQuality=5,
+                    eventType=CauseCode.COLLISION_RISK,
+                ),
+                locationContainer=LocationContainer(
+                    eventSpeed=Speed(value=123.67, confidence=0.5),
+                    eventPositionHeading=Heading(value=12.3, confidence=5.0),
+                    roadType=RoadType.URBAN_NO_STRUCT_SEP_TO_OPPOSITE_LANES,
+                ),
+                preCrashContainer=PreCrashContainer(
+                    perceivedObject=PerceivedObject(
+                        objectId=123,
+                        objectType=TrafficParticipantType.PASSENGER_CAR,
+                        objectTypeConfidence=90,
+                        measurementTime="2022-04-05T17:31:00.000Z",
+                        position=event_position,
+                        speed=Speed(value=123.67, confidence=0.5),
+                        heading=Heading(value=12.3, confidence=5.0),
+                        objectDimensionZ=ObjectDimension(value=12.3, confidence=0.5),
+                        objectDimensionY=ObjectDimension(value=12.3, confidence=0.5),
+                        objectDimensionX=ObjectDimension(value=12.3, confidence=0.5),
+                        objectPerceptionQuality=5,
+                        positionPredicted=[
+                            PathPointPredicted(
+                                time="2022-04-05T17:31:00.000Z",
+                                position=event_position,
+                            ),
+                        ],
+                    ),
+                    stationIdInvolved=25648,
+                    timeToCollision=1.0,
+                    impactSection=ObjectFace.FRONT,
+                    estimatedBrakingDistance=100.0,
+                    estimatedCollisionLatitude=37.7749,
+                    estimatedCollisionLongitude=-122.4194,
+                ),
+            )
+        )
         client.publish_its_message(
             message=denm_message,
             address=address,
@@ -313,7 +484,40 @@ The following snippet of code:
         )
 
         # Publish CAM message
-        cam_message = CamMessageV1()  # Create your CAM message
+        cam_message = CamMessageV1(
+            message_param=CamDataV1(
+                type=MessageId.CAM_PDU,
+                creationTime="2022-04-05T17:31:00.000Z",
+                stationInfo=Identification(
+                    stationId=1236,
+                    stationType=TrafficParticipantType.PASSENGER_CAR,
+                    stationTypeConfidence=90,
+                ),
+                position=ReferencePosition(
+                    latitude=45.587878,
+                    longitude=60.458789,
+                    positionConfidence=PositionConfidenceEllipse(
+                        semiMajorAxisLengthConfidence=1.23,
+                        semiMinorAxisLengthConfidence=1.23,
+                        semiMajorAxisOrientation=1.0,
+                    ),
+                    altitude=Altitude(value=120.0, confidence=1.0),
+                ),
+                heading=Heading(value=12.3, confidence=5.0),
+                speed=Speed(value=123.67, confidence=0.5),
+                driveDirection=DriveDirection.FORWARD,
+                vehicleLength=VehicleLength(
+                    vehicleLengthValue=12.3,
+                    vehicleLengthConfidenceIndication=VehicleLengthConfidenceIndication.NO_TRAILER_PRESENT,
+                ),
+                vehicleWidth=1.6,
+                longitudinalAcceleration=AccelerationComponent(value=1.3, confidence=5.0),
+                curvature=Curvature(value=0.02, confidence=0.0001),
+                curvatureCalculationMode=CurvatureCalculationMode.YAW_RATE_NOT_USED,
+                yawRate=YawRate(value=0.13, confidence=5.0),
+                vehicleRole=VehicleRole.DEFAULT,
+            )
+        )
         client.publish_its_message(
             message=cam_message,
             address=address,
@@ -322,7 +526,45 @@ The following snippet of code:
         )
 
         # Publish CPM message
-        cpm_message = CpmMessageV1()  # Create your CPM message
+        perceived_position = ReferencePosition(
+            latitude=45.587878,
+            longitude=60.458789,
+            positionConfidence=PositionConfidenceEllipse(
+                semiMajorAxisLengthConfidence=1.23,
+                semiMinorAxisLengthConfidence=1.23,
+                semiMajorAxisOrientation=1.0,
+            ),
+            altitude=Altitude(value=120.0, confidence=1.0),
+        )
+        cpm_message = CpmMessageV1(
+            message_param=CpmDataV1(
+                type=MessageId.CPM_PDU,
+                referenceTime="2022-04-05T17:31:00.000Z",
+                stationId=25648,
+                referencePosition=perceived_position,
+                perceivedObjects=[
+                    PerceivedObject(
+                        objectId=123,
+                        objectType=TrafficParticipantType.PASSENGER_CAR,
+                        objectTypeConfidence=90,
+                        measurementTime="2022-04-05T17:31:00.000Z",
+                        position=perceived_position,
+                        speed=Speed(value=123.67, confidence=0.5),
+                        heading=Heading(value=12.3, confidence=5.0),
+                        objectDimensionZ=ObjectDimension(value=12.3, confidence=0.5),
+                        objectDimensionY=ObjectDimension(value=12.3, confidence=0.5),
+                        objectDimensionX=ObjectDimension(value=12.3, confidence=0.5),
+                        objectPerceptionQuality=5,
+                        positionPredicted=[
+                            PathPointPredicted(
+                                time="2022-04-05T17:31:00.000Z",
+                                position=perceived_position,
+                            ),
+                        ],
+                    ),
+                ],
+            )
+        )
         client.publish_its_message(
             message=cpm_message,
             address=address,
@@ -331,7 +573,72 @@ The following snippet of code:
         )
 
         # Publish DENM message
-        denm_message = DenmMessageV1()  # Create your DENM message
+        event_position = ReferencePosition(
+            latitude=45.587878,
+            longitude=60.458789,
+            positionConfidence=PositionConfidenceEllipse(
+                semiMajorAxisLengthConfidence=1.23,
+                semiMinorAxisLengthConfidence=1.23,
+                semiMajorAxisOrientation=1.0,
+            ),
+            altitude=Altitude(value=120.0, confidence=1.0),
+        )
+        denm_message = DenmMessageV1(
+            message_param=DenmDataV1(
+                type=MessageId.DENM_PDU,
+                stationId=25648,
+                managementContainer=ManagementContainerDenm(
+                    actionId=ActionId(originatingStationId=123, sequenceNumber=25),
+                    detectionTime="2022-04-05T17:30:59.000Z",
+                    referenceTime="2022-04-05T17:31:00.000Z",
+                    termination=Termination.CANCELLATION,
+                    eventPosition=event_position,
+                    awarenessDistance=100,
+                    trafficDirection=TrafficDirection.ALL_TRAFFIC_DIR,
+                    validityDuration=60,
+                    transmissionInterval=1000,
+                    stationType=TrafficParticipantType.PASSENGER_CAR,
+                    referenceStationId=25648,
+                    referenceObjectId=123,
+                ),
+                situationContainer=SituationContainer(
+                    informationQuality=5,
+                    eventType=CauseCode.COLLISION_RISK,
+                ),
+                locationContainer=LocationContainer(
+                    eventSpeed=Speed(value=123.67, confidence=0.5),
+                    eventPositionHeading=Heading(value=12.3, confidence=5.0),
+                    roadType=RoadType.URBAN_NO_STRUCT_SEP_TO_OPPOSITE_LANES,
+                ),
+                preCrashContainer=PreCrashContainer(
+                    perceivedObject=PerceivedObject(
+                        objectId=123,
+                        objectType=TrafficParticipantType.PASSENGER_CAR,
+                        objectTypeConfidence=90,
+                        measurementTime="2022-04-05T17:31:00.000Z",
+                        position=event_position,
+                        speed=Speed(value=123.67, confidence=0.5),
+                        heading=Heading(value=12.3, confidence=5.0),
+                        objectDimensionZ=ObjectDimension(value=12.3, confidence=0.5),
+                        objectDimensionY=ObjectDimension(value=12.3, confidence=0.5),
+                        objectDimensionX=ObjectDimension(value=12.3, confidence=0.5),
+                        objectPerceptionQuality=5,
+                        positionPredicted=[
+                            PathPointPredicted(
+                                time="2022-04-05T17:31:00.000Z",
+                                position=event_position,
+                            ),
+                        ],
+                    ),
+                    stationIdInvolved=25648,
+                    timeToCollision=1.0,
+                    impactSection=ObjectFace.FRONT,
+                    estimatedBrakingDistance=100.0,
+                    estimatedCollisionLatitude=37.7749,
+                    estimatedCollisionLongitude=-122.4194,
+                ),
+            )
+        )
         client.publish_its_message(
             message=denm_message,
             address=address,
@@ -468,12 +775,52 @@ The following snippet of code:
     from asyncio import sleep as asyncio_sleep
 
     from paho.mqtt.subscribeoptions import SubscribeOptions
-    from step_cloud_schemas import ItsTime, TrafficParticipantType
-    from step_lib import GeoNetworkAddress, GpsLocation, MqttQoS
+    from step_cloud_schemas import (
+        AccelerationComponent,
+        ActionId,
+        Altitude,
+        CamDataV1,
+        CauseCode,
+        CpmDataV1,
+        Curvature,
+        CurvatureCalculationMode,
+        DenmDataV1,
+        DriveDirection,
+        Heading,
+        Identification,
+        ItsTime,
+        LocationContainer,
+        ManagementContainerDenm,
+        MessageId,
+        ObjectDimension,
+        ObjectFace,
+        PathPointPredicted,
+        PerceivedObject,
+        PositionConfidenceEllipse,
+        PreCrashContainer,
+        ReferencePosition,
+        RoadType,
+        SituationContainer,
+        Speed,
+        Termination,
+        TrafficDirection,
+        TrafficParticipantType,
+        VehicleLength,
+        VehicleLengthConfidenceIndication,
+        VehicleRole,
+        YawRate,
+    )
+    from step_lib import (
+        CamMessageV1,
+        CpmMessageV1,
+        DenmMessageV1,
+        GeoNetworkAddress,
+        GpsLocation,
+        MqttQoS,
+    )
 
-    # create_async_com_manager is the function defined above; receive_messages,
-    # create_cam_orm_message, create_cpm_orm_message, and create_denm_orm_message
-    # are application-defined helpers (not part of step_lib)
+    # create_async_com_manager is the function defined above; receive_messages
+    # is an application-defined helper (not part of step_lib)
 
     # Use context manager for automatic resource cleanup
     async with create_async_com_manager(logger=logger) as client:
@@ -523,23 +870,162 @@ The following snippet of code:
             receive_message_task = tg.create_task(
                 coro=receive_messages(client=client, logger=logger)
             )
-            # CAM message as ORM
+            # CAM message
+            cam_message = CamMessageV1(
+                message_param=CamDataV1(
+                    type=MessageId.CAM_PDU,
+                    creationTime="2022-04-05T17:31:00.000Z",
+                    stationInfo=Identification(
+                        stationId=1236,
+                        stationType=TrafficParticipantType.PASSENGER_CAR,
+                        stationTypeConfidence=90,
+                    ),
+                    position=ReferencePosition(
+                        latitude=45.587878,
+                        longitude=60.458789,
+                        positionConfidence=PositionConfidenceEllipse(
+                            semiMajorAxisLengthConfidence=1.23,
+                            semiMinorAxisLengthConfidence=1.23,
+                            semiMajorAxisOrientation=1.0,
+                        ),
+                        altitude=Altitude(value=120.0, confidence=1.0),
+                    ),
+                    heading=Heading(value=12.3, confidence=5.0),
+                    speed=Speed(value=123.67, confidence=0.5),
+                    driveDirection=DriveDirection.FORWARD,
+                    vehicleLength=VehicleLength(
+                        vehicleLengthValue=12.3,
+                        vehicleLengthConfidenceIndication=VehicleLengthConfidenceIndication.NO_TRAILER_PRESENT,
+                    ),
+                    vehicleWidth=1.6,
+                    longitudinalAcceleration=AccelerationComponent(value=1.3, confidence=5.0),
+                    curvature=Curvature(value=0.02, confidence=0.0001),
+                    curvatureCalculationMode=CurvatureCalculationMode.YAW_RATE_NOT_USED,
+                    yawRate=YawRate(value=0.13, confidence=5.0),
+                    vehicleRole=VehicleRole.DEFAULT,
+                )
+            )
             await client.publish_its_message(
-                message=create_cam_orm_message(),
+                message=cam_message,
                 address=address,
                 current_position=current_position,
                 is_station_mobile=True,
             )
-            # CPM message as ORM
+            # CPM message
+            perceived_position = ReferencePosition(
+                latitude=45.587878,
+                longitude=60.458789,
+                positionConfidence=PositionConfidenceEllipse(
+                    semiMajorAxisLengthConfidence=1.23,
+                    semiMinorAxisLengthConfidence=1.23,
+                    semiMajorAxisOrientation=1.0,
+                ),
+                altitude=Altitude(value=120.0, confidence=1.0),
+            )
+            cpm_message = CpmMessageV1(
+                message_param=CpmDataV1(
+                    type=MessageId.CPM_PDU,
+                    referenceTime="2022-04-05T17:31:00.000Z",
+                    stationId=25648,
+                    referencePosition=perceived_position,
+                    perceivedObjects=[
+                        PerceivedObject(
+                            objectId=123,
+                            objectType=TrafficParticipantType.PASSENGER_CAR,
+                            objectTypeConfidence=90,
+                            measurementTime="2022-04-05T17:31:00.000Z",
+                            position=perceived_position,
+                            speed=Speed(value=123.67, confidence=0.5),
+                            heading=Heading(value=12.3, confidence=5.0),
+                            objectDimensionZ=ObjectDimension(value=12.3, confidence=0.5),
+                            objectDimensionY=ObjectDimension(value=12.3, confidence=0.5),
+                            objectDimensionX=ObjectDimension(value=12.3, confidence=0.5),
+                            objectPerceptionQuality=5,
+                            positionPredicted=[
+                                PathPointPredicted(
+                                    time="2022-04-05T17:31:00.000Z",
+                                    position=perceived_position,
+                                ),
+                            ],
+                        ),
+                    ],
+                )
+            )
             await client.publish_its_message(
-                message=create_cpm_orm_message(),
+                message=cpm_message,
                 address=address,
                 current_position=current_position,
                 is_station_mobile=True,
             )
-            # DENM message as ORM
+            # DENM message
+            event_position = ReferencePosition(
+                latitude=45.587878,
+                longitude=60.458789,
+                positionConfidence=PositionConfidenceEllipse(
+                    semiMajorAxisLengthConfidence=1.23,
+                    semiMinorAxisLengthConfidence=1.23,
+                    semiMajorAxisOrientation=1.0,
+                ),
+                altitude=Altitude(value=120.0, confidence=1.0),
+            )
+            denm_message = DenmMessageV1(
+                message_param=DenmDataV1(
+                    type=MessageId.DENM_PDU,
+                    stationId=25648,
+                    managementContainer=ManagementContainerDenm(
+                        actionId=ActionId(originatingStationId=123, sequenceNumber=25),
+                        detectionTime="2022-04-05T17:30:59.000Z",
+                        referenceTime="2022-04-05T17:31:00.000Z",
+                        termination=Termination.CANCELLATION,
+                        eventPosition=event_position,
+                        awarenessDistance=100,
+                        trafficDirection=TrafficDirection.ALL_TRAFFIC_DIR,
+                        validityDuration=60,
+                        transmissionInterval=1000,
+                        stationType=TrafficParticipantType.PASSENGER_CAR,
+                        referenceStationId=25648,
+                        referenceObjectId=123,
+                    ),
+                    situationContainer=SituationContainer(
+                        informationQuality=5,
+                        eventType=CauseCode.COLLISION_RISK,
+                    ),
+                    locationContainer=LocationContainer(
+                        eventSpeed=Speed(value=123.67, confidence=0.5),
+                        eventPositionHeading=Heading(value=12.3, confidence=5.0),
+                        roadType=RoadType.URBAN_NO_STRUCT_SEP_TO_OPPOSITE_LANES,
+                    ),
+                    preCrashContainer=PreCrashContainer(
+                        perceivedObject=PerceivedObject(
+                            objectId=123,
+                            objectType=TrafficParticipantType.PASSENGER_CAR,
+                            objectTypeConfidence=90,
+                            measurementTime="2022-04-05T17:31:00.000Z",
+                            position=event_position,
+                            speed=Speed(value=123.67, confidence=0.5),
+                            heading=Heading(value=12.3, confidence=5.0),
+                            objectDimensionZ=ObjectDimension(value=12.3, confidence=0.5),
+                            objectDimensionY=ObjectDimension(value=12.3, confidence=0.5),
+                            objectDimensionX=ObjectDimension(value=12.3, confidence=0.5),
+                            objectPerceptionQuality=5,
+                            positionPredicted=[
+                                PathPointPredicted(
+                                    time="2022-04-05T17:31:00.000Z",
+                                    position=event_position,
+                                ),
+                            ],
+                        ),
+                        stationIdInvolved=25648,
+                        timeToCollision=1.0,
+                        impactSection=ObjectFace.FRONT,
+                        estimatedBrakingDistance=100.0,
+                        estimatedCollisionLatitude=37.7749,
+                        estimatedCollisionLongitude=-122.4194,
+                    ),
+                )
+            )
             await client.publish_its_message(
-                message=create_denm_orm_message(),
+                message=denm_message,
                 address=address,
                 current_position=current_position,
                 is_station_mobile=True,
