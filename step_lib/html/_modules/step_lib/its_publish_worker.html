@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>step_lib.its_publish_worker &mdash; STEP Library 2.0.9 documentation</title>
+  <title>step_lib.its_publish_worker &mdash; STEP Library 2.0.10 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=4c969af8" />
@@ -15,7 +15,7 @@
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=d65cc7a5"></script>
+      <script src="../../_static/documentation_options.js?v=4dc8cd5f"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/tabs.js?v=3ee01567"></script>
@@ -1527,6 +1527,7 @@
 <li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_its_publish_worker.html#test.test_its_publish_worker.TestPublishWorker.params"><code class="docutils literal notranslate"><span class="pre">TestPublishWorker.params()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_its_publish_worker.html#test.test_its_publish_worker.TestPublishWorker.test_async_main_ready_and_shuts_down_on_stop_signal"><code class="docutils literal notranslate"><span class="pre">TestPublishWorker.test_async_main_ready_and_shuts_down_on_stop_signal()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_its_publish_worker.html#test.test_its_publish_worker.TestPublishWorker.test_async_main_returns_without_ready_when_connect_fails"><code class="docutils literal notranslate"><span class="pre">TestPublishWorker.test_async_main_returns_without_ready_when_connect_fails()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_its_publish_worker.html#test.test_its_publish_worker.TestPublishWorker.test_exception_handler_logs_only_when_error_enabled"><code class="docutils literal notranslate"><span class="pre">TestPublishWorker.test_exception_handler_logs_only_when_error_enabled()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_its_publish_worker.html#test.test_its_publish_worker.TestPublishWorker.test_heartbeat_loop_keeps_advancing"><code class="docutils literal notranslate"><span class="pre">TestPublishWorker.test_heartbeat_loop_keeps_advancing()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_its_publish_worker.html#test.test_its_publish_worker.TestPublishWorker.test_init"><code class="docutils literal notranslate"><span class="pre">TestPublishWorker.test_init()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_its_publish_worker.html#test.test_its_publish_worker.TestPublishWorker.test_is_parent_alive_false_on_pid_reuse"><code class="docutils literal notranslate"><span class="pre">TestPublishWorker.test_is_parent_alive_false_on_pid_reuse()</span></code></a></li>
@@ -1541,6 +1542,7 @@
 <li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_its_publish_worker.html#test.test_its_publish_worker.TestPublishWorker.test_run_sets_up_logger_and_params_then_delegates_to_async_main"><code class="docutils literal notranslate"><span class="pre">TestPublishWorker.test_run_sets_up_logger_and_params_then_delegates_to_async_main()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_its_publish_worker.html#test.test_its_publish_worker.TestPublishWorker.test_run_swallows_keyboard_interrupt_from_async_main"><code class="docutils literal notranslate"><span class="pre">TestPublishWorker.test_run_swallows_keyboard_interrupt_from_async_main()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_its_publish_worker.html#test.test_its_publish_worker.TestPublishWorker.test_stop_watch_loop_raises_once_stop_event_set"><code class="docutils literal notranslate"><span class="pre">TestPublishWorker.test_stop_watch_loop_raises_once_stop_event_set()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_its_publish_worker.html#test.test_its_publish_worker.TestPublishWorker.test_unraisable_handler_logs_only_when_error_enabled"><code class="docutils literal notranslate"><span class="pre">TestPublishWorker.test_unraisable_handler_logs_only_when_error_enabled()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../../test_rst/test.test_its_publish_worker.html#test.test_its_publish_worker.TestPublishWorker.worker"><code class="docutils literal notranslate"><span class="pre">TestPublishWorker.worker()</span></code></a></li>
 </ul>
 </li>
@@ -1782,530 +1784,636 @@
 <span class="linenos"> 38</span><span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 <span class="linenos"> 39</span><span class="kn">import</span><span class="w"> </span><span class="nn">signal</span>
 <span class="linenos"> 40</span><span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
-<span class="linenos"> 41</span><span class="kn">from</span><span class="w"> </span><span class="nn">asyncio</span><span class="w"> </span><span class="kn">import</span> <span class="n">Runner</span><span class="p">,</span> <span class="n">TaskGroup</span>
+<span class="linenos"> 41</span><span class="kn">from</span><span class="w"> </span><span class="nn">asyncio</span><span class="w"> </span><span class="kn">import</span> <span class="n">Runner</span><span class="p">,</span> <span class="n">SelectorEventLoop</span><span class="p">,</span> <span class="n">TaskGroup</span>
 <span class="linenos"> 42</span><span class="kn">from</span><span class="w"> </span><span class="nn">asyncio</span><span class="w"> </span><span class="kn">import</span> <span class="n">sleep</span> <span class="k">as</span> <span class="n">asyncio_sleep</span>
 <span class="linenos"> 43</span><span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">replace</span>
 <span class="linenos"> 44</span><span class="kn">from</span><span class="w"> </span><span class="nn">gc</span><span class="w"> </span><span class="kn">import</span> <span class="n">collect</span>
-<span class="linenos"> 45</span><span class="kn">from</span><span class="w"> </span><span class="nn">logging</span><span class="w"> </span><span class="kn">import</span> <span class="n">LogRecord</span><span class="p">,</span> <span class="n">getLogger</span>
+<span class="linenos"> 45</span><span class="kn">from</span><span class="w"> </span><span class="nn">logging</span><span class="w"> </span><span class="kn">import</span> <span class="n">Logger</span><span class="p">,</span> <span class="n">LogRecord</span><span class="p">,</span> <span class="n">getLogger</span>
 <span class="linenos"> 46</span><span class="kn">from</span><span class="w"> </span><span class="nn">logging.handlers</span><span class="w"> </span><span class="kn">import</span> <span class="n">QueueHandler</span>
 <span class="linenos"> 47</span><span class="kn">from</span><span class="w"> </span><span class="nn">multiprocessing.synchronize</span><span class="w"> </span><span class="kn">import</span> <span class="n">Event</span> <span class="k">as</span> <span class="n">MpEvent</span>
 <span class="linenos"> 48</span><span class="kn">from</span><span class="w"> </span><span class="nn">time</span><span class="w"> </span><span class="kn">import</span> <span class="n">monotonic</span>
-<span class="linenos"> 49</span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">ClassVar</span>
+<span class="linenos"> 49</span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">ClassVar</span>
 <span class="linenos"> 50</span>
 <span class="linenos"> 51</span><span class="c1"># Third Party Imports</span>
-<span class="linenos"> 52</span><span class="kn">import</span><span class="w"> </span><span class="nn">zmq</span>
-<span class="linenos"> 53</span><span class="kn">from</span><span class="w"> </span><span class="nn">psutil</span><span class="w"> </span><span class="kn">import</span> <span class="n">NoSuchProcess</span><span class="p">,</span> <span class="n">Process</span>
-<span class="linenos"> 54</span><span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">ValidationError</span>
-<span class="linenos"> 55</span><span class="kn">from</span><span class="w"> </span><span class="nn">zmq.asyncio</span><span class="w"> </span><span class="kn">import</span> <span class="n">Context</span> <span class="k">as</span> <span class="n">ZmqContext</span>
-<span class="linenos"> 56</span><span class="kn">from</span><span class="w"> </span><span class="nn">zmq.asyncio</span><span class="w"> </span><span class="kn">import</span> <span class="n">Socket</span> <span class="k">as</span> <span class="n">ZmqSocket</span>
-<span class="linenos"> 57</span>
-<span class="linenos"> 58</span><span class="c1"># step_lib Package Imports</span>
-<span class="linenos"> 59</span><span class="kn">from</span><span class="w"> </span><span class="nn">step_lib.async_com_manager</span><span class="w"> </span><span class="kn">import</span> <span class="n">AsyncComManager</span>
-<span class="linenos"> 60</span><span class="kn">from</span><span class="w"> </span><span class="nn">step_lib.its_publish_envelope</span><span class="w"> </span><span class="kn">import</span> <span class="n">PublishEnvelope</span>
-<span class="linenos"> 61</span><span class="kn">from</span><span class="w"> </span><span class="nn">step_lib.sync_com_manager_params</span><span class="w"> </span><span class="kn">import</span> <span class="n">SyncComManagerParams</span>
-<span class="linenos"> 62</span>
-<span class="linenos"> 63</span><span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
-<span class="linenos"> 64</span>    <span class="c1"># Standard Library Imports</span>
-<span class="linenos"> 65</span>    <span class="kn">from</span><span class="w"> </span><span class="nn">multiprocessing.queues</span><span class="w"> </span><span class="kn">import</span> <span class="n">Queue</span> <span class="k">as</span> <span class="n">MpQueue</span>
-<span class="linenos"> 66</span>    <span class="kn">from</span><span class="w"> </span><span class="nn">multiprocessing.sharedctypes</span><span class="w"> </span><span class="kn">import</span> <span class="n">Synchronized</span>
-<span class="linenos"> 67</span>
-<span class="linenos"> 68</span><span class="n">PUBLISH_ZMQ_BIND_IP</span> <span class="o">=</span> <span class="s2">"127.0.0.1"</span>
-<span class="linenos"> 69</span>
+<span class="linenos"> 52</span><span class="kn">import</span><span class="w"> </span><span class="nn">step_cloud_schemas</span>
+<span class="linenos"> 53</span><span class="kn">import</span><span class="w"> </span><span class="nn">zmq</span>
+<span class="linenos"> 54</span><span class="kn">from</span><span class="w"> </span><span class="nn">psutil</span><span class="w"> </span><span class="kn">import</span> <span class="n">NoSuchProcess</span><span class="p">,</span> <span class="n">Process</span>
+<span class="linenos"> 55</span><span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">ValidationError</span>
+<span class="linenos"> 56</span><span class="kn">from</span><span class="w"> </span><span class="nn">zmq.asyncio</span><span class="w"> </span><span class="kn">import</span> <span class="n">Context</span> <span class="k">as</span> <span class="n">ZmqContext</span>
+<span class="linenos"> 57</span><span class="kn">from</span><span class="w"> </span><span class="nn">zmq.asyncio</span><span class="w"> </span><span class="kn">import</span> <span class="n">Socket</span> <span class="k">as</span> <span class="n">ZmqSocket</span>
+<span class="linenos"> 58</span>
+<span class="linenos"> 59</span><span class="c1"># step_lib Package Imports</span>
+<span class="linenos"> 60</span><span class="kn">from</span><span class="w"> </span><span class="nn">step_lib.async_com_manager</span><span class="w"> </span><span class="kn">import</span> <span class="n">AsyncComManager</span>
+<span class="linenos"> 61</span><span class="kn">from</span><span class="w"> </span><span class="nn">step_lib.its_publish_envelope</span><span class="w"> </span><span class="kn">import</span> <span class="n">PublishEnvelope</span>
+<span class="linenos"> 62</span><span class="kn">from</span><span class="w"> </span><span class="nn">step_lib.sync_com_manager_params</span><span class="w"> </span><span class="kn">import</span> <span class="n">SyncComManagerParams</span>
+<span class="linenos"> 63</span>
+<span class="linenos"> 64</span><span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+<span class="linenos"> 65</span>    <span class="c1"># Standard Library Imports</span>
+<span class="linenos"> 66</span>    <span class="kn">from</span><span class="w"> </span><span class="nn">multiprocessing.queues</span><span class="w"> </span><span class="kn">import</span> <span class="n">Queue</span> <span class="k">as</span> <span class="n">MpQueue</span>
+<span class="linenos"> 67</span>    <span class="kn">from</span><span class="w"> </span><span class="nn">multiprocessing.sharedctypes</span><span class="w"> </span><span class="kn">import</span> <span class="n">Synchronized</span>
+<span class="linenos"> 68</span>
+<span class="linenos"> 69</span><span class="n">PUBLISH_ZMQ_BIND_IP</span> <span class="o">=</span> <span class="s2">"127.0.0.1"</span>
 <span class="linenos"> 70</span>
-<span class="linenos"> 71</span><span class="k">class</span><span class="w"> </span><span class="nc">_WorkerShutdownSignal</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>  <span class="c1"># noqa: N818 - a control-flow signal, not an error</span>
-<span class="linenos"> 72</span><span class="w">    </span><span class="sd">"""Module-private base for the three controlled worker-shutdown signals.</span>
-<span class="linenos"> 73</span>
-<span class="linenos"> 74</span><span class="sd">    Raised from one of the sibling tasks running under</span>
-<span class="linenos"> 75</span><span class="sd">    ``PublishWorker._async_main``'s ``TaskGroup`` to trigger a</span>
-<span class="linenos"> 76</span><span class="sd">    clean, cooperative shutdown of every other sibling task. Never exposed</span>
-<span class="linenos"> 77</span><span class="sd">    outside this module.</span>
-<span class="linenos"> 78</span>
-<span class="linenos"> 79</span><span class="sd">    Complexity:</span>
-<span class="linenos"> 80</span><span class="sd">        - Time: O(1), a plain marker subclass with no added fields or logic.</span>
-<span class="linenos"> 81</span><span class="sd">        - Space: O(1), no instance stores more than its message string.</span>
-<span class="linenos"> 82</span><span class="sd">    """</span>
-<span class="linenos"> 83</span>
+<span class="linenos"> 71</span>
+<span class="linenos"> 72</span><span class="k">class</span><span class="w"> </span><span class="nc">_WorkerShutdownSignal</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>  <span class="c1"># noqa: N818 - a control-flow signal, not an error</span>
+<span class="linenos"> 73</span><span class="w">    </span><span class="sd">"""Module-private base for the three controlled worker-shutdown signals.</span>
+<span class="linenos"> 74</span>
+<span class="linenos"> 75</span><span class="sd">    Raised from one of the sibling tasks running under</span>
+<span class="linenos"> 76</span><span class="sd">    ``PublishWorker._async_main``'s ``TaskGroup`` to trigger a</span>
+<span class="linenos"> 77</span><span class="sd">    clean, cooperative shutdown of every other sibling task. Never exposed</span>
+<span class="linenos"> 78</span><span class="sd">    outside this module.</span>
+<span class="linenos"> 79</span>
+<span class="linenos"> 80</span><span class="sd">    Complexity:</span>
+<span class="linenos"> 81</span><span class="sd">        - Time: O(1), a plain marker subclass with no added fields or logic.</span>
+<span class="linenos"> 82</span><span class="sd">        - Space: O(1), no instance stores more than its message string.</span>
+<span class="linenos"> 83</span><span class="sd">    """</span>
 <span class="linenos"> 84</span>
-<span class="linenos"> 85</span><span class="k">class</span><span class="w"> </span><span class="nc">_ParentProcessGoneError</span><span class="p">(</span><span class="n">_WorkerShutdownSignal</span><span class="p">):</span>
-<span class="linenos"> 86</span><span class="w">    </span><span class="sd">"""Raised by ``_parent_watchdog_loop`` when the parent process is no longer</span>
-<span class="linenos"> 87</span><span class="sd">    alive.</span>
-<span class="linenos"> 88</span>
-<span class="linenos"> 89</span><span class="sd">    Complexity:</span>
-<span class="linenos"> 90</span><span class="sd">        - Time: O(1). Space: O(1).</span>
-<span class="linenos"> 91</span><span class="sd">    """</span>
-<span class="linenos"> 92</span>
+<span class="linenos"> 85</span>
+<span class="linenos"> 86</span><span class="k">class</span><span class="w"> </span><span class="nc">_ParentProcessGoneError</span><span class="p">(</span><span class="n">_WorkerShutdownSignal</span><span class="p">):</span>
+<span class="linenos"> 87</span><span class="w">    </span><span class="sd">"""Raised by ``_parent_watchdog_loop`` when the parent process is no longer</span>
+<span class="linenos"> 88</span><span class="sd">    alive.</span>
+<span class="linenos"> 89</span>
+<span class="linenos"> 90</span><span class="sd">    Complexity:</span>
+<span class="linenos"> 91</span><span class="sd">        - Time: O(1). Space: O(1).</span>
+<span class="linenos"> 92</span><span class="sd">    """</span>
 <span class="linenos"> 93</span>
-<span class="linenos"> 94</span><span class="k">class</span><span class="w"> </span><span class="nc">_StopRequestedError</span><span class="p">(</span><span class="n">_WorkerShutdownSignal</span><span class="p">):</span>
-<span class="linenos"> 95</span><span class="w">    </span><span class="sd">"""Raised by ``_stop_watch_loop`` when the pool has requested a graceful</span>
-<span class="linenos"> 96</span><span class="sd">    stop.</span>
-<span class="linenos"> 97</span>
-<span class="linenos"> 98</span><span class="sd">    Complexity:</span>
-<span class="linenos"> 99</span><span class="sd">        - Time: O(1). Space: O(1).</span>
-<span class="linenos">100</span><span class="sd">    """</span>
-<span class="linenos">101</span>
+<span class="linenos"> 94</span>
+<span class="linenos"> 95</span><span class="k">class</span><span class="w"> </span><span class="nc">_StopRequestedError</span><span class="p">(</span><span class="n">_WorkerShutdownSignal</span><span class="p">):</span>
+<span class="linenos"> 96</span><span class="w">    </span><span class="sd">"""Raised by ``_stop_watch_loop`` when the pool has requested a graceful</span>
+<span class="linenos"> 97</span><span class="sd">    stop.</span>
+<span class="linenos"> 98</span>
+<span class="linenos"> 99</span><span class="sd">    Complexity:</span>
+<span class="linenos">100</span><span class="sd">        - Time: O(1). Space: O(1).</span>
+<span class="linenos">101</span><span class="sd">    """</span>
 <span class="linenos">102</span>
-<span class="linenos">103</span><span class="k">class</span><span class="w"> </span><span class="nc">_MaxConnectAttemptsExceededError</span><span class="p">(</span><span class="n">_WorkerShutdownSignal</span><span class="p">):</span>
-<span class="linenos">104</span><span class="w">    </span><span class="sd">"""Raised by ``_publish_loop`` when it has given up after too many</span>
-<span class="linenos">105</span><span class="sd">    consecutive MQTT connect failures.</span>
-<span class="linenos">106</span>
-<span class="linenos">107</span><span class="sd">    Complexity:</span>
-<span class="linenos">108</span><span class="sd">        - Time: O(1). Space: O(1).</span>
-<span class="linenos">109</span><span class="sd">    """</span>
-<span class="linenos">110</span>
+<span class="linenos">103</span>
+<span class="linenos">104</span><span class="k">class</span><span class="w"> </span><span class="nc">_MaxConnectAttemptsExceededError</span><span class="p">(</span><span class="n">_WorkerShutdownSignal</span><span class="p">):</span>
+<span class="linenos">105</span><span class="w">    </span><span class="sd">"""Raised by ``_publish_loop`` when it has given up after too many</span>
+<span class="linenos">106</span><span class="sd">    consecutive MQTT connect failures.</span>
+<span class="linenos">107</span>
+<span class="linenos">108</span><span class="sd">    Complexity:</span>
+<span class="linenos">109</span><span class="sd">        - Time: O(1). Space: O(1).</span>
+<span class="linenos">110</span><span class="sd">    """</span>
 <span class="linenos">111</span>
+<span class="linenos">112</span>
 <div class="viewcode-block" id="PublishWorker">
 <a class="viewcode-back" href="../../step_lib_rst/step_lib.its_publish_worker.html#step_lib.its_publish_worker.PublishWorker">[docs]</a>
-<span class="linenos">112</span><span class="k">class</span><span class="w"> </span><span class="nc">PublishWorker</span><span class="p">:</span>
-<span class="linenos">113</span><span class="w">    </span><span class="sd">"""The entry point and full state of a single publish worker process.</span>
-<span class="linenos">114</span>
-<span class="linenos">115</span><span class="sd">    An instance of this class is constructed in the pool's process (process</span>
-<span class="linenos">116</span><span class="sd">    A) and handed to ``multiprocessing.Process`` as</span>
-<span class="linenos">117</span><span class="sd">    ``target=worker.run`` - every value ``run()`` needs is already bound</span>
-<span class="linenos">118</span><span class="sd">    into the instance, so no separate ``args=`` tuple is required.</span>
-<span class="linenos">119</span>
-<span class="linenos">120</span><span class="sd">    ``run()`` connects a ``zmq.asyncio`` ``PULL`` socket to the pool's</span>
-<span class="linenos">121</span><span class="sd">    single, already-bound ``PUSH`` endpoint, signals readiness, then runs</span>
-<span class="linenos">122</span><span class="sd">    four coroutines concurrently under one ``TaskGroup``:</span>
-<span class="linenos">123</span><span class="sd">    ``_heartbeat_loop`` (refreshes a shared timestamp so the pool can detect</span>
-<span class="linenos">124</span><span class="sd">    a hung-but-alive worker), ``_publish_loop`` (the actual work - decode an</span>
-<span class="linenos">125</span><span class="sd">    envelope, republish it via MQTT, with its own reconnect/give-up logic),</span>
-<span class="linenos">126</span><span class="sd">    ``_parent_watchdog_loop`` (self-terminates if the parent process is</span>
-<span class="linenos">127</span><span class="sd">    gone), and ``_stop_watch_loop`` (self-terminates on a pool-requested</span>
-<span class="linenos">128</span><span class="sd">    graceful stop).</span>
-<span class="linenos">129</span>
-<span class="linenos">130</span><span class="sd">    Attributes:</span>
-<span class="linenos">131</span><span class="sd">        endpoint (str): The pool's single, already-bound ``tcp://host:port``</span>
-<span class="linenos">132</span><span class="sd">            address for this worker's ``PULL`` socket to connect to. Every</span>
-<span class="linenos">133</span><span class="sd">            worker in the pool connects to the same endpoint; ZMQ fans</span>
-<span class="linenos">134</span><span class="sd">            work out to them with round-robin fair-queuing.</span>
-<span class="linenos">135</span><span class="sd">        worker_index (int): This worker's index within the pool.</span>
-<span class="linenos">136</span><span class="sd">        ready_event (MpEvent): Set once the worker's socket has issued</span>
-<span class="linenos">137</span><span class="sd">            its ``connect()`` call.</span>
-<span class="linenos">138</span><span class="sd">        stop_event (MpEvent): Set by the pool to request a graceful</span>
-<span class="linenos">139</span><span class="sd">            stop.</span>
-<span class="linenos">140</span><span class="sd">        heartbeat (Synchronized[float]): A shared timestamp, refreshed</span>
-<span class="linenos">141</span><span class="sd">            by ``_heartbeat_loop`` so the pool can detect a</span>
-<span class="linenos">142</span><span class="sd">            hung-but-alive worker.</span>
-<span class="linenos">143</span><span class="sd">        parent_pid (int): The pool process's PID, captured once by the</span>
-<span class="linenos">144</span><span class="sd">            pool.</span>
-<span class="linenos">145</span><span class="sd">        parent_create_time (float): The pool process's creation time</span>
-<span class="linenos">146</span><span class="sd">            (from ``psutil``), used together with ``parent_pid`` to</span>
-<span class="linenos">147</span><span class="sd">            rule out PID reuse.</span>
-<span class="linenos">148</span><span class="sd">        logger_name (str): The base name of the application's logger;</span>
-<span class="linenos">149</span><span class="sd">            the worker builds its own child logger from this name.</span>
-<span class="linenos">150</span><span class="sd">        effective_level (int): The application logger's effective</span>
-<span class="linenos">151</span><span class="sd">            level, applied to the worker's own logger.</span>
-<span class="linenos">152</span><span class="sd">        log_queue (MpQueue[LogRecord]): The shared queue every worker</span>
-<span class="linenos">153</span><span class="sd">            sends its log records through, drained in the pool's</span>
-<span class="linenos">154</span><span class="sd">            process by a ``QueueListener``.</span>
-<span class="linenos">155</span><span class="sd">        params (SyncComManagerParams): The full configuration; a</span>
-<span class="linenos">156</span><span class="sd">            per-worker copy (distinct ``instance_name``) is built in</span>
-<span class="linenos">157</span><span class="sd">            ``run()``.</span>
-<span class="linenos">158</span>
-<span class="linenos">159</span><span class="sd">    Complexity:</span>
-<span class="linenos">160</span><span class="sd">        - Time: O(1) for construction and every loop iteration except the</span>
-<span class="linenos">161</span><span class="sd">          publish loop; O(n) per message handled by the publish loop, where</span>
-<span class="linenos">162</span><span class="sd">          n is the number of fields in the decoded envelope.</span>
-<span class="linenos">163</span><span class="sd">        - Space: O(1) for the worker's own state; O(n) per message handled,</span>
-<span class="linenos">164</span><span class="sd">          mirroring the time complexity.</span>
-<span class="linenos">165</span><span class="sd">    """</span>
-<span class="linenos">166</span>
-<span class="linenos">167</span>    <span class="n">STOP_POLL_INTERVAL</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.2</span>
-<span class="linenos">168</span>
-<span class="linenos">169</span>    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span>
-<span class="linenos">170</span>        <span class="s2">"_effective_level"</span><span class="p">,</span>
-<span class="linenos">171</span>        <span class="s2">"_endpoint"</span><span class="p">,</span>
-<span class="linenos">172</span>        <span class="s2">"_heartbeat"</span><span class="p">,</span>
-<span class="linenos">173</span>        <span class="s2">"_log_queue"</span><span class="p">,</span>
-<span class="linenos">174</span>        <span class="s2">"_logger"</span><span class="p">,</span>
-<span class="linenos">175</span>        <span class="s2">"_logger_name"</span><span class="p">,</span>
-<span class="linenos">176</span>        <span class="s2">"_params"</span><span class="p">,</span>
-<span class="linenos">177</span>        <span class="s2">"_parent_create_time"</span><span class="p">,</span>
-<span class="linenos">178</span>        <span class="s2">"_parent_pid"</span><span class="p">,</span>
-<span class="linenos">179</span>        <span class="s2">"_ready_event"</span><span class="p">,</span>
-<span class="linenos">180</span>        <span class="s2">"_stop_event"</span><span class="p">,</span>
-<span class="linenos">181</span>        <span class="s2">"_worker_index"</span><span class="p">,</span>
-<span class="linenos">182</span>        <span class="s2">"_worker_params"</span><span class="p">,</span>
-<span class="linenos">183</span>    <span class="p">)</span>
-<span class="linenos">184</span>
-<span class="linenos">185</span>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>  <span class="c1"># pylint: disable=too-many-arguments</span>
-<span class="linenos">186</span>        <span class="bp">self</span><span class="p">,</span>
-<span class="linenos">187</span>        <span class="o">*</span><span class="p">,</span>
-<span class="linenos">188</span>        <span class="n">endpoint</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-<span class="linenos">189</span>        <span class="n">worker_index</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-<span class="linenos">190</span>        <span class="n">ready_event</span><span class="p">:</span> <span class="n">MpEvent</span><span class="p">,</span>
-<span class="linenos">191</span>        <span class="n">stop_event</span><span class="p">:</span> <span class="n">MpEvent</span><span class="p">,</span>
-<span class="linenos">192</span>        <span class="n">heartbeat</span><span class="p">:</span> <span class="s2">"Synchronized[float]"</span><span class="p">,</span>
-<span class="linenos">193</span>        <span class="n">parent_pid</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-<span class="linenos">194</span>        <span class="n">parent_create_time</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-<span class="linenos">195</span>        <span class="n">logger_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-<span class="linenos">196</span>        <span class="n">effective_level</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-<span class="linenos">197</span>        <span class="n">log_queue</span><span class="p">:</span> <span class="s2">"MpQueue[LogRecord]"</span><span class="p">,</span>
-<span class="linenos">198</span>        <span class="n">params</span><span class="p">:</span> <span class="n">SyncComManagerParams</span><span class="p">,</span>
-<span class="linenos">199</span>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">200</span><span class="w">        </span><span class="sd">"""Initialize a PublishWorker.</span>
-<span class="linenos">201</span>
-<span class="linenos">202</span><span class="sd">        Args:</span>
-<span class="linenos">203</span><span class="sd">            endpoint (str): The pool's single, already-bound ``tcp://host:port``</span>
-<span class="linenos">204</span><span class="sd">                address for this worker's ``PULL`` socket to connect to. Every</span>
-<span class="linenos">205</span><span class="sd">                worker in the pool connects to the same endpoint; ZMQ fans</span>
-<span class="linenos">206</span><span class="sd">                work out to them with round-robin fair-queuing.</span>
-<span class="linenos">207</span><span class="sd">            worker_index (int): This worker's index within the pool.</span>
-<span class="linenos">208</span><span class="sd">            ready_event (MpEvent): Set once the worker's socket has issued</span>
-<span class="linenos">209</span><span class="sd">                its ``connect()`` call.</span>
-<span class="linenos">210</span><span class="sd">            stop_event (MpEvent): Set by the pool to request a graceful</span>
-<span class="linenos">211</span><span class="sd">                stop.</span>
-<span class="linenos">212</span><span class="sd">            heartbeat (Synchronized[float]): A shared timestamp, refreshed</span>
-<span class="linenos">213</span><span class="sd">                by ``_heartbeat_loop`` so the pool can detect a</span>
-<span class="linenos">214</span><span class="sd">                hung-but-alive worker.</span>
-<span class="linenos">215</span><span class="sd">            parent_pid (int): The pool process's PID, captured once by the</span>
-<span class="linenos">216</span><span class="sd">                pool.</span>
-<span class="linenos">217</span><span class="sd">            parent_create_time (float): The pool process's creation time</span>
-<span class="linenos">218</span><span class="sd">                (from ``psutil``), used together with ``parent_pid`` to</span>
-<span class="linenos">219</span><span class="sd">                rule out PID reuse.</span>
-<span class="linenos">220</span><span class="sd">            logger_name (str): The base name of the application's logger;</span>
-<span class="linenos">221</span><span class="sd">                the worker builds its own child logger from this name.</span>
-<span class="linenos">222</span><span class="sd">            effective_level (int): The application logger's effective</span>
-<span class="linenos">223</span><span class="sd">                level, applied to the worker's own logger.</span>
-<span class="linenos">224</span><span class="sd">            log_queue (MpQueue[LogRecord]): The shared queue every worker</span>
-<span class="linenos">225</span><span class="sd">                sends its log records through, drained in the pool's</span>
-<span class="linenos">226</span><span class="sd">                process by a ``QueueListener``.</span>
-<span class="linenos">227</span><span class="sd">            params (SyncComManagerParams): The full configuration; a</span>
-<span class="linenos">228</span><span class="sd">                per-worker copy (distinct ``instance_name``) is built in</span>
-<span class="linenos">229</span><span class="sd">                ``run()``.</span>
-<span class="linenos">230</span>
-<span class="linenos">231</span><span class="sd">        Complexity:</span>
-<span class="linenos">232</span><span class="sd">            - Time: O(1), stores a fixed number of references.</span>
-<span class="linenos">233</span><span class="sd">            - Space: O(1), only the given references are stored.</span>
-<span class="linenos">234</span><span class="sd">        """</span>
-<span class="linenos">235</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_endpoint</span> <span class="o">=</span> <span class="n">endpoint</span>
-<span class="linenos">236</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_worker_index</span> <span class="o">=</span> <span class="n">worker_index</span>
-<span class="linenos">237</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_ready_event</span> <span class="o">=</span> <span class="n">ready_event</span>
-<span class="linenos">238</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_stop_event</span> <span class="o">=</span> <span class="n">stop_event</span>
-<span class="linenos">239</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_heartbeat</span> <span class="o">=</span> <span class="n">heartbeat</span>
-<span class="linenos">240</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_parent_pid</span> <span class="o">=</span> <span class="n">parent_pid</span>
-<span class="linenos">241</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_parent_create_time</span> <span class="o">=</span> <span class="n">parent_create_time</span>
-<span class="linenos">242</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_logger_name</span> <span class="o">=</span> <span class="n">logger_name</span>
-<span class="linenos">243</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_effective_level</span> <span class="o">=</span> <span class="n">effective_level</span>
-<span class="linenos">244</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_log_queue</span> <span class="o">=</span> <span class="n">log_queue</span>
-<span class="linenos">245</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="p">:</span> <span class="n">SyncComManagerParams</span> <span class="o">=</span> <span class="n">params</span>
-<span class="linenos">246</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">Logger</span> <span class="o">=</span> <span class="n">getLogger</span><span class="p">(</span><span class="n">logger_name</span><span class="p">)</span>
-<span class="linenos">247</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_worker_params</span><span class="p">:</span> <span class="n">SyncComManagerParams</span> <span class="o">=</span> <span class="n">params</span>
-<span class="linenos">248</span>
+<span class="linenos">113</span><span class="k">class</span><span class="w"> </span><span class="nc">PublishWorker</span><span class="p">:</span>
+<span class="linenos">114</span><span class="w">    </span><span class="sd">"""The entry point and full state of a single publish worker process.</span>
+<span class="linenos">115</span>
+<span class="linenos">116</span><span class="sd">    An instance of this class is constructed in the pool's process (process</span>
+<span class="linenos">117</span><span class="sd">    A) and handed to ``multiprocessing.Process`` as</span>
+<span class="linenos">118</span><span class="sd">    ``target=worker.run`` - every value ``run()`` needs is already bound</span>
+<span class="linenos">119</span><span class="sd">    into the instance, so no separate ``args=`` tuple is required.</span>
+<span class="linenos">120</span>
+<span class="linenos">121</span><span class="sd">    ``run()`` connects a ``zmq.asyncio`` ``PULL`` socket to the pool's</span>
+<span class="linenos">122</span><span class="sd">    single, already-bound ``PUSH`` endpoint, signals readiness, then runs</span>
+<span class="linenos">123</span><span class="sd">    four coroutines concurrently under one ``TaskGroup``:</span>
+<span class="linenos">124</span><span class="sd">    ``_heartbeat_loop`` (refreshes a shared timestamp so the pool can detect</span>
+<span class="linenos">125</span><span class="sd">    a hung-but-alive worker), ``_publish_loop`` (the actual work - decode an</span>
+<span class="linenos">126</span><span class="sd">    envelope, republish it via MQTT, with its own reconnect/give-up logic),</span>
+<span class="linenos">127</span><span class="sd">    ``_parent_watchdog_loop`` (self-terminates if the parent process is</span>
+<span class="linenos">128</span><span class="sd">    gone), and ``_stop_watch_loop`` (self-terminates on a pool-requested</span>
+<span class="linenos">129</span><span class="sd">    graceful stop).</span>
+<span class="linenos">130</span>
+<span class="linenos">131</span><span class="sd">    Attributes:</span>
+<span class="linenos">132</span><span class="sd">        endpoint (str): The pool's single, already-bound ``tcp://host:port``</span>
+<span class="linenos">133</span><span class="sd">            address for this worker's ``PULL`` socket to connect to. Every</span>
+<span class="linenos">134</span><span class="sd">            worker in the pool connects to the same endpoint; ZMQ fans</span>
+<span class="linenos">135</span><span class="sd">            work out to them with round-robin fair-queuing.</span>
+<span class="linenos">136</span><span class="sd">        worker_index (int): This worker's index within the pool.</span>
+<span class="linenos">137</span><span class="sd">        ready_event (MpEvent): Set once the worker's socket has issued</span>
+<span class="linenos">138</span><span class="sd">            its ``connect()`` call.</span>
+<span class="linenos">139</span><span class="sd">        stop_event (MpEvent): Set by the pool to request a graceful</span>
+<span class="linenos">140</span><span class="sd">            stop.</span>
+<span class="linenos">141</span><span class="sd">        heartbeat (Synchronized[float]): A shared timestamp, refreshed</span>
+<span class="linenos">142</span><span class="sd">            by ``_heartbeat_loop`` so the pool can detect a</span>
+<span class="linenos">143</span><span class="sd">            hung-but-alive worker.</span>
+<span class="linenos">144</span><span class="sd">        parent_pid (int): The pool process's PID, captured once by the</span>
+<span class="linenos">145</span><span class="sd">            pool.</span>
+<span class="linenos">146</span><span class="sd">        parent_create_time (float): The pool process's creation time</span>
+<span class="linenos">147</span><span class="sd">            (from ``psutil``), used together with ``parent_pid`` to</span>
+<span class="linenos">148</span><span class="sd">            rule out PID reuse.</span>
+<span class="linenos">149</span><span class="sd">        logger_name (str): The base name of the application's logger;</span>
+<span class="linenos">150</span><span class="sd">            the worker builds its own child logger from this name.</span>
+<span class="linenos">151</span><span class="sd">        effective_level (int): The application logger's effective</span>
+<span class="linenos">152</span><span class="sd">            level, applied to the worker's own logger.</span>
+<span class="linenos">153</span><span class="sd">        log_queue (MpQueue[LogRecord]): The shared queue every worker</span>
+<span class="linenos">154</span><span class="sd">            sends its log records through, drained in the pool's</span>
+<span class="linenos">155</span><span class="sd">            process by a ``QueueListener``.</span>
+<span class="linenos">156</span><span class="sd">        params (SyncComManagerParams): The full configuration; a</span>
+<span class="linenos">157</span><span class="sd">            per-worker copy (distinct ``instance_name``) is built in</span>
+<span class="linenos">158</span><span class="sd">            ``run()``.</span>
+<span class="linenos">159</span>
+<span class="linenos">160</span><span class="sd">    Complexity:</span>
+<span class="linenos">161</span><span class="sd">        - Time: O(1) for construction and every loop iteration except the</span>
+<span class="linenos">162</span><span class="sd">          publish loop; O(n) per message handled by the publish loop, where</span>
+<span class="linenos">163</span><span class="sd">          n is the number of fields in the decoded envelope.</span>
+<span class="linenos">164</span><span class="sd">        - Space: O(1) for the worker's own state; O(n) per message handled,</span>
+<span class="linenos">165</span><span class="sd">          mirroring the time complexity.</span>
+<span class="linenos">166</span><span class="sd">    """</span>
+<span class="linenos">167</span>
+<span class="linenos">168</span>    <span class="n">STOP_POLL_INTERVAL</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.2</span>
+<span class="linenos">169</span>
+<span class="linenos">170</span>    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span>
+<span class="linenos">171</span>        <span class="s2">"_effective_level"</span><span class="p">,</span>
+<span class="linenos">172</span>        <span class="s2">"_endpoint"</span><span class="p">,</span>
+<span class="linenos">173</span>        <span class="s2">"_heartbeat"</span><span class="p">,</span>
+<span class="linenos">174</span>        <span class="s2">"_log_queue"</span><span class="p">,</span>
+<span class="linenos">175</span>        <span class="s2">"_logger"</span><span class="p">,</span>
+<span class="linenos">176</span>        <span class="s2">"_logger_name"</span><span class="p">,</span>
+<span class="linenos">177</span>        <span class="s2">"_params"</span><span class="p">,</span>
+<span class="linenos">178</span>        <span class="s2">"_parent_create_time"</span><span class="p">,</span>
+<span class="linenos">179</span>        <span class="s2">"_parent_pid"</span><span class="p">,</span>
+<span class="linenos">180</span>        <span class="s2">"_ready_event"</span><span class="p">,</span>
+<span class="linenos">181</span>        <span class="s2">"_stop_event"</span><span class="p">,</span>
+<span class="linenos">182</span>        <span class="s2">"_worker_index"</span><span class="p">,</span>
+<span class="linenos">183</span>        <span class="s2">"_worker_params"</span><span class="p">,</span>
+<span class="linenos">184</span>    <span class="p">)</span>
+<span class="linenos">185</span>
+<span class="linenos">186</span>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>  <span class="c1"># pylint: disable=too-many-arguments</span>
+<span class="linenos">187</span>        <span class="bp">self</span><span class="p">,</span>
+<span class="linenos">188</span>        <span class="o">*</span><span class="p">,</span>
+<span class="linenos">189</span>        <span class="n">endpoint</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<span class="linenos">190</span>        <span class="n">worker_index</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+<span class="linenos">191</span>        <span class="n">ready_event</span><span class="p">:</span> <span class="n">MpEvent</span><span class="p">,</span>
+<span class="linenos">192</span>        <span class="n">stop_event</span><span class="p">:</span> <span class="n">MpEvent</span><span class="p">,</span>
+<span class="linenos">193</span>        <span class="n">heartbeat</span><span class="p">:</span> <span class="s2">"Synchronized[float]"</span><span class="p">,</span>
+<span class="linenos">194</span>        <span class="n">parent_pid</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+<span class="linenos">195</span>        <span class="n">parent_create_time</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+<span class="linenos">196</span>        <span class="n">logger_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<span class="linenos">197</span>        <span class="n">effective_level</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+<span class="linenos">198</span>        <span class="n">log_queue</span><span class="p">:</span> <span class="s2">"MpQueue[LogRecord]"</span><span class="p">,</span>
+<span class="linenos">199</span>        <span class="n">params</span><span class="p">:</span> <span class="n">SyncComManagerParams</span><span class="p">,</span>
+<span class="linenos">200</span>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">201</span><span class="w">        </span><span class="sd">"""Initialize a PublishWorker.</span>
+<span class="linenos">202</span>
+<span class="linenos">203</span><span class="sd">        Args:</span>
+<span class="linenos">204</span><span class="sd">            endpoint (str): The pool's single, already-bound ``tcp://host:port``</span>
+<span class="linenos">205</span><span class="sd">                address for this worker's ``PULL`` socket to connect to. Every</span>
+<span class="linenos">206</span><span class="sd">                worker in the pool connects to the same endpoint; ZMQ fans</span>
+<span class="linenos">207</span><span class="sd">                work out to them with round-robin fair-queuing.</span>
+<span class="linenos">208</span><span class="sd">            worker_index (int): This worker's index within the pool.</span>
+<span class="linenos">209</span><span class="sd">            ready_event (MpEvent): Set once the worker's socket has issued</span>
+<span class="linenos">210</span><span class="sd">                its ``connect()`` call.</span>
+<span class="linenos">211</span><span class="sd">            stop_event (MpEvent): Set by the pool to request a graceful</span>
+<span class="linenos">212</span><span class="sd">                stop.</span>
+<span class="linenos">213</span><span class="sd">            heartbeat (Synchronized[float]): A shared timestamp, refreshed</span>
+<span class="linenos">214</span><span class="sd">                by ``_heartbeat_loop`` so the pool can detect a</span>
+<span class="linenos">215</span><span class="sd">                hung-but-alive worker.</span>
+<span class="linenos">216</span><span class="sd">            parent_pid (int): The pool process's PID, captured once by the</span>
+<span class="linenos">217</span><span class="sd">                pool.</span>
+<span class="linenos">218</span><span class="sd">            parent_create_time (float): The pool process's creation time</span>
+<span class="linenos">219</span><span class="sd">                (from ``psutil``), used together with ``parent_pid`` to</span>
+<span class="linenos">220</span><span class="sd">                rule out PID reuse.</span>
+<span class="linenos">221</span><span class="sd">            logger_name (str): The base name of the application's logger;</span>
+<span class="linenos">222</span><span class="sd">                the worker builds its own child logger from this name.</span>
+<span class="linenos">223</span><span class="sd">            effective_level (int): The application logger's effective</span>
+<span class="linenos">224</span><span class="sd">                level, applied to the worker's own logger.</span>
+<span class="linenos">225</span><span class="sd">            log_queue (MpQueue[LogRecord]): The shared queue every worker</span>
+<span class="linenos">226</span><span class="sd">                sends its log records through, drained in the pool's</span>
+<span class="linenos">227</span><span class="sd">                process by a ``QueueListener``.</span>
+<span class="linenos">228</span><span class="sd">            params (SyncComManagerParams): The full configuration; a</span>
+<span class="linenos">229</span><span class="sd">                per-worker copy (distinct ``instance_name``) is built in</span>
+<span class="linenos">230</span><span class="sd">                ``run()``.</span>
+<span class="linenos">231</span>
+<span class="linenos">232</span><span class="sd">        Complexity:</span>
+<span class="linenos">233</span><span class="sd">            - Time: O(1), stores a fixed number of references.</span>
+<span class="linenos">234</span><span class="sd">            - Space: O(1), only the given references are stored.</span>
+<span class="linenos">235</span><span class="sd">        """</span>
+<span class="linenos">236</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_endpoint</span> <span class="o">=</span> <span class="n">endpoint</span>
+<span class="linenos">237</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_worker_index</span> <span class="o">=</span> <span class="n">worker_index</span>
+<span class="linenos">238</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_ready_event</span> <span class="o">=</span> <span class="n">ready_event</span>
+<span class="linenos">239</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_stop_event</span> <span class="o">=</span> <span class="n">stop_event</span>
+<span class="linenos">240</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_heartbeat</span> <span class="o">=</span> <span class="n">heartbeat</span>
+<span class="linenos">241</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_parent_pid</span> <span class="o">=</span> <span class="n">parent_pid</span>
+<span class="linenos">242</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_parent_create_time</span> <span class="o">=</span> <span class="n">parent_create_time</span>
+<span class="linenos">243</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_logger_name</span> <span class="o">=</span> <span class="n">logger_name</span>
+<span class="linenos">244</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_effective_level</span> <span class="o">=</span> <span class="n">effective_level</span>
+<span class="linenos">245</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_log_queue</span> <span class="o">=</span> <span class="n">log_queue</span>
+<span class="linenos">246</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="p">:</span> <span class="n">SyncComManagerParams</span> <span class="o">=</span> <span class="n">params</span>
+<span class="linenos">247</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">Logger</span> <span class="o">=</span> <span class="n">getLogger</span><span class="p">(</span><span class="n">logger_name</span><span class="p">)</span>
+<span class="linenos">248</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_worker_params</span><span class="p">:</span> <span class="n">SyncComManagerParams</span> <span class="o">=</span> <span class="n">params</span>
+<span class="linenos">249</span>
+<span class="linenos">250</span>    <span class="k">def</span><span class="w"> </span><span class="nf">_exception_handler</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">logger</span><span class="p">:</span> <span class="n">Logger</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">251</span><span class="w">        </span><span class="sd">"""Handle exceptions in asyncio event loop.</span>
+<span class="linenos">252</span>
+<span class="linenos">253</span><span class="sd">        This function serves as an exception handler for the asyncio event loop,</span>
+<span class="linenos">254</span><span class="sd">        logging any uncaught exceptions that occur during loop execution.</span>
+<span class="linenos">255</span>
+<span class="linenos">256</span><span class="sd">        Args:</span>
+<span class="linenos">257</span><span class="sd">            context (dict[Any, Any]): A dictionary containing contextual information about the exception.</span>
+<span class="linenos">258</span><span class="sd">                The optional 'exception' key, if present, is logged as the exception info.</span>
+<span class="linenos">259</span><span class="sd">            logger (Logger): Logger instance to record the error message.</span>
+<span class="linenos">260</span>
+<span class="linenos">261</span><span class="sd">        Returns:</span>
+<span class="linenos">262</span><span class="sd">            None: The exception is only logged, not returned or re-raised.</span>
+<span class="linenos">263</span>
+<span class="linenos">264</span><span class="sd">        Example:</span>
+<span class="linenos">265</span><span class="sd">            &gt;&gt;&gt; loop = asyncio.get_running_loop()</span>
+<span class="linenos">266</span><span class="sd">            ... loop.set_exception_handler(</span>
+<span class="linenos">267</span><span class="sd">            ...     lambda _, ctx: _exception_handler(context=ctx, logger=logger)</span>
+<span class="linenos">268</span><span class="sd">            ... )</span>
+<span class="linenos">269</span>
+<span class="linenos">270</span><span class="sd">        Complexity:</span>
+<span class="linenos">271</span><span class="sd">            - Time: O(1), a single conditional check and one log call.</span>
+<span class="linenos">272</span><span class="sd">            - Space: O(1), no additional data structures are allocated.</span>
+<span class="linenos">273</span><span class="sd">        """</span>
+<span class="linenos">274</span>        <span class="k">if</span> <span class="n">logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">ERROR</span><span class="p">):</span>
+<span class="linenos">275</span>            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">"Exception in loop"</span><span class="p">,</span> <span class="n">exc_info</span><span class="o">=</span><span class="n">context</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"exception"</span><span class="p">))</span>
+<span class="linenos">276</span>
+<span class="linenos">277</span>    <span class="k">def</span><span class="w"> </span><span class="nf">_unraisable_handler</span><span class="p">(</span>
+<span class="linenos">278</span>        <span class="bp">self</span><span class="p">,</span> <span class="n">unraisable</span><span class="p">:</span> <span class="s2">"sys.UnraisableHookArgs"</span><span class="p">,</span> <span class="n">logger</span><span class="p">:</span> <span class="n">Logger</span>
+<span class="linenos">279</span>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">280</span><span class="w">        </span><span class="sd">"""Handle exceptions raised during object finalization (``__del__``).</span>
+<span class="linenos">281</span>
+<span class="linenos">282</span><span class="sd">        Installed once for the lifetime of the worker process (see</span>
+<span class="linenos">283</span><span class="sd">        ``run``), not scoped to a single connection attempt. CPython calls</span>
+<span class="linenos">284</span><span class="sd">        this instead of raising when an exception occurs in a context with</span>
+<span class="linenos">285</span><span class="sd">        no caller to propagate to, most notably a ``__del__`` invoked by</span>
+<span class="linenos">286</span><span class="sd">        the garbage collector - such as ``paho.mqtt.client.Client.__del__``</span>
+<span class="linenos">287</span><span class="sd">        failing to unregister a socket from a Proactor event loop that</span>
+<span class="linenos">288</span><span class="sd">        doesn't support it. Such objects are often part of a reference</span>
+<span class="linenos">289</span><span class="sd">        cycle (e.g. client &lt;-&gt; event loop &lt;-&gt; callback), so they're only</span>
+<span class="linenos">290</span><span class="sd">        reaped by a *later*, unpredictably-timed cyclic GC pass - possibly</span>
+<span class="linenos">291</span><span class="sd">        well after the connection attempt that created them has finished -</span>
+<span class="linenos">292</span><span class="sd">        which is why this hook stays installed for the worker's whole</span>
+<span class="linenos">293</span><span class="sd">        lifetime rather than being scoped/restored around one attempt.</span>
+<span class="linenos">294</span>
+<span class="linenos">295</span><span class="sd">        Args:</span>
+<span class="linenos">296</span><span class="sd">            unraisable (UnraisableHookArgs): The exception details</span>
+<span class="linenos">297</span><span class="sd">                CPython could not raise normally.</span>
+<span class="linenos">298</span><span class="sd">            logger (Logger): Logger instance to record the error message.</span>
+<span class="linenos">299</span>
+<span class="linenos">300</span><span class="sd">        Returns:</span>
+<span class="linenos">301</span><span class="sd">            None: The exception is only logged, not returned or re-raised.</span>
+<span class="linenos">302</span>
+<span class="linenos">303</span><span class="sd">        Complexity:</span>
+<span class="linenos">304</span><span class="sd">            - Time: O(1), a single conditional check and one log call.</span>
+<span class="linenos">305</span><span class="sd">            - Space: O(1), no additional data structures are allocated.</span>
+<span class="linenos">306</span><span class="sd">        """</span>
+<span class="linenos">307</span>        <span class="k">if</span> <span class="n">logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">ERROR</span><span class="p">):</span>
+<span class="linenos">308</span>            <span class="n">msg</span> <span class="o">=</span> <span class="n">unraisable</span><span class="o">.</span><span class="n">err_msg</span> <span class="ow">or</span> <span class="s2">"Exception ignored during finalization"</span>
+<span class="linenos">309</span>            <span class="k">if</span> <span class="n">unraisable</span><span class="o">.</span><span class="n">exc_value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">310</span>                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="n">msg</span><span class="p">)</span>
+<span class="linenos">311</span>            <span class="k">else</span><span class="p">:</span>
+<span class="linenos">312</span>                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+<span class="linenos">313</span>                    <span class="n">msg</span><span class="o">=</span><span class="n">msg</span><span class="p">,</span>
+<span class="linenos">314</span>                    <span class="n">exc_info</span><span class="o">=</span><span class="p">(</span>
+<span class="linenos">315</span>                        <span class="n">unraisable</span><span class="o">.</span><span class="n">exc_type</span><span class="p">,</span>
+<span class="linenos">316</span>                        <span class="n">unraisable</span><span class="o">.</span><span class="n">exc_value</span><span class="p">,</span>
+<span class="linenos">317</span>                        <span class="n">unraisable</span><span class="o">.</span><span class="n">exc_traceback</span><span class="p">,</span>
+<span class="linenos">318</span>                    <span class="p">),</span>
+<span class="linenos">319</span>                <span class="p">)</span>
+<span class="linenos">320</span>
+<span class="linenos">321</span>    <span class="k">def</span><span class="w"> </span><span class="nf">_signals_install</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">322</span><span class="w">        </span><span class="sd">"""Register the POSIX SIGTERM bridge that requests a graceful stop.</span>
+<span class="linenos">323</span>
+<span class="linenos">324</span><span class="sd">        On POSIX, sets a handler that calls ``self._stop_event.set()``, routing</span>
+<span class="linenos">325</span><span class="sd">        SIGTERM through the same graceful-stop path as a pool-requested stop</span>
+<span class="linenos">326</span><span class="sd">        (see ``_stop_watch_loop``). A no-op on Windows, where the pool signals</span>
+<span class="linenos">327</span><span class="sd">        shutdown via ``stop_event`` directly rather than a POSIX signal.</span>
+<span class="linenos">328</span>
+<span class="linenos">329</span><span class="sd">        Returns:</span>
+<span class="linenos">330</span><span class="sd">            None: The signal handler is registered as a side effect.</span>
+<span class="linenos">331</span>
+<span class="linenos">332</span><span class="sd">        Complexity:</span>
+<span class="linenos">333</span><span class="sd">            - Time: O(1), at most one ``signal.signal`` call.</span>
+<span class="linenos">334</span><span class="sd">            - Space: O(1), no additional data structures are allocated.</span>
+<span class="linenos">335</span><span class="sd">        """</span>
+<span class="linenos">336</span>        <span class="k">if</span> <span class="ow">not</span> <span class="n">step_cloud_schemas</span><span class="o">.</span><span class="n">IS_WINDOWS</span><span class="p">:</span>
+<span class="linenos">337</span>            <span class="n">signal</span><span class="o">.</span><span class="n">signal</span><span class="p">(</span>
+<span class="linenos">338</span>                <span class="n">signalnum</span><span class="o">=</span><span class="n">signal</span><span class="o">.</span><span class="n">SIGTERM</span><span class="p">,</span> <span class="n">handler</span><span class="o">=</span><span class="k">lambda</span> <span class="o">*</span><span class="n">_args</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stop_event</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
+<span class="linenos">339</span>            <span class="p">)</span>
+<span class="linenos">340</span>
 <div class="viewcode-block" id="PublishWorker.run">
 <a class="viewcode-back" href="../../step_lib_rst/step_lib.its_publish_worker.html#step_lib.its_publish_worker.PublishWorker.run">[docs]</a>
-<span class="linenos">249</span>    <span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">250</span><span class="w">        </span><span class="sd">"""``multiprocessing.Process`` target: the worker process's entry point.</span>
-<span class="linenos">251</span>
-<span class="linenos">252</span><span class="sd">        Builds the worker's own logger and per-worker</span>
-<span class="linenos">253</span><span class="sd">        ``SyncComManagerParams`` copy, installs the POSIX ``SIGTERM``</span>
-<span class="linenos">254</span><span class="sd">        bridge, then runs ``_async_main()`` to completion. On Windows a</span>
-<span class="linenos">255</span><span class="sd">        Ctrl+C reaches this process directly (as ``KeyboardInterrupt``,</span>
-<span class="linenos">256</span><span class="sd">        since the console event is delivered to the whole process group)</span>
-<span class="linenos">257</span><span class="sd">        rather than through ``_stop_event``; that case is caught here and</span>
-<span class="linenos">258</span><span class="sd">        logged instead of propagating as an unhandled-exception traceback.</span>
-<span class="linenos">259</span>
-<span class="linenos">260</span><span class="sd">        Returns:</span>
-<span class="linenos">261</span><span class="sd">            None: This method blocks for the worker process's lifetime;</span>
-<span class="linenos">262</span><span class="sd">            nothing is returned.</span>
-<span class="linenos">263</span>
-<span class="linenos">264</span><span class="sd">        Complexity:</span>
-<span class="linenos">265</span><span class="sd">            - Time: O(1) for setup; then blocks for the worker's lifetime,</span>
-<span class="linenos">266</span><span class="sd">              running the four coroutines under ``_async_main``.</span>
-<span class="linenos">267</span><span class="sd">            - Space: O(1) for the worker's own state, plus whatever</span>
-<span class="linenos">268</span><span class="sd">              ``_async_main`` allocates per message handled.</span>
-<span class="linenos">269</span><span class="sd">        """</span>
-<span class="linenos">270</span>        <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">platform</span> <span class="o">!=</span> <span class="s2">"win32"</span><span class="p">:</span>
-<span class="linenos">271</span>            <span class="n">signal</span><span class="o">.</span><span class="n">signal</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">SIGTERM</span><span class="p">,</span> <span class="k">lambda</span> <span class="o">*</span><span class="n">_args</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stop_event</span><span class="o">.</span><span class="n">set</span><span class="p">())</span>
-<span class="linenos">272</span>        <span class="n">worker_logger</span> <span class="o">=</span> <span class="n">getLogger</span><span class="p">(</span>
-<span class="linenos">273</span>            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_logger_name</span><span class="si">}</span><span class="s2">.publish_worker.</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_worker_index</span><span class="si">}</span><span class="s2">"</span>
-<span class="linenos">274</span>        <span class="p">)</span>
-<span class="linenos">275</span>        <span class="n">worker_logger</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_effective_level</span><span class="p">)</span>
-<span class="linenos">276</span>        <span class="n">worker_logger</span><span class="o">.</span><span class="n">addHandler</span><span class="p">(</span><span class="n">QueueHandler</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_log_queue</span><span class="p">))</span>
-<span class="linenos">277</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span> <span class="o">=</span> <span class="n">worker_logger</span>
-<span class="linenos">278</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_worker_params</span> <span class="o">=</span> <span class="n">replace</span><span class="p">(</span>
-<span class="linenos">279</span>            <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="p">,</span>
-<span class="linenos">280</span>            <span class="n">instance_name</span><span class="o">=</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">instance_name</span><span class="si">}</span><span class="s2">-pub-worker-</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_worker_index</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
-<span class="linenos">281</span>        <span class="p">)</span>
-<span class="linenos">282</span>        <span class="k">try</span><span class="p">:</span>
-<span class="linenos">283</span>            <span class="k">with</span> <span class="n">Runner</span><span class="p">()</span> <span class="k">as</span> <span class="n">runner</span><span class="p">:</span>
-<span class="linenos">284</span>                <span class="n">runner</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_async_main</span><span class="p">())</span>
-<span class="linenos">285</span>                <span class="c1"># Forced to remove all lingering resources</span>
-<span class="linenos">286</span>                <span class="c1"># before closing the event loop</span>
-<span class="linenos">287</span>                <span class="n">collect</span><span class="p">()</span>
-<span class="linenos">288</span>        <span class="k">except</span> <span class="ne">KeyboardInterrupt</span><span class="p">:</span>
-<span class="linenos">289</span>            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">):</span>
-<span class="linenos">290</span>                <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-<span class="linenos">291</span>                    <span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">"Worker </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_worker_index</span><span class="si">}</span><span class="s2"> interrupted, shutting down"</span>
-<span class="linenos">292</span>                <span class="p">)</span></div>
+<span class="linenos">341</span>    <span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">342</span><span class="w">        </span><span class="sd">"""``multiprocessing.Process`` target: the worker process's entry point.</span>
+<span class="linenos">343</span>
+<span class="linenos">344</span><span class="sd">        Builds the worker's own logger and per-worker</span>
+<span class="linenos">345</span><span class="sd">        ``SyncComManagerParams`` copy, installs the POSIX ``SIGTERM``</span>
+<span class="linenos">346</span><span class="sd">        bridge, then runs ``_async_main()`` to completion. On Windows a</span>
+<span class="linenos">347</span><span class="sd">        Ctrl+C reaches this process directly (as ``KeyboardInterrupt``,</span>
+<span class="linenos">348</span><span class="sd">        since the console event is delivered to the whole process group)</span>
+<span class="linenos">349</span><span class="sd">        rather than through ``_stop_event``; that case is caught here and</span>
+<span class="linenos">350</span><span class="sd">        logged instead of propagating as an unhandled-exception traceback.</span>
+<span class="linenos">351</span>
+<span class="linenos">352</span><span class="sd">        Returns:</span>
+<span class="linenos">353</span><span class="sd">            None: This method blocks for the worker process's lifetime;</span>
+<span class="linenos">354</span><span class="sd">            nothing is returned.</span>
+<span class="linenos">355</span>
+<span class="linenos">356</span><span class="sd">        Complexity:</span>
+<span class="linenos">357</span><span class="sd">            - Time: O(1) for setup; then blocks for the worker's lifetime,</span>
+<span class="linenos">358</span><span class="sd">              running the four coroutines under ``_async_main``.</span>
+<span class="linenos">359</span><span class="sd">            - Space: O(1) for the worker's own state, plus whatever</span>
+<span class="linenos">360</span><span class="sd">              ``_async_main`` allocates per message handled.</span>
+<span class="linenos">361</span><span class="sd">        """</span>
+<span class="linenos">362</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_signals_install</span><span class="p">()</span>
+<span class="linenos">363</span>        <span class="c1"># Installed once for the worker process's whole lifetime, not</span>
+<span class="linenos">364</span>        <span class="c1"># restored: see _unraisable_handler for why.</span>
+<span class="linenos">365</span>        <span class="n">sys</span><span class="o">.</span><span class="n">unraisablehook</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">unraisable</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unraisable_handler</span><span class="p">(</span>
+<span class="linenos">366</span>            <span class="n">unraisable</span><span class="o">=</span><span class="n">unraisable</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_logger</span>
+<span class="linenos">367</span>        <span class="p">)</span>
+<span class="linenos">368</span>        <span class="n">worker_logger</span> <span class="o">=</span> <span class="n">getLogger</span><span class="p">(</span>
+<span class="linenos">369</span>            <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_logger_name</span><span class="si">}</span><span class="s2">.publish_worker.</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_worker_index</span><span class="si">}</span><span class="s2">"</span>
+<span class="linenos">370</span>        <span class="p">)</span>
+<span class="linenos">371</span>        <span class="n">worker_logger</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_effective_level</span><span class="p">)</span>
+<span class="linenos">372</span>        <span class="n">worker_logger</span><span class="o">.</span><span class="n">addHandler</span><span class="p">(</span><span class="n">QueueHandler</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_log_queue</span><span class="p">))</span>
+<span class="linenos">373</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span> <span class="o">=</span> <span class="n">worker_logger</span>
+<span class="linenos">374</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_worker_params</span> <span class="o">=</span> <span class="n">replace</span><span class="p">(</span>
+<span class="linenos">375</span>            <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="p">,</span>
+<span class="linenos">376</span>            <span class="n">instance_name</span><span class="o">=</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">instance_name</span><span class="si">}</span><span class="s2">-pub-worker-</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_worker_index</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+<span class="linenos">377</span>        <span class="p">)</span>
+<span class="linenos">378</span>        <span class="k">try</span><span class="p">:</span>
+<span class="linenos">379</span>            <span class="n">loop_factory</span> <span class="o">=</span> <span class="n">SelectorEventLoop</span> <span class="k">if</span> <span class="n">step_cloud_schemas</span><span class="o">.</span><span class="n">IS_WINDOWS</span> <span class="k">else</span> <span class="kc">None</span>
+<span class="linenos">380</span>            <span class="k">with</span> <span class="n">Runner</span><span class="p">(</span><span class="n">loop_factory</span><span class="o">=</span><span class="n">loop_factory</span><span class="p">)</span> <span class="k">as</span> <span class="n">runner</span><span class="p">:</span>
+<span class="linenos">381</span>                <span class="n">runner</span><span class="o">.</span><span class="n">get_loop</span><span class="p">()</span><span class="o">.</span><span class="n">set_exception_handler</span><span class="p">(</span>
+<span class="linenos">382</span>                    <span class="n">handler</span><span class="o">=</span><span class="k">lambda</span> <span class="n">_</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_exception_handler</span><span class="p">(</span>
+<span class="linenos">383</span>                        <span class="n">context</span><span class="o">=</span><span class="n">context</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_logger</span>
+<span class="linenos">384</span>                    <span class="p">)</span>
+<span class="linenos">385</span>                <span class="p">)</span>
+<span class="linenos">386</span>                <span class="n">runner</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">coro</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_async_main</span><span class="p">())</span>
+<span class="linenos">387</span>                <span class="c1"># Loop still open: asyncio's own handlers are active, re-register ours</span>
+<span class="linenos">388</span>                <span class="bp">self</span><span class="o">.</span><span class="n">_signals_install</span><span class="p">()</span>
+<span class="linenos">389</span>                <span class="c1"># Forced to remove all lingering resources</span>
+<span class="linenos">390</span>                <span class="c1"># before closing the event loop</span>
+<span class="linenos">391</span>                <span class="n">collect</span><span class="p">()</span>
+<span class="linenos">392</span>            <span class="c1"># Loop closed: asyncio reset SIGINT/SIGTERM to its defaults, re-register</span>
+<span class="linenos">393</span>            <span class="bp">self</span><span class="o">.</span><span class="n">_signals_install</span><span class="p">()</span>
+<span class="linenos">394</span>        <span class="k">except</span> <span class="ne">KeyboardInterrupt</span><span class="p">:</span>
+<span class="linenos">395</span>            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">):</span>
+<span class="linenos">396</span>                <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+<span class="linenos">397</span>                    <span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">"Worker </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_worker_index</span><span class="si">}</span><span class="s2"> interrupted, shutting down"</span>
+<span class="linenos">398</span>                <span class="p">)</span></div>
 
-<span class="linenos">293</span>
-<span class="linenos">294</span>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_async_main</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">295</span><span class="w">        </span><span class="sd">"""Connect the worker's ``PULL`` socket and run the four sibling loops.</span>
-<span class="linenos">296</span>
-<span class="linenos">297</span><span class="sd">        Readiness (``_ready_event.set()``) is signaled immediately after</span>
-<span class="linenos">298</span><span class="sd">        the socket's ``connect()`` call returns - readiness means "connect</span>
-<span class="linenos">299</span><span class="sd">        issued", not "MQTT connected", so a worker stuck in MQTT reconnect</span>
-<span class="linenos">300</span><span class="sd">        backoff never blocks pool startup. Unlike a bind, a PULL socket's</span>
-<span class="linenos">301</span><span class="sd">        connect() is non-blocking and queues/retries internally, so it has</span>
-<span class="linenos">302</span><span class="sd">        no TOCTOU race to lose against another process; the try/except</span>
-<span class="linenos">303</span><span class="sd">        below only guards the unlikely case of a malformed endpoint string,</span>
-<span class="linenos">304</span><span class="sd">        logging and returning without setting ``_ready_event`` - the pool</span>
-<span class="linenos">305</span><span class="sd">        detects this the same way it detects any other early worker exit,</span>
-<span class="linenos">306</span><span class="sd">        via ``_await_ready``.</span>
-<span class="linenos">307</span>
-<span class="linenos">308</span><span class="sd">        Returns:</span>
-<span class="linenos">309</span><span class="sd">            None: The coroutine runs the worker's four sibling loops until</span>
-<span class="linenos">310</span><span class="sd">            one of them raises a shutdown signal, then returns after</span>
-<span class="linenos">311</span><span class="sd">            cleanup.</span>
-<span class="linenos">312</span>
-<span class="linenos">313</span><span class="sd">        Complexity:</span>
-<span class="linenos">314</span><span class="sd">            - Time: O(1) for connect/readiness; then runs until one of the</span>
-<span class="linenos">315</span><span class="sd">              three shutdown signals fires, at O(n) per message cost for</span>
-<span class="linenos">316</span><span class="sd">              the publish loop meanwhile.</span>
-<span class="linenos">317</span><span class="sd">            - Space: O(1) for the worker's own state; O(n) per message</span>
-<span class="linenos">318</span><span class="sd">              handled, mirroring the time complexity.</span>
-<span class="linenos">319</span><span class="sd">        """</span>
-<span class="linenos">320</span>        <span class="n">context</span> <span class="o">=</span> <span class="n">ZmqContext</span><span class="p">()</span>
-<span class="linenos">321</span>        <span class="n">sock</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">socket</span><span class="p">(</span><span class="n">socket_type</span><span class="o">=</span><span class="n">zmq</span><span class="o">.</span><span class="n">PULL</span><span class="p">)</span>
-<span class="linenos">322</span>        <span class="n">sock</span><span class="o">.</span><span class="n">set_hwm</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_worker_params</span><span class="o">.</span><span class="n">publish_hwm</span><span class="p">)</span>
-<span class="linenos">323</span>        <span class="k">try</span><span class="p">:</span>
-<span class="linenos">324</span>            <span class="k">try</span><span class="p">:</span>
-<span class="linenos">325</span>                <span class="n">sock</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">addr</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_endpoint</span><span class="p">)</span>
-<span class="linenos">326</span>            <span class="k">except</span> <span class="n">zmq</span><span class="o">.</span><span class="n">ZMQError</span><span class="p">:</span>
-<span class="linenos">327</span>                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">ERROR</span><span class="p">):</span>
-<span class="linenos">328</span>                    <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span>
-<span class="linenos">329</span>                        <span class="n">msg</span><span class="o">=</span><span class="p">(</span>
-<span class="linenos">330</span>                            <span class="sa">f</span><span class="s2">"Worker </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_worker_index</span><span class="si">}</span><span class="s2"> failed to connect to "</span>
-<span class="linenos">331</span>                            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_endpoint</span><span class="si">}</span><span class="s2">"</span>
-<span class="linenos">332</span>                        <span class="p">)</span>
-<span class="linenos">333</span>                    <span class="p">)</span>
-<span class="linenos">334</span>                <span class="k">return</span>
-<span class="linenos">335</span>            <span class="bp">self</span><span class="o">.</span><span class="n">_ready_event</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
-<span class="linenos">336</span>            <span class="k">try</span><span class="p">:</span>
-<span class="linenos">337</span>                <span class="k">async</span> <span class="k">with</span> <span class="n">TaskGroup</span><span class="p">()</span> <span class="k">as</span> <span class="n">group</span><span class="p">:</span>
-<span class="linenos">338</span>                    <span class="n">group</span><span class="o">.</span><span class="n">create_task</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_heartbeat_loop</span><span class="p">(),</span> <span class="n">name</span><span class="o">=</span><span class="s2">"heartbeat_loop"</span><span class="p">)</span>
-<span class="linenos">339</span>                    <span class="n">group</span><span class="o">.</span><span class="n">create_task</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_publish_loop</span><span class="p">(</span><span class="n">sock</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="s2">"publish_loop"</span><span class="p">)</span>
-<span class="linenos">340</span>                    <span class="n">group</span><span class="o">.</span><span class="n">create_task</span><span class="p">(</span>
-<span class="linenos">341</span>                        <span class="bp">self</span><span class="o">.</span><span class="n">_parent_watchdog_loop</span><span class="p">(),</span> <span class="n">name</span><span class="o">=</span><span class="s2">"parent_watchdog_loop"</span>
-<span class="linenos">342</span>                    <span class="p">)</span>
-<span class="linenos">343</span>                    <span class="n">group</span><span class="o">.</span><span class="n">create_task</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_stop_watch_loop</span><span class="p">(),</span> <span class="n">name</span><span class="o">=</span><span class="s2">"stop_watch_loop"</span><span class="p">)</span>
-<span class="linenos">344</span>            <span class="k">except</span><span class="o">*</span> <span class="n">_WorkerShutdownSignal</span> <span class="k">as</span> <span class="n">shutdown_group</span><span class="p">:</span>
-<span class="linenos">345</span>                <span class="n">reason</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">shutdown_group</span><span class="o">.</span><span class="n">exceptions</span><span class="p">))</span>
-<span class="linenos">346</span>                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">):</span>
-<span class="linenos">347</span>                    <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-<span class="linenos">348</span>                        <span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">"Worker </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_worker_index</span><span class="si">}</span><span class="s2"> shutting down: </span><span class="si">{</span><span class="n">reason</span><span class="si">}</span><span class="s2">"</span>
-<span class="linenos">349</span>                    <span class="p">)</span>
-<span class="linenos">350</span>        <span class="k">finally</span><span class="p">:</span>
-<span class="linenos">351</span>            <span class="n">sock</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-<span class="linenos">352</span>            <span class="n">context</span><span class="o">.</span><span class="n">term</span><span class="p">()</span>
-<span class="linenos">353</span>
-<span class="linenos">354</span>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_heartbeat_loop</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">355</span><span class="w">        </span><span class="sd">"""Refresh the shared heartbeat timestamp on a fixed interval.</span>
-<span class="linenos">356</span>
-<span class="linenos">357</span><span class="sd">        Runs concurrently with ``_publish_loop`` under the same</span>
-<span class="linenos">358</span><span class="sd">        ``TaskGroup``; since asyncio is single-threaded and</span>
-<span class="linenos">359</span><span class="sd">        cooperative, this loop only keeps advancing if the event loop as a</span>
-<span class="linenos">360</span><span class="sd">        whole keeps yielding, which is what lets the pool distinguish a</span>
-<span class="linenos">361</span><span class="sd">        merely-idle worker from a genuinely hung one (see</span>
-<span class="linenos">362</span><span class="sd">        ``PublishWorkerPool.check_health``).</span>
-<span class="linenos">363</span>
-<span class="linenos">364</span><span class="sd">        Returns:</span>
-<span class="linenos">365</span><span class="sd">            None: The loop runs indefinitely, refreshing the shared</span>
-<span class="linenos">366</span><span class="sd">            heartbeat; it never returns normally.</span>
-<span class="linenos">367</span>
-<span class="linenos">368</span><span class="sd">        Complexity:</span>
-<span class="linenos">369</span><span class="sd">            - Time: O(1) per iteration; runs for the worker's lifetime.</span>
-<span class="linenos">370</span><span class="sd">            - Space: O(1), no additional storage is required.</span>
-<span class="linenos">371</span><span class="sd">        """</span>
-<span class="linenos">372</span>        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
-<span class="linenos">373</span>            <span class="bp">self</span><span class="o">.</span><span class="n">_heartbeat</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">monotonic</span><span class="p">()</span>
-<span class="linenos">374</span>            <span class="k">await</span> <span class="n">asyncio_sleep</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_worker_params</span><span class="o">.</span><span class="n">publish_heartbeat_interval</span><span class="p">)</span>
-<span class="linenos">375</span>
-<span class="linenos">376</span>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_publish_loop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sock</span><span class="p">:</span> <span class="n">ZmqSocket</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># noqa: C901</span>
-<span class="linenos">377</span><span class="w">        </span><span class="sd">"""Receive envelopes and republish them to MQTT, reconnecting on failure.</span>
-<span class="linenos">378</span>
-<span class="linenos">379</span><span class="sd">        MQTT is connection-oriented, so this loop wraps the whole</span>
-<span class="linenos">380</span><span class="sd">        ``async with AsyncComManager(...)`` connection attempt in a retry</span>
-<span class="linenos">381</span><span class="sd">        loop. A local counter of *consecutive failed connect attempts* is</span>
-<span class="linenos">382</span><span class="sd">        incremented only when the connection itself could not be</span>
-<span class="linenos">383</span><span class="sd">        established (``async with AsyncComManager(...)`` raising before</span>
-<span class="linenos">384</span><span class="sd">        entering the inner receive loop) and reset to zero on the next</span>
-<span class="linenos">385</span><span class="sd">        successful connect - a failure that happens after a successful</span>
-<span class="linenos">386</span><span class="sd">        connect (e.g. a dropped connection mid-stream) does not count</span>
-<span class="linenos">387</span><span class="sd">        toward the give-up threshold, since it is evidence the broker is</span>
-<span class="linenos">388</span><span class="sd">        reachable, not that this worker can never reach it. Once the</span>
-<span class="linenos">389</span><span class="sd">        counter reaches ``publish_max_connect_attempts``, the worker gives</span>
-<span class="linenos">390</span><span class="sd">        up and raises ``_MaxConnectAttemptsExceededError`` instead of</span>
-<span class="linenos">391</span><span class="sd">        retrying again - this is what lets ``check_health()`` recover a</span>
-<span class="linenos">392</span><span class="sd">        worker whose asyncio loop is perfectly healthy (so its heartbeat</span>
-<span class="linenos">393</span><span class="sd">        never goes stale) but whose MQTT connection can never succeed.</span>
-<span class="linenos">394</span>
-<span class="linenos">395</span><span class="sd">        Envelope decode failures are logged and skipped without tearing</span>
-<span class="linenos">396</span><span class="sd">        down the MQTT connection; publish failures are left to</span>
-<span class="linenos">397</span><span class="sd">        ``AsyncComManager``'s own ``MAX_TRANSMIT_ERRORS`` handling, so only</span>
-<span class="linenos">398</span><span class="sd">        a sustained failure streak triggers a reconnect here.</span>
 <span class="linenos">399</span>
-<span class="linenos">400</span><span class="sd">        Args:</span>
-<span class="linenos">401</span><span class="sd">            sock (ZmqSocket): The worker's bound ``PULL``</span>
-<span class="linenos">402</span><span class="sd">                socket.</span>
-<span class="linenos">403</span>
-<span class="linenos">404</span><span class="sd">        Returns:</span>
-<span class="linenos">405</span><span class="sd">            None: The loop runs until a shutdown signal interrupts it or</span>
-<span class="linenos">406</span><span class="sd">            the connect give-up threshold is reached.</span>
-<span class="linenos">407</span>
-<span class="linenos">408</span><span class="sd">        Raises:</span>
-<span class="linenos">409</span><span class="sd">            _MaxConnectAttemptsExceededError: After</span>
-<span class="linenos">410</span><span class="sd">                ``publish_max_connect_attempts`` consecutive failed connect</span>
-<span class="linenos">411</span><span class="sd">                attempts.</span>
-<span class="linenos">412</span>
-<span class="linenos">413</span><span class="sd">        Complexity:</span>
-<span class="linenos">414</span><span class="sd">            - Time: O(n) per message handled, where n is the number of</span>
-<span class="linenos">415</span><span class="sd">              fields in the decoded envelope/facility message; runs until a</span>
-<span class="linenos">416</span><span class="sd">              shutdown signal fires or the give-up threshold is reached.</span>
-<span class="linenos">417</span><span class="sd">            - Space: O(n) per message handled, for the decoded envelope and</span>
-<span class="linenos">418</span><span class="sd">              reconstructed domain objects.</span>
-<span class="linenos">419</span><span class="sd">        """</span>
-<span class="linenos">420</span>        <span class="n">consecutive_connect_failures</span> <span class="o">=</span> <span class="mi">0</span>
-<span class="linenos">421</span>        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
-<span class="linenos">422</span>            <span class="n">connected</span> <span class="o">=</span> <span class="kc">False</span>
-<span class="linenos">423</span>            <span class="k">try</span><span class="p">:</span>
-<span class="linenos">424</span>                <span class="k">async</span> <span class="k">with</span> <span class="n">AsyncComManager</span><span class="p">(</span>
-<span class="linenos">425</span>                    <span class="n">params</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_worker_params</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_logger</span>
-<span class="linenos">426</span>                <span class="p">)</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
-<span class="linenos">427</span>                    <span class="n">connected</span> <span class="o">=</span> <span class="kc">True</span>
-<span class="linenos">428</span>                    <span class="n">consecutive_connect_failures</span> <span class="o">=</span> <span class="mi">0</span>
-<span class="linenos">429</span>                    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
-<span class="linenos">430</span>                        <span class="n">raw</span> <span class="o">=</span> <span class="k">await</span> <span class="n">sock</span><span class="o">.</span><span class="n">recv</span><span class="p">()</span>
-<span class="linenos">431</span>                        <span class="k">try</span><span class="p">:</span>
-<span class="linenos">432</span>                            <span class="n">envelope</span> <span class="o">=</span> <span class="n">PublishEnvelope</span><span class="o">.</span><span class="n">model_validate_json</span><span class="p">(</span>
-<span class="linenos">433</span>                                <span class="n">json_data</span><span class="o">=</span><span class="n">raw</span>
-<span class="linenos">434</span>                            <span class="p">)</span>
-<span class="linenos">435</span>                        <span class="k">except</span> <span class="n">ValidationError</span><span class="p">:</span>
-<span class="linenos">436</span>                            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">WARNING</span><span class="p">):</span>
-<span class="linenos">437</span>                                <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-<span class="linenos">438</span>                                    <span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">"Discarding malformed publish envelope </span><span class="si">{</span><span class="n">raw</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">encoding</span><span class="o">=</span><span class="s1">'utf-8'</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
-<span class="linenos">439</span>                                <span class="p">)</span>
-<span class="linenos">440</span>                            <span class="k">continue</span>
-<span class="linenos">441</span>                        <span class="n">message</span><span class="p">,</span> <span class="n">address</span><span class="p">,</span> <span class="n">current_position</span> <span class="o">=</span> <span class="p">(</span>
-<span class="linenos">442</span>                            <span class="n">envelope</span><span class="o">.</span><span class="n">to_domain_objects</span><span class="p">()</span>
-<span class="linenos">443</span>                        <span class="p">)</span>
-<span class="linenos">444</span>                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">):</span>
-<span class="linenos">445</span>                            <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
-<span class="linenos">446</span>                                <span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">"Worker </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_worker_index</span><span class="si">}</span><span class="s2"> publishing </span><span class="si">{</span><span class="n">message</span><span class="si">}</span><span class="s2">"</span>
-<span class="linenos">447</span>                            <span class="p">)</span>
-<span class="linenos">448</span>                        <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">publish_its_message</span><span class="p">(</span>
-<span class="linenos">449</span>                            <span class="n">message</span><span class="o">=</span><span class="n">message</span><span class="p">,</span>
-<span class="linenos">450</span>                            <span class="n">address</span><span class="o">=</span><span class="n">address</span><span class="p">,</span>
-<span class="linenos">451</span>                            <span class="n">current_position</span><span class="o">=</span><span class="n">current_position</span><span class="p">,</span>
-<span class="linenos">452</span>                            <span class="n">is_station_mobile</span><span class="o">=</span><span class="n">envelope</span><span class="o">.</span><span class="n">isStationMobile</span><span class="p">,</span>
-<span class="linenos">453</span>                        <span class="p">)</span>
-<span class="linenos">454</span>                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">):</span>
-<span class="linenos">455</span>                            <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-<span class="linenos">456</span>                                <span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">"Worker </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_worker_index</span><span class="si">}</span><span class="s2"> published"</span>
-<span class="linenos">457</span>                            <span class="p">)</span>
-<span class="linenos">458</span>            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
-<span class="linenos">459</span>                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">ERROR</span><span class="p">):</span>
-<span class="linenos">460</span>                    <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">"Publish loop connection error"</span><span class="p">)</span>
-<span class="linenos">461</span>                <span class="k">if</span> <span class="ow">not</span> <span class="n">connected</span><span class="p">:</span>
-<span class="linenos">462</span>                    <span class="n">consecutive_connect_failures</span> <span class="o">+=</span> <span class="mi">1</span>
-<span class="linenos">463</span>                    <span class="k">if</span> <span class="p">(</span>
-<span class="linenos">464</span>                        <span class="n">consecutive_connect_failures</span>
-<span class="linenos">465</span>                        <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_worker_params</span><span class="o">.</span><span class="n">publish_max_connect_attempts</span>
-<span class="linenos">466</span>                    <span class="p">):</span>
-<span class="linenos">467</span>                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">WARNING</span><span class="p">):</span>
-<span class="linenos">468</span>                            <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-<span class="linenos">469</span>                                <span class="n">msg</span><span class="o">=</span><span class="p">(</span>
-<span class="linenos">470</span>                                    <span class="s2">"Giving up after "</span>
-<span class="linenos">471</span>                                    <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">consecutive_connect_failures</span><span class="si">}</span><span class="s2"> consecutive "</span>
-<span class="linenos">472</span>                                    <span class="s2">"connect failures"</span>
-<span class="linenos">473</span>                                <span class="p">)</span>
-<span class="linenos">474</span>                            <span class="p">)</span>
-<span class="linenos">475</span>                        <span class="k">raise</span> <span class="n">_MaxConnectAttemptsExceededError</span><span class="p">(</span>
-<span class="linenos">476</span>                            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">consecutive_connect_failures</span><span class="si">}</span><span class="s2"> consecutive connect "</span>
-<span class="linenos">477</span>                            <span class="s2">"failures"</span>
-<span class="linenos">478</span>                        <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span>
-<span class="linenos">479</span>                <span class="k">await</span> <span class="n">asyncio_sleep</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_worker_params</span><span class="o">.</span><span class="n">reconnect_interval</span><span class="p">)</span>
-<span class="linenos">480</span>
-<span class="linenos">481</span>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_parent_watchdog_loop</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">482</span><span class="w">        </span><span class="sd">"""Self-terminate if the parent process is no longer alive.</span>
-<span class="linenos">483</span>
-<span class="linenos">484</span><span class="sd">        Closes the "orphaned worker" gap left by ``daemon=True`` alone,</span>
-<span class="linenos">485</span><span class="sd">        which only guarantees cleanup when the parent exits through</span>
-<span class="linenos">486</span><span class="sd">        Python's own normal interpreter shutdown path.</span>
-<span class="linenos">487</span>
-<span class="linenos">488</span><span class="sd">        Returns:</span>
-<span class="linenos">489</span><span class="sd">            None: The loop runs until the parent process is detected as</span>
-<span class="linenos">490</span><span class="sd">            gone, at which point it raises instead of returning.</span>
-<span class="linenos">491</span>
-<span class="linenos">492</span><span class="sd">        Raises:</span>
-<span class="linenos">493</span><span class="sd">            _ParentProcessGoneError: Once ``_is_parent_alive()`` returns</span>
-<span class="linenos">494</span><span class="sd">                False.</span>
-<span class="linenos">495</span>
-<span class="linenos">496</span><span class="sd">        Complexity:</span>
-<span class="linenos">497</span><span class="sd">            - Time: O(1) per iteration; runs for the worker's lifetime.</span>
-<span class="linenos">498</span><span class="sd">            - Space: O(1), no additional storage is required.</span>
-<span class="linenos">499</span><span class="sd">        """</span>
-<span class="linenos">500</span>        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
-<span class="linenos">501</span>            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_parent_alive</span><span class="p">():</span>
-<span class="linenos">502</span>                <span class="k">raise</span> <span class="n">_ParentProcessGoneError</span><span class="p">(</span><span class="s2">"Parent process is no longer alive"</span><span class="p">)</span>
-<span class="linenos">503</span>            <span class="k">await</span> <span class="n">asyncio_sleep</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_worker_params</span><span class="o">.</span><span class="n">publish_parent_watchdog_interval</span><span class="p">)</span>
-<span class="linenos">504</span>
-<span class="linenos">505</span>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_stop_watch_loop</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">506</span><span class="w">        </span><span class="sd">"""Wait for a pool-requested graceful stop, then trigger shutdown.</span>
-<span class="linenos">507</span>
-<span class="linenos">508</span><span class="sd">        The graceful, pool-requested counterpart to</span>
-<span class="linenos">509</span><span class="sd">        ``_parent_watchdog_loop``'s involuntary shutdown. Polls</span>
-<span class="linenos">510</span><span class="sd">        ``self._stop_event`` on a short, fixed interval rather than doing a</span>
-<span class="linenos">511</span><span class="sd">        single blocking ``Event.wait()`` in an executor thread: a blocking</span>
-<span class="linenos">512</span><span class="sd">        wait with no timeout runs on a non-daemon</span>
-<span class="linenos">513</span><span class="sd">        ``ThreadPoolExecutor`` thread that asyncio task cancellation cannot</span>
-<span class="linenos">514</span><span class="sd">        actually interrupt, so if a *different* sibling task is the one</span>
-<span class="linenos">515</span><span class="sd">        that ends up triggering shutdown (e.g. ``_publish_loop`` giving up,</span>
-<span class="linenos">516</span><span class="sd">        or the parent watchdog firing), that thread would otherwise stay</span>
-<span class="linenos">517</span><span class="sd">        blocked forever, keeping the whole process alive well past when it</span>
-<span class="linenos">518</span><span class="sd">        should have exited.</span>
-<span class="linenos">519</span>
-<span class="linenos">520</span><span class="sd">        Returns:</span>
-<span class="linenos">521</span><span class="sd">            None: The loop runs until a graceful stop is requested, at</span>
-<span class="linenos">522</span><span class="sd">            which point it raises instead of returning.</span>
-<span class="linenos">523</span>
-<span class="linenos">524</span><span class="sd">        Raises:</span>
-<span class="linenos">525</span><span class="sd">            _StopRequestedError: Once ``self._stop_event`` is set.</span>
-<span class="linenos">526</span>
-<span class="linenos">527</span><span class="sd">        Complexity:</span>
-<span class="linenos">528</span><span class="sd">            - Time: O(1) per iteration; runs until the event is set.</span>
-<span class="linenos">529</span><span class="sd">            - Space: O(1), no additional storage is required.</span>
-<span class="linenos">530</span><span class="sd">        """</span>
-<span class="linenos">531</span>        <span class="c1"># self._stop_event is a multiprocessing.Event, set from a *different</span>
-<span class="linenos">532</span>        <span class="c1"># process* (the pool) - an asyncio.Event cannot be signaled that way,</span>
-<span class="linenos">533</span>        <span class="c1"># so polling is the actual requirement here, not an oversight.</span>
-<span class="linenos">534</span>        <span class="k">while</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stop_event</span><span class="o">.</span><span class="n">is_set</span><span class="p">():</span>  <span class="c1"># noqa: ASYNC110</span>
-<span class="linenos">535</span>            <span class="k">await</span> <span class="n">asyncio_sleep</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">STOP_POLL_INTERVAL</span><span class="p">)</span>
-<span class="linenos">536</span>        <span class="k">raise</span> <span class="n">_StopRequestedError</span><span class="p">(</span><span class="s2">"Stop requested by pool"</span><span class="p">)</span>
-<span class="linenos">537</span>
-<span class="linenos">538</span>    <span class="k">def</span><span class="w"> </span><span class="nf">_is_parent_alive</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="linenos">539</span><span class="w">        </span><span class="sd">"""Check whether the captured parent process is still the same, running</span>
-<span class="linenos">540</span><span class="sd">        process.</span>
-<span class="linenos">541</span>
-<span class="linenos">542</span><span class="sd">        Comparing ``create_time()`` alongside the PID rules out a</span>
-<span class="linenos">543</span><span class="sd">        different, unrelated process having since reused the same PID.</span>
-<span class="linenos">544</span>
-<span class="linenos">545</span><span class="sd">        Returns:</span>
-<span class="linenos">546</span><span class="sd">            bool: True if the parent process is still running and has the</span>
-<span class="linenos">547</span><span class="sd">            same creation time as when it was captured, False otherwise.</span>
-<span class="linenos">548</span>
-<span class="linenos">549</span><span class="sd">        Complexity:</span>
-<span class="linenos">550</span><span class="sd">            - Time: O(1), a single process lookup and comparison.</span>
-<span class="linenos">551</span><span class="sd">            - Space: O(1), no additional storage is required.</span>
-<span class="linenos">552</span><span class="sd">        """</span>
-<span class="linenos">553</span>        <span class="k">try</span><span class="p">:</span>
-<span class="linenos">554</span>            <span class="n">proc</span> <span class="o">=</span> <span class="n">Process</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_parent_pid</span><span class="p">)</span>
-<span class="linenos">555</span>        <span class="k">except</span> <span class="n">NoSuchProcess</span><span class="p">:</span>
-<span class="linenos">556</span>            <span class="k">return</span> <span class="kc">False</span>
-<span class="linenos">557</span>        <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span>
-<span class="linenos">558</span>            <span class="n">proc</span><span class="o">.</span><span class="n">is_running</span><span class="p">()</span> <span class="ow">and</span> <span class="n">proc</span><span class="o">.</span><span class="n">create_time</span><span class="p">()</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parent_create_time</span>
-<span class="linenos">559</span>        <span class="p">)</span></div>
+<span class="linenos">400</span>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_async_main</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">401</span><span class="w">        </span><span class="sd">"""Connect the worker's ``PULL`` socket and run the four sibling loops.</span>
+<span class="linenos">402</span>
+<span class="linenos">403</span><span class="sd">        Readiness (``_ready_event.set()``) is signaled immediately after</span>
+<span class="linenos">404</span><span class="sd">        the socket's ``connect()`` call returns - readiness means "connect</span>
+<span class="linenos">405</span><span class="sd">        issued", not "MQTT connected", so a worker stuck in MQTT reconnect</span>
+<span class="linenos">406</span><span class="sd">        backoff never blocks pool startup. Unlike a bind, a PULL socket's</span>
+<span class="linenos">407</span><span class="sd">        connect() is non-blocking and queues/retries internally, so it has</span>
+<span class="linenos">408</span><span class="sd">        no TOCTOU race to lose against another process; the try/except</span>
+<span class="linenos">409</span><span class="sd">        below only guards the unlikely case of a malformed endpoint string,</span>
+<span class="linenos">410</span><span class="sd">        logging and returning without setting ``_ready_event`` - the pool</span>
+<span class="linenos">411</span><span class="sd">        detects this the same way it detects any other early worker exit,</span>
+<span class="linenos">412</span><span class="sd">        via ``_await_ready``.</span>
+<span class="linenos">413</span>
+<span class="linenos">414</span><span class="sd">        Returns:</span>
+<span class="linenos">415</span><span class="sd">            None: The coroutine runs the worker's four sibling loops until</span>
+<span class="linenos">416</span><span class="sd">            one of them raises a shutdown signal, then returns after</span>
+<span class="linenos">417</span><span class="sd">            cleanup.</span>
+<span class="linenos">418</span>
+<span class="linenos">419</span><span class="sd">        Complexity:</span>
+<span class="linenos">420</span><span class="sd">            - Time: O(1) for connect/readiness; then runs until one of the</span>
+<span class="linenos">421</span><span class="sd">              three shutdown signals fires, at O(n) per message cost for</span>
+<span class="linenos">422</span><span class="sd">              the publish loop meanwhile.</span>
+<span class="linenos">423</span><span class="sd">            - Space: O(1) for the worker's own state; O(n) per message</span>
+<span class="linenos">424</span><span class="sd">              handled, mirroring the time complexity.</span>
+<span class="linenos">425</span><span class="sd">        """</span>
+<span class="linenos">426</span>        <span class="n">context</span> <span class="o">=</span> <span class="n">ZmqContext</span><span class="p">()</span>
+<span class="linenos">427</span>        <span class="n">sock</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">socket</span><span class="p">(</span><span class="n">socket_type</span><span class="o">=</span><span class="n">zmq</span><span class="o">.</span><span class="n">PULL</span><span class="p">)</span>
+<span class="linenos">428</span>        <span class="n">sock</span><span class="o">.</span><span class="n">set_hwm</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_worker_params</span><span class="o">.</span><span class="n">publish_hwm</span><span class="p">)</span>
+<span class="linenos">429</span>        <span class="k">try</span><span class="p">:</span>
+<span class="linenos">430</span>            <span class="k">try</span><span class="p">:</span>
+<span class="linenos">431</span>                <span class="n">sock</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">addr</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_endpoint</span><span class="p">)</span>
+<span class="linenos">432</span>            <span class="k">except</span> <span class="n">zmq</span><span class="o">.</span><span class="n">ZMQError</span><span class="p">:</span>
+<span class="linenos">433</span>                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">ERROR</span><span class="p">):</span>
+<span class="linenos">434</span>                    <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span>
+<span class="linenos">435</span>                        <span class="n">msg</span><span class="o">=</span><span class="p">(</span>
+<span class="linenos">436</span>                            <span class="sa">f</span><span class="s2">"Worker </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_worker_index</span><span class="si">}</span><span class="s2"> failed to connect to "</span>
+<span class="linenos">437</span>                            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_endpoint</span><span class="si">}</span><span class="s2">"</span>
+<span class="linenos">438</span>                        <span class="p">)</span>
+<span class="linenos">439</span>                    <span class="p">)</span>
+<span class="linenos">440</span>                <span class="k">return</span>
+<span class="linenos">441</span>            <span class="bp">self</span><span class="o">.</span><span class="n">_ready_event</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
+<span class="linenos">442</span>            <span class="k">try</span><span class="p">:</span>
+<span class="linenos">443</span>                <span class="k">async</span> <span class="k">with</span> <span class="n">TaskGroup</span><span class="p">()</span> <span class="k">as</span> <span class="n">group</span><span class="p">:</span>
+<span class="linenos">444</span>                    <span class="n">group</span><span class="o">.</span><span class="n">create_task</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_heartbeat_loop</span><span class="p">(),</span> <span class="n">name</span><span class="o">=</span><span class="s2">"heartbeat_loop"</span><span class="p">)</span>
+<span class="linenos">445</span>                    <span class="n">group</span><span class="o">.</span><span class="n">create_task</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_publish_loop</span><span class="p">(</span><span class="n">sock</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="s2">"publish_loop"</span><span class="p">)</span>
+<span class="linenos">446</span>                    <span class="n">group</span><span class="o">.</span><span class="n">create_task</span><span class="p">(</span>
+<span class="linenos">447</span>                        <span class="bp">self</span><span class="o">.</span><span class="n">_parent_watchdog_loop</span><span class="p">(),</span> <span class="n">name</span><span class="o">=</span><span class="s2">"parent_watchdog_loop"</span>
+<span class="linenos">448</span>                    <span class="p">)</span>
+<span class="linenos">449</span>                    <span class="n">group</span><span class="o">.</span><span class="n">create_task</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_stop_watch_loop</span><span class="p">(),</span> <span class="n">name</span><span class="o">=</span><span class="s2">"stop_watch_loop"</span><span class="p">)</span>
+<span class="linenos">450</span>            <span class="k">except</span><span class="o">*</span> <span class="n">_WorkerShutdownSignal</span> <span class="k">as</span> <span class="n">shutdown_group</span><span class="p">:</span>
+<span class="linenos">451</span>                <span class="n">reason</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">shutdown_group</span><span class="o">.</span><span class="n">exceptions</span><span class="p">))</span>
+<span class="linenos">452</span>                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">):</span>
+<span class="linenos">453</span>                    <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+<span class="linenos">454</span>                        <span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">"Worker </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_worker_index</span><span class="si">}</span><span class="s2"> shutting down: </span><span class="si">{</span><span class="n">reason</span><span class="si">}</span><span class="s2">"</span>
+<span class="linenos">455</span>                    <span class="p">)</span>
+<span class="linenos">456</span>        <span class="k">finally</span><span class="p">:</span>
+<span class="linenos">457</span>            <span class="n">sock</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+<span class="linenos">458</span>            <span class="n">context</span><span class="o">.</span><span class="n">term</span><span class="p">()</span>
+<span class="linenos">459</span>
+<span class="linenos">460</span>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_heartbeat_loop</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">461</span><span class="w">        </span><span class="sd">"""Refresh the shared heartbeat timestamp on a fixed interval.</span>
+<span class="linenos">462</span>
+<span class="linenos">463</span><span class="sd">        Runs concurrently with ``_publish_loop`` under the same</span>
+<span class="linenos">464</span><span class="sd">        ``TaskGroup``; since asyncio is single-threaded and</span>
+<span class="linenos">465</span><span class="sd">        cooperative, this loop only keeps advancing if the event loop as a</span>
+<span class="linenos">466</span><span class="sd">        whole keeps yielding, which is what lets the pool distinguish a</span>
+<span class="linenos">467</span><span class="sd">        merely-idle worker from a genuinely hung one (see</span>
+<span class="linenos">468</span><span class="sd">        ``PublishWorkerPool.check_health``).</span>
+<span class="linenos">469</span>
+<span class="linenos">470</span><span class="sd">        Returns:</span>
+<span class="linenos">471</span><span class="sd">            None: The loop runs indefinitely, refreshing the shared</span>
+<span class="linenos">472</span><span class="sd">            heartbeat; it never returns normally.</span>
+<span class="linenos">473</span>
+<span class="linenos">474</span><span class="sd">        Complexity:</span>
+<span class="linenos">475</span><span class="sd">            - Time: O(1) per iteration; runs for the worker's lifetime.</span>
+<span class="linenos">476</span><span class="sd">            - Space: O(1), no additional storage is required.</span>
+<span class="linenos">477</span><span class="sd">        """</span>
+<span class="linenos">478</span>        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+<span class="linenos">479</span>            <span class="bp">self</span><span class="o">.</span><span class="n">_heartbeat</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">monotonic</span><span class="p">()</span>
+<span class="linenos">480</span>            <span class="k">await</span> <span class="n">asyncio_sleep</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_worker_params</span><span class="o">.</span><span class="n">publish_heartbeat_interval</span><span class="p">)</span>
+<span class="linenos">481</span>
+<span class="linenos">482</span>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_publish_loop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sock</span><span class="p">:</span> <span class="n">ZmqSocket</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># noqa: C901</span>
+<span class="linenos">483</span><span class="w">        </span><span class="sd">"""Receive envelopes and republish them to MQTT, reconnecting on failure.</span>
+<span class="linenos">484</span>
+<span class="linenos">485</span><span class="sd">        MQTT is connection-oriented, so this loop wraps the whole</span>
+<span class="linenos">486</span><span class="sd">        ``async with AsyncComManager(...)`` connection attempt in a retry</span>
+<span class="linenos">487</span><span class="sd">        loop. A local counter of *consecutive failed connect attempts* is</span>
+<span class="linenos">488</span><span class="sd">        incremented only when the connection itself could not be</span>
+<span class="linenos">489</span><span class="sd">        established (``async with AsyncComManager(...)`` raising before</span>
+<span class="linenos">490</span><span class="sd">        entering the inner receive loop) and reset to zero on the next</span>
+<span class="linenos">491</span><span class="sd">        successful connect - a failure that happens after a successful</span>
+<span class="linenos">492</span><span class="sd">        connect (e.g. a dropped connection mid-stream) does not count</span>
+<span class="linenos">493</span><span class="sd">        toward the give-up threshold, since it is evidence the broker is</span>
+<span class="linenos">494</span><span class="sd">        reachable, not that this worker can never reach it. Once the</span>
+<span class="linenos">495</span><span class="sd">        counter reaches ``publish_max_connect_attempts``, the worker gives</span>
+<span class="linenos">496</span><span class="sd">        up and raises ``_MaxConnectAttemptsExceededError`` instead of</span>
+<span class="linenos">497</span><span class="sd">        retrying again - this is what lets ``check_health()`` recover a</span>
+<span class="linenos">498</span><span class="sd">        worker whose asyncio loop is perfectly healthy (so its heartbeat</span>
+<span class="linenos">499</span><span class="sd">        never goes stale) but whose MQTT connection can never succeed.</span>
+<span class="linenos">500</span>
+<span class="linenos">501</span><span class="sd">        Envelope decode failures are logged and skipped without tearing</span>
+<span class="linenos">502</span><span class="sd">        down the MQTT connection; publish failures are left to</span>
+<span class="linenos">503</span><span class="sd">        ``AsyncComManager``'s own ``MAX_TRANSMIT_ERRORS`` handling, so only</span>
+<span class="linenos">504</span><span class="sd">        a sustained failure streak triggers a reconnect here.</span>
+<span class="linenos">505</span>
+<span class="linenos">506</span><span class="sd">        Args:</span>
+<span class="linenos">507</span><span class="sd">            sock (ZmqSocket): The worker's bound ``PULL``</span>
+<span class="linenos">508</span><span class="sd">                socket.</span>
+<span class="linenos">509</span>
+<span class="linenos">510</span><span class="sd">        Returns:</span>
+<span class="linenos">511</span><span class="sd">            None: The loop runs until a shutdown signal interrupts it or</span>
+<span class="linenos">512</span><span class="sd">            the connect give-up threshold is reached.</span>
+<span class="linenos">513</span>
+<span class="linenos">514</span><span class="sd">        Raises:</span>
+<span class="linenos">515</span><span class="sd">            _MaxConnectAttemptsExceededError: After</span>
+<span class="linenos">516</span><span class="sd">                ``publish_max_connect_attempts`` consecutive failed connect</span>
+<span class="linenos">517</span><span class="sd">                attempts.</span>
+<span class="linenos">518</span>
+<span class="linenos">519</span><span class="sd">        Complexity:</span>
+<span class="linenos">520</span><span class="sd">            - Time: O(n) per message handled, where n is the number of</span>
+<span class="linenos">521</span><span class="sd">              fields in the decoded envelope/facility message; runs until a</span>
+<span class="linenos">522</span><span class="sd">              shutdown signal fires or the give-up threshold is reached.</span>
+<span class="linenos">523</span><span class="sd">            - Space: O(n) per message handled, for the decoded envelope and</span>
+<span class="linenos">524</span><span class="sd">              reconstructed domain objects.</span>
+<span class="linenos">525</span><span class="sd">        """</span>
+<span class="linenos">526</span>        <span class="n">consecutive_connect_failures</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="linenos">527</span>        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+<span class="linenos">528</span>            <span class="n">connected</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="linenos">529</span>            <span class="k">try</span><span class="p">:</span>
+<span class="linenos">530</span>                <span class="k">async</span> <span class="k">with</span> <span class="n">AsyncComManager</span><span class="p">(</span>
+<span class="linenos">531</span>                    <span class="n">params</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_worker_params</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_logger</span>
+<span class="linenos">532</span>                <span class="p">)</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
+<span class="linenos">533</span>                    <span class="n">connected</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="linenos">534</span>                    <span class="n">consecutive_connect_failures</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="linenos">535</span>                    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+<span class="linenos">536</span>                        <span class="n">raw</span> <span class="o">=</span> <span class="k">await</span> <span class="n">sock</span><span class="o">.</span><span class="n">recv</span><span class="p">()</span>
+<span class="linenos">537</span>                        <span class="k">try</span><span class="p">:</span>
+<span class="linenos">538</span>                            <span class="n">envelope</span> <span class="o">=</span> <span class="n">PublishEnvelope</span><span class="o">.</span><span class="n">model_validate_json</span><span class="p">(</span>
+<span class="linenos">539</span>                                <span class="n">json_data</span><span class="o">=</span><span class="n">raw</span>
+<span class="linenos">540</span>                            <span class="p">)</span>
+<span class="linenos">541</span>                        <span class="k">except</span> <span class="n">ValidationError</span><span class="p">:</span>
+<span class="linenos">542</span>                            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">WARNING</span><span class="p">):</span>
+<span class="linenos">543</span>                                <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+<span class="linenos">544</span>                                    <span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">"Discarding malformed publish envelope </span><span class="si">{</span><span class="n">raw</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">encoding</span><span class="o">=</span><span class="s1">'utf-8'</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
+<span class="linenos">545</span>                                <span class="p">)</span>
+<span class="linenos">546</span>                            <span class="k">continue</span>
+<span class="linenos">547</span>                        <span class="n">message</span><span class="p">,</span> <span class="n">address</span><span class="p">,</span> <span class="n">current_position</span> <span class="o">=</span> <span class="p">(</span>
+<span class="linenos">548</span>                            <span class="n">envelope</span><span class="o">.</span><span class="n">to_domain_objects</span><span class="p">()</span>
+<span class="linenos">549</span>                        <span class="p">)</span>
+<span class="linenos">550</span>                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">):</span>
+<span class="linenos">551</span>                            <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+<span class="linenos">552</span>                                <span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">"Worker </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_worker_index</span><span class="si">}</span><span class="s2"> publishing </span><span class="si">{</span><span class="n">message</span><span class="si">}</span><span class="s2">"</span>
+<span class="linenos">553</span>                            <span class="p">)</span>
+<span class="linenos">554</span>                        <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">publish_its_message</span><span class="p">(</span>
+<span class="linenos">555</span>                            <span class="n">message</span><span class="o">=</span><span class="n">message</span><span class="p">,</span>
+<span class="linenos">556</span>                            <span class="n">address</span><span class="o">=</span><span class="n">address</span><span class="p">,</span>
+<span class="linenos">557</span>                            <span class="n">current_position</span><span class="o">=</span><span class="n">current_position</span><span class="p">,</span>
+<span class="linenos">558</span>                            <span class="n">is_station_mobile</span><span class="o">=</span><span class="n">envelope</span><span class="o">.</span><span class="n">isStationMobile</span><span class="p">,</span>
+<span class="linenos">559</span>                        <span class="p">)</span>
+<span class="linenos">560</span>                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">):</span>
+<span class="linenos">561</span>                            <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+<span class="linenos">562</span>                                <span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">"Worker </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_worker_index</span><span class="si">}</span><span class="s2"> published"</span>
+<span class="linenos">563</span>                            <span class="p">)</span>
+<span class="linenos">564</span>            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+<span class="linenos">565</span>                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">ERROR</span><span class="p">):</span>
+<span class="linenos">566</span>                    <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">"Publish loop connection error"</span><span class="p">)</span>
+<span class="linenos">567</span>                <span class="k">if</span> <span class="ow">not</span> <span class="n">connected</span><span class="p">:</span>
+<span class="linenos">568</span>                    <span class="n">consecutive_connect_failures</span> <span class="o">+=</span> <span class="mi">1</span>
+<span class="linenos">569</span>                    <span class="k">if</span> <span class="p">(</span>
+<span class="linenos">570</span>                        <span class="n">consecutive_connect_failures</span>
+<span class="linenos">571</span>                        <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_worker_params</span><span class="o">.</span><span class="n">publish_max_connect_attempts</span>
+<span class="linenos">572</span>                    <span class="p">):</span>
+<span class="linenos">573</span>                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">WARNING</span><span class="p">):</span>
+<span class="linenos">574</span>                            <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+<span class="linenos">575</span>                                <span class="n">msg</span><span class="o">=</span><span class="p">(</span>
+<span class="linenos">576</span>                                    <span class="s2">"Giving up after "</span>
+<span class="linenos">577</span>                                    <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">consecutive_connect_failures</span><span class="si">}</span><span class="s2"> consecutive "</span>
+<span class="linenos">578</span>                                    <span class="s2">"connect failures"</span>
+<span class="linenos">579</span>                                <span class="p">)</span>
+<span class="linenos">580</span>                            <span class="p">)</span>
+<span class="linenos">581</span>                        <span class="k">raise</span> <span class="n">_MaxConnectAttemptsExceededError</span><span class="p">(</span>
+<span class="linenos">582</span>                            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">consecutive_connect_failures</span><span class="si">}</span><span class="s2"> consecutive connect "</span>
+<span class="linenos">583</span>                            <span class="s2">"failures"</span>
+<span class="linenos">584</span>                        <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span>
+<span class="linenos">585</span>                <span class="k">await</span> <span class="n">asyncio_sleep</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_worker_params</span><span class="o">.</span><span class="n">reconnect_interval</span><span class="p">)</span>
+<span class="linenos">586</span>
+<span class="linenos">587</span>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_parent_watchdog_loop</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">588</span><span class="w">        </span><span class="sd">"""Self-terminate if the parent process is no longer alive.</span>
+<span class="linenos">589</span>
+<span class="linenos">590</span><span class="sd">        Closes the "orphaned worker" gap left by ``daemon=True`` alone,</span>
+<span class="linenos">591</span><span class="sd">        which only guarantees cleanup when the parent exits through</span>
+<span class="linenos">592</span><span class="sd">        Python's own normal interpreter shutdown path.</span>
+<span class="linenos">593</span>
+<span class="linenos">594</span><span class="sd">        Returns:</span>
+<span class="linenos">595</span><span class="sd">            None: The loop runs until the parent process is detected as</span>
+<span class="linenos">596</span><span class="sd">            gone, at which point it raises instead of returning.</span>
+<span class="linenos">597</span>
+<span class="linenos">598</span><span class="sd">        Raises:</span>
+<span class="linenos">599</span><span class="sd">            _ParentProcessGoneError: Once ``_is_parent_alive()`` returns</span>
+<span class="linenos">600</span><span class="sd">                False.</span>
+<span class="linenos">601</span>
+<span class="linenos">602</span><span class="sd">        Complexity:</span>
+<span class="linenos">603</span><span class="sd">            - Time: O(1) per iteration; runs for the worker's lifetime.</span>
+<span class="linenos">604</span><span class="sd">            - Space: O(1), no additional storage is required.</span>
+<span class="linenos">605</span><span class="sd">        """</span>
+<span class="linenos">606</span>        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+<span class="linenos">607</span>            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_parent_alive</span><span class="p">():</span>
+<span class="linenos">608</span>                <span class="k">raise</span> <span class="n">_ParentProcessGoneError</span><span class="p">(</span><span class="s2">"Parent process is no longer alive"</span><span class="p">)</span>
+<span class="linenos">609</span>            <span class="k">await</span> <span class="n">asyncio_sleep</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_worker_params</span><span class="o">.</span><span class="n">publish_parent_watchdog_interval</span><span class="p">)</span>
+<span class="linenos">610</span>
+<span class="linenos">611</span>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_stop_watch_loop</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">612</span><span class="w">        </span><span class="sd">"""Wait for a pool-requested graceful stop, then trigger shutdown.</span>
+<span class="linenos">613</span>
+<span class="linenos">614</span><span class="sd">        The graceful, pool-requested counterpart to</span>
+<span class="linenos">615</span><span class="sd">        ``_parent_watchdog_loop``'s involuntary shutdown. Polls</span>
+<span class="linenos">616</span><span class="sd">        ``self._stop_event`` on a short, fixed interval rather than doing a</span>
+<span class="linenos">617</span><span class="sd">        single blocking ``Event.wait()`` in an executor thread: a blocking</span>
+<span class="linenos">618</span><span class="sd">        wait with no timeout runs on a non-daemon</span>
+<span class="linenos">619</span><span class="sd">        ``ThreadPoolExecutor`` thread that asyncio task cancellation cannot</span>
+<span class="linenos">620</span><span class="sd">        actually interrupt, so if a *different* sibling task is the one</span>
+<span class="linenos">621</span><span class="sd">        that ends up triggering shutdown (e.g. ``_publish_loop`` giving up,</span>
+<span class="linenos">622</span><span class="sd">        or the parent watchdog firing), that thread would otherwise stay</span>
+<span class="linenos">623</span><span class="sd">        blocked forever, keeping the whole process alive well past when it</span>
+<span class="linenos">624</span><span class="sd">        should have exited.</span>
+<span class="linenos">625</span>
+<span class="linenos">626</span><span class="sd">        Returns:</span>
+<span class="linenos">627</span><span class="sd">            None: The loop runs until a graceful stop is requested, at</span>
+<span class="linenos">628</span><span class="sd">            which point it raises instead of returning.</span>
+<span class="linenos">629</span>
+<span class="linenos">630</span><span class="sd">        Raises:</span>
+<span class="linenos">631</span><span class="sd">            _StopRequestedError: Once ``self._stop_event`` is set.</span>
+<span class="linenos">632</span>
+<span class="linenos">633</span><span class="sd">        Complexity:</span>
+<span class="linenos">634</span><span class="sd">            - Time: O(1) per iteration; runs until the event is set.</span>
+<span class="linenos">635</span><span class="sd">            - Space: O(1), no additional storage is required.</span>
+<span class="linenos">636</span><span class="sd">        """</span>
+<span class="linenos">637</span>        <span class="c1"># self._stop_event is a multiprocessing.Event, set from a *different</span>
+<span class="linenos">638</span>        <span class="c1"># process* (the pool) - an asyncio.Event cannot be signaled that way,</span>
+<span class="linenos">639</span>        <span class="c1"># so polling is the actual requirement here, not an oversight.</span>
+<span class="linenos">640</span>        <span class="k">while</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stop_event</span><span class="o">.</span><span class="n">is_set</span><span class="p">():</span>  <span class="c1"># noqa: ASYNC110</span>
+<span class="linenos">641</span>            <span class="k">await</span> <span class="n">asyncio_sleep</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">STOP_POLL_INTERVAL</span><span class="p">)</span>
+<span class="linenos">642</span>        <span class="k">raise</span> <span class="n">_StopRequestedError</span><span class="p">(</span><span class="s2">"Stop requested by pool"</span><span class="p">)</span>
+<span class="linenos">643</span>
+<span class="linenos">644</span>    <span class="k">def</span><span class="w"> </span><span class="nf">_is_parent_alive</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="linenos">645</span><span class="w">        </span><span class="sd">"""Check whether the captured parent process is still the same, running</span>
+<span class="linenos">646</span><span class="sd">        process.</span>
+<span class="linenos">647</span>
+<span class="linenos">648</span><span class="sd">        Comparing ``create_time()`` alongside the PID rules out a</span>
+<span class="linenos">649</span><span class="sd">        different, unrelated process having since reused the same PID.</span>
+<span class="linenos">650</span>
+<span class="linenos">651</span><span class="sd">        Returns:</span>
+<span class="linenos">652</span><span class="sd">            bool: True if the parent process is still running and has the</span>
+<span class="linenos">653</span><span class="sd">            same creation time as when it was captured, False otherwise.</span>
+<span class="linenos">654</span>
+<span class="linenos">655</span><span class="sd">        Complexity:</span>
+<span class="linenos">656</span><span class="sd">            - Time: O(1), a single process lookup and comparison.</span>
+<span class="linenos">657</span><span class="sd">            - Space: O(1), no additional storage is required.</span>
+<span class="linenos">658</span><span class="sd">        """</span>
+<span class="linenos">659</span>        <span class="k">try</span><span class="p">:</span>
+<span class="linenos">660</span>            <span class="n">proc</span> <span class="o">=</span> <span class="n">Process</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_parent_pid</span><span class="p">)</span>
+<span class="linenos">661</span>        <span class="k">except</span> <span class="n">NoSuchProcess</span><span class="p">:</span>
+<span class="linenos">662</span>            <span class="k">return</span> <span class="kc">False</span>
+<span class="linenos">663</span>        <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span>
+<span class="linenos">664</span>            <span class="n">proc</span><span class="o">.</span><span class="n">is_running</span><span class="p">()</span> <span class="ow">and</span> <span class="n">proc</span><span class="o">.</span><span class="n">create_time</span><span class="p">()</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parent_create_time</span>
+<span class="linenos">665</span>        <span class="p">)</span></div>
 
 </pre></div>
 
