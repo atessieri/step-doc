@@ -9,7 +9,9 @@ outbound message using ``LoggingTimer``, a context-manager utility provided by
 ``step_cloud_schemas`` (``step_cloud_schemas.profiling.logging_timer``). Every
 stream class wraps its ``publish_*`` methods in a ``LoggingTimer`` block, so
 each publish call emits a single, uniformly formatted log line reporting how
-long CloudEvents serialization took, in milliseconds.
+long the entire publish call took, in milliseconds -- CloudEvents envelope
+construction, JSON serialization, and the underlying Redis ``XADD`` network
+round-trip together.
 
 This guide documents exactly where ``LoggingTimer`` is used in ``step_redis``
 and the precise shape of the log line it produces, so that the message can be
@@ -19,20 +21,21 @@ depending on this documentation staying in sync by hand.
 Log Message Format
 -------------------
 
-Each ``step_redis`` stream class constructs its timer once, in ``__init__``,
-with a fixed ``prefix="step_redis"`` and ``log_level=LogMode.INFO``, then
-reuses that single instance across its methods, supplying the timed method
-itself per call site via ``__call__`` (which reads its ``__name__`` to derive
-``func_name``):
+Each ``step_redis`` publish/receive method builds a fresh ``LoggingTimer``
+locally, every call, with a fixed ``prefix="step_redis"`` and
+``log_level=LogMode.INFO``, supplying the timed method itself via ``__call__``
+(which reads its ``__name__`` to derive ``func_name``). This follows
+``LoggingTimer``'s own documented "fresh instance per timed block" usage
+pattern (see ``step_cloud_schemas.profiling.logging_timer``) rather than
+reusing one instance stored on ``self`` across calls:
 
 .. code-block:: python
 
-    self._logging_timer = LoggingTimer(
-        logger=self._logger, prefix="step_redis", log_level=LogMode.INFO
-    )
-
     async def publish_denm_message(self, message: DenmDataV1) -> None:
-        with self._logging_timer(self.publish_denm_message):
+        logging_timer = LoggingTimer(
+            logger=self._logger, prefix="step_redis", log_level=LogMode.INFO
+        )
+        with logging_timer(self.publish_denm_message):
             ...
 
 On exit from the ``with`` block, ``LoggingTimer`` logs, at ``INFO`` level
@@ -78,11 +81,14 @@ Regular expression for extraction:
 Usage Sites
 -----------
 
-Every usage in ``step_redis`` lives in ``src/step_redis``. Each class builds
-its ``LoggingTimer`` the same way in ``__init__`` and times exactly the block
-that constructs the CloudEvents envelope and serializes it to JSON (the
-``model_dump_json()`` call), **not** the network round-trip of publishing the
-message to Redis, which happens after the ``with`` block exits.
+Every usage in ``step_redis`` lives in ``src/step_redis``. Each ``publish_*``
+method builds its ``LoggingTimer`` the same way, locally, and times the whole
+method body: constructing the CloudEvents envelope, serializing it to JSON
+(the ``model_dump_json()`` call), and the ``await self.publish_message(...)``
+call that performs the underlying Redis ``XADD`` network round-trip. The
+elapsed time reported therefore includes the round-trip, not just
+serialization. ``receive_*_message`` methods use the same pattern around
+their ``model_validate_json`` call.
 
 .. list-table::
    :header-rows: 1
