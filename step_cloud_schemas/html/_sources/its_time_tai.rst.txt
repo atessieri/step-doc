@@ -1,0 +1,208 @@
+==============================
+ITS Time, TAI and Leap Seconds
+==============================
+
+This page explains how ``step_cloud_schemas`` represents time in ITS messages,
+why leap seconds matter, and how the leap-second table is loaded and refreshed.
+The code lives in ``step_cloud_schemas.classes.its_time`` (classes ``ItsTime``
+and ``LeapSeconds``).
+
+Time scales
+-----------
+
+.. list-table::
+   :header-rows: 1
+   :widths: 15 40 45
+
+   * - Scale
+     - Definition
+     - Leap seconds
+   * - **UTC**
+     - Civil time. Kept within 0.9 s of Earth rotation (UT1) by inserting
+       leap seconds.
+     - Yes: a minute may have 61 seconds (``23:59:60``).
+   * - **Unix time**
+     - Seconds since 1970-01-01T00:00:00Z, computed *as if* every day had
+       86400 s. It follows UTC.
+     - Hidden: the leap second repeats or smears a second, it cannot be
+       represented.
+   * - **TAI**
+     - International Atomic Time. A continuous count of SI seconds.
+     - None. It never jumps.
+
+Since 1972 TAI has been ahead of UTC by an integer number of seconds. That
+offset is 10 s in 1972 and grows by 1 s at every leap second. The last
+insertion was on 2016-12-31, so TAI - UTC = **37 s** since 2017-01-01.
+
+What is ``ItsTime``
+-------------------
+
+ETSI defines ``TimestampIts`` as the milliseconds elapsed since the ITS epoch,
+**2004-01-01T00:00:00Z**, counted on the **TAI** scale. It is the value carried
+on the wire by CAM, DENM and CPM messages. ``ItsTime.its_ms`` is exactly that
+value.
+
+Because ITS time counts atomic milliseconds, it is ahead of a naive
+"UTC milliseconds since 2004" by the leap seconds inserted *after* the ITS
+epoch:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 25 50
+
+   * - Leap second at end of
+     - TAI - UTC after it
+     - Leaps since the ITS epoch
+   * - 2005-12-31
+     - 33 s
+     - 1
+   * - 2008-12-31
+     - 34 s
+     - 2
+   * - 2012-06-30
+     - 35 s
+     - 3
+   * - 2015-06-30
+     - 36 s
+     - 4
+   * - 2016-12-31
+     - 37 s
+     - 5
+
+At the ITS epoch TAI - UTC was 32 s, so ``its_ms`` is 0 at that instant and
+the ITS-time offset from UTC is *5 s* today (37 - 32). Only the difference from
+the epoch matters, not the absolute 37 s.
+
+.. note::
+
+   The 5 s ITS-vs-UTC difference is the number of leaps inserted since 2004,
+   not the full TAI - UTC offset. Do not add 37 s.
+
+What ``ItsTime`` converts
+-------------------------
+
+* ``its_ms`` and the arithmetic operators (``+``, ``-``, ``time_difference``)
+  work on the TAI value. The difference of two instants is therefore the
+  physical elapsed time, even across a leap second.
+* ``epoch``, ``epoch_ms``, ``epoch_sec``, ``dt`` and ``iso_format`` are UTC.
+  Getting them removes the leap-second offset; the setters and the
+  ``create_from_*`` constructors add it.
+* ``ItsTime()`` with no argument is "now": the Unix clock is read, moved to
+  milliseconds since the ITS epoch, and converted to TAI.
+
+.. code-block:: python
+
+   from step_cloud_schemas.classes.its_time import ItsTime
+
+   t = ItsTime.create_from_iso_time("2007-01-01T00:00:00Z")
+   t.its_ms      # 94694401000: 1 leap second inserted between 2004 and 2007
+   t.iso_format  # '2007-01-01T00:00:00.000Z'  (back to UTC)
+
+Delta times
+~~~~~~~~~~~
+
+``get_delta_time_ms`` / ``create_from_delta_time`` use the low 16 bits of the
+*TAI* ``TimestampIts`` (``GenerationDeltaTime`` in CAM). The UTC reference
+passed as ``epoch`` is converted to TAI before the modulo is applied.
+
+The conversion: ``LeapSeconds``
+-------------------------------
+
+``LeapSeconds`` is a process-wide, thread-safe singleton that owns the
+leap-second table. ``ItsTime`` only calls its two methods:
+
+* ``utc_to_tai_ms(utc_its_ms)``: UTC ms since the ITS epoch to TAI ms.
+* ``tai_to_utc_ms(tai_its_ms)``: the inverse.
+
+Both look up the number of leap seconds inserted between the ITS epoch and the
+given instant, in a table of about 28 entries.
+
+Known limit: an instant *inside* an inserted leap second (``23:59:60``) has no
+Unix-time representation. ``tai_to_utc_ms`` maps it to the same milliseconds
+of the previous second (``23:59:59``), so the two collide.
+
+The ``leap-seconds.list`` file
+------------------------------
+
+The table comes from ``leap-seconds.list``, the file published by IERS
+(and mirrored by IANA and NIST). Each data line has an NTP timestamp (seconds
+since 1900-01-01) and the TAI - UTC value that starts then, for example::
+
+   3692217600      37      # 1 Jan 2017
+
+The file also carries:
+
+* ``#$``: last update time;
+* ``#@``: **expiration time**. IERS guarantees the content until that date
+  (the bundled file expires on 2027-06-28, ``#@ 4023129600``). No leap second
+  is announced less than about six months ahead, and each new file extends the
+  expiry;
+* ``#h``: SHA-1 hash of the content, always verified on load
+  (``check_hash=True``). A corrupted file is rejected.
+
+Where the file comes from
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The package ships a copy in ``step_cloud_schemas/data/leap-seconds.list``, read
+in memory with ``importlib.resources`` (no temporary file, works from a zip).
+On start-up ``LeapSeconds`` chooses the *freshest* (largest expiry) among:
+
+#. the file bundled with the package (always present);
+#. an optional local source, ``leap_seconds_source`` (a ``pathlib.Path`` or the
+   ``bytes`` of the file). If it is unreadable or corrupted a warning is
+   logged and the bundled file is used.
+
+So conversions need no network access and never fail for lack of a file.
+
+Refresh (download) when the data expires
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Nothing is downloaded at start-up. The download is triggered by the first
+conversion made after the ``#@`` expiry:
+
+#. A single warning is logged (once per expiry).
+#. If ``allow_download=True`` (default), one daemon thread named
+   ``leap-seconds-refresh`` downloads a new file. The URLs in
+   ``leap_seconds_urls`` are tried first, in order, then the standard IERS,
+   IANA and NIST sources. Each URL has a timeout of 10 s
+   (``LEAP_SECONDS_DOWNLOAD_TIMEOUT_S``).
+#. The downloaded file is parsed and hash-checked. It replaces the current data
+   with one atomic assignment **only if** its expiry is later; otherwise it is
+   discarded.
+#. After a failed or useless attempt, no new one starts for 3600 s
+   (``LEAP_SECONDS_REFRESH_RETRY_S``). A refresh still running after 600 s
+   (``LEAP_SECONDS_REFRESH_STALE_S``) is considered dead and may be replaced.
+#. With ``allow_download=False`` the network is never used and the expired data
+   stays in use, with the single warning.
+
+Meanwhile conversions **never wait** for the network: they keep using the
+expired table, that is, the last known offset. The result is still correct
+unless a leap second was inserted after the expiry date.
+
+.. code-block:: python
+
+   import pathlib
+   from step_cloud_schemas.classes.its_time import LeapSeconds
+
+   # Configure once, at process start, before any conversion.
+   LeapSeconds(
+       leap_seconds_source=pathlib.Path("/etc/step/leap-seconds.list"),
+       leap_seconds_urls=("https://intranet.example/leap-seconds.list",),
+       allow_download=True,   # False on air-gapped hosts
+   )
+
+Arguments passed after the singleton already exists are ignored with a warning.
+Create it before starting an event loop (or with ``asyncio.to_thread``): the
+only synchronous I/O is reading the local file in ``__init__``.
+
+Operational notes
+-----------------
+
+* **Air-gapped deployments**: set ``allow_download=False`` and ship an updated
+  file through ``leap_seconds_source``, or upgrade the package before the
+  bundled expiry.
+* **Expiry warning in logs**: means the table is older than its guarantee. If
+  the download is enabled, look for ``Leap-second data refreshed`` or
+  ``Leap-second refresh failed`` messages.
+* **Future**: the CGPM decided to abolish leap seconds by 2035. After that the
+  table stops growing and the offset stays constant.
