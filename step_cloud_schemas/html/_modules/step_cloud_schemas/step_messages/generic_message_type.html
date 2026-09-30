@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>step_cloud_schemas.its_messages.its_message &mdash; STEP Cloud Schemas 3.0.3 documentation</title>
+  <title>step_cloud_schemas.step_messages.generic_message_type &mdash; STEP Cloud Schemas 3.0.3 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../../_static/tabs.css?v=4c969af8" />
@@ -4185,7 +4185,7 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
-      <li class="breadcrumb-item active">step_cloud_schemas.its_messages.its_message</li>
+      <li class="breadcrumb-item active">step_cloud_schemas.step_messages.generic_message_type</li>
       <li class="wy-breadcrumbs-aside">
       </li>
   </ul>
@@ -4194,205 +4194,43 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <h1>Source code for step_cloud_schemas.its_messages.its_message</h1><div class="highlight"><pre>
-<span></span><span class="linenos">  1</span><span class="sd">"""ITS Message Root Schema Module.</span>
-<span class="linenos">  2</span>
-<span class="linenos">  3</span><span class="sd">This module defines the root data structure that wraps the ITS messages supported by</span>
-<span class="linenos">  4</span><span class="sd">the STEP Cloud platform (CAM, CPM and DENM) into a single union model.</span>
-<span class="linenos">  5</span>
-<span class="linenos">  6</span><span class="sd">The module provides:</span>
-<span class="linenos">  7</span>
-<span class="linenos">  8</span><span class="sd">    - ItsMessageRoot: A Pydantic root model wrapping CamDataV1, CpmDataV1 or</span>
-<span class="linenos">  9</span><span class="sd">      DenmDataV1</span>
-<span class="linenos"> 10</span><span class="sd">    - JSON schema generation capabilities</span>
-<span class="linenos"> 11</span><span class="sd">    - Default message generation</span>
-<span class="linenos"> 12</span><span class="sd">    - Utility functions for schema and example message file creation</span>
-<span class="linenos"> 13</span>
-<span class="linenos"> 14</span><span class="sd">Complexity:</span>
-<span class="linenos"> 15</span><span class="sd">    - Time: O(1) for default construction (``get_default``), since it wraps a</span>
-<span class="linenos"> 16</span><span class="sd">      single fixed-size default CAM message. O(n) for JSON schema generation</span>
-<span class="linenos"> 17</span><span class="sd">      (``print_message_schema``), where n is the number of fields and nested</span>
-<span class="linenos"> 18</span><span class="sd">      models across the CamDataV1, CpmDataV1 and DenmDataV1 schemas. O(1) for</span>
-<span class="linenos"> 19</span><span class="sd">      example message generation (``print_message_example``), since it writes</span>
-<span class="linenos"> 20</span><span class="sd">      three fixed-size default messages, one per supported ITS message type.</span>
-<span class="linenos"> 21</span><span class="sd">    - Space: O(1) for default construction, for the single wrapped default</span>
-<span class="linenos"> 22</span><span class="sd">      object. O(n) for JSON schema generation, for the generated schema</span>
-<span class="linenos"> 23</span><span class="sd">      dictionary and its nested structures. O(1) for example message</span>
-<span class="linenos"> 24</span><span class="sd">      generation, since the produced JSON strings have fixed, bounded size.</span>
-<span class="linenos"> 25</span>
-<span class="linenos"> 26</span><span class="sd">Classes:</span>
-<span class="linenos"> 27</span>
-<span class="linenos"> 28</span><span class="sd">    - ItsMessageRoot: Root model wrapping a CAM, CPM or DENM message. Complexity: time O(n), space O(n), n = schema fields, driven by</span>
-<span class="linenos"> 29</span><span class="sd">      print_message_schema.</span>
-<span class="linenos"> 30</span><span class="sd">"""</span>
-<span class="linenos"> 31</span>
-<span class="linenos"> 32</span><span class="c1"># Standard Library Imports</span>
-<span class="linenos"> 33</span><span class="kn">from</span><span class="w"> </span><span class="nn">json</span><span class="w"> </span><span class="kn">import</span> <span class="n">dumps</span> <span class="k">as</span> <span class="n">json_dumps</span>
-<span class="linenos"> 34</span><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
-<span class="linenos"> 35</span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Annotated</span><span class="p">,</span> <span class="n">ClassVar</span>
-<span class="linenos"> 36</span>
-<span class="linenos"> 37</span><span class="c1"># Third Party Imports</span>
-<span class="linenos"> 38</span><span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConfigDict</span><span class="p">,</span> <span class="n">Field</span><span class="p">,</span> <span class="n">RootModel</span>
-<span class="linenos"> 39</span>
-<span class="linenos"> 40</span><span class="c1"># step_cloud_schemas Package Imports</span>
-<span class="linenos"> 41</span><span class="kn">from</span><span class="w"> </span><span class="nn">step_cloud_schemas.classes.json_schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">make_schema_generator</span>
-<span class="linenos"> 42</span><span class="kn">from</span><span class="w"> </span><span class="nn">step_cloud_schemas.its_messages.cam_data_v1</span><span class="w"> </span><span class="kn">import</span> <span class="n">CamDataV1</span>
-<span class="linenos"> 43</span><span class="kn">from</span><span class="w"> </span><span class="nn">step_cloud_schemas.its_messages.cpm_data_v1</span><span class="w"> </span><span class="kn">import</span> <span class="n">CpmDataV1</span>
-<span class="linenos"> 44</span><span class="kn">from</span><span class="w"> </span><span class="nn">step_cloud_schemas.its_messages.denm_data_v1</span><span class="w"> </span><span class="kn">import</span> <span class="n">DenmDataV1</span>
-<span class="linenos"> 45</span>
-<span class="linenos"> 46</span><span class="n">ItsMessageUnion</span> <span class="o">=</span> <span class="n">Annotated</span><span class="p">[</span>
-<span class="linenos"> 47</span>    <span class="n">CamDataV1</span> <span class="o">|</span> <span class="n">CpmDataV1</span> <span class="o">|</span> <span class="n">DenmDataV1</span><span class="p">,</span> <span class="n">Field</span><span class="p">(</span><span class="n">discriminator</span><span class="o">=</span><span class="s2">"type"</span><span class="p">)</span>
-<span class="linenos"> 48</span><span class="p">]</span>
-<span class="linenos"> 49</span><span class="sd">"""Discriminated union of the supported ITS messages, keyed by their ``type`` literal."""</span>
-<span class="linenos"> 50</span>
-<span class="linenos"> 51</span>
-<div class="viewcode-block" id="ItsMessageRoot">
-<a class="viewcode-back" href="../../../step_cloud_schemas_rst/its_messages/step_cloud_schemas.its_messages.its_message.html#step_cloud_schemas.its_messages.its_message.ItsMessageRoot">[docs]</a>
-<span class="linenos"> 52</span><span class="k">class</span><span class="w"> </span><span class="nc">ItsMessageRoot</span><span class="p">(</span><span class="n">RootModel</span><span class="p">[</span><span class="n">ItsMessageUnion</span><span class="p">]):</span>
-<span class="linenos"> 53</span><span class="w">    </span><span class="sd">"""A class representing the root envelope of an ITS message.</span>
-<span class="linenos"> 54</span>
-<span class="linenos"> 55</span><span class="sd">    This class wraps a CAM, CPM or DENM message into a single discriminated</span>
-<span class="linenos"> 56</span><span class="sd">    union model. The ``type`` field of the input selects the member model</span>
-<span class="linenos"> 57</span><span class="sd">    directly (``"CAM"``, ``"CPM"`` or ``"DENM"``), so an invalid message is validated against, and reported</span>
-<span class="linenos"> 58</span><span class="sd">    for, that member only; an unknown ``type`` is rejected with a</span>
-<span class="linenos"> 59</span><span class="sd">    ``union_tag_invalid`` error.</span>
-<span class="linenos"> 60</span>
-<span class="linenos"> 61</span><span class="sd">    Attributes:</span>
-<span class="linenos"> 62</span><span class="sd">        root (CamDataV1 | CpmDataV1 | DenmDataV1): The wrapped ITS message,</span>
-<span class="linenos"> 63</span><span class="sd">            one of CamDataV1, CpmDataV1 or DenmDataV1.</span>
-<span class="linenos"> 64</span>
-<span class="linenos"> 65</span><span class="sd">    Note:</span>
-<span class="linenos"> 66</span><span class="sd">        - The model is frozen (immutable) after creation.</span>
-<span class="linenos"> 67</span><span class="sd">        - Strict type validation is enforced, except that enum fields accept</span>
-<span class="linenos"> 68</span><span class="sd">          their string values, so a dict decoded from JSON validates with</span>
-<span class="linenos"> 69</span><span class="sd">          ``model_validate``.</span>
-<span class="linenos"> 70</span><span class="sd">        - Extra attributes are rejected by the wrapped member models</span>
-<span class="linenos"> 71</span><span class="sd">          (``extra="forbid"``); a ``RootModel`` cannot set ``extra`` itself.</span>
-<span class="linenos"> 72</span>
-<span class="linenos"> 73</span><span class="sd">    Complexity:</span>
-<span class="linenos"> 74</span><span class="sd">        - Time: O(1) for get_default, since it wraps a single fixed-size</span>
-<span class="linenos"> 75</span><span class="sd">          default CAM message. O(n) for print_message_schema, where n is</span>
-<span class="linenos"> 76</span><span class="sd">          the number of fields and nested models across the CamDataV1,</span>
-<span class="linenos"> 77</span><span class="sd">          CpmDataV1 and DenmDataV1 schemas. O(1) for print_message_example,</span>
-<span class="linenos"> 78</span><span class="sd">          since it writes three fixed-size default messages.</span>
-<span class="linenos"> 79</span><span class="sd">        - Space: O(1) for get_default. O(n) for print_message_schema, for</span>
-<span class="linenos"> 80</span><span class="sd">          the generated schema dictionary and its nested structures. O(1)</span>
-<span class="linenos"> 81</span><span class="sd">          for print_message_example, since the produced JSON strings have</span>
-<span class="linenos"> 82</span><span class="sd">          fixed, bounded size.</span>
-<span class="linenos"> 83</span><span class="sd">    """</span>
-<span class="linenos"> 84</span>
-<span class="linenos"> 85</span>    <span class="c1"># Constants</span>
-<span class="linenos"> 86</span>    <span class="n">ITS_MESSAGE_SCHEMA_V1</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"its_message_schema_v1"</span>
-<span class="linenos"> 87</span>
-<span class="linenos"> 88</span>    <span class="n">model_config</span> <span class="o">=</span> <span class="n">ConfigDict</span><span class="p">(</span>
-<span class="linenos"> 89</span>        <span class="n">title</span><span class="o">=</span><span class="s2">"ITS Message"</span><span class="p">,</span>
-<span class="linenos"> 90</span>        <span class="n">json_schema_extra</span><span class="o">=</span><span class="p">{</span><span class="s2">"description"</span><span class="p">:</span> <span class="s2">"ITS message"</span><span class="p">},</span>
-<span class="linenos"> 91</span>        <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-<span class="linenos"> 92</span>        <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-<span class="linenos"> 93</span>    <span class="p">)</span>
-<span class="linenos"> 94</span>
-<div class="viewcode-block" id="ItsMessageRoot.get_default">
-<a class="viewcode-back" href="../../../step_cloud_schemas_rst/its_messages/step_cloud_schemas.its_messages.its_message.html#step_cloud_schemas.its_messages.its_message.ItsMessageRoot.get_default">[docs]</a>
-<span class="linenos"> 95</span>    <span class="nd">@staticmethod</span>
-<span class="linenos"> 96</span>    <span class="k">def</span><span class="w"> </span><span class="nf">get_default</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="s2">"ItsMessageRoot"</span><span class="p">:</span>
-<span class="linenos"> 97</span><span class="w">        </span><span class="sd">"""Returns a default instance of ``ItsMessageRoot``.</span>
-<span class="linenos"> 98</span>
-<span class="linenos"> 99</span><span class="sd">        This method creates a new ItsMessageRoot object initialized with</span>
-<span class="linenos">100</span><span class="sd">        default values. The root attribute is set to the default instance of</span>
-<span class="linenos">101</span><span class="sd">        ``CamDataV1``.</span>
-<span class="linenos">102</span>
-<span class="linenos">103</span><span class="sd">        Returns:</span>
-<span class="linenos">104</span><span class="sd">            ItsMessageRoot: A default instance of the ``ItsMessageRoot`` class.</span>
-<span class="linenos">105</span>
-<span class="linenos">106</span><span class="sd">        Complexity:</span>
-<span class="linenos">107</span><span class="sd">            - Time: O(1), constructs one instance wrapping a fixed-size default CAM</span>
-<span class="linenos">108</span><span class="sd">              event.</span>
-<span class="linenos">109</span><span class="sd">            - Space: O(1), allocates a single instance with a fixed number of fields.</span>
-<span class="linenos">110</span><span class="sd">        """</span>
-<span class="linenos">111</span>        <span class="k">return</span> <span class="n">ItsMessageRoot</span><span class="p">(</span><span class="n">root</span><span class="o">=</span><span class="n">CamDataV1</span><span class="o">.</span><span class="n">get_default</span><span class="p">())</span></div>
-
-<span class="linenos">112</span>
-<div class="viewcode-block" id="ItsMessageRoot.print_message_schema">
-<a class="viewcode-back" href="../../../step_cloud_schemas_rst/its_messages/step_cloud_schemas.its_messages.its_message.html#step_cloud_schemas.its_messages.its_message.ItsMessageRoot.print_message_schema">[docs]</a>
-<span class="linenos">113</span>    <span class="nd">@classmethod</span>
-<span class="linenos">114</span>    <span class="k">def</span><span class="w"> </span><span class="nf">print_message_schema</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">115</span><span class="w">        </span><span class="sd">"""Print the message schema for ITS messages to a file.</span>
-<span class="linenos">116</span>
-<span class="linenos">117</span><span class="sd">        Generates a JSON schema from the ItsMessageRoot model</span>
-<span class="linenos">118</span><span class="sd">        and writes it to the specified path, appending the</span>
-<span class="linenos">119</span><span class="sd">        ``ITS_MESSAGE_SCHEMA_V1`` filename.</span>
-<span class="linenos">120</span>
-<span class="linenos">121</span><span class="sd">        Args:</span>
-<span class="linenos">122</span><span class="sd">            path (Path): The directory path where the schema file will be stored.</span>
-<span class="linenos">123</span>
-<span class="linenos">124</span><span class="sd">        Returns:</span>
-<span class="linenos">125</span><span class="sd">            None: The method writes the schema file to disk and does not return a value.</span>
-<span class="linenos">126</span>
-<span class="linenos">127</span><span class="sd">        Complexity:</span>
-<span class="linenos">128</span><span class="sd">            - Time: O(n), where n is the number of fields/nodes across the CAM,</span>
-<span class="linenos">129</span><span class="sd">              CPM and DENM message schemas being generated and serialized.</span>
-<span class="linenos">130</span><span class="sd">            - Space: O(n), for the in-memory schema dict and its serialized JSON</span>
-<span class="linenos">131</span><span class="sd">              string, proportional to the number of fields/nodes in the schema.</span>
-<span class="linenos">132</span><span class="sd">        """</span>
-<span class="linenos">133</span>        <span class="n">path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">ITS_MESSAGE_SCHEMA_V1</span> <span class="o">+</span> <span class="s2">".json"</span><span class="p">)</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span>
-<span class="linenos">134</span>            <span class="n">data</span><span class="o">=</span><span class="n">json_dumps</span><span class="p">(</span>
-<span class="linenos">135</span>                <span class="n">obj</span><span class="o">=</span><span class="n">ItsMessageRoot</span><span class="o">.</span><span class="n">model_json_schema</span><span class="p">(</span>
-<span class="linenos">136</span>                    <span class="n">schema_generator</span><span class="o">=</span><span class="n">make_schema_generator</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">ITS_MESSAGE_SCHEMA_V1</span><span class="p">)</span>
-<span class="linenos">137</span>                <span class="p">),</span>
-<span class="linenos">138</span>                <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-<span class="linenos">139</span>            <span class="p">),</span>
-<span class="linenos">140</span>            <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">,</span>
-<span class="linenos">141</span>            <span class="n">newline</span><span class="o">=</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span>
-<span class="linenos">142</span>        <span class="p">)</span></div>
-
-<span class="linenos">143</span>
-<div class="viewcode-block" id="ItsMessageRoot.print_message_example">
-<a class="viewcode-back" href="../../../step_cloud_schemas_rst/its_messages/step_cloud_schemas.its_messages.its_message.html#step_cloud_schemas.its_messages.its_message.ItsMessageRoot.print_message_example">[docs]</a>
-<span class="linenos">144</span>    <span class="nd">@classmethod</span>
-<span class="linenos">145</span>    <span class="k">def</span><span class="w"> </span><span class="nf">print_message_example</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">146</span><span class="w">        </span><span class="sd">"""Writes one example message file per supported ITS message type.</span>
-<span class="linenos">147</span>
-<span class="linenos">148</span><span class="sd">        For each of CamDataV1, CpmDataV1 and DenmDataV1, wraps</span>
-<span class="linenos">149</span><span class="sd">        the model's ``get_default()`` instance in an ItsMessageRoot, serializes</span>
-<span class="linenos">150</span><span class="sd">        it to JSON indented by 2, and writes it under ``path`` to a file named</span>
-<span class="linenos">151</span><span class="sd">        ``ITS_MESSAGE_SCHEMA_V1 + "_" + &lt;model schema constant&gt; + ".json"``.</span>
-<span class="linenos">152</span>
-<span class="linenos">153</span><span class="sd">        Args:</span>
-<span class="linenos">154</span><span class="sd">            path (Path): The base directory path where the example files will be written.</span>
-<span class="linenos">155</span>
-<span class="linenos">156</span><span class="sd">        Returns:</span>
-<span class="linenos">157</span><span class="sd">            None: The method writes the example message files to disk and does not</span>
-<span class="linenos">158</span><span class="sd">            return a value.</span>
-<span class="linenos">159</span>
-<span class="linenos">160</span><span class="sd">        Complexity:</span>
-<span class="linenos">161</span><span class="sd">            - Time: O(1), builds and serializes three fixed-size default</span>
-<span class="linenos">162</span><span class="sd">              messages.</span>
-<span class="linenos">163</span><span class="sd">            - Space: O(1), each generated JSON example has a fixed size.</span>
-<span class="linenos">164</span><span class="sd">        """</span>
-<span class="linenos">165</span>        <span class="n">path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span>
-<span class="linenos">166</span>            <span class="bp">cls</span><span class="o">.</span><span class="n">ITS_MESSAGE_SCHEMA_V1</span> <span class="o">+</span> <span class="s2">"_"</span> <span class="o">+</span> <span class="n">CamDataV1</span><span class="o">.</span><span class="n">CAM_DATA_SCHEMA_V1</span> <span class="o">+</span> <span class="s2">".json"</span>
-<span class="linenos">167</span>        <span class="p">)</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span>
-<span class="linenos">168</span>            <span class="n">data</span><span class="o">=</span><span class="n">ItsMessageRoot</span><span class="p">(</span><span class="n">root</span><span class="o">=</span><span class="n">CamDataV1</span><span class="o">.</span><span class="n">get_default</span><span class="p">())</span><span class="o">.</span><span class="n">model_dump_json</span><span class="p">(</span><span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span>
-<span class="linenos">169</span>            <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">,</span>
-<span class="linenos">170</span>            <span class="n">newline</span><span class="o">=</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span>
-<span class="linenos">171</span>        <span class="p">)</span>
-<span class="linenos">172</span>        <span class="n">path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span>
-<span class="linenos">173</span>            <span class="bp">cls</span><span class="o">.</span><span class="n">ITS_MESSAGE_SCHEMA_V1</span> <span class="o">+</span> <span class="s2">"_"</span> <span class="o">+</span> <span class="n">CpmDataV1</span><span class="o">.</span><span class="n">CPM_DATA_SCHEMA_V1</span> <span class="o">+</span> <span class="s2">".json"</span>
-<span class="linenos">174</span>        <span class="p">)</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span>
-<span class="linenos">175</span>            <span class="n">data</span><span class="o">=</span><span class="n">ItsMessageRoot</span><span class="p">(</span><span class="n">root</span><span class="o">=</span><span class="n">CpmDataV1</span><span class="o">.</span><span class="n">get_default</span><span class="p">())</span><span class="o">.</span><span class="n">model_dump_json</span><span class="p">(</span><span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span>
-<span class="linenos">176</span>            <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">,</span>
-<span class="linenos">177</span>            <span class="n">newline</span><span class="o">=</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span>
-<span class="linenos">178</span>        <span class="p">)</span>
-<span class="linenos">179</span>        <span class="n">path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span>
-<span class="linenos">180</span>            <span class="bp">cls</span><span class="o">.</span><span class="n">ITS_MESSAGE_SCHEMA_V1</span> <span class="o">+</span> <span class="s2">"_"</span> <span class="o">+</span> <span class="n">DenmDataV1</span><span class="o">.</span><span class="n">DENM_DATA_SCHEMA_V1</span> <span class="o">+</span> <span class="s2">".json"</span>
-<span class="linenos">181</span>        <span class="p">)</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span>
-<span class="linenos">182</span>            <span class="n">data</span><span class="o">=</span><span class="n">ItsMessageRoot</span><span class="p">(</span><span class="n">root</span><span class="o">=</span><span class="n">DenmDataV1</span><span class="o">.</span><span class="n">get_default</span><span class="p">())</span><span class="o">.</span><span class="n">model_dump_json</span><span class="p">(</span>
-<span class="linenos">183</span>                <span class="n">indent</span><span class="o">=</span><span class="mi">2</span>
-<span class="linenos">184</span>            <span class="p">),</span>
-<span class="linenos">185</span>            <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">,</span>
-<span class="linenos">186</span>            <span class="n">newline</span><span class="o">=</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span>
-<span class="linenos">187</span>        <span class="p">)</span></div>
-</div>
+  <h1>Source code for step_cloud_schemas.step_messages.generic_message_type</h1><div class="highlight"><pre>
+<span></span><span class="linenos"> 1</span><span class="sd">"""Generic Message Type Module.</span>
+<span class="linenos"> 2</span>
+<span class="linenos"> 3</span><span class="sd">This module defines the ``GenericMessageType`` enumeration, whose string</span>
+<span class="linenos"> 4</span><span class="sd">members identify the kind of payload carried by a generic STEP message.</span>
+<span class="linenos"> 5</span>
+<span class="linenos"> 6</span><span class="sd">Complexity:</span>
+<span class="linenos"> 7</span><span class="sd">    - Time: O(1), the module defines a single enumeration with a fixed</span>
+<span class="linenos"> 8</span><span class="sd">      number of members.</span>
+<span class="linenos"> 9</span><span class="sd">    - Space: O(1), no data structures are allocated by this module itself.</span>
+<span class="linenos">10</span>
+<span class="linenos">11</span><span class="sd">Classes:</span>
+<span class="linenos">12</span><span class="sd">    - GenericMessageType: String enumeration of generic message type</span>
+<span class="linenos">13</span><span class="sd">      identifiers. Complexity: time O(1), space O(1).</span>
+<span class="linenos">14</span><span class="sd">"""</span>
+<span class="linenos">15</span>
+<span class="linenos">16</span><span class="c1"># Standard Library Imports</span>
+<span class="linenos">17</span><span class="kn">from</span><span class="w"> </span><span class="nn">enum</span><span class="w"> </span><span class="kn">import</span> <span class="n">StrEnum</span>
+<span class="linenos">18</span>
+<span class="linenos">19</span>
+<div class="viewcode-block" id="GenericMessageType">
+<a class="viewcode-back" href="../../../step_cloud_schemas_rst/step_messages/step_cloud_schemas.step_messages.generic_message_type.html#step_cloud_schemas.step_messages.generic_message_type.GenericMessageType">[docs]</a>
+<span class="linenos">20</span><span class="k">class</span><span class="w"> </span><span class="nc">GenericMessageType</span><span class="p">(</span><span class="n">StrEnum</span><span class="p">):</span>
+<span class="linenos">21</span><span class="w">    </span><span class="sd">"""String enumeration of generic STEP message type identifiers.</span>
+<span class="linenos">22</span>
+<span class="linenos">23</span><span class="sd">    Each member's value is the string used to tag the kind of payload</span>
+<span class="linenos">24</span><span class="sd">    carried by a generic message.</span>
+<span class="linenos">25</span>
+<span class="linenos">26</span><span class="sd">    Complexity:</span>
+<span class="linenos">27</span><span class="sd">        - Time: O(1), member lookup, construction and comparison are O(1)</span>
+<span class="linenos">28</span><span class="sd">          StrEnum operations.</span>
+<span class="linenos">29</span><span class="sd">        - Space: O(1), a fixed number of members.</span>
+<span class="linenos">30</span><span class="sd">    """</span>
+<span class="linenos">31</span>
+<span class="linenos">32</span>    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">()</span>
+<span class="linenos">33</span>
+<span class="linenos">34</span>    <span class="n">POSITION_DATA</span> <span class="o">=</span> <span class="s2">"position_data"</span></div>
 
 </pre></div>
 
