@@ -189,19 +189,21 @@ Malformed Payloads
 Because the model is ``strict``/``extra="forbid"``, any payload that
 does not match the schema -- truncated JSON, a field of the wrong type,
 an unexpected key -- raises ``pydantic.ValidationError`` from
-``model_validate_json()``. ``_publish_loop`` catches exactly that
-exception, logs a warning with the raw payload, and ``continue``\ s the
-receive loop *without* tearing down the worker's MQTT connection:
+``model_validate_json()``. ``_decode_envelope`` catches exactly that
+exception, logs a warning with the raw payload, and returns ``None``, so the
+receive loop moves on to the next envelope *without* tearing down the worker's
+MQTT connection:
 
 .. code-block:: python
 
    try:
        envelope = PublishEnvelope.model_validate_json(json_data=raw)
    except ValidationError:
-       self._logger.warning(
-           msg=f"Discarding malformed publish envelope {raw.decode('utf-8')}"
-       )
-       continue
+       if self._logger.isEnabledFor(level=logging.WARNING):
+           self._logger.warning(
+               msg=f"Discarding malformed publish envelope {raw.decode('utf-8')}"
+           )
+       return None
 
 A bad message is data-plane noise, not a connection problem -- it is
 handled independently of the reconnect/heartbeat machinery described
@@ -234,9 +236,11 @@ How it works
   without awaiting anything, the heartbeat freezes right along with it --
   which is precisely what makes a stale heartbeat a reliable signal of a
   hung worker, not just a busy one.
-- On the pool side, ``blocked_workers()`` compares ``monotonic() -
+- On the pool side, ``_blocked_workers()`` compares ``monotonic() -
   heartbeat.value`` against ``publish_heartbeat_timeout`` (default
-  ``3.0`` -- six missed beats at the default interval) for every worker
+  ``30.0`` -- sixty missed beats at the default interval, wide enough to
+  cover the synchronous ASN.1 grammar compilation of a worker's first
+  connect attempt) for every worker
   still reported alive by ``proc.is_alive()``. ``check_health()`` calls
   this on every ``publish_health_check_interval`` tick (default ``1.0``)
   from the dedicated health-check thread described in
@@ -261,7 +265,7 @@ How it works
             Health -> Pool: check_health()
             Pool -> HB: now - value
             alt now - value > publish_heartbeat_timeout
-                Pool -> Pool: worker_index in blocked_workers()
+                Pool -> Pool: worker_index in _blocked_workers()
                 Pool -> Worker: terminate() / kill()
                 Pool -> Pool: _restart_worker(worker_index)
             else fresh
@@ -364,6 +368,12 @@ raising. A publish call that fails after a successful connect is left to
 ``MAX_TRANSMIT_ERRORS`` handling; only a failure severe enough to
 propagate out of the ``async with`` block reaches ``_publish_loop``'s
 ``except Exception`` and triggers the reconnect path documented above.
+In ``_publish_pending`` a :class:`~step_lib.exception.StepLibMqttError`
+(an MQTT transport failure) propagates with the message still pending, so
+it is published again after the reconnect; any other
+:class:`~step_lib.exception.StepLibError` -- a message that cannot be
+published, including one that failed ``MAX_TRANSMIT_ERRORS`` consecutive
+times -- drops the message with a WARNING and keeps the connection.
 
 Worker Auto-Closing
 ---------------------
@@ -387,21 +397,32 @@ three via Python's ``except*`` exception-group handling:
        failures (see `Reconnection`_).
    * - ``_parent_watchdog_loop``
      - ``_ParentProcessGoneError``
-     - The pool's own process (captured PID + ``psutil`` creation time,
-       to rule out PID reuse) is no longer running -- closes the
+     - The pool's own process is no longer running, as reported by the OS
+       sentinel of ``multiprocessing.parent_process()`` (immune to PID reuse)
+       -- closes the
        "orphaned worker" gap that ``daemon=True`` alone leaves open,
        since that flag only guarantees cleanup on the parent's *normal*
        interpreter shutdown path, not a hard kill.
+   * - ``_publish_loop``
+     - ``_StopRequestedError``
+     - A graceful stop was requested: the pool set this worker's
+       ``stop_event`` (see ``PublishWorkerPool.close()`` in
+       :doc:`multiprocess_architecture`), or the process received
+       ``SIGTERM`` (the handler only sets a plain flag, since
+       ``Event.set()`` takes a non-reentrant lock the interrupted thread
+       may hold). ``_receive_next`` polls the socket every
+       ``STOP_POLL_INTERVAL = 0.2s`` and notices the request; with a
+       connection open, the worker first drains its PULL buffer to MQTT
+       (bounded by ``publish_graceful_shutdown_timeout``).
    * - ``_stop_watch_loop``
      - ``_StopRequestedError``
-     - The pool set this worker's ``stop_event`` (a graceful,
-       pool-requested stop -- see ``PublishWorkerPool.close()`` in
-       :doc:`multiprocess_architecture`). Polled on a short, fixed
-       interval (``STOP_POLL_INTERVAL = 0.2s``) rather than a single
-       blocking ``Event.wait()`` in an executor thread, since such a
-       wait cannot be cancelled by asyncio task cancellation if a
-       *different* sibling task is the one that actually triggers
-       shutdown.
+     - The hard limit of a graceful stop: raised
+       ``publish_graceful_shutdown_timeout + STOP_HARD_LIMIT_MARGIN``
+       seconds after the stop request if the publish loop has not stopped
+       by then (e.g. it is stuck connecting). Polled on a short, fixed
+       interval rather than a single blocking ``Event.wait()`` in an
+       executor thread, since such a wait cannot be cancelled by asyncio
+       task cancellation.
    * - ``_heartbeat_loop``
      - *(never raises)*
      - Purely a liveness signal for the pool; it has nothing of its own
@@ -423,7 +444,10 @@ three via Python's ``except*`` exception-group handling:
             Publish -> TG: raise _MaxConnectAttemptsExceededError
         else parent process gone
             Watchdog -> TG: raise _ParentProcessGoneError
-        else pool requested stop
+        else stop requested (pool stop_event or SIGTERM)
+            Publish -> Publish: _drain(): publish the buffered envelopes
+            Publish -> TG: raise _StopRequestedError
+        else drain past its hard limit
             StopWatch -> TG: raise _StopRequestedError
         end
         TG -> TG: except* _WorkerShutdownSignal:\ncancel every other sibling task
@@ -433,7 +457,7 @@ three via Python's ``except*`` exception-group handling:
 
 Whichever signal fires first, the outcome is the same from the pool's
 point of view: the worker process exits, ``proc.is_alive()`` eventually
-reports ``False``, ``dead_workers()`` picks it up on the next
+reports ``False``, ``_dead_workers()`` picks it up on the next
 ``check_health()`` pass, and it is respawned on the same, already-bound
 endpoint exactly like an ordinary crash -- self-closing and
 crash-recovery share one code path.

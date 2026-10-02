@@ -1,0 +1,406 @@
+Position Data MQTT Topic
+========================
+
+Overview
+--------
+
+Besides the ETSI messages (CAM, CPM, DENM), ``step_lib`` publishes one **STEP**
+message of its own: the *position data* message, a single GNSS position fix of the
+publishing station. It is not an ITS message: it carries no GeoNetworking or BTP
+header, it is not UPER-encoded, and it is not addressed geographically. It is a plain
+JSON object, published on its own topic keyed by station id, for the STEP Cloud
+components that only need to know *where a station is* and must not pay the cost of
+decoding an ASN.1 CAM to find out.
+
+The message is never built by the caller. Every time
+:meth:`~step_lib.async_com_manager.AsyncComManager.publish_its_message` publishes a
+:class:`~step_lib.facilities.cam_message_v1.CamMessageV1` successfully, the manager
+projects that CAM onto a ``PositionDataV1`` record and publishes it as a second,
+separate MQTT message. CPMs and DENMs produce nothing: a CPM describes objects the
+station perceives, and a DENM an event, so neither is a report of the station's own
+position.
+
+The payload is the ``PositionDataV1`` model of ``step_cloud_schemas``; its fields,
+ranges and JSON Schema are documented in
+:doc:`schemas_rst/position_data_v1_schema`.
+
+Topic Layout
+------------
+
+The position data topic has two levels only -- the configured prefix and the station
+id -- and no geohash levels:
+
+.. code-block:: text
+
+    <header_topic>/<station_id>
+
+This is the one publish path in the library that does **not** use the geohash
+hierarchy. The difference is deliberate and follows from who consumes each message:
+
+.. list-table:: Publish paths compared
+   :widths: 20 40 40
+   :header-rows: 1
+
+   * -
+     - ITS messages (CAM/CPM/DENM)
+     - Position data
+   * - Topic
+     - ``<header_topic>/g<p>/<c1>/<c2>/.../<cp>``
+     - ``<header_topic>/<station_id>``
+   * - Last levels
+     - One level per geohash character of the message's reference position
+     - The station id of the publishing station
+   * - Payload
+     - GeoNetworking + BTP + UPER-encoded facility message (``bytes``)
+     - ``PositionDataV1`` as JSON (``model_dump_json()``)
+   * - Subscriber intent
+     - "give me everything happening in this area"
+     - "give me the track of this station"
+   * - Message type key
+     - ``MessageId.CAM_PDU`` / ``CPM_PDU`` / ``DENM_PDU``
+     - ``GenericMessageType.POSITION_DATA``
+
+Because the subscriber of an ITS message is interested in an *area*, the geohash in
+the topic lets the broker do the geographic filtering. The subscriber of a position
+message is interested in a *station*, so the station id is what belongs in the topic;
+``geohash_precision`` is still a mandatory field of
+:class:`~step_lib.async_com_manager.PublishTopicParams`, but it is ignored for this
+message type.
+
+Configuration
+-------------
+
+Position data is published only if a
+:class:`~step_lib.async_com_manager.PublishTopicParams` entry is configured for
+``GenericMessageType.POSITION_DATA``. Without it,
+:meth:`~step_lib.async_com_manager.AsyncComManager.publish_its_message` still
+publishes the CAM and simply skips the position message, logging the missing topic at
+DEBUG level -- not at WARNING, as a missing ITS topic would be, since not deploying
+the position feed is a legitimate configuration:
+
+.. code-block:: python
+
+    from step_cloud_schemas import GenericMessageType, MessageId
+    from step_lib import AsyncComManagerParams, MqttQoS, PublishTopicParams
+
+    params = AsyncComManagerParams(
+        ...,
+        publish_topics_params=[
+            PublishTopicParams(
+                message_type=MessageId.CAM_PDU,
+                header_topic="v2x/cam/264421_4",
+                geohash_precision=8,
+                qos=MqttQoS.QOS_0,
+            ),
+            PublishTopicParams(
+                message_type=GenericMessageType.POSITION_DATA,
+                header_topic="TRIP_SIMULATOR",
+                geohash_precision=8,  # ignored for POSITION_DATA
+                qos=MqttQoS.QOS_0,
+            ),
+        ],
+    )
+
+For a CAM carrying ``stationInfo.stationId`` 1234 and a reference position of
+45.6279636, 8.7005529 (geohash ``u0n5tfrd``), the example above produces two MQTT
+messages: the UPER payload on ``v2x/cam/264421_4/g8/u/0/n/5/t/f/r/d`` and the JSON
+payload on ``TRIP_SIMULATOR/1234``.
+
+The topic entries are indexed into a mapping keyed by ``message_type`` when the
+manager is constructed, so two entries declaring ``POSITION_DATA`` are not an error:
+the last one silently wins.
+
+.. note::
+   When ``AsyncComManagerParams.station_id`` is set,
+   :meth:`~step_lib.async_com_manager.AsyncComManager.publish_its_message` first
+   replaces the station id of the message with it (on a copy, through
+   ``get_message_changed_station_id``, so the caller's message is left untouched) and
+   only then serializes the CAM and publishes the position message. The CAM on the wire
+   and the position topic therefore carry the same, configured station id. With
+   ``station_id=None`` both use the id of the message the caller handed over
+   (``CamMessageV1.station_id``, i.e. ``stationInfo.stationId``).
+   ``FacilitySerializer.serialize`` no longer overrides the station id: it encodes the
+   message as is.
+
+Field Mapping
+-------------
+
+:meth:`~step_lib.async_com_manager.AsyncComManager._cam_message_to_position_data`
+projects the CAM payload onto the flat position record. No unit conversion is
+performed: the CAM values are already in metres, metres per second and degrees. The
+optional fields are unwrapped from their value objects when present and left as
+``None`` otherwise.
+
+.. list-table:: CAM to ``PositionDataV1``
+   :widths: 30 45 25
+   :header-rows: 1
+
+   * - ``PositionDataV1`` field
+     - CAM source (``CamDataV1``)
+     - Optional
+   * - ``fixTime``
+     - ``creationTime``, parsed by ``ItsTime`` into epoch milliseconds
+     - No
+   * - ``latitude``
+     - ``position.latitude``
+     - No
+   * - ``longitude``
+     - ``position.longitude``
+     - No
+   * - ``altitude``
+     - ``position.altitude.value``
+     - Yes
+   * - ``speedInMeterPerSecond``
+     - ``speed.value``
+     - Yes
+   * - ``bearingInDegree``
+     - ``heading.value``
+     - Yes
+   * - ``accuracyInMeters``
+     - ``position.positionConfidence.semiMajorAxisLengthConfidence``
+     - Yes
+
+``latitude`` and ``longitude`` are mandatory in the position record, so a CAM whose
+``position`` is ``None`` yields no position message at all and the CAM is published on
+its own.
+
+.. note::
+   The ISO-8601 ``creationTime`` of the CAM is a UTC string, and so is the
+   ``ItsTime.epoch_ms`` it is parsed into: ``fixTime`` is UTC epoch milliseconds.
+   ``ItsTime`` applies the TAI offset only to the ITS timestamps it writes on the wire
+   (see :ref:`step_lib_leap_seconds`), never to ``epoch_ms``, so the position message
+   is on the same time scale as the rest of the STEP Cloud.
+
+Class Diagram
+-------------
+
+The following PlantUML diagram shows the classes involved in the position data path
+and the models they exchange:
+
+.. container:: scrollable-diagram
+
+    .. plantuml::
+        :align: center
+
+        package "Communication Layer (step_lib)" {
+            class AsyncComManager {
+                - _publish_its_topics_param: dict[MessageId | GenericMessageType, PublishTopicParams]
+                - _message_serializer: ItsMessageSerializer
+                - _transmit_error_count: int
+                + {static} MAX_TRANSMIT_ERRORS: int = 5
+                + publish_its_message(message, address, current_position, is_station_mobile, sequence_number)
+                - _find_topic_param(message_type) : PublishTopicParams | None
+                - _cam_message_to_position_data(cam_message: CamDataV1) : PositionDataV1 | None
+                - _publish_position_message(station_id: int, message: PositionDataV1)
+            }
+
+            class PublishTopicParams <<frozen>> {
+                + message_type: MessageId | GenericMessageType
+                + header_topic: str
+                + geohash_precision: int
+                + qos: MqttQoS
+            }
+
+            class AsyncComManagerParams <<frozen>> {
+                + station_id: int | None
+                + publish_topics_params: list[PublishTopicParams] | None
+            }
+        }
+
+        package "Facility Layer (step_lib)" {
+            class CamMessageV1 {
+                + {property} message : CamDataV1 | None
+                + {property} station_id : int | None
+                + {property} reference_position : ReferencePosition
+            }
+        }
+
+        package "Data Models (step_cloud_schemas)" {
+            class CamDataV1 <<pydantic>> {
+                + creationTime: str
+                + position: ReferencePosition | None
+                + speed: Speed | None
+                + heading: Heading | None
+            }
+
+            class PositionDataV1 <<pydantic>> {
+                + fixTime: int
+                + latitude: float
+                + longitude: float
+                + altitude: float | None
+                + speedInMeterPerSecond: float | None
+                + bearingInDegree: float | None
+                + accuracyInMeters: float | None
+                + model_dump_json() : str
+            }
+
+            enum GenericMessageType {
+                POSITION_DATA = "position_data"
+            }
+
+            class ItsTime {
+                + {static} create_from_iso_time(time_str) : ItsTime
+                + {property} epoch_ms : int
+            }
+        }
+
+        AsyncComManager *-- AsyncComManagerParams
+        AsyncComManagerParams *-- PublishTopicParams
+        PublishTopicParams ..> GenericMessageType : keyed by\n(POSITION_DATA)
+        AsyncComManager ..> CamMessageV1 : projects the CAM of
+        CamMessageV1 *-- CamDataV1
+        AsyncComManager ..> PositionDataV1 : creates and publishes\nas JSON
+        AsyncComManager ..> ItsTime : converts creationTime
+        CamDataV1 ..> PositionDataV1 : projected onto\n(_cam_message_to_position_data)
+
+Sequence Diagram
+----------------
+
+The following PlantUML diagram shows the two publish operations triggered by one CAM.
+The position message is published **after** the CAM has reached the broker, inside the
+same ``publish_its_message`` call, so a failure of the CAM publish means no position
+message is sent:
+
+.. container:: scrollable-diagram
+
+    .. plantuml::
+        :align: center
+
+        actor "Application" as App
+        participant "AsyncComManager" as ACM
+        participant "ItsMessageSerializer" as Serializer
+        participant "ItsTime" as Time
+        participant "PositionDataV1" as Pos
+        participant "MQTT Broker" as Broker
+
+        App -> ACM: publish_its_message(CamMessageV1, address, position, is_mobile)
+        activate ACM
+
+        ACM -> ACM: _find_topic_param(MessageId.CAM_PDU)
+        activate ACM
+        ACM --> ACM: PublishTopicParams(header_topic, geohash_precision, qos)
+        deactivate ACM
+
+        ACM -> Serializer: serialize(facility_message, address, position, is_mobile)
+        activate Serializer
+        Serializer --> ACM: message_bytes
+        deactivate Serializer
+
+        ACM -> ACM: geohash(reference_position, precision)
+        ACM -> Broker: publish("<header_topic>/g8/<c1>/.../<c8>", message_bytes, qos)
+        activate Broker
+        Broker --> ACM: published
+        deactivate Broker
+
+        alt message is a CamMessageV1
+            ACM -> ACM: _cam_message_to_position_data(cam_message)
+            activate ACM
+
+            alt cam_message.position is None
+                ACM --> ACM: None
+            else position available
+                ACM -> Time: create_from_iso_time(creationTime)
+                activate Time
+                Time --> ACM: its_time.epoch_ms
+                deactivate Time
+                ACM -> Pos: PositionDataV1(fixTime, latitude, longitude,\naltitude, speed, bearing, accuracy)
+                activate Pos
+                Pos --> ACM: position_message
+                deactivate Pos
+            end
+            deactivate ACM
+
+            opt position_message is not None
+                ACM -> ACM: _publish_position_message(station_id, position_message)
+                activate ACM
+
+                ACM -> ACM: _find_topic_param(GenericMessageType.POSITION_DATA)
+
+                alt no POSITION_DATA topic configured
+                    ACM -> ACM: log DEBUG "Topic not found", return
+                else topic configured
+                    ACM -> Pos: model_dump_json()
+                    activate Pos
+                    Pos --> ACM: json_payload
+                    deactivate Pos
+                    ACM -> Broker: publish("<header_topic>/<station_id>", json_payload, qos)
+                    activate Broker
+                    Broker --> ACM: published
+                    deactivate Broker
+                    ACM -> ACM: log INFO "Published message position_data"
+                end
+                deactivate ACM
+            end
+        end
+
+        ACM -> ACM: _transmit_error_count = 0
+        ACM --> App: success
+        deactivate ACM
+
+Error Handling
+--------------
+
+The position publish shares the error handling of the enclosing
+:meth:`~step_lib.async_com_manager.AsyncComManager.publish_its_message` call:
+
+* an ``aiomqtt.MqttError`` is a transport failure: it is logged and raised at once as a
+  :class:`~step_lib.exception.StepLibMqttError` (chaining the original error as
+  ``__cause__``), so the caller can reconnect and publish again;
+* a :class:`~step_lib.exception.StepLibError` is a message error: it is re-raised
+  without counting as a transmit error;
+* any other exception is logged and counted, and the call returns normally until
+  ``MAX_TRANSMIT_ERRORS`` (5) consecutive failures occur, at which point a
+  :class:`~step_lib.exception.StepLibError` chaining it is raised and the counter is
+  reset. A successful publish resets the counter.
+
+Every exception leaving the call is therefore a
+:class:`~step_lib.exception.StepLibError`.
+
+Since the position message is published inside the same ``try`` block and after the
+CAM, a transport failure on the position publish is reported to the caller even though
+the CAM itself was already accepted by the broker. A caller that retries the call
+therefore republishes both messages, so subscribers of the ITS topic must tolerate a
+duplicate CAM.
+
+Process Topology
+----------------
+
+The position feed is produced on the *publish* path, which means it is produced
+wherever the CAM is:
+
+* with :class:`~step_lib.AsyncComManager` used directly, in the caller's own event
+  loop;
+* with :class:`~step_lib.SyncComManager`, inside the publish worker **processes**:
+  each worker owns a private ``AsyncComManager`` built from the same
+  ``publish_topics_params``, so the position message is derived and published by the
+  worker that published the CAM, never by the caller's process. See
+  :doc:`multiprocess_architecture` and :doc:`ventilator_worker_protocol`.
+
+The ``PublishEnvelope`` exchanged with the workers carries no position-data field: the
+position record is derived from the CAM inside the worker, after it has been decoded,
+so nothing has to be added to the pipeline wire format.
+
+Receiving Position Data
+-----------------------
+
+``step_lib`` publishes the position feed but does not consume it:
+:attr:`~step_lib.async_com_manager.AsyncComManager.its_messages` and
+:meth:`~step_lib.SyncComManager.get_its_message_received` deserialize
+GeoNetworking/BTP/ASN.1 payloads into
+:class:`~step_lib.facilities.facility_message.FacilityMessage` objects, so a JSON
+position payload must not be routed through them: it would be logged at WARNING and
+dropped as an unexpected decode failure, and once ``MAX_RECEIVE_ERRORS`` consecutive
+such failures occur the exception is re-raised and breaks the receive loop. Never add
+the position topic to the subscription topics of this library.
+
+A consumer subscribes to ``<header_topic>/+`` (or ``<header_topic>/<station_id>`` for a
+single station) with a plain MQTT client and validates the payload with
+``PositionDataV1.model_validate_json()``.
+
+Related Pages
+-------------
+
+* :doc:`schemas_rst/position_data_v1_schema` -- the data model and its JSON Schema
+* :doc:`schemas_rst/cam_data_v1_schema` -- the CAM the record is projected from
+* :doc:`architecture` -- the full publish path and protocol layering
+* :doc:`usage` -- configuring ``publish_topics_params``

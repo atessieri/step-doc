@@ -22,7 +22,7 @@ Example:
 .. code-block:: bash
 
     $step_lib -v
-    step_lib version: 1.7.8
+    step_lib version: 3.0.0
 
 ---------------------------
 Decode ITS facility packets
@@ -50,7 +50,7 @@ so decoding it reproduces the same JSON message that was encoded):
 
 .. code-block:: bash
 
-    $step_lib -d 11004c0120400080003a010000000000bc000000075bcd156735d5341905648d077170e53fff0e111905648d077170e500c800000000000007d200000201012fd537c78097ea9b81ed9f2ce6ba8767cb39aea1dceaa4d8d72bb42e617917900018b5010546001f3030cc200d9647e08cfc00
+    $step_lib -d 11004c0120400080003a010000000000bc000000075bcd156735e7c31905648d077170e6000000001905648d077170e600c800000000000007d200000201012fd537c78097ea9b81ed9f2ce6bcf867cb39af3e1ceaa4d8d72bb42e617917900018b5010546001f3030cc200d9647e08cfc00
 
 Console output:
 
@@ -98,7 +98,10 @@ Console output:
       },
       "situationContainer": {
         "informationQuality": 3,
-        "eventType": "collisionRisk97"
+        "eventType": {
+          "causeCode": "collisionRisk97",
+          "subCauseCode": "unavailable0"
+        }
       },
       "locationContainer": {
         "eventSpeed": {
@@ -126,7 +129,13 @@ Console output:
     detected message type. ``Creation time`` is the timestamp carried by the
     GeoNetworking position vector (i.e. when the message was published), not the
     DENM's own ``detectionTime``/``referenceTime`` fields, so it varies between runs
-    and is not reproduced verbatim here.
+    and is not reproduced verbatim here. That timestamp travels as TAI milliseconds
+    modulo 2^32 and is rebuilt against the current time, so it is only meaningful
+    when the message is decoded within about 24.8 days of its generation.
+
+    Since 3.0.0 ``eventType`` is a cause code / sub cause code pair
+    (``CauseCodeChoice``), and every ITS timestamp is encoded as TAI (5 s ahead of
+    the UTC ISO strings shown here).
 
 ---------------------------
 Encode ITS facility packets
@@ -148,8 +157,8 @@ Example:
 
 .. code-block:: bash
 
-    $step_lib -e '{"type": "DENM", "stationId": 19911991, "managementContainer": {"actionId": {"originatingStationId": 19911991, "sequenceNumber": 987}, "detectionTime": "2037-12-10T21:33:57.691Z", "referenceTime": "2037-12-10T21:33:57.691Z", "termination": null, "eventPosition": {"latitude": 41.9783821, "longitude": 12.4874982, "positionConfidence": {"semiMajorAxisLengthConfidence": 3.77, "semiMinorAxisLengthConfidence": 3.77, "semiMajorAxisOrientation": 0}, "altitude": {"value": 12.0, "confidence": 0.02}}, "awarenessDistance": 49, "trafficDirection": "allTrafficDirections", "validityDuration": 86400, "transmissionInterval": 500, "stationType": "moped", "referenceStationId": null, "referenceObjectId": null}, "situationContainer": {"informationQuality": 3, "eventType": "collisionRisk97"}, "locationContainer": {"eventSpeed": {"value": 130.0, "confidence": null}, "eventPositionHeading": {"value": 14.0, "confidence": null}, "roadType": null}, "preCrashContainer": null}'
-    Encoded message (hex): 11004c0120400080003a010000000000bc000000075bcd156735d5341905648d077170e53fff0e111905648d077170e500c800000000000007d200000201012fd537c78097ea9b81ed9f2ce6ba8767cb39aea1dceaa4d8d72bb42e617917900018b5010546001f3030cc200d9647e08cfc00
+    $step_lib -e '{"type": "DENM", "stationId": 19911991, "managementContainer": {"actionId": {"originatingStationId": 19911991, "sequenceNumber": 987}, "detectionTime": "2037-12-10T21:33:57.691Z", "referenceTime": "2037-12-10T21:33:57.691Z", "termination": null, "eventPosition": {"latitude": 41.9783821, "longitude": 12.4874982, "positionConfidence": {"semiMajorAxisLengthConfidence": 3.77, "semiMinorAxisLengthConfidence": 3.77, "semiMajorAxisOrientation": 0}, "altitude": {"value": 12.0, "confidence": 0.02}}, "awarenessDistance": 49, "trafficDirection": "allTrafficDirections", "validityDuration": 86400, "transmissionInterval": 500, "stationType": "moped", "referenceStationId": null, "referenceObjectId": null}, "situationContainer": {"informationQuality": 3, "eventType": {"causeCode": "collisionRisk97", "subCauseCode": "unavailable0"}}, "locationContainer": {"eventSpeed": {"value": 130.0, "confidence": null}, "eventPositionHeading": {"value": 14.0, "confidence": null}, "roadType": null}, "preCrashContainer": null}'
+    Encoded message (hex): 11004c0120400080003a010000000000bc000000075bcd156735e7c31905648d077170e6000000001905648d077170e600c800000000000007d200000201012fd537c78097ea9b81ed9f2ce6bcf867cb39af3e1ceaa4d8d72bb42e617917900018b5010546001f3030cc200d9647e08cfc00
 
 -------------------
 Set the log level

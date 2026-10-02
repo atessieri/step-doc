@@ -18,6 +18,7 @@ Key Features
 - **BTP Protocol**: Basic Transport Protocol for ITS message routing
 - **MQTT Integration**: Built-in MQTT client with QoS support and automatic reconnection
 - **ASN.1 Support**: Complete ASN.1 encoding/decoding for ITS messages
+- **Position Data Feed**: A STEP position message, derived from every published CAM and published as JSON on its own station-keyed topic (see :doc:`position_data_topic`)
 
 Library Dependencies
 --------------------
@@ -101,12 +102,17 @@ The following PlantUML diagram illustrates the main classes and their relationsh
             class AsyncComManager {
                 - _logger: Logger
                 - _message_serializer: ItsMessageSerializer
-                - _params: AsyncComManagerParams
+                - _publish_its_topics_param: dict[MessageId | GenericMessageType, PublishTopicParams]
+                - _transmit_error_count: int
+                + {static} MAX_TRANSMIT_ERRORS: int = 5
                 + __init__(params: AsyncComManagerParams, logger: Logger)
                 + __aenter__() : AsyncComManager
-                + publish_its_message(message, address, position, is_mobile)
+                + publish_its_message(message, address, position, is_mobile, sequence_number)
                 + subscribe(topic, qos, options) <<inherited from aiomqtt.Client>>
                 + {property} its_messages : ItsMessagesIterator
+                - _find_topic_param(message_type) : PublishTopicParams | None
+                - _cam_message_to_position_data(cam_message) : PositionDataV1 | None
+                - _publish_position_message(station_id, message) : void
             }
             
             class SyncComManager {
@@ -119,24 +125,40 @@ The following PlantUML diagram illustrates the main classes and their relationsh
                 - _logger: Logger
                 - _params: SyncComManagerParams
                 - _connection_status: ConnectionStatus
+                - _system_status: _SystemStatus
+                - _cond: Condition(RLock)
                 + __init__(params: SyncComManagerParams, logger: Logger)
+                + __enter__() : SyncComManager
+                + __exit__(...) : void
                 + start() : void
                 + stop() : void
-                + subscribe(topics, max_qos, no_local)
+                + subscribe(topics, max_qos)
                 + publish_its_message(message, address, position, is_mobile)
                 + get_its_message_received() : FacilityMessage | None
+                + its_messages_received() : Generator[FacilityMessage]
                 + check_health(auto_restart) : void
+                + install_default_signal_handlers(...) : void
                 - _run() : void
                 - _message_receive_thread(client)
                 - _health_check_loop() : void
             }
 
             class PublishWorkerPool {
+                - _cond: Condition(RLock)
+                - _state: PoolState
+                - _generation: int
                 + {property} is_running : bool
                 + start() : void
                 + send(envelope: PublishEnvelope) : void
                 + check_health(auto_restart) : void
                 + close() : void
+            }
+
+            enum PoolState {
+                CLOSED
+                STARTING
+                RUNNING
+                CLOSING
             }
             
             class ItsMessagesIterator {
@@ -175,7 +197,7 @@ The following PlantUML diagram illustrates the main classes and their relationsh
             }
             
             class PublishTopicParams {
-                + message_type: StepMessageType
+                + message_type: MessageId | GenericMessageType
                 + header_topic: str
                 + geohash_precision: int
                 + qos: MqttQoS
@@ -187,8 +209,10 @@ The following PlantUML diagram illustrates the main classes and their relationsh
             class ItsMessageSerializer {
                 - _its_facility_serializer: FacilitySerializer
                 - _logger: Logger
-                + serialize(facility_message, address, position, is_mobile) : bytes
+                + serialize(facility_message, address, position, is_mobile, sequence_number) : bytes
                 + deserialize(message) : ItsMessage
+                + btp_port_to_facility_message_custom_type(port) : MessageCustomType
+                - _facility_message_id_to_btp_port(message_type) : BtpWellKnownPort
                 - _create_geonet_message(...) : GeonetMessage
                 - _create_common_extended_single_hop(...) : tuple
                 - _create_common_extended_anycast_broadcast(...) : tuple
@@ -198,10 +222,12 @@ The following PlantUML diagram illustrates the main classes and their relationsh
                 - _message_ctx: Any
                 - _logger: Logger
                 - _station_id: int | None
+                + {static} UNSUPPORTED_MESSAGE_TYPES: frozenset[MessageCustomType]
                 + serialize(message: FacilityMessage) : bytes
                 + deserialize(message: bytes, type: MessageCustomType) : FacilityMessage
                 - _to_facility_message(raw, type) : FacilityMessage
-                - _init_asn_context(cache_dir) : Any
+                - {static} _check_supported(message_type) : void
+                - {static} _compile_asn_context(cache_dir) : Any
             }
         }
         
@@ -326,8 +352,26 @@ The following PlantUML diagram illustrates the main classes and their relationsh
             }
         }
         
+        ' STEP Data Models
+        package "STEP Messages" {
+            class PositionDataV1 {
+                + fixTime: int
+                + latitude: float
+                + longitude: float
+                + altitude: float | None
+                + speedInMeterPerSecond: float | None
+                + bearingInDegree: float | None
+                + accuracyInMeters: float | None
+                + model_dump_json() : str
+            }
+        }
+
         ' Enumerations
         package "Enumerations" {
+            enum GenericMessageType {
+                POSITION_DATA = "position_data"
+            }
+
             enum MqttQoS {
                 QOS_0
                 QOS_1
@@ -349,6 +393,7 @@ The following PlantUML diagram illustrates the main classes and their relationsh
                 CAM_PORT = 2001
                 DENM_PORT = 2002
                 CPM_PORT = 2009
+                CPM_CUSTOM_PORT = 1009
             }
         }
         
@@ -360,18 +405,14 @@ The following PlantUML diagram illustrates the main classes and their relationsh
             class StepLibValueError
             class StepLibKeyError
             class StepLibEchoMessageError
-            class StepLibFormatMessageError
             class StepLibBackpressureError
-            class StepCliError
 
             StepLibError <|-- StepLibUnsupportedMessageError
             StepLibError <|-- StepLibMessageNoDataUsefulError
             StepLibError <|-- StepLibValueError
             StepLibError <|-- StepLibKeyError
             StepLibError <|-- StepLibEchoMessageError
-            StepLibError <|-- StepLibFormatMessageError
             StepLibError <|-- StepLibBackpressureError
-            StepLibError <|-- StepCliError
         }
         
         ' Relationships - Communication Layer
@@ -386,9 +427,13 @@ The following PlantUML diagram illustrates the main classes and their relationsh
         SyncComManager *-- SyncComManagerParams
         SyncComManager *-- PublishWorkerPool
         PublishWorkerPool ..> AsyncComManager : each spawned worker owns\na private instance
+        PublishWorkerPool ..> PoolState : lifecycle state machine
         SyncComManagerParams --|> AsyncComManagerParams
         
         AsyncComManagerParams *-- PublishTopicParams
+        PublishTopicParams ..> GenericMessageType : POSITION_DATA entry\nis keyed by
+        AsyncComManager ..> PositionDataV1 : derives from each published CAM\nand publishes as JSON
+        CamMessageV1 ..> PositionDataV1 : projected onto\n(_cam_message_to_position_data)
         
         ' Relationships - Serialization
         ItsMessageSerializer *-- FacilitySerializer
@@ -497,7 +542,38 @@ receiving messages (see `Sequence Diagrams`_ below) still runs through
 
 See :doc:`multiprocess_architecture` for the full design: component,
 class, and sequence diagrams for pool startup, publishing, health-check
-recovery, and graceful shutdown.
+recovery, and graceful shutdown. The lifecycle state machines of
+``SyncComManager`` and ``PublishWorkerPool`` and the ``threading.Condition``
+technique that makes them thread-safe are documented in
+:doc:`thread_safety_state_machines`.
+
+Position Data Feed
+------------------
+
+Alongside the ETSI messages, the library publishes one message of its own: the STEP
+*position data* message, a single GNSS position fix of the publishing station.
+``publish_its_message()`` derives it from every
+:class:`~step_lib.facilities.cam_message_v1.CamMessageV1` it publishes successfully --
+projecting the CAM's creation time, reference position, speed, heading and position
+confidence onto a flat ``PositionDataV1`` record -- and publishes it as a second MQTT
+message. CPMs and DENMs produce nothing, since neither reports the station's own
+position.
+
+This is the only publish path that leaves the ITS protocol stack behind: the payload is
+plain JSON (no GeoNetworking, no BTP, no ASN.1), and the topic is
+``<header_topic>/<station_id>`` rather than the geohash hierarchy, because its
+subscribers follow a *station* instead of an *area*. The feed is opt-in: it is published
+only if a ``PublishTopicParams`` entry is configured for
+``GenericMessageType.POSITION_DATA``, and the missing topic is logged at DEBUG (not
+WARNING, as for an ITS message type) when it is not.
+
+Because the derivation happens on the publish path, it runs wherever the CAM is
+published: in the caller's event loop with :class:`~step_lib.AsyncComManager`, and
+inside the publish worker processes with :class:`~step_lib.SyncComManager`.
+
+See :doc:`position_data_topic` for the topic layout, the configuration, the full CAM to
+``PositionDataV1`` field mapping, the class and sequence diagrams of this path, and
+:doc:`schemas_rst/position_data_v1_schema` for the data model and its JSON Schema.
 
 Sequence Diagrams
 -----------------
@@ -517,10 +593,13 @@ Publishing an ITS Message (Asynchronous)
         participant "GeonetMessage" as Geonet
         participant "BtpMessage" as BTP
         participant "FacilityMessage" as Facility
+        participant "PositionDataV1" as Position
         participant "MQTT Broker" as Broker
         
         App -> ACM: publish_its_message(message, address, position, is_mobile)
         activate ACM
+        
+        ACM -> ACM: _find_topic_param(message.message_type)
         
         ACM -> Serializer: serialize(message, address, position, is_mobile)
         activate Serializer
@@ -567,6 +646,19 @@ Publishing an ITS Message (Asynchronous)
         activate Broker
         Broker --> ACM: published
         deactivate Broker
+        
+        opt message is a CAM and a POSITION_DATA topic is configured
+            ACM -> ACM: _cam_message_to_position_data(cam_message)
+            ACM -> Position: create PositionDataV1
+            activate Position
+            Position --> ACM: position_message
+            deactivate Position
+            ACM -> ACM: _publish_position_message(station_id, position_message)
+            ACM -> Broker: publish("<header_topic>/<station_id>", json_payload, qos)
+            activate Broker
+            Broker --> ACM: published
+            deactivate Broker
+        end
         
         ACM --> App: success
         deactivate ACM
@@ -799,7 +891,8 @@ Message Serialization Process
         note right
             CAM -> 2001
             DENM -> 2002
-            CPM -> 2009
+            CPM (custom) -> 1009
+            CPM (standard) -> rejected
         end note
         
         Serializer -> BTP: create(dest_port, src_port)
@@ -901,7 +994,7 @@ An ITS message transmitted over MQTT consists of three protocol layers:
         │  │ BTP Layer (4 bytes)                                    │  │
         │  │  - Source Port / Destination Port (BTP-A)              │  │
         │  │  - OR Destination Port / Port Info (BTP-B)             │  │
-        │  │  - Port mapping: CAM=2001, DENM=2002, CPM=2009         │  │
+        │  │  - Ports: CAM=2001, DENM=2002, custom CPM=1009         │  │
         │  ├────────────────────────────────────────────────────────┤  │
         │  │ Facility Layer (variable, typically 100-500 bytes)     │  │
         │  │  - ASN.1 UPER encoded ITS message                      │  │
@@ -910,6 +1003,11 @@ An ITS message transmitted over MQTT consists of three protocol layers:
         │  │  - CPM: Perceived objects, sensor data                 │  │
         │  └────────────────────────────────────────────────────────┘  │
         └──────────────────────────────────────────────────────────────┘
+
+The STEP position data message is the exception to this structure: it carries none of
+the three layers above. Its MQTT payload is the ``PositionDataV1`` model serialized as
+JSON, and its topic ends with the station id instead of the geohash levels -- see
+:doc:`position_data_topic`.
 
 Protocol Layer Details
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -1045,7 +1143,8 @@ so the client is not restricted to a specific station when receiving messages.
         with _sync_com_manager_create(
             instance_name=instance_name, station_id=station_id, config=config, logger=logger
         ) as client:
-            logger.info(msg=f"Client status: {client.connection_status}")
+            if logger.isEnabledFor(level=logging.INFO):
+                logger.info(msg=f"Client status: {client.connection_status}")
             _subscribe_execution(client=client, config=config.mqttProtocol)
             _publish_messages(
                 client=client,
@@ -1057,8 +1156,10 @@ so the client is not restricted to a specific station when receiving messages.
             time_sleep(2)
             # Extract messages received
             for message in client.its_messages_received:
-                logger.info(msg=f"Message received: {message}")
-        logger.info(msg=f"Client status: {client.connection_status}")
+                if logger.isEnabledFor(level=logging.INFO):
+                    logger.info(msg=f"Message received: {message}")
+        if logger.isEnabledFor(level=logging.INFO):
+            logger.info(msg=f"Client status: {client.connection_status}")
 
 Without context manager, without ``station_id`` filter
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1094,10 +1195,12 @@ applied.
                 config=config,
                 logger=logger,
             )
-            logger.info(msg=f"Client status: {client.connection_status}")
+            if logger.isEnabledFor(level=logging.INFO):
+                logger.info(msg=f"Client status: {client.connection_status}")
             # Start the client
             client.start()
-            logger.info(msg=f"Client status: {client.connection_status}")
+            if logger.isEnabledFor(level=logging.INFO):
+                logger.info(msg=f"Client status: {client.connection_status}")
             # Subscribe to the topics
             _subscribe_execution(client=client, config=config.mqttProtocol)
             _publish_messages(
@@ -1110,18 +1213,24 @@ applied.
             time_sleep(2)
             # Extract messages received
             for message in client.its_messages_received:
-                logger.info(msg=f"Message received: {message}")
+                if logger.isEnabledFor(level=logging.INFO):
+                    logger.info(msg=f"Message received: {message}")
         finally:
             if client is not None:
                 client.stop()
-        logger.info(msg=f"Client status: {client.connection_status}")
+        if logger.isEnabledFor(level=logging.INFO):
+            logger.info(msg=f"Client status: {client.connection_status}")
 
 With context manager, with ``station_id`` filter
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ``SyncComManager`` is again used as a context manager, but this time a
-fixed ``station_id`` is passed to ``_sync_com_manager_create``, restricting
-the client to that specific station.
+fixed ``station_id`` is passed to ``_sync_com_manager_create``: every message
+the client publishes carries that station ID (the publish worker's
+``AsyncComManager.publish_its_message`` replaces it before serialization), and
+every received message carrying it is dropped as an echo of the client's own
+traffic (subscriptions always use ``noLocal=False``, so the broker does send
+them back).
 
 .. container:: scrollable-diagram
 
@@ -1143,7 +1252,8 @@ the client to that specific station.
         with _sync_com_manager_create(
             instance_name=instance_name, station_id=123456789, config=config, logger=logger
         ) as client:
-            logger.info(msg=f"Client status: {client.connection_status}")
+            if logger.isEnabledFor(level=logging.INFO):
+                logger.info(msg=f"Client status: {client.connection_status}")
             _subscribe_execution(client=client, config=config.mqttProtocol)
             _publish_messages(
                 client=client,
@@ -1155,8 +1265,10 @@ the client to that specific station.
             time_sleep(2)
             # Extract messages received
             for message in client.its_messages_received:
-                logger.info(msg=f"Message received: {message}")
-        logger.info(msg=f"Client status: {client.connection_status}")
+                if logger.isEnabledFor(level=logging.INFO):
+                    logger.info(msg=f"Message received: {message}")
+        if logger.isEnabledFor(level=logging.INFO):
+            logger.info(msg=f"Client status: {client.connection_status}")
 
 Design Principles
 -----------------
@@ -1175,16 +1287,27 @@ Thread Safety
 ~~~~~~~~~~~~~
 
 - **AsyncComManager**: Uses asyncio for single-thread async operations
-- **SyncComManager**: Uses explicit locking (RLock) to atomically guard the
-  connection status and the subscribe/receive background loop's lifecycle;
-  publishing (``publish_its_message()``) is dispatched directly to
-  ``PublishWorkerPool`` from the caller's own thread and needs no locking
-  at the ``SyncComManager`` level, since the pool serializes access to its
-  own ZMQ socket internally
-- **PublishWorkerPool**: Runs each publish worker in its own OS process
-  (not a thread), so encoding work never shares the caller's GIL; a
-  dedicated health-check thread periodically restarts dead or hung workers
-  (see :doc:`multiprocess_architecture`)
+- **SyncComManager**: One ``threading.Condition`` (``_cond``, wrapping an
+  ``RLock``) atomically guards the connection status, the subscribe/receive
+  background loop references and a 4-state lifecycle
+  (``STOPPED`` -> ``STARTING`` -> ``STARTED`` -> ``STOPPING``). ``start()``
+  and ``stop()`` claim the transitional state under the lock, do the slow
+  work without it, then publish the final state and ``notify_all()``;
+  concurrent callers wait in ``_wait_settled()`` (``Condition.wait_for`` with
+  a bounded timeout). Publishing (``publish_its_message()``) is dispatched
+  directly to ``PublishWorkerPool`` from the caller's own thread and needs no
+  locking at the ``SyncComManager`` level, since the pool is itself
+  thread-safe
+- **PublishWorkerPool**: Uses the same technique with its own ``_cond`` and
+  ``PoolState`` (``CLOSED`` -> ``STARTING`` -> ``RUNNING`` -> ``CLOSING``),
+  which also guards the socket and the per-worker bookkeeping. The lock is
+  never held across a blocking call; ``send()`` performs its state check and
+  the ``NOBLOCK`` socket write atomically, and restarts are claimed
+  atomically (``_restarting``) and bound to a ``_generation``. Each publish
+  worker runs in its own OS process (not a thread), so encoding work never
+  shares the caller's GIL; a dedicated health-check thread periodically
+  restarts dead or hung workers (see :doc:`multiprocess_architecture` and
+  :doc:`thread_safety_state_machines`)
 - Message queues are thread-safe by design (asyncio.Queue, queue.Queue)
 - Event loop runs in dedicated background thread
 
@@ -1207,9 +1330,7 @@ Custom exception hierarchy for specific error scenarios:
 - **StepLibValueError**: Invalid or out-of-range value
 - **StepLibKeyError**: Missing lookup key (message type, port, header value)
 - **StepLibEchoMessageError**: Own message received (filtered by station_id)
-- **StepLibFormatMessageError**: Error formatting a message
 - **StepLibBackpressureError**: Every worker's send pipe is saturated (backpressure)
-- **StepCliError**: CLI-specific errors
 
 Performance Optimizations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1262,7 +1383,7 @@ Production Checklist
 
 1. **Security**:
 
-   - Use TLS/SSL for MQTT connections (configure ``tls_context`` or ``tls_params``)
+   - Use TLS/SSL for MQTT connections (configure ``tls_params``)
    - Secure credential management (avoid hardcoded passwords)
    - Validate certificates in production
 
@@ -1311,6 +1432,34 @@ The step_lib package implements the following ETSI standards:
 - **ETSI TS 103 831**: DENM (Decentralized Environmental Notification Message) specification
 - **ETSI TS 103 324**: CPM (Collective Perception Message) specification
 
+Conformance notes
+~~~~~~~~~~~~~~~~~
+
+- **Time scale**: every ITS timestamp is TAI milliseconds since 2004-01-01
+  (step_cloud_schemas 3.0.0 ``ItsTime``). The GeoNetworking ``TST`` is that
+  value modulo 2^32 (EN 302 636-4-1, table 2); the CAM ``generationDeltaTime``
+  is modulo 65536. Both are rebuilt against the time of decoding.
+- **Long Position Vector**: ``S`` is a 15-bit signed speed (a negative value
+  means reversing) and ``H`` a 16-bit unsigned heading in 0..3599; neither has
+  an "unavailable" value, so an unknown speed or heading is sent as 0.
+- **PAI**: the position accuracy indicator is set when ``GpsLocation.accuracy``
+  is below ``itsGnPaiInterval / 2``, i.e. 40 m with the default
+  ``itsGnPaiInterval`` of 80 m (``ItsMessageSerializer.ITS_GN_PAI_INTERVAL``),
+  as EN 302 636-4-1 requires for the ``semiMajorConfidence``. ``accuracy`` should
+  therefore be the semi-major axis of the 95% confidence ellipse.
+- **Sequence numbers**: one counter per ``PublishWorkerPool``, shared by its
+  worker processes, starting at a random value.
+- **CPM**: only the custom layout (``CollectivePerceptionMessageCustom``, BTP
+  port 1009) is converted; a standard CPM (port 2009) is rejected with
+  ``StepLibUnsupportedMessageError`` before any UPER work.
+  ``velocityDirection`` is a ``CartesianAngle`` (counter-clockwise from the
+  East axis of the CPM frame), converted to and from a heading from North.
+- **Confidences** are rounded up, as the CDD requires ("n if the accuracy is
+  equal to or less than n x unit"), and values beyond the largest one are sent
+  as the type's ``outOfRange`` value.
+- **Longitude** -180 degrees is sent as +1800000000: the CDD reserves
+  -1800000000 (``valueNotUsed``).
+
 ASN.1 Schema Files
 ~~~~~~~~~~~~~~~~~~
 
@@ -1335,6 +1484,8 @@ The **step_lib** package provides a complete, production-ready solution for ITS 
 - Thread-safe with proper resource management
 - Performance-optimized with caching and efficient serialization
 - Extensible architecture for new message types
+- A STEP position data feed derived from the published CAMs, for consumers that need
+  the station's track without decoding ASN.1
 
 **Typical Use Cases:**
 

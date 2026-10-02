@@ -1,0 +1,747 @@
+Thread Safety and State Machines
+================================
+
+Overview
+--------
+
+:class:`~step_lib.SyncComManager` and
+:class:`~step_lib.its_publish_worker_pool.PublishWorkerPool` are called from
+many threads at once: the application's own threads, the dedicated
+health-check thread, the subscribe/receive background thread and, for
+``stop()``/``close()``, a signal handler or a ``finally`` block. Both classes
+solve the resulting concurrency problem with the **same technique**, described
+in this page:
+
+- an explicit **lifecycle state machine** with two *stable* states and two
+  *transitional* states;
+- **one** ``threading.Condition`` (wrapping an ``RLock``) that serializes every
+  state transition and every read of shared state;
+- the **claim / work / publish** discipline: a thread claims a transitional
+  state atomically with the check that allows it, performs the slow work
+  **without** the lock, then publishes the final state and calls
+  ``notify_all()``.
+
+This page complements :doc:`architecture` (package-wide view) and
+:doc:`multiprocess_architecture` (the publish worker processes). Everything
+below is derived from the docstrings of
+:mod:`step_lib.sync_com_manager` and :mod:`step_lib.its_publish_worker_pool`.
+
+.. contents:: On this page
+   :local:
+   :depth: 2
+
+The Condition Technique
+-----------------------
+
+A plain ``Lock`` only answers "may I touch this data now?". A
+``threading.Condition`` additionally answers "may I proceed *given the
+state*?": a thread can sleep until a **predicate** over the guarded state
+becomes true, and whoever changes that state wakes the sleepers.
+
+The four rules
+~~~~~~~~~~~~~~
+
+1. **One condition guards everything that is related.** In
+   ``PublishWorkerPool`` ``_cond`` guards ``_state``, ``_generation``, the
+   socket (``_sock``/``_context``) and the per-worker bookkeeping
+   (``_workers``, ``_ready_events``, ``_stop_events``, ``_heartbeats``,
+   ``_restarting``, ``_restart_backoff``). In ``SyncComManager`` ``_cond`` guards
+   ``_system_status``, ``_connection_status``, ``_async_loop`` and
+   ``_incoming_queue``. Because a single lock covers a check *and* the write
+   it justifies, there is no window between "test" and "set".
+2. **State changes go through one setter, with the lock held.**
+   ``_set_state()`` / ``_set_status()`` are the only writers of the lifecycle
+   attribute (they also emit the debug transition log line).
+3. **Waiters use predicates, never bare ``wait()``.**
+   ``_wait_settled()`` calls ``Condition.wait_for(predicate, timeout)``. The
+   predicate is re-evaluated after every wake-up, so spurious wake-ups and
+   "missed" notifications are harmless, and the timeout (``_settle_budget()``)
+   turns a stuck peer into a ``StepLibError`` instead of a permanent hang.
+4. **Never hold the lock across a blocking call.** ``proc.join()``, the
+   readiness poll of ``_await_ready()``, ``context.term()``, thread joins
+   and ``run_coroutine_threadsafe(...).result()`` all run *outside*
+   ``_cond``. The only I/O done under the lock is the ``NOBLOCK`` socket
+   write in ``PublishWorkerPool.send()``, which is bounded and is exactly what
+   makes "check state + write" atomic against ``close()``.
+
+Claim / work / publish
+~~~~~~~~~~~~~~~~~~~~~~
+
+Every ``start()`` and ``close()`` (``stop()``) has the same three-step shape:
+
+.. container:: scrollable-diagram
+
+    .. plantuml::
+        :align: center
+
+        @startuml
+        skinparam defaultFontSize 12
+        start
+        partition "with _cond held" {
+            :_wait_settled()\nwait_for(state in {stable states}, timeout);
+            if (already in the requested state?) then (yes)
+                :return  (idempotent no-op);
+                stop
+            else (no)
+                :_set_state(transitional)  -- CLAIM;
+            endif
+        }
+        partition "lock released" {
+            :slow work\n(spawn / join / bind / term / MQTT);
+        }
+        partition "with _cond held" {
+            :_set_state(final state)  -- PUBLISH;
+            :notify_all();
+        }
+        stop
+        @enduml
+
+Because the claim is made in the same critical section as the check, **exactly
+one** thread ever executes a given transition; every other caller is parked in
+``_wait_settled()`` and, once woken, sees the *settled* result:
+
+- if it is the state it wanted, it returns immediately (``start()`` on a
+  running object, ``close()`` on a closed one);
+- otherwise it performs the opposite transition itself.
+
+An error raised by the transition reaches **only** the thread that executed
+it. Waiters see the rolled-back stable state (``CLOSED``/``STOPPED``) and
+simply retry on their own.
+
+State Machines
+--------------
+
+PublishWorkerPool (``PoolState``)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``CLOSED`` and ``RUNNING`` are stable; ``STARTING`` and ``CLOSING`` are
+transitional and owned by exactly one thread. ``CLOSED`` is also the state
+after ``close()``, so a pool is restartable.
+
+.. container:: scrollable-diagram
+
+    .. plantuml::
+        :align: center
+
+        @startuml
+        skinparam state {
+            BackgroundColor<<stable>> #E8F5E9
+            BackgroundColor<<transitional>> #FFF3E0
+        }
+        hide empty description
+
+        state CLOSED <<stable>>
+        state STARTING <<transitional>>
+        state RUNNING <<stable>>
+        state CLOSING <<transitional>>
+
+        [*] --> CLOSED : __init__()
+
+        CLOSED --> STARTING : start()\n(claim, _generation += 1,\n_reset_bookkeeping())
+        STARTING --> RUNNING : _bind_and_spawn() ok\n(publish _sock/_context,\nnotify_all())
+        STARTING --> CLOSED : any error\n(cleanup, notify_all(),\nerror to the starter only)
+        RUNNING --> CLOSING : close()\n(claim)
+        CLOSING --> CLOSED : _shutdown_workers() done\nor error (finally)\n(_reset_bookkeeping(), notify_all())
+
+        RUNNING --> RUNNING : send()\ncheck_health()\nis_running
+        CLOSED --> CLOSED : close() (no-op)
+        RUNNING --> RUNNING : start() (no-op)
+
+        note right of STARTING
+            send() / check_health() refuse.
+            A concurrent close() waits in
+            _wait_settled().
+        end note
+        note left of CLOSING
+            send() and new restart claims are
+            refused. close() first drains
+            in-flight restarts (_restarting).
+        end note
+        @enduml
+
+.. list-table:: Which operation is legal in which ``PoolState``
+   :widths: 22 19 19 19 21
+   :header-rows: 1
+
+   * - Operation
+     - ``CLOSED``
+     - ``STARTING``
+     - ``RUNNING``
+     - ``CLOSING``
+   * - ``start()``
+     - performs the start
+     - waits, then no-op
+     - no-op
+     - waits, then starts
+   * - ``close()``
+     - no-op
+     - waits, then closes
+     - performs the close
+     - waits, then no-op
+   * - ``send()``
+     - ``StepLibError``
+     - ``StepLibError``
+     - writes to the socket
+     - ``StepLibError``
+   * - ``check_health()``
+     - returns
+     - returns
+     - detects / restarts
+     - returns (no new claim)
+   * - ``is_running``
+     - False
+     - False
+     - True
+     - False
+
+SyncComManager (``_SystemStatus``)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The manager uses the same 4-state shape, layered *on top of* the pool's own
+state machine: ``SyncComManager.start()`` calls ``PublishWorkerPool.start()``
+from inside its own ``STARTING`` window, and ``_stop()`` calls
+``PublishWorkerPool.close()`` from a ``finally`` block.
+
+.. container:: scrollable-diagram
+
+    .. plantuml::
+        :align: center
+
+        @startuml
+        skinparam state {
+            BackgroundColor<<stable>> #E8F5E9
+            BackgroundColor<<transitional>> #FFF3E0
+        }
+        hide empty description
+
+        state STOPPED <<stable>>
+        state STARTING <<transitional>>
+        state STARTED <<stable>>
+        state STOPPING <<transitional>>
+
+        [*] --> STOPPED : __init__()
+
+        STOPPED --> STARTING : start()\n(claim, _create_runtime())
+        STARTING --> STARTED : async thread + pool +\nhealth thread running\n(notify_all())
+        STARTING --> STOPPED : start() failed\n_stop() unwind\n(notify_all())
+        STARTED --> STOPPING : stop()\n(claim)
+        STOPPING --> STOPPED : _stop() finally:\npool.close()\n(notify_all())
+
+        STARTED --> STARTED : start() (no-op)
+        STOPPED --> STOPPED : stop() (no-op)
+
+        note right of STARTING
+            _is_thread_enabled() is True in
+            STARTING and STARTED: the background
+            thread keeps (re)connecting.
+        end note
+        note left of STOPPING
+            _is_thread_enabled() turns False:
+            the background thread stops retrying.
+        end note
+        @enduml
+
+``_system_status`` (lifecycle of ``start()``/``stop()``) is deliberately
+distinct from ``ConnectionStatus`` (``DISCONNECTED``/``CONNECTED``/
+``RECONNECTING``), which tracks the MQTT connection and is also guarded by
+``_cond``, through ``_set_connection_status()``.
+
+Class Diagram
+-------------
+
+The diagram shows the synchronization-relevant members only. Fields guarded by
+``_cond`` are marked ``«guarded»``; the two pieces of shared state that are
+deliberately **not** guarded (they belong to a single owner thread) are marked
+``«owner-only»``.
+
+.. container:: scrollable-diagram
+
+    .. plantuml::
+        :align: center
+
+        @startuml
+        skinparam classAttributeIconSize 0
+        hide empty members
+
+        enum PoolState {
+            CLOSED
+            STARTING
+            RUNNING
+            CLOSING
+        }
+
+        enum _SystemStatus {
+            STOPPED
+            STARTING
+            STARTED
+            STOPPING
+        }
+
+        class SyncComManager {
+            - _cond : Condition(RLock)
+            - _system_status : _SystemStatus  «guarded»
+            - _connection_status : ConnectionStatus  «guarded»
+            - _async_loop : AbstractEventLoop | None  «guarded»
+            - _incoming_queue : AsyncioQueue | None  «guarded»
+            - _outgoing_queue : SyncQueue  «thread-safe»
+            - _worker_pool : PublishWorkerPool
+            - _async_thread : Thread
+            - _health_check_thread : Thread
+            - _health_check_stop_event : Event
+            - _subscribe_topics : SubscribeCommand | None  «owner-only»
+            + start() : void
+            + stop() : void
+            + subscribe(topics, max_qos) : void
+            + publish_its_message(...) : void
+            + check_health(auto_restart) : void
+            - _stop() : void
+            - _set_status(new_status) : void
+            - _wait_settled() : void
+            - _settle_budget() : float
+            - _set_async_loop(loop, incoming_queue) : void
+            - _get_active_loop() : _LoopHandle
+            - _is_async_loop_ready() : bool
+            - _is_thread_enabled() : bool
+            - _health_check_loop(stop_event) : void
+        }
+
+        class _LoopHandle <<NamedTuple>> {
+            + loop : AbstractEventLoop
+            + incoming_queue : AsyncioQueue
+        }
+
+        class PublishWorkerPool {
+            + MAX_WORKER_SPAWN_ATTEMPTS : int = 5
+            + READINESS_POLL_INTERVAL : float = 0.2
+            + SPAWN_OVERHEAD : float = 2.0
+            + TIMEOUT_MARGIN : float = 5.0
+            - _cond : Condition(RLock)
+            - _state : PoolState  «guarded»
+            - _generation : int  «guarded»
+            - _sock : ZmqSocket | None  «guarded»
+            - _context : ZmqContext | None  «guarded»
+            - _workers : dict[int, BaseProcess]  «guarded»
+            - _ready_events : dict[int, MpEvent]  «guarded»
+            - _stop_events : dict[int, MpEvent]  «guarded»
+            - _heartbeats : dict[int, Synchronized]  «guarded»
+            - _restarting : set[int]  «guarded»
+            - _restart_backoff : dict[int, tuple[float, float]]  «guarded»
+            - _endpoint : str | None  «owner-only»
+            - _log_queue : MpQueue | None  «owner-only»
+            - _listener : QueueListener | None  «owner-only»
+            + {property} is_running : bool
+            + start() : void
+            + send(envelope) : void
+            + check_health(auto_restart) : void
+            + close() : void
+            - _set_state(new_state) : void
+            - _wait_settled() : void
+            - _settle_budget() : float
+            - _abort_requested(generation) : bool
+            - _should_abort(generation) : bool
+            - _is_closing() : bool
+            - _claim_worker_for_restart(idx, auto_restart, expected_proc) : bool
+            - _release_restart(idx, generation) : void
+            - _restart_worker(idx, generation) : void
+            - _spawn_worker_with_retry(idx, generation) : void
+            - _spawn_worker(idx, generation) : BaseProcess
+            - _await_ready(idx) : void
+            - _bind_and_spawn() : tuple
+            - _shutdown_workers(procs, stop_events, context) : void
+            - _reset_bookkeeping() : void
+        }
+
+        SyncComManager *-- PublishWorkerPool : _worker_pool
+        SyncComManager ..> _SystemStatus : lifecycle
+        SyncComManager ..> _LoopHandle : snapshot returned by\n_get_active_loop()
+        PublishWorkerPool ..> PoolState : lifecycle
+
+        note bottom of PublishWorkerPool
+            _endpoint, _log_queue and _listener are written
+            only by the single thread that owns STARTING
+            or CLOSING, so they need no extra lock.
+        end note
+        @enduml
+
+Lock Discipline
+~~~~~~~~~~~~~~~
+
+.. list-table::
+   :widths: 25 25 50
+   :header-rows: 1
+
+   * - Method
+     - Holds ``_cond``
+     - Blocking work (lock released)
+   * - ``PublishWorkerPool.start()``
+     - claim ``STARTING``; publish ``RUNNING``
+     - queue/listener setup, ``bind``, spawn + ``_await_ready`` of every worker
+   * - ``PublishWorkerPool.close()``
+     - claim ``CLOSING``; drain ``_restarting``; snapshot; close the socket
+     - ``stop_event.set()``, ``context.term()``, joins, ``terminate()``/``kill()``,
+       listener stop
+   * - ``PublishWorkerPool.send()``
+     - state check **and** ``NOBLOCK`` socket write (atomic)
+     - JSON encoding (before taking the lock)
+   * - ``PublishWorkerPool.check_health()``
+     - snapshot of ``_workers`` and ``_generation``; every claim/release
+     - liveness/heartbeat detection, logging, ``terminate()``, respawn
+   * - ``SyncComManager.start()``
+     - claim ``STARTING``; publish ``STARTED``
+     - thread start, loop-ready poll, ``pool.start()``
+   * - ``SyncComManager.stop()``
+     - claim ``STOPPING``; snapshot of loop/queue; publish ``STOPPED``
+     - thread joins, ``run_coroutine_threadsafe(...).result()``, ``pool.close()``
+   * - ``SyncComManager.publish_its_message()`` / ``check_health()``
+     - none
+     - delegated to the pool, which is internally thread-safe
+
+Sequence Diagrams
+-----------------
+
+Concurrent ``start()`` calls
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Two threads call ``PublishWorkerPool.start()`` while the pool is ``CLOSED``.
+Thread 1 wins the claim; thread 2 is parked on the condition and, once woken,
+finds ``RUNNING`` and returns without doing anything.
+
+.. container:: scrollable-diagram
+
+    .. plantuml::
+        :align: center
+
+        @startuml
+        participant "Thread 1\nstart()" as T1
+        participant "Thread 2\nstart()" as T2
+        participant "_cond\n(Condition)" as C
+        participant "PublishWorkerPool\nstate" as S
+
+        T1 -> C : acquire
+        activate C
+        T1 -> S : _wait_settled()\n(CLOSED is settled)
+        T1 -> S : _set_state(STARTING)\n_generation += 1\n_reset_bookkeeping()
+        T1 -> C : release
+        deactivate C
+
+        T2 -> C : acquire
+        activate C
+        T2 -> C : _wait_settled()\nwait_for(state in settled)
+        note right of T2
+            wait_for releases the lock and
+            sleeps until notified.
+        end note
+        deactivate C
+
+        T1 -> T1 : _bind_and_spawn()\n(bind, spawn workers,\nawait ready) -- NO lock held
+
+        T1 -> C : acquire
+        activate C
+        T1 -> S : _sock/_context = ...\n_set_state(RUNNING)
+        T1 -> C : notify_all()
+        T1 -> C : release
+        deactivate C
+
+        C --> T2 : wake up, re-acquire,\npredicate true (RUNNING)
+        activate C
+        T2 -> S : state is RUNNING
+        T2 -> C : return (idempotent no-op)
+        deactivate C
+
+        alt _bind_and_spawn() raised in Thread 1
+            T1 -> C : acquire
+            T1 -> S : _set_state(CLOSED)
+            T1 -> C : notify_all()
+            T1 -> C : release
+            note over T1, T2
+                The error reaches Thread 1 only.
+                Thread 2 wakes up on CLOSED and,
+                since it wanted RUNNING, performs
+                its own start() attempt.
+            end note
+        end
+        @enduml
+
+``send()`` versus ``close()``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The JSON encoding happens before ``_cond`` is taken because it touches only
+the caller-owned envelope. The state check and the ``NOBLOCK`` write share one
+critical section, so a ``send()`` either completes fully before ``close()``
+claims ``CLOSING`` or is refused with ``StepLibError``; it can never write to a
+socket that ``close()`` is closing.
+
+.. container:: scrollable-diagram
+
+    .. plantuml::
+        :align: center
+
+        @startuml
+        participant "Sender thread" as Snd
+        participant "Closer thread" as Cls
+        participant "_cond" as C
+        participant "PUSH socket" as Sock
+
+        Snd -> Snd : payload = envelope.model_dump_json()\n(no lock, pure computation)
+
+        par
+            Snd -> C : acquire
+            activate C
+            alt state is RUNNING and socket set
+                Snd -> Sock : send(payload, NOBLOCK)
+                alt zmq.Again (pipes at HWM)
+                    Snd --> Snd : re-raise zmq.Again (backpressure)
+                else ZMQError
+                    Snd --> Snd : raise StepLibError("closing")
+                end
+            else CLOSING / CLOSED / STARTING
+                Snd --> Snd : raise StepLibError(not running)
+            end
+            Snd -> C : release
+            deactivate C
+        else
+            Cls -> C : acquire  (blocked until Sender releases)
+            activate C
+            Cls -> C : _wait_settled(); state = CLOSING (claim)
+            Cls -> C : wait_for(not _restarting,\ntimeout=_restart_drain_budget())
+            Cls -> Sock : close(linger=graceful timeout)
+            Cls -> C : release
+            deactivate C
+        end
+
+        note over Snd, Cls
+            Either order is safe: after CLOSING is
+            published, send() can only see state != RUNNING
+            (or _sock is None) and refuses.
+        end note
+        @enduml
+
+``close()``
+~~~~~~~~~~~
+
+.. container:: scrollable-diagram
+
+    .. plantuml::
+        :align: center
+
+        @startuml
+        participant "Closer thread" as Cls
+        participant "_cond" as C
+        participant "In-flight restart\n(check_health thread)" as R
+        participant "Workers" as W
+
+        Cls -> C : acquire
+        activate C
+        Cls -> C : _wait_settled()
+        alt state is CLOSED
+            Cls --> Cls : return (idempotent)
+        else state is RUNNING
+            Cls -> C : _set_state(CLOSING)  -- CLAIM
+            Cls -> C : wait_for(not _restarting,\ntimeout = _restart_drain_budget())
+            note right of C
+                wait_for releases the lock, so the
+                restart below can make progress.
+            end note
+            R -> R : _should_abort() sees CLOSING\nat next attempt / poll
+            R -> W : _terminate_then_kill(own new proc)
+            R -> C : _release_restart()\nnotify_all()
+            C --> Cls : predicate true (drained)
+            Cls -> C : snapshot stop_events, procs\nclose PUSH socket, detach context
+            Cls -> C : release
+        end
+        deactivate C
+
+        Cls -> W : stop_event.set() for each worker
+        Cls -> Cls : context.term()
+        Cls -> W : join() against ONE shared deadline
+        Cls -> W : terminate() / kill() stragglers
+        Cls -> Cls : stop QueueListener (last)
+
+        Cls -> C : acquire
+        Cls -> C : _reset_bookkeeping()\n_set_state(CLOSED)
+        Cls -> C : notify_all()
+        Cls -> C : release
+        @enduml
+
+Health check, restart claim and ``close()``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``check_health()`` detects problems **outside** the lock, from a snapshot, so
+by the time it acts the snapshot may be stale. The atomic step that makes this
+safe is ``_claim_worker_for_restart()``: it re-validates *everything* and marks
+the slot in flight in the same critical section:
+
+- the pool is still ``RUNNING``;
+- the slot is not already in ``_restarting``, and its restart backoff (set by
+  a failed restart) has elapsed;
+- the process in the slot **is** ``expected_proc`` (identity check: a slot that
+  another restart already replaced is healthy and must not be restarted
+  again).
+
+.. container:: scrollable-diagram
+
+    .. plantuml::
+        :align: center
+
+        @startuml
+        participant "Health-check\nthread" as H
+        participant "Other check_health()\ncaller" as O
+        participant "_cond" as C
+        participant "Worker slot i" as W
+        participant "close() thread" as Cls
+
+        H -> C : acquire; state RUNNING?\nsnapshot = dict(_workers), generation
+        H -> C : release
+        H -> H : _dead_workers() / _blocked_workers()\n(is_alive(), heartbeat -- no lock held)
+
+        par
+            H -> C : _claim_worker_for_restart(i, auto_restart, proc)
+            activate C
+            note right of C
+                RUNNING? not restarting? backoff elapsed?
+                _workers[i] is proc?
+                then _restarting.add(i)
+            end note
+            C --> H : True (claimed)
+            deactivate C
+        else
+            O -> C : _claim_worker_for_restart(i, ..., proc)
+            C --> O : False (already in _restarting)\n-> skipped
+        end
+
+        H -> H : log error
+        opt worker was blocked
+            H -> W : _terminate_then_kill(proc)
+        end
+        H -> C : _restart_worker(i, generation)\n_restarting.add(i)
+        H -> H : _spawn_worker_with_retry()  -- NO lock held\n(send() keeps using the other workers)
+
+        alt close() starts meanwhile
+            Cls -> C : state = CLOSING\nwait_for(not _restarting)
+            H -> C : _abort_requested(generation) -> True
+            H -> W : reap the freshly started process
+            H -> C : _release_restart()\nnotify_all()
+            C --> Cls : drained
+        else restart succeeds
+            H -> C : _record_restart_outcome(succeeded=True)\n(clears the backoff)
+            H -> C : _release_restart(i, generation)\nnotify_all()
+        else restart fails
+            H -> C : _record_restart_outcome(succeeded=False)\n(next attempt after 1, 2, 4 ... 60 s)
+            H -> C : _release_restart(i, generation)\nnotify_all()
+        end
+        @enduml
+
+The ``_generation`` guard
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``_generation`` is incremented by every ``start()`` that reaches ``STARTING``.
+A restart carries the generation it was claimed under and is **superseded**
+(``_abort_requested()``) as soon as the pool is no longer ``RUNNING`` *or* the
+generation changed. A superseded restart:
+
+- reaps the process it just started instead of registering it;
+- never writes the bookkeeping of the newer generation;
+- never releases a ``_restarting`` mark that now belongs to the newer
+  generation's own restart (``_release_restart()`` compares generations).
+
+Normally ``close()`` waits for restarts to drain, so this only matters when a
+restart is stuck longer than ``_restart_drain_budget()``: it can neither orphan
+a process nor corrupt a pool that was closed and started again.
+
+Concurrent ``SyncComManager.start()`` / ``stop()``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. container:: scrollable-diagram
+
+    .. plantuml::
+        :align: center
+
+        @startuml
+        participant "Application\nthread A" as A
+        participant "Application\nthread B" as B
+        participant "SyncComManager\n_cond" as C
+        participant "Async thread" as AT
+        participant "PublishWorkerPool" as P
+        participant "Health-check\nthread" as H
+
+        A -> C : start(): _wait_settled(); STOPPED\n_set_status(STARTING); _create_runtime()
+        B -> C : stop(): _wait_settled()\n(parked: STARTING is transitional)
+
+        A -> AT : _async_thread.start()
+        AT -> C : _set_async_loop(loop, queue)
+        A -> C : _wait_for_async_loop_ready()\n(polls _is_async_loop_ready(), lock re-taken per poll)
+        A -> P : pool.start()\n(has its own _cond and state machine)
+        A -> H : _health_check_thread.start()
+
+        alt everything started
+            A -> C : _set_status(STARTED); notify_all()
+            C --> B : wake up: STARTED\nB claims STOPPING and runs _stop()
+            B -> H : _health_check_stop_event.set(); join()
+            B -> AT : ExitThreadsCommand via run_coroutine_threadsafe()\nqueue.join(); _async_thread.join()
+            B -> P : pool.close()  (finally)
+            B -> C : _set_status(STOPPED); notify_all()
+        else a step raised in A
+            A -> A : _stop()  (best effort, same teardown)
+            A -> C : _set_status(STOPPED); notify_all()
+            C --> B : wake up: STOPPED -> stop() is a no-op
+            A --> A : re-raise the ORIGINAL error
+        end
+        @enduml
+
+Nested Locking and Ordering
+---------------------------
+
+There are two conditions (``SyncComManager._cond`` and
+``PublishWorkerPool._cond``) but they are **never held at the same time**:
+
+- ``SyncComManager`` releases its ``_cond`` before calling into the pool
+  (``start()``, ``_stop()``, ``publish_its_message()``, ``check_health()`` and
+  ``_health_check_loop()`` all call the pool with no manager lock held);
+- the pool never calls back into the manager.
+
+The lock order is therefore trivially acyclic, so there is no deadlock between
+the two state machines. Both conditions wrap an ``RLock`` so that helper
+methods that take the lock themselves (``_is_closing()``,
+``_should_abort()``, ``_reset_bookkeeping()``) can safely be called from a
+critical section that already holds it.
+
+Bounded Waits
+-------------
+
+Every wait in these state machines has a computed upper bound, so a stuck
+transition surfaces as an error instead of a deadlock:
+
+.. list-table::
+   :widths: 30 70
+   :header-rows: 1
+
+   * - Budget
+     - Formula
+   * - ``_attempt_budget()``
+     - ``SPAWN_OVERHEAD + publish_worker_startup_timeout + 2 * publish_forceful_join_timeout``
+   * - ``_start_budget()``
+     - ``publish_worker_count * MAX_WORKER_SPAWN_ATTEMPTS * attempt_budget + TIMEOUT_MARGIN``
+   * - ``_restart_drain_budget()``
+     - ``READINESS_POLL_INTERVAL + SPAWN_OVERHEAD + 2 * publish_forceful_join_timeout``
+   * - ``_close_budget()``
+     - ``restart_drain_budget + publish_graceful_shutdown_timeout + publish_worker_count * 2 * publish_forceful_join_timeout + TIMEOUT_MARGIN``
+   * - ``PublishWorkerPool._settle_budget()``
+     - ``max(start_budget, close_budget)``
+   * - ``SyncComManager._settle_budget()``
+     - pool start + pool close + ``3 * timeout`` + ``TIMEOUT_MARGIN``
+
+The waiter cannot know whether the transition it is waiting for is a start or a
+close (or several back to back), hence the ``max`` of both worst cases. The
+manager's budget additionally covers the bounded waits of its own steps (the
+health-check join and the two ``run_coroutine_threadsafe`` calls, each limited
+by ``params.timeout``).
+
+See Also
+--------
+
+- :doc:`architecture` -- package-wide architecture.
+- :doc:`multiprocess_architecture` -- the publish worker processes, ZMQ
+  pipeline and health-check recovery.
+- :doc:`ventilator_worker_protocol` -- the ventilator/worker wire protocol.
+- :doc:`step_lib_rst/step_lib.sync_com_manager`,
+  :doc:`step_lib_rst/step_lib.its_publish_worker_pool` -- API reference.

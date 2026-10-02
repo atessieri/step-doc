@@ -68,7 +68,7 @@ The following snippet explains how to create the data-class of parameters.
     import ssl
 
     from aiomqtt import TLSParameters
-    from step_cloud_schemas import MessageId
+    from step_cloud_schemas import GenericMessageType, MessageId
     from step_lib import MqttQoS, PublishTopicParams, SyncComManagerParams
 
     def create_sync_com_manager_params() -> SyncComManagerParams:
@@ -98,7 +98,6 @@ The following snippet explains how to create the data-class of parameters.
             max_queued_outgoing_messages=60,
             max_inflight_messages=60,
             max_concurrent_outgoing_calls=60,
-            tls_context=None,
             tls_params=tls_params,
             proxy=None,
             socket_options=None,
@@ -119,17 +118,23 @@ The following snippet explains how to create the data-class of parameters.
                     geohash_precision=8,
                     qos=MqttQoS.QOS_0,
                 ),
+                PublishTopicParams(
+                    message_type=GenericMessageType.POSITION_DATA,
+                    header_topic="TRIP_SIMULATOR",
+                    geohash_precision=8,  # ignored for POSITION_DATA
+                    qos=MqttQoS.QOS_0,
+                ),
             ],
             cache_dir="./.cache",
             reconnect_interval=2,
             max_incoming_queue_rooms=60,
             max_outgoing_queue_rooms=60,
             publish_worker_count=2,
-            publish_worker_startup_timeout=15.0,
+            publish_worker_startup_timeout=30.0,
             publish_hwm=2000,
             publish_health_check_interval=1.0,
             publish_heartbeat_interval=0.5,
-            publish_heartbeat_timeout=3.0,
+            publish_heartbeat_timeout=30.0,
             publish_parent_watchdog_interval=1.0,
             publish_graceful_shutdown_timeout=5.0,
             publish_forceful_join_timeout=5.0,
@@ -140,8 +145,21 @@ The following snippet explains how to create the data-class of parameters.
 
     The ``station_id`` field can be None if the library is able to send messages created
     by different stations. If ``station_id`` is None, it isn't used; otherwise, the
-    library filters received messages to those matching ``station_id`` and overrides
-    the station id in published messages with it.
+    library discards received messages carrying ``station_id`` (the client's own
+    echoes) and replaces the station id of the published messages with it. The
+    override is performed by ``AsyncComManager.publish_its_message`` (called by the
+    publish worker of ``SyncComManager``), before serialization and before the
+    position data topic is built; ``FacilitySerializer`` encodes the message's
+    station id as is.
+
+.. note::
+
+    The ``GenericMessageType.POSITION_DATA`` entry of ``publish_topics_params`` is
+    optional and enables the STEP position data feed: every published CAM is also
+    projected onto a ``PositionDataV1`` record and published as JSON on
+    ``<header_topic>/<station_id>``, with no geohash levels (``geohash_precision`` is
+    ignored for this entry). Without the entry, the CAM is published alone. See
+    :doc:`position_data_topic`.
 
 .. note::
 
@@ -158,20 +176,104 @@ The following snippet explains how to create the data-class of parameters.
         - ``publish_heartbeat_interval``: seconds between worker heartbeat
           refreshes.
         - ``publish_heartbeat_timeout``: seconds of heartbeat staleness after
-          which a worker is considered blocked.
+          which a worker is considered blocked; keep it well above the time a
+          worker needs to compile the ASN.1 grammar on its first connect.
         - ``publish_parent_watchdog_interval``: seconds between a worker's checks
           that its parent process is still alive.
-        - ``publish_graceful_shutdown_timeout``: seconds to wait for workers to
-          exit gracefully during ``close()`` before escalating to a forceful
-          termination. If this manager runs inside a container/service manager,
-          keep it (plus ``publish_forceful_join_timeout``) safely below that
-          manager's own outer shutdown grace period.
+        - ``publish_graceful_shutdown_timeout``: bound of each of the two phases
+          of a graceful stop: handing the queued messages to the workers, then
+          letting every worker publish the messages it already received (drain)
+          before exiting. ``stop()`` can therefore wait about twice this value
+          before escalating to a forceful termination. If this manager runs inside
+          a container/service manager, keep that (plus
+          ``publish_forceful_join_timeout``) safely below the manager's own outer
+          shutdown grace period.
         - ``publish_forceful_join_timeout``: seconds to wait for a
           forcefully-terminated worker to exit before escalating further.
         - ``publish_max_connect_attempts``: consecutive failed MQTT connect
           attempts a worker tolerates before giving up and exiting, to be picked
           up and restarted by the pool's health check, rather than retrying
-          forever.
+          forever. A worker whose restart fails is retried after 1 s, then after
+          2, 4, ... seconds, up to 60 s between attempts.
+        - ``leap_seconds_source``, ``leap_seconds_urls``,
+          ``leap_seconds_allow_download``: configuration of the ``LeapSeconds``
+          singleton of each publish worker process (see
+          :ref:`step_lib_leap_seconds`).
+
+    Every field must be picklable, since the parameters are sent to the worker
+    processes: an unpicklable value (e.g. a ``queue_type`` defined inside a
+    function) raises ``ValueError`` naming the field.
+
+.. _step_lib_tls:
+
+TLS configuration
+-----------------
+
+TLS is configured only through ``tls_params`` (an ``aiomqtt.TLSParameters``,
+re-exported as ``step_lib.TLSParameters``): an ``ssl.SSLContext`` cannot be pickled
+to reach the publish worker processes, so the ``tls_context`` field was removed in
+3.0.0. Each process builds its own context from the parameters. To migrate a
+hand-built ``SSLContext``:
+
+.. list-table::
+   :header-rows: 1
+
+   * - From a hand-built ``SSLContext``
+     - To ``TLSParameters``
+   * - ``load_verify_locations(cafile)``
+     - ``ca_certs`` (None uses ``load_default_certs()``)
+   * - ``verify_mode=CERT_NONE`` and ``check_hostname=False``
+     - ``cert_reqs=ssl.CERT_NONE``
+   * - certificate verification enabled
+     - ``cert_reqs=None`` (the default, ``CERT_REQUIRED``)
+   * - ``load_cert_chain(certfile, keyfile, password)``
+     - ``certfile``, ``keyfile``, ``keyfile_password``
+   * - ``minimum_version=TLSv1_2``
+     - the default of Python 3.10 and later
+
+.. _step_lib_leap_seconds:
+
+Time scale and leap seconds
+---------------------------
+
+Since step_cloud_schemas 3.0.0 every ITS timestamp on the wire is TAI (5 seconds
+ahead of UTC since the ITS epoch), while the ISO strings of the models stay UTC.
+Every station of a deployment must therefore move to step_cloud_schemas 3.0.0 and
+step_lib 3.0.0 together: a mixed deployment reads each other's times 5 s apart.
+
+The leap-second table is a ``LeapSeconds`` singleton per process. The application
+configures the singleton of its own process (the one running ``SyncComManager`` or
+``AsyncComManager``) before any ``ItsTime`` use, e.g.::
+
+    from step_cloud_schemas import LeapSeconds
+
+    LeapSeconds(allow_download=False)
+
+The publish worker processes do not inherit it: each one creates its own from the
+``leap_seconds_source``, ``leap_seconds_urls`` and ``leap_seconds_allow_download``
+parameters, as the very first thing it does.
+
+Delivery and time notes
+-----------------------
+
+    - **At-least-once publishing**: a message whose publish fails with an MQTT
+      transport error is published again after the worker reconnects, up to 3
+      attempts, so a subscriber can receive it twice. The pending message lives only
+      in the worker's memory.
+    - **Graceful stop**: ``stop()`` publishes every message already handed to
+      ``publish_its_message()`` before returning, within the time budget above.
+    - **Sequence numbers**: the GeoNetworking sequence number is assigned by the
+      pool, so the worker processes never reuse one; it starts at a random value.
+    - **Times rebuilt on reception**: a CAM carries only
+      ``generationDeltaTime`` (TAI ms modulo 65536), and the GeoNetworking position
+      vector ``TST`` (TAI ms modulo 2^32). Both are rebuilt against the time of
+      decoding, so ``creationTime`` is only right when a CAM is decoded within
+      +/-32.7 s of its generation (+/-24.8 days for ``TST``); replaying an old
+      capture shifts the times.
+    - **Standard CPM**: only the custom CPM layout (``CpmMessageV1`` with
+      ``is_custom=True``, BTP port 1009) is supported. Publishing a standard CPM
+      raises ``StepLibUnsupportedMessageError`` at once; a standard CPM received on
+      port 2009 is dropped with an INFO record.
 
 Using Context Manager (Recommended)
 -----------------------------------
@@ -186,12 +288,16 @@ The following snippet of code:
 
 .. code-block:: python
 
+    import logging
+
     from step_cloud_schemas import (
         AccelerationComponent,
         ActionId,
         Altitude,
         CamDataV1,
         CauseCode,
+        CollisionRiskCause,
+        CollisionRiskSubCauseCode,
         CpmDataV1,
         Curvature,
         CurvatureCalculationMode,
@@ -228,6 +334,7 @@ The following snippet of code:
         GeoNetworkAddress,
         GpsLocation,
         MqttQoS,
+        StepLibError,
         SyncComManager,
     )
 
@@ -243,7 +350,6 @@ The following snippet of code:
                 "v2x/denm/264421_4/g8/+/+/+/+/#",
             ],
             max_qos=MqttQoS.QOS_1,
-            no_local=True,
         )
 
         # Address and current position required by publish_its_message
@@ -296,12 +402,16 @@ The following snippet of code:
                 vehicleRole=VehicleRole.DEFAULT,
             )
         )
-        client.publish_its_message(
-            message=cam_message,
-            address=address,
-            current_position=current_position,
-            is_station_mobile=True,
-        )
+        try:
+            client.publish_its_message(
+                message=cam_message,
+                address=address,
+                current_position=current_position,
+                is_station_mobile=True,
+            )
+        except StepLibError:
+            if logger.isEnabledFor(level=logging.ERROR):
+                logger.exception(msg="CAM message not sent")
 
         # Publish CPM message
         perceived_position = ReferencePosition(
@@ -343,12 +453,16 @@ The following snippet of code:
                 ],
             )
         )
-        client.publish_its_message(
-            message=cpm_message,
-            address=address,
-            current_position=current_position,
-            is_station_mobile=True,
-        )
+        try:
+            client.publish_its_message(
+                message=cpm_message,
+                address=address,
+                current_position=current_position,
+                is_station_mobile=True,
+            )
+        except StepLibError:
+            if logger.isEnabledFor(level=logging.ERROR):
+                logger.exception(msg="CPM message not sent")
 
         # Publish DENM message
         event_position = ReferencePosition(
@@ -381,7 +495,10 @@ The following snippet of code:
                 ),
                 situationContainer=SituationContainer(
                     informationQuality=5,
-                    eventType=CauseCode.COLLISION_RISK,
+                    eventType=CollisionRiskCause(
+                        causeCode=CauseCode.COLLISION_RISK,
+                        subCauseCode=CollisionRiskSubCauseCode.UNAVAILABLE,
+                    ),
                 ),
                 locationContainer=LocationContainer(
                     eventSpeed=Speed(value=123.67, confidence=0.5),
@@ -417,12 +534,16 @@ The following snippet of code:
                 ),
             )
         )
-        client.publish_its_message(
-            message=denm_message,
-            address=address,
-            current_position=current_position,
-            is_station_mobile=True,
-        )
+        try:
+            client.publish_its_message(
+                message=denm_message,
+                address=address,
+                current_position=current_position,
+                is_station_mobile=True,
+            )
+        except StepLibError:
+            if logger.isEnabledFor(level=logging.ERROR):
+                logger.exception(msg="DENM message not sent")
 
         # Process received messages
         for message in client.its_messages_received:
@@ -430,12 +551,21 @@ The following snippet of code:
 
 .. note::
 
-    The ``no_local`` field can be:
+    Subscriptions always use ``noLocal=False``, which MQTT v5 requires for shared
+    subscriptions: a ``$share/<group>/<filter>`` topic is passed to the broker
+    unchanged, and the broker then delivers each message to one member of the group.
+    For example, several processes can split the CAM traffic between them with::
 
-        - True: The client will not receive messages that it has published.
-        - False: The client will receive messages that it has published.
+        client.subscribe(topics=["$share/cam_readers/v2x/cam/#"], max_qos=MqttQoS.QOS_1)
 
-    If the ``no_local`` field is True, the client isn't able to use shared subscription.
+    The messages a manager publishes on a topic it is subscribed to are received
+    back, unless ``station_id`` is set: the receiver then drops them as echoes. With
+    ``station_id=None`` ``subscribe()`` logs this at INFO.
+
+    ``subscribe()`` returns once the command is queued; the SUBACK is logged later by
+    the background thread: INFO when the requested QoS was granted, WARNING when the
+    broker granted a lower QoS (the subscription works, with weaker delivery
+    guarantees), ERROR with the reason (e.g. ``Not authorized``) when it was refused.
 
 Manual management
 -----------------
@@ -465,7 +595,6 @@ The following snippet of code:
                 "v2x/denm/264421_4/g8/+/+/+/+/#",
             ],
             max_qos=MqttQoS.QOS_1,
-            no_local=True,
         )
 
         # Address and current position required by publish_its_message
@@ -518,12 +647,16 @@ The following snippet of code:
                 vehicleRole=VehicleRole.DEFAULT,
             )
         )
-        client.publish_its_message(
-            message=cam_message,
-            address=address,
-            current_position=current_position,
-            is_station_mobile=True,
-        )
+        try:
+            client.publish_its_message(
+                message=cam_message,
+                address=address,
+                current_position=current_position,
+                is_station_mobile=True,
+            )
+        except StepLibError:
+            if logger.isEnabledFor(level=logging.ERROR):
+                logger.exception(msg="CAM message not sent")
 
         # Publish CPM message
         perceived_position = ReferencePosition(
@@ -565,12 +698,16 @@ The following snippet of code:
                 ],
             )
         )
-        client.publish_its_message(
-            message=cpm_message,
-            address=address,
-            current_position=current_position,
-            is_station_mobile=True,
-        )
+        try:
+            client.publish_its_message(
+                message=cpm_message,
+                address=address,
+                current_position=current_position,
+                is_station_mobile=True,
+            )
+        except StepLibError:
+            if logger.isEnabledFor(level=logging.ERROR):
+                logger.exception(msg="CPM message not sent")
 
         # Publish DENM message
         event_position = ReferencePosition(
@@ -603,7 +740,10 @@ The following snippet of code:
                 ),
                 situationContainer=SituationContainer(
                     informationQuality=5,
-                    eventType=CauseCode.COLLISION_RISK,
+                    eventType=CollisionRiskCause(
+                        causeCode=CauseCode.COLLISION_RISK,
+                        subCauseCode=CollisionRiskSubCauseCode.UNAVAILABLE,
+                    ),
                 ),
                 locationContainer=LocationContainer(
                     eventSpeed=Speed(value=123.67, confidence=0.5),
@@ -639,12 +779,16 @@ The following snippet of code:
                 ),
             )
         )
-        client.publish_its_message(
-            message=denm_message,
-            address=address,
-            current_position=current_position,
-            is_station_mobile=True,
-        )
+        try:
+            client.publish_its_message(
+                message=denm_message,
+                address=address,
+                current_position=current_position,
+                is_station_mobile=True,
+            )
+        except StepLibError:
+            if logger.isEnabledFor(level=logging.ERROR):
+                logger.exception(msg="DENM message not sent")
 
         # Process received messages
         for message in client.its_messages_received:
@@ -669,7 +813,8 @@ The following example demonstrates how to receive a message using the STEP Libra
 .. code-block:: python
 
     for message in client.its_messages_received:
-        logger.info(msg=f"Message received: {message}")
+        if logger.isEnabledFor(level=logging.INFO):
+            logger.info(msg=f"Message received: {message}")
 
 For more detailed information about specific message types and configurations,
 refer to the API Reference section :ref:`step_lib_api`.
@@ -695,7 +840,7 @@ it to build a ready-to-use ``AsyncComManager`` instance.
     import ssl
 
     from aiomqtt import TLSParameters
-    from step_cloud_schemas import MessageId
+    from step_cloud_schemas import GenericMessageType, MessageId
     from step_lib import AsyncComManager, AsyncComManagerParams, MqttQoS, PublishTopicParams
 
     def create_async_com_manager(logger: logging.Logger) -> AsyncComManager:
@@ -725,7 +870,6 @@ it to build a ready-to-use ``AsyncComManager`` instance.
             max_queued_outgoing_messages=60,
             max_inflight_messages=60,
             max_concurrent_outgoing_calls=60,
-            tls_context=None,
             tls_params=tls_params,
             proxy=None,
             socket_options=None,
@@ -746,6 +890,12 @@ it to build a ready-to-use ``AsyncComManager`` instance.
                     geohash_precision=8,
                     qos=MqttQoS.QOS_0,
                 ),
+                PublishTopicParams(
+                    message_type=GenericMessageType.POSITION_DATA,
+                    header_topic="TRIP_SIMULATOR",
+                    geohash_precision=8,  # ignored for POSITION_DATA
+                    qos=MqttQoS.QOS_0,
+                ),
             ],
             cache_dir="./.cache",
         )
@@ -755,8 +905,10 @@ it to build a ready-to-use ``AsyncComManager`` instance.
 
     The ``station_id`` field can be None if the library is able to send messages created
     by different stations. If ``station_id`` is None, it isn't used; otherwise, the
-    library filters received messages to those matching ``station_id`` and overrides
-    the station id in published messages with it.
+    library discards received messages carrying ``station_id`` (the client's own
+    echoes) and ``publish_its_message`` replaces the station id of the message to
+    publish with it, before serialization and before the position data topic
+    ``<header_topic>/<station_id>`` is built.
 
 Using Context Manager
 -----------------------------------
@@ -771,6 +923,7 @@ The following snippet of code:
 
 .. code-block:: python
 
+    import logging
     from asyncio import TaskGroup
     from asyncio import sleep as asyncio_sleep
 
@@ -781,6 +934,8 @@ The following snippet of code:
         Altitude,
         CamDataV1,
         CauseCode,
+        CollisionRiskCause,
+        CollisionRiskSubCauseCode,
         CpmDataV1,
         Curvature,
         CurvatureCalculationMode,
@@ -817,6 +972,7 @@ The following snippet of code:
         GeoNetworkAddress,
         GpsLocation,
         MqttQoS,
+        StepLibError,
     )
 
     # create_async_com_manager is the function defined above; receive_messages
@@ -848,8 +1004,9 @@ The following snippet of code:
             sub_results,
         ):
             if result == MqttQoS.QOS_1.value:
-                logger.info(msg=f"Subscribed to {topic}: {result}")
-            else:
+                if logger.isEnabledFor(level=logging.INFO):
+                    logger.info(msg=f"Subscribed to {topic}: {result}")
+            elif logger.isEnabledFor(level=logging.ERROR):
                 logger.error(msg=f"Error subscribing to {topic}: {result}")
         # Address and current position required by publish_its_message
         current_position = GpsLocation(
@@ -905,12 +1062,16 @@ The following snippet of code:
                     vehicleRole=VehicleRole.DEFAULT,
                 )
             )
-            await client.publish_its_message(
-                message=cam_message,
-                address=address,
-                current_position=current_position,
-                is_station_mobile=True,
-            )
+            try:
+                await client.publish_its_message(
+                    message=cam_message,
+                    address=address,
+                    current_position=current_position,
+                    is_station_mobile=True,
+                )
+            except StepLibError:
+                if logger.isEnabledFor(level=logging.ERROR):
+                    logger.exception(msg="CAM message not sent")
             # CPM message
             perceived_position = ReferencePosition(
                 latitude=45.587878,
@@ -951,12 +1112,16 @@ The following snippet of code:
                     ],
                 )
             )
-            await client.publish_its_message(
-                message=cpm_message,
-                address=address,
-                current_position=current_position,
-                is_station_mobile=True,
-            )
+            try:
+                await client.publish_its_message(
+                    message=cpm_message,
+                    address=address,
+                    current_position=current_position,
+                    is_station_mobile=True,
+                )
+            except StepLibError:
+                if logger.isEnabledFor(level=logging.ERROR):
+                    logger.exception(msg="CPM message not sent")
             # DENM message
             event_position = ReferencePosition(
                 latitude=45.587878,
@@ -988,7 +1153,10 @@ The following snippet of code:
                     ),
                     situationContainer=SituationContainer(
                         informationQuality=5,
-                        eventType=CauseCode.COLLISION_RISK,
+                        eventType=CollisionRiskCause(
+                            causeCode=CauseCode.COLLISION_RISK,
+                            subCauseCode=CollisionRiskSubCauseCode.UNAVAILABLE,
+                        ),
                     ),
                     locationContainer=LocationContainer(
                         eventSpeed=Speed(value=123.67, confidence=0.5),
@@ -1024,12 +1192,16 @@ The following snippet of code:
                     ),
                 )
             )
-            await client.publish_its_message(
-                message=denm_message,
-                address=address,
-                current_position=current_position,
-                is_station_mobile=True,
-            )
+            try:
+                await client.publish_its_message(
+                    message=denm_message,
+                    address=address,
+                    current_position=current_position,
+                    is_station_mobile=True,
+                )
+            except StepLibError:
+                if logger.isEnabledFor(level=logging.ERROR):
+                    logger.exception(msg="DENM message not sent")
             # Simulate other operations
             await asyncio_sleep(delay=2)
             # Cancel receive message task
@@ -1037,17 +1209,24 @@ The following snippet of code:
 
 .. note::
 
-    The ``no_local`` field can be:
-
-        - True: The client will not receive messages that it has published.
-        - False: The client will receive messages that it has published.
-    
-    If the ``no_local`` field is True, the client isn't able to use shared subscription.
+    ``noLocal=False`` is what makes shared subscriptions (``$share/...``) usable;
+    set ``station_id`` to filter out the messages this client publishes itself.
 
 .. note::
     
     The ``TaskGroup`` is used to manage the receive tasks and ensure that all tasks are 
     completed before the context manager is closed.
+
+.. note::
+
+    Every exception raised by ``publish_its_message`` is a ``StepLibError``, so
+    catching it is enough to log a message that was not sent: an MQTT transport
+    failure is raised as ``StepLibMqttError`` (chaining the ``aiomqtt.MqttError``),
+    and a message that fails ``MAX_TRANSMIT_ERRORS`` consecutive times as a
+    ``StepLibError`` chaining the last error. The previous failures are logged by the
+    library and the call returns normally. The connection (``async with``) and
+    ``subscribe`` are inherited from ``aiomqtt.Client`` and still raise
+    ``aiomqtt.MqttError``.
 
 Receive Example
 ---------------
@@ -1061,9 +1240,10 @@ The following example explains how to receive a message using the STEP Library.
 
     async for message in client.its_messages:
         orm_message: FacilityMessage = message.its_payload
-        logger.info(
-            msg=f"Message(qos:{message.qos},topic:{message.topic}): {orm_message}",
-        )
+        if logger.isEnabledFor(level=logging.INFO):
+            logger.info(
+                msg=f"Message(qos:{message.qos},topic:{message.topic}): {orm_message}",
+            )
 
 
 For more detailed information about specific message types and configurations,

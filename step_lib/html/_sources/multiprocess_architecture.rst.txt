@@ -186,15 +186,18 @@ Class Diagram
         package "step_lib.sync_com_manager_params" {
             class SyncComManagerParams {
                 + publish_worker_count: int = 4
-                + publish_worker_startup_timeout: float = 15.0
+                + publish_worker_startup_timeout: float = 30.0
                 + publish_hwm: int = 2000
                 + publish_health_check_interval: float = 1.0
                 + publish_heartbeat_interval: float = 0.5
-                + publish_heartbeat_timeout: float = 3.0
+                + publish_heartbeat_timeout: float = 30.0
                 + publish_parent_watchdog_interval: float = 1.0
                 + publish_graceful_shutdown_timeout: float = 5.0
                 + publish_forceful_join_timeout: float = 5.0
                 + publish_max_connect_attempts: int = 5
+                + leap_seconds_source: Path | bytes | None
+                + leap_seconds_urls: tuple[str, ...]
+                + leap_seconds_allow_download: bool
             }
         }
 
@@ -204,21 +207,28 @@ Class Diagram
                 - _ready_events: dict[int, MpEvent]
                 - _stop_events: dict[int, MpEvent]
                 - _heartbeats: dict[int, Synchronized[float]]
-                - _connected: set[int]
+                - _restarting: set[int]
+                - _restart_backoff: dict[int, tuple[float, float]]
+                - _sequence_number: int
+                - _cond: Condition(RLock)
+                - _state: PoolState
+                - _generation: int
                 - _sock: ZmqSocket | None
-                - _socket_lock: Lock
                 - _endpoint: str | None
-                + {property} is_running : bool
-                + start() : void
-                + send(envelope: PublishEnvelope) : void
-                + dead_workers() : list[int]
-                + blocked_workers() : list[int]
-                + check_health(auto_restart) : void
-                + close() : void
+                - _dead_workers() : list[int]
+                - _blocked_workers() : list[int]
                 - _spawn_worker_with_retry(worker_index) : void
                 - _spawn_worker(worker_index) : void
                 - _await_ready(worker_index) : void
                 - _restart_worker(worker_index) : void
+                - _record_restart_outcome(worker_index, generation, succeeded) : void
+                - _await_handshakes(monitor) : void
+                - _next_sequence_number() : int
+                + {property} is_running : bool
+                + start() : void
+                + send(envelope: PublishEnvelope) : void
+                + check_health(auto_restart) : void
+                + close() : void
             }
         }
 
@@ -229,13 +239,15 @@ Class Diagram
                 - _ready_event: MpEvent
                 - _stop_event: MpEvent
                 - _heartbeat: Synchronized[float]
-                - _parent_pid: int
-                - _parent_create_time: float
+                - _sigterm_received: bool
+                - _pending: tuple[DomainObjects, bool] | None
                 - _worker_params: SyncComManagerParams
                 + run() : void
                 - _async_main() : void
                 - _heartbeat_loop() : void
                 - _publish_loop(sock) : void
+                - _receive_next(sock) : tuple[DomainObjects, bool]
+                - _drain(client, sock) : void
                 - _parent_watchdog_loop() : void
                 - _stop_watch_loop() : void
                 - _is_parent_alive() : bool
@@ -369,9 +381,10 @@ Unlike subscribing (which is dispatched through the incoming command queue
 to the background async loop), publishing never touches that loop or its
 thread: ``publish_its_message()`` builds the envelope and sends it directly
 from the **caller's own thread**, serialized only by the pool's internal
-``_socket_lock``. This is what lets multiple caller threads -- and the
-health-check thread's own restarts -- call it concurrently without any
-locking at the ``SyncComManager`` level.
+``_cond`` (state check and ``NOBLOCK`` write are one critical section). This
+is what lets multiple caller threads -- and the health-check thread's own
+restarts -- call it concurrently without any locking at the
+``SyncComManager`` level. See :doc:`thread_safety_state_machines`.
 
 .. container:: scrollable-diagram
 
@@ -395,7 +408,7 @@ locking at the ``SyncComManager`` level.
         SCM -> Pool: send(envelope)
         activate Pool
         Pool -> Pool: payload = envelope.model_dump_json()
-        Pool -> Push: send(payload, zmq.NOBLOCK)\n(under _socket_lock)
+        Pool -> Push: send(payload, zmq.NOBLOCK)\n(under _cond, state == RUNNING)
 
         alt every worker pipe at publish_hwm (backpressure)
             Push --> Pool: zmq.Again
@@ -459,7 +472,7 @@ volume. Two independent failure modes are distinguished:
             Health -> Pool: check_health(auto_restart=True)
             activate Pool
 
-            Pool -> Pool: dead_workers()\n(proc.is_alive() == False)
+            Pool -> Pool: _dead_workers()\n(proc.is_alive() == False)
             alt worker found dead
                 Pool -> Pool: log error(pid, exitcode)
                 Pool -> Pool: _restart_worker(worker_index)
@@ -470,7 +483,7 @@ volume. Two independent failure modes are distinguished:
                 deactivate NewWorker
             end
 
-            Pool -> Pool: blocked_workers()\n(heartbeat older than\npublish_heartbeat_timeout)
+            Pool -> Pool: _blocked_workers()\n(heartbeat older than\npublish_heartbeat_timeout)
             alt worker found blocked
                 Pool -> Pool: log error("worker blocked")
                 Pool -> Worker: terminate()
@@ -498,23 +511,49 @@ volume. Two independent failure modes are distinguished:
           connects, or _parent_watchdog_loop raises
           _ParentProcessGoneError if the pool's own process has
           died. Either way the worker process exits, is later
-          seen by dead_workers(), and is restarted exactly like
+          seen by _dead_workers(), and is restarted exactly like
           an ordinary crash.
         end note
         @enduml
 
-A dead/blocked worker is marked *not connected* the moment it is detected,
-before the (potentially slow) respawn happens with no lock held --
+A dead/blocked worker is marked *in-flight* (``_restarting``)
+atomically, under ``_cond``, the moment it is detected -- this is what
+actually prevents a concurrent
+``check_health()`` pass (whether the periodic health-check thread or
+another manual call) from also trying to restart the same slot; the
+membership check and the mark happen in the same lock-protected step, so
+no window exists where two callers can both observe the slot as eligible.
+The (potentially slow) respawn itself then happens with no lock held --
 ``send()`` keeps routing to the pool's other, still-healthy workers for the
-whole duration of a restart, and a concurrent ``check_health()`` pass will
-not try to restart the same slot twice.
+whole duration of a restart.
+
+A restart that fails leaves the slot with its dead process, so the next health
+check finds it dead again and retries it -- but only once the slot's backoff has
+elapsed: 1 s after the first failure, then 2, 4, ... seconds, up to 60 s
+(``RESTART_BACKOFF_*``). A successful restart, ``start()`` and ``close()`` clear
+the backoff. With a single worker, messages sent while its slot is being restarted
+stay queued in the PUSH socket (up to ``publish_hwm``) until the replacement
+completes its ZMQ handshake.
+
+``start()`` only returns once every worker has completed the ZMQ handshake
+(observed through the PUSH socket's monitor), so the very first ``send()`` always
+finds a peer.
+
+Every envelope is stamped by ``send()`` with the next value of one pool-wide
+GeoNetworking sequence number (``sequenceNumber``, modulo 2^16, starting at a
+random value and kept across ``close()``/``start()``), so worker processes never
+write the same sequence number twice.
 
 Graceful Shutdown
 ~~~~~~~~~~~~~~~~~~
 
 Triggered by ``SyncComManager.stop()``. The health-check thread is stopped
 and joined *first*, so no further ``check_health()`` call can race with the
-teardown sequence that follows.
+teardown sequence that follows. The shutdown is ordered so that no accepted
+message is lost: the PUSH socket is closed with a linger, the ZMQ context
+termination waits until the queued messages reached the workers, and only then
+are the workers asked to stop; each worker publishes what is left in its PULL
+buffer (with its MQTT connection still open) before exiting.
 
 .. container:: scrollable-diagram
 
@@ -536,13 +575,15 @@ teardown sequence that follows.
         SCM -> Pool: close()  [always, in finally]
         activate Pool
 
-        Pool -> Pool: deadline = now + publish_graceful_shutdown_timeout
+        Pool -> Pool: close PUSH socket\n(linger = publish_graceful_shutdown_timeout)
+        Pool -> Pool: deadline = now + 2 * publish_graceful_shutdown_timeout
+        Pool -> Pool: context.term()\n(blocks until the queued messages\nreached the workers)
         Pool -> Worker: every stop_event.set()
         activate Worker
-        Pool -> Pool: close PUSH socket (LINGER=0)
 
-        Worker -> Worker: _stop_watch_loop raises\n_StopRequestedError
-        Worker -> Worker: TaskGroup cancels\nheartbeat/publish/watchdog loops
+        Worker -> Worker: _receive_next raises\n_StopRequestedError
+        Worker -> Worker: _drain(): publish the pending message and\nevery buffered envelope (NOBLOCK until zmq.Again),\nbounded by publish_graceful_shutdown_timeout
+        Worker -> Worker: TaskGroup cancels\nheartbeat/watchdog/stop-watch loops
         Worker -> Worker: close PULL socket, exit process
         deactivate Worker
 
@@ -564,6 +605,39 @@ teardown sequence that follows.
         SCM --> App: stopped
         deactivate SCM
         @enduml
+
+Ctrl+C and signals
+^^^^^^^^^^^^^^^^^^
+
+Pressing Ctrl+C in a terminal reaches every process attached to it, not only
+the caller's: on Windows the console sends ``CTRL_C_EVENT`` to all of them, on
+POSIX the TTY sends ``SIGINT`` to the whole foreground process group. If the
+workers acted on it, each would be interrupted on its own and skip the drain
+above; a worker still starting up (unpickling and importing inside
+``spawn_main``, before ``PublishWorker.run()`` runs) would even die with an
+unhandled ``KeyboardInterrupt`` traceback. The workers therefore ignore Ctrl+C
+for their whole life, and only the caller's process reacts to it, stopping the
+pool through the sequence above:
+
+- **From process creation** -- ``PublishWorkerPool._spawn_worker`` starts each
+  process inside ``_interrupt_shielded_spawn``. On Windows this sets the
+  inheritable "ignore CTRL_C" process attribute (``SetConsoleCtrlHandler(NULL,
+  TRUE)``) around ``Process.start()``, under a lock since the attribute is
+  process-wide: for those few milliseconds the caller's process itself discards
+  (does not defer) a Ctrl+C. Windows offers no API to read the attribute, so it
+  is always cleared afterwards: a caller started with Ctrl+C ignored (e.g.
+  through ``start /b``) handles Ctrl+C again after its first worker spawn. On
+  POSIX ``SIGINT`` is blocked in the spawning
+  thread only, a mask the child inherits; the caller's process loses nothing,
+  since its other threads still receive ``SIGINT``.
+- **Inside** ``run()`` -- ``PublishWorker._signals_install`` sets ``SIGINT`` to
+  ``SIG_IGN`` (which also keeps ``asyncio.Runner`` from installing its own
+  handler) and, on POSIX, unblocks it, discarding one left pending.
+
+Stopping a container is unaffected: ``docker stop`` sends ``SIGTERM`` to PID 1
+only on Linux (the worker's ``SIGTERM`` handler still routes a ``SIGTERM`` it
+receives directly through the same graceful stop), and ``CTRL_SHUTDOWN_EVENT``
+on Windows, which the ignore attribute does not cover.
 
 The Wire Format: PublishEnvelope
 ----------------------------------
@@ -614,7 +688,7 @@ baseline:
 
    * - Addition
      - Why
-   * - Heartbeat-based blocked-worker detection (``_heartbeat_loop``, ``blocked_workers()``)
+   * - Heartbeat-based blocked-worker detection (``_heartbeat_loop``, ``_blocked_workers()``)
      - A periodic ``is_alive()`` check alone only proves the OS process is
        still running. It adds a shared heartbeat timestamp to catch a
        worker whose process is alive but whose event loop has hung (a
@@ -622,9 +696,11 @@ baseline:
        cannot see.
    * - Parent watchdog (``_parent_watchdog_loop``)
      - ``daemon=True`` alone only guarantees cleanup on the parent's
-       *normal* interpreter shutdown path. Comparing ``psutil``
-       ``create_time()`` alongside the PID closes the "orphaned worker
-       survives a hard-killed parent, or a reused PID" gap.
+       *normal* interpreter shutdown path. ``multiprocessing.parent_process()``
+       exposes the OS sentinel of the parent (a pipe on POSIX, the process
+       handle on Windows), which closes the "orphaned worker survives a
+       hard-killed parent" gap without being fooled by a reused PID or failing
+       on a permission error.
    * - Bounded MQTT connect retries (``publish_max_connect_attempts``, ``_MaxConnectAttemptsExceededError``)
      - Lets a worker whose MQTT connection can never succeed (but whose
        asyncio loop is otherwise perfectly healthy, so its heartbeat never
@@ -673,6 +749,9 @@ See Also
 - :doc:`architecture` -- overall step_lib architecture, including the
   package-wide class diagram and the subscribe/receive path (which does
   not use this multiprocess mechanism).
+- :doc:`thread_safety_state_machines` -- the ``SyncComManager`` and
+  ``PublishWorkerPool`` state machines, and the ``threading.Condition``
+  technique that makes them thread-safe.
 - :doc:`ventilator_worker_protocol` -- an in-depth look at the
   ventilator/worker wire protocol itself: JSON envelope serialization,
   heartbeating, MQTT reconnection, and worker self-termination.
