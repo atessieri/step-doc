@@ -102,17 +102,18 @@ The following PlantUML diagram illustrates the main classes and their relationsh
             class AsyncComManager {
                 - _logger: Logger
                 - _message_serializer: ItsMessageSerializer
-                - _publish_its_topics_param: dict[MessageId | GenericMessageType, PublishTopicParams]
-                - _transmit_error_count: int
-                + {static} MAX_TRANSMIT_ERRORS: int = 5
+                - _params: AsyncComManagerParams
+                - _echo_station_id: int | None
                 + __init__(params: AsyncComManagerParams, logger: Logger)
                 + __aenter__() : AsyncComManager
                 + publish_its_message(message, address, position, is_mobile, sequence_number)
                 + subscribe(topic, qos, options) <<inherited from aiomqtt.Client>>
                 + {property} its_messages : ItsMessagesIterator
                 - _find_topic_param(message_type) : PublishTopicParams | None
-                - _cam_message_to_position_data(cam_message) : PositionDataV1 | None
-                - _publish_position_message(station_id, message) : void
+                - _prepare_position_data(message, position) : tuple
+                - _warn_if_echo_not_filtered(message) : void
+                - _publish_position_message(topic_param, station_id, message) : void
+                - _publish_position_best_effort(topic_param, station_id, message) : void
             }
             
             class SyncComManager {
@@ -127,19 +128,28 @@ The following PlantUML diagram illustrates the main classes and their relationsh
                 - _connection_status: ConnectionStatus
                 - _system_status: _SystemStatus
                 - _cond: Condition(RLock)
+                - _desired_subscription: _Subscription | None
+                - _applied_subscription: _Subscription | None
+                - _subscription_wakeup: asyncio.Event | None
                 + __init__(params: SyncComManagerParams, logger: Logger)
                 + __enter__() : SyncComManager
                 + __exit__(...) : void
                 + start() : void
                 + stop() : void
-                + subscribe(topics, max_qos)
-                + publish_its_message(message, address, position, is_mobile)
+                + subscribe(topics, max_qos) : void <<non-blocking>>
+                + publish_its_message(message, address, position, is_mobile) : bool
                 + get_its_message_received() : FacilityMessage | None
                 + its_messages_received() : Generator[FacilityMessage]
                 + check_health(auto_restart) : void
                 + install_default_signal_handlers(...) : void
+                + restore_signal_handlers() : void
+                + {property} is_running : bool
+                + {property} connection_status : ConnectionStatus
                 - _run() : void
+                - _run_abortable_attempt(incoming_queue) : bool
                 - _message_receive_thread(client)
+                - _subscription_reconciler(client, wakeup)
+                - _apply_subscription(client, desired)
                 - _health_check_loop() : void
             }
 
@@ -149,6 +159,8 @@ The following PlantUML diagram illustrates the main classes and their relationsh
                 - _generation: int
                 + {property} is_running : bool
                 + start() : void
+                + start_budget() : float
+                + close_budget() : float
                 + send(envelope: PublishEnvelope) : void
                 + check_health(auto_restart) : void
                 + close() : void
@@ -167,6 +179,12 @@ The following PlantUML diagram illustrates the main classes and their relationsh
                 - _logger: Logger
                 + __aiter__() : ItsMessagesIterator
                 + __anext__() : ItsMessage
+            }
+
+            class ItsMessageStack <<NamedTuple>> {
+                + geonet_message: GeonetMessage
+                + btp_message: BtpMessage
+                + facility_message: FacilityMessage
             }
             
             class ItsMessage {
@@ -188,6 +206,8 @@ The following PlantUML diagram illustrates the main classes and their relationsh
                 + keepalive: int
                 + publish_topics_params: list[PublishTopicParams] | None
                 + cache_dir: str | None
+                - _publish_topics_by_type: dict[MessageId | GenericMessageType, PublishTopicParams]
+                + find_publish_topic(message_type) : PublishTopicParams | None
             }
             
             class SyncComManagerParams {
@@ -210,7 +230,7 @@ The following PlantUML diagram illustrates the main classes and their relationsh
                 - _its_facility_serializer: FacilitySerializer
                 - _logger: Logger
                 + serialize(facility_message, address, position, is_mobile, sequence_number) : bytes
-                + deserialize(message) : ItsMessage
+                + deserialize(message) : ItsMessageStack
                 + btp_port_to_facility_message_custom_type(port) : MessageCustomType
                 - _facility_message_id_to_btp_port(message_type) : BtpWellKnownPort
                 - _create_geonet_message(...) : GeonetMessage
@@ -226,8 +246,9 @@ The following PlantUML diagram illustrates the main classes and their relationsh
                 + serialize(message: FacilityMessage) : bytes
                 + deserialize(message: bytes, type: MessageCustomType) : FacilityMessage
                 - _to_facility_message(raw, type) : FacilityMessage
-                - {static} _check_supported(message_type) : void
+                + {static} get_asn_context(*, cache_dir) : Any <<memoized>>
                 - {static} _compile_asn_context(cache_dir) : Any
+                - {static} _check_supported(message_type) : void
             }
         }
         
@@ -235,13 +256,12 @@ The following PlantUML diagram illustrates the main classes and their relationsh
         package "Facility Layer" {
             abstract class FacilityMessage {
                 # _its_time: ItsTime
-                + {abstract} {property} message_type : MessageId
+                + {abstract} {property} message_type : MessageCustomType
                 + {abstract} {property} data_schema : str
-                + {abstract} {property} station_id : int | None
+                + {abstract} {property} station_id : int
                 + {abstract} {property} reference_position : ReferencePosition
                 + {property} its_time : ItsTime
-                + {abstract} is_message_present() : bool
-                + {abstract} from_asn(data) : FacilityMessage
+                + {abstract} from_asn(data, is_custom) : FacilityMessage
                 + {abstract} from_dict(data) : FacilityMessage
                 + {abstract} from_json(data) : FacilityMessage
                 + {abstract} to_asn() : dict
@@ -251,20 +271,20 @@ The following PlantUML diagram illustrates the main classes and their relationsh
             }
             
             class CamMessageV1 {
-                - _message: CamDataV1 | None
-                + {property} message : CamDataV1 | None
+                - _message: CamDataV1
+                + {property} message : CamDataV1
                 + from_orm(data: CamDataV1) : CamMessageV1
             }
             
             class DenmMessageV1 {
-                - _message: DenmDataV1 | None
-                + {property} message : DenmDataV1 | None
+                - _message: DenmDataV1
+                + {property} message : DenmDataV1
                 + from_orm(data: DenmDataV1) : DenmMessageV1
             }
 
             class CpmMessageV1 {
-                - _message: CpmDataV1 | None
-                + {property} message : CpmDataV1 | None
+                - _message: CpmDataV1
+                + {property} message : CpmDataV1
                 + from_orm(data: CpmDataV1) : CpmMessageV1
             }
         }
@@ -282,7 +302,7 @@ The following PlantUML diagram illustrates the main classes and their relationsh
             
             class BasicHeader {
                 + version: GeonetVersion
-                + next_header: NextHeader
+                + next_header: BasicNextHeader
                 + life_time: LifeTime
                 + remaining_hop_limit: int
                 + {static} from_byte_stream(stream) : BasicHeader
@@ -290,7 +310,7 @@ The following PlantUML diagram illustrates the main classes and their relationsh
             }
             
             class CommonHeader {
-                + next_header: NextHeader
+                + next_header: CommonNextHeader
                 + header_type_subtype: HeaderTypeSubtype
                 + traffic_class: TrafficClass
                 + flags: Flags
@@ -319,6 +339,17 @@ The following PlantUML diagram illustrates the main classes and their relationsh
                 + to_bytes(type) : bytes
             }
             
+            class HeaderStreamReader {
+                - _stream: BytesIO
+                - _header_name: str
+                + {property} header_name : str
+                + read_bytes(size, field_name) : bytes
+                + read_uint(size, field_name) : int
+                + read_int(size, field_name) : int
+                + read_bits(size, field_name) : ConstBitStream
+                + skip(size, field_name) : void
+            }
+
             class GeoNetworkAddress {
                 + is_manual_configured: bool
                 + traffic_participant_type: TrafficParticipantType
@@ -406,6 +437,8 @@ The following PlantUML diagram illustrates the main classes and their relationsh
             class StepLibKeyError
             class StepLibEchoMessageError
             class StepLibBackpressureError
+            class StepLibMqttError
+            class StepLibPublishError
 
             StepLibError <|-- StepLibUnsupportedMessageError
             StepLibError <|-- StepLibMessageNoDataUsefulError
@@ -413,6 +446,8 @@ The following PlantUML diagram illustrates the main classes and their relationsh
             StepLibError <|-- StepLibKeyError
             StepLibError <|-- StepLibEchoMessageError
             StepLibError <|-- StepLibBackpressureError
+            StepLibError <|-- StepLibMqttError
+            StepLibError <|-- StepLibPublishError
         }
         
         ' Relationships - Communication Layer
@@ -441,6 +476,13 @@ The following PlantUML diagram illustrates the main classes and their relationsh
         ItsMessageSerializer ..> BtpMessage : creates/parses
         ItsMessageSerializer ..> GpsLocation : uses
         ItsMessageSerializer ..> GeoNetworkAddress : uses
+        ItsMessageSerializer ..> ItsMessageStack : returns
+        BasicHeader ..> HeaderStreamReader : use
+        CommonHeader ..> HeaderStreamReader : use
+        ExtendedHeader ..> HeaderStreamReader : use
+        PositionVector ..> HeaderStreamReader : use
+        GeoNetworkAddress ..> HeaderStreamReader : use
+        BtpMessage ..> HeaderStreamReader : use
         
         FacilitySerializer ..> CamMessageV1 : creates
         FacilitySerializer ..> CpmMessageV1 : creates
@@ -648,19 +690,19 @@ Publishing an ITS Message (Asynchronous)
         deactivate Broker
         
         opt message is a CAM and a POSITION_DATA topic is configured
-            ACM -> ACM: _cam_message_to_position_data(cam_message)
             ACM -> Position: create PositionDataV1
+(built before the CAM is published)
             activate Position
             Position --> ACM: position_message
             deactivate Position
-            ACM -> ACM: _publish_position_message(station_id, position_message)
+            ACM -> ACM: _publish_position_message(topic_param, station_id, position_message)
             ACM -> Broker: publish("<header_topic>/<station_id>", json_payload, qos)
             activate Broker
             Broker --> ACM: published
             deactivate Broker
         end
         
-        ACM --> App: success
+        ACM --> App: True (False if no topic is configured)
         deactivate ACM
 
 Receiving an ITS Message (Asynchronous)
@@ -729,7 +771,7 @@ Receiving an ITS Message (Asynchronous)
         FacSer --> Serializer: facility_message
         deactivate FacSer
 
-        Serializer --> Iterator: ItsMessage(geonet_msg, btp_msg, facility_message)
+        Serializer --> Iterator: ItsMessageStack(geonet_msg, btp_msg, facility_message)
         deactivate Serializer
 
         Iterator -> Iterator: build ItsMessage(mqtt fields, facility_message)
@@ -1225,10 +1267,10 @@ With context manager, with ``station_id`` filter
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ``SyncComManager`` is again used as a context manager, but this time a
-fixed ``station_id`` is passed to ``_sync_com_manager_create``: every message
-the client publishes carries that station ID (the publish worker's
-``AsyncComManager.publish_its_message`` replaces it before serialization), and
-every received message carrying it is dropped as an echo of the client's own
+fixed ``station_id`` is passed to ``_sync_com_manager_create``. It is a receive
+filter only: published messages are sent unchanged (a WARNING is logged when a
+published stationId differs from ``station_id``, since its echo will not be
+filtered), and every received message carrying it is dropped as an echo of the client's own
 traffic (subscriptions always use ``noLocal=False``, so the broker does send
 them back).
 
@@ -1308,7 +1350,8 @@ Thread Safety
   shares the caller's GIL; a dedicated health-check thread periodically
   restarts dead or hung workers (see :doc:`multiprocess_architecture` and
   :doc:`thread_safety_state_machines`)
-- Message queues are thread-safe by design (asyncio.Queue, queue.Queue)
+- Message queues: ``queue.Queue`` is thread-safe; ``asyncio.Queue`` is used only
+  from the event loop thread (other threads go through ``run_coroutine_threadsafe``)
 - Event loop runs in dedicated background thread
 
 Type Safety
@@ -1330,16 +1373,23 @@ Custom exception hierarchy for specific error scenarios:
 - **StepLibValueError**: Invalid or out-of-range value
 - **StepLibKeyError**: Missing lookup key (message type, port, header value)
 - **StepLibEchoMessageError**: Own message received (filtered by station_id)
-- **StepLibBackpressureError**: Every worker's send pipe is saturated (backpressure)
+- **StepLibBackpressureError**: Every worker's send pipe is saturated, or no
+  publish worker is currently connected (backpressure)
+- **StepLibMqttError**: MQTT transport failure while publishing (the message can be
+  published again after reconnecting)
+- **StepLibPublishError**: A message that cannot be built or encoded (publishing it
+  again would fail the same way)
 
 Performance Optimizations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-1. **ASN.1 Schema Caching**: Compiled schemas stored on disk to avoid recompilation
+1. **ASN.1 Schema Caching**: the compiled grammar is cached once per process
+   (``@cache``); with ``cache_dir`` set, asn1tools also caches it on disk and
+   ``SyncComManager.start`` warms that cache before spawning the publish workers
 2. **Lazy Initialization**: Resources allocated only when needed
 3. **Binary Operations**: Direct byte manipulation for protocol headers
-4. **Message Queuing**: Bounded queues prevent memory overflow
-5. **Efficient Serialization**: Zero-copy operations where possible
+4. **Message Queuing**: bounded queues on the receive/command paths and the ZMQ
+   high-water mark (``publish_hwm``) on the publish path
 
 Extension Points
 ----------------
@@ -1353,7 +1403,7 @@ To add support for a new ITS message type (e.g., VAM - Vulnerable Road User Awar
 2. Add ASN.1 schema file to ``asn1_files/`` directory
 3. Update ``BtpWellKnownPort`` enumeration
 4. Add mapping in ``ItsMessageSerializer``
-5. Update ``FacilitySerializer.to_facility_message()``
+5. Update ``FacilitySerializer._to_facility_message()``
 
 Custom Transport Layer
 ~~~~~~~~~~~~~~~~~~~~~~

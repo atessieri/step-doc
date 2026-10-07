@@ -1,0 +1,354 @@
+============================
+MQTT Integration Test Broker
+============================
+
+This guide explains how to provide the Mosquitto MQTT broker needed by the end-to-end
+integration tests, both on a workstation (with podman) and in the GitLab CI pipeline.
+
+-------
+Purpose
+-------
+
+The tests in ``test/test_integration_mqtt.py`` drive a real ``SyncComManager``
+(background thread, publish worker processes, ZMQ, MQTT) against a real broker with
+anonymous access:
+
+    #. every message published before ``stop()`` is delivered;
+    #. the publish workers never reuse a sequence number;
+    #. a shared subscription (``$share/...``) splits the messages between subscribers.
+
+The broker is selected with two environment variables:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 15 55
+
+   * - Variable
+     - Required
+     - Meaning
+   * - ``STEP_LIB_MQTT_TEST_PORT``
+     - yes
+     - TCP port of the broker. When it is not set, the three tests are **skipped**,
+       so the regular test suite never needs a broker.
+   * - ``STEP_LIB_MQTT_TEST_HOST``
+     - no
+     - Host name or IP address of the broker. Defaults to ``127.0.0.1``; the CI
+       pipeline sets it to ``localhost`` (the broker runs inside the test job).
+
+Each variable is read from the environment first and, when it is not set there,
+from a ``.env`` file in the project root. A variable set in the environment always
+takes precedence over the value in ``.env``.
+
+------------
+Broker Image
+------------
+
+The container-based setups (workstation, and the optional CI service) use the
+official ``eclipse-mosquitto:2`` image (Mosquitto 2.1.2 at the time of writing),
+which can be mirrored into the Container Registry of this project:
+
+.. code-block:: text
+
+    gitlabregistry.automotive.vodafone.com/vfa-init/pnrr/step_lib/eclipse-mosquitto:2
+
+The mirror avoids the Docker Hub pull rate limits and keeps the image available
+inside the corporate network. The image is copied by a manual CI job (see
+`Mirror the Image with a Manual CI Job`_): a ``podman push`` from a workstation is
+rejected by the corporate web application firewall.
+
+.. note::
+
+    The current ``.gitlab-ci.yml`` does **not** use this image: the ``test`` job
+    installs Mosquitto with ``apt`` and starts it inside the job (see `CI Usage`_),
+    because some runners cannot pull images from the project registry. The image
+    is still the way to run the broker on a workstation and an alternative in CI.
+
+----------------------------------
+Run the Broker Locally with Podman
+----------------------------------
+
+Locally, the broker image can be taken from either source, which provide the same
+image:
+
+* the **GitLab Container Registry** mirror, i.e. exactly the image used by the CI
+  pipeline (requires a ``podman login``);
+* **Docker Hub**, the original ``docker.io/library/eclipse-mosquitto:2`` (no login
+  needed; only uploads from the workstation are blocked by the firewall, not
+  downloads).
+
+Pick one tab and use the same one in the following steps.
+
+#. Download the broker image:
+
+   .. tab:: GitLab registry
+
+      Log in once with your GitLab user name and, as password, a personal access
+      token with the ``read_registry`` scope (podman stores the credentials), then
+      download the image:
+
+      .. code-block:: bash
+
+          podman login gitlabregistry.automotive.vodafone.com
+          podman pull gitlabregistry.automotive.vodafone.com/vfa-init/pnrr/step_lib/eclipse-mosquitto:2
+
+   .. tab:: Docker Hub
+
+      .. code-block:: bash
+
+          podman pull docker.io/library/eclipse-mosquitto:2
+
+#. Start the broker in the background:
+
+   .. tab:: GitLab registry
+
+      .. code-block:: bash
+
+          podman run -d --name mqtt-test -p 127.0.0.1:18830:1883 gitlabregistry.automotive.vodafone.com/vfa-init/pnrr/step_lib/eclipse-mosquitto:2 mosquitto -c /mosquitto-no-auth.conf
+
+   .. tab:: Docker Hub
+
+      .. code-block:: bash
+
+          podman run -d --name mqtt-test -p 127.0.0.1:18830:1883 docker.io/library/eclipse-mosquitto:2 mosquitto -c /mosquitto-no-auth.conf
+
+   * ``-d`` runs the container detached, giving the terminal back at once;
+   * ``--name mqtt-test`` names the container, to stop it or read its logs later;
+   * ``-p 127.0.0.1:18830:1883`` publishes the broker on the workstation at
+     ``127.0.0.1:18830``, the values of the ``.env`` template (see
+     `Broker entry port`_ below);
+   * ``mosquitto -c /mosquitto-no-auth.conf`` starts Mosquitto with the configuration
+     shipped in the image that accepts anonymous clients on every interface (by
+     default Mosquitto 2 only accepts connections from inside the container).
+
+   .. _Broker entry port:
+
+   **Broker entry port.** The ``-p`` option has the form
+   ``-p <host port>:<container port>``:
+
+   * ``<container port>`` is the port Mosquitto listens on inside the container. It
+     is always ``1883``, the port of ``/mosquitto-no-auth.conf``: do not change it;
+   * ``<host port>`` is the entry port of the broker on the workstation, i.e. the
+     port the tests connect to. It can be any free port: ``18830`` is used in this
+     guide (instead of ``1883``) so it does not clash with another broker already
+     running locally. It is the value to set in ``STEP_LIB_MQTT_TEST_PORT``.
+
+   The general form of the command, with the entry address and port as
+   placeholders, is:
+
+   .. code-block:: text
+
+       podman run -d --name mqtt-test -p <host address>:<host port>:1883 <image> mosquitto -c /mosquitto-no-auth.conf
+
+   ``<host address>`` is optional: when given, the broker is reachable only at that
+   address of the workstation; ``127.0.0.1`` keeps it off the network. ``<image>``
+   is the image downloaded above, from either source.
+
+   The commands of the previous step use ``-p 127.0.0.1:18830:1883``, which matches
+   the ``.env`` template of the next step (``STEP_LIB_MQTT_TEST_HOST=127.0.0.1``,
+   ``STEP_LIB_MQTT_TEST_PORT=18830``), so they work as they are.
+
+   To use another entry port, change only the ``<host port>`` part of ``-p`` and set
+   the same value in ``STEP_LIB_MQTT_TEST_PORT`` in ``.env``. If the chosen port is
+   already in use, ``podman run`` fails with an ``address already in use`` error:
+   pick another one. ``podman port mqtt-test`` shows the mapping of a running
+   container.
+
+   On Windows, podman runs containers inside a virtual machine: if the command fails
+   because podman cannot connect, start it with ``podman machine start``.
+
+#. Configure the tests: copy ``doc/source/env/.env.examples`` to ``.env`` in the
+   project root (``.env`` is git-ignored, so local settings are never committed):
+
+   .. tab:: bash
+
+      .. code-block:: bash
+
+          cp doc/source/env/.env.examples .env
+
+   .. tab:: PowerShell
+
+      .. code-block:: powershell
+
+          Copy-Item doc/source/env/.env.examples .env
+
+   The template sets ``STEP_LIB_MQTT_TEST_HOST`` to ``127.0.0.1`` and
+   ``STEP_LIB_MQTT_TEST_PORT`` to ``18830``, the address and port mapped above with
+   ``-p 127.0.0.1:18830:1883``:
+
+   .. literalinclude:: env/.env.examples
+      :language: bash
+
+   Change the port in ``.env`` only if you chose a different entry port with ``-p``
+   (see `Broker entry port`_).
+
+#. Run the tests, either the whole suite through tox or the integration module
+   alone:
+
+   .. code-block:: bash
+
+       uv run tox -e py314
+       uv run pytest test/test_integration_mqtt.py
+
+   Instead of the ``.env`` file, the variables can be set in the shell; they then
+   take precedence over ``.env``:
+
+   .. tab:: bash
+
+      .. code-block:: bash
+
+          STEP_LIB_MQTT_TEST_PORT=18830 uv run pytest test/test_integration_mqtt.py
+
+   .. tab:: PowerShell
+
+      .. code-block:: powershell
+
+          $env:STEP_LIB_MQTT_TEST_PORT = "18830"
+          uv run pytest test/test_integration_mqtt.py
+
+#. Stop and remove the broker when done:
+
+   .. code-block:: bash
+
+       podman stop mqtt-test
+       podman rm mqtt-test
+
+   * ``podman stop`` stops the running container (Mosquitto shuts down cleanly);
+   * ``podman rm`` deletes the stopped container, freeing the name ``mqtt-test`` and
+     the entry port for the next ``podman run``.
+
+   ``podman rm -f mqtt-test`` does both in a single command. ``podman ps -a`` lists
+   the containers, including the stopped ones, to check that ``mqtt-test`` is gone.
+
+#. Optionally, delete the broker image to free disk space (it is downloaded again by
+   the next ``podman pull``):
+
+   .. tab:: GitLab registry
+
+      .. code-block:: bash
+
+          podman rmi gitlabregistry.automotive.vodafone.com/vfa-init/pnrr/step_lib/eclipse-mosquitto:2
+
+   .. tab:: Docker Hub
+
+      .. code-block:: bash
+
+          podman rmi docker.io/library/eclipse-mosquitto:2
+
+   ``podman rmi`` fails while a container (even a stopped one) still uses the image:
+   remove the container first. If the image was downloaded from both sources, it is
+   stored once under two names and ``podman rmi`` only removes the given name; list
+   them with ``podman images`` and remove each name, or delete them all at once by
+   image ID with ``podman rmi -f <image ID>``.
+
+--------------------------------------
+Mirror the Image with a Manual CI Job
+--------------------------------------
+
+Needed only for the container-based CI alternative (see `CI Usage`_). A manual job
+copies ``docker.io/library/eclipse-mosquitto:2`` into the project Container Registry
+with `skopeo <https://github.com/containers/skopeo>`_, on a plain ``alpine:3``
+image. It is **not** in the current ``.gitlab-ci.yml``; to use it, add a
+``mqtt-mirror`` stage before ``lint`` and this job:
+
+.. code-block:: yaml
+
+    mirror-mosquitto:
+        stage: mqtt-mirror
+        image: alpine:3
+        tags:
+            - docker-dte
+        script:
+            - apk add --no-cache skopeo
+            - skopeo copy
+              --dest-creds "${CI_REGISTRY_USER}:${CI_REGISTRY_PASSWORD}"
+              docker://docker.io/library/eclipse-mosquitto:2
+              docker://${CI_REGISTRY_IMAGE}/eclipse-mosquitto:2
+        rules:
+            - if: $CI_PIPELINE_SOURCE == "web" || $CI_PIPELINE_SOURCE == "push" || $CI_COMMIT_TAG
+              when: manual
+              allow_failure: true
+
+It must run once before the first pipeline that uses the image, and again whenever
+the mirrored image should be refreshed (e.g. a new Mosquitto release).
+
+#. Open the pipeline created by a push, or press *Run pipeline* in
+   *Build → Pipelines*.
+#. Start the manual ``mirror-mosquitto`` job with its *play* button.
+#. Check the result in *Deploy → Container Registry*: the ``eclipse-mosquitto``
+   repository must list the ``2`` tag.
+
+The job authenticates with the predefined ``CI_REGISTRY_USER`` and
+``CI_REGISTRY_PASSWORD`` variables, so no personal token is needed. It is manual and
+allowed to fail, so it never blocks a pipeline.
+
+--------
+CI Usage
+--------
+
+``tox.ini`` lists both variables in ``passenv``, otherwise tox would not pass them
+to pytest. Two ways to provide the broker in CI are documented; the first is the
+one in use.
+
+Broker installed in the job (current)
+    Every ``test`` matrix job installs Mosquitto with ``apt`` in its
+    ``before_script``, starts it in the background with an anonymous listener and
+    points the tests at ``localhost``. No registry image, mirror job or runner
+    credentials are needed:
+
+    .. code-block:: yaml
+
+        test:
+            variables:
+                STEP_LIB_MQTT_TEST_HOST: "localhost"
+                STEP_LIB_MQTT_TEST_PORT: "1883"
+            before_script:
+                - !reference [.docker_base, before_script]
+                - apt-get update && apt-get install -y mosquitto
+                  && rm -rf /var/lib/apt/lists/*
+                - printf 'listener 1883 0.0.0.0\nallow_anonymous true\n' > /tmp/mosquitto.conf
+                - mosquitto -d -c /tmp/mosquitto.conf
+
+Broker as a GitLab service (alternative, container)
+    Every ``test`` matrix job starts its own broker from the mirrored image as a
+    GitLab service and reaches it through the service alias. It requires the
+    `mirror job <Mirror the Image with a Manual CI Job_>`_ and a runner that can
+    pull from the project registry (a runner with stale credentials in its own
+    ``/root/.docker/config.json`` fails with ``unauthorized``):
+
+    .. code-block:: yaml
+
+        test:
+            services:
+                - name: ${CI_REGISTRY_IMAGE}/eclipse-mosquitto:2
+                  alias: mosquitto
+                  command: ["mosquitto", "-c", "/mosquitto-no-auth.conf"]
+            variables:
+                STEP_LIB_MQTT_TEST_HOST: "mosquitto"
+                STEP_LIB_MQTT_TEST_PORT: "1883"
+
+---------------
+Troubleshooting
+---------------
+
+``podman push`` fails with ``StatusCode: 403`` and an HTML page
+    The corporate web application firewall blocks uploads to the registry from the
+    workstation. Use the ``mirror-mosquitto`` CI job instead (see
+    `Mirror the Image with a Manual CI Job`_).
+
+The CI service fails with ``manifest unknown`` or ``unauthorized``
+    Only for the container alternative. ``manifest unknown``: the mirror job never
+    ran, so the ``2`` tag is missing from the registry. ``unauthorized``: the runner
+    uses its own registry credentials (``/root/.docker/config.json``) instead of the
+    job token. Switch to the broker installed in the job, which needs neither.
+
+The integration tests are skipped
+    ``STEP_LIB_MQTT_TEST_PORT`` is set neither in the environment nor in ``.env``.
+
+Connection refused or timeouts
+    The container is not running (``podman ps``), the port in ``.env`` does not
+    match the one mapped with ``-p``, or (on Windows) the podman machine is stopped.
+
+The container exits at once complaining about ``/mosquitto-no-auth.conf``
+    A future image may no longer ship that file. Start Mosquitto with an inline
+    anonymous listener instead, e.g.
+    ``sh -c 'printf "listener 1883\nallow_anonymous true\n" > /tmp/m.conf && mosquitto -c /tmp/m.conf'``.

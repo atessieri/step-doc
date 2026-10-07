@@ -353,7 +353,8 @@ Two configuration knobs control this, both on
 :class:`~step_lib.SyncComManagerParams`:
 
 - ``reconnect_interval`` (default ``2`` seconds) -- the pause between one
-  failed/dropped connection attempt and the next.
+  failed/dropped connection attempt and the next; must be at least ``1``,
+  so a broker that keeps refusing connections cannot make the loop spin.
 - ``publish_max_connect_attempts`` (default ``5``) -- the number of
   *consecutive, pre-connection* failures tolerated before the worker
   gives up on itself (see `Worker Auto-Closing`_ below). This bound is
@@ -363,17 +364,22 @@ Two configuration knobs control this, both on
 
 Envelope decode failures (`Malformed Payloads`_) never reach this retry
 logic at all -- they are handled inside the inner receive loop without
-raising. A publish call that fails after a successful connect is left to
-:class:`~step_lib.async_com_manager.AsyncComManager`'s own
-``MAX_TRANSMIT_ERRORS`` handling; only a failure severe enough to
-propagate out of the ``async with`` block reaches ``_publish_loop``'s
-``except Exception`` and triggers the reconnect path documented above.
-In ``_publish_pending`` a :class:`~step_lib.exception.StepLibMqttError`
-(an MQTT transport failure) propagates with the message still pending, so
-it is published again after the reconnect; any other
-:class:`~step_lib.exception.StepLibError` -- a message that cannot be
-published, including one that failed ``MAX_TRANSMIT_ERRORS`` consecutive
-times -- drops the message with a WARNING and keeps the connection.
+raising. Only a failure severe enough to propagate out of the
+``async with`` block reaches ``_publish_loop``'s ``except Exception`` and
+triggers the reconnect path documented above. In ``_publish_pending`` a
+:class:`~step_lib.exception.StepLibMqttError` (an MQTT transport failure)
+propagates with the message still pending, so it is published again after
+the reconnect; a :class:`~step_lib.exception.StepLibPublishError` (a
+message that cannot be built or encoded, e.g. an ASN.1 constraint
+violation) drops the message at once with an ERROR, since publishing it
+again would fail the same way; any other
+:class:`~step_lib.exception.StepLibError` (e.g. an unsupported message
+type) drops the message with a WARNING. In both drop cases the connection
+is kept. ``publish_its_message`` returns ``False``, without publishing,
+when no publish topic is configured for the message type (the parent's
+``SyncComManager.publish_its_message`` already refuses such a message, so
+this is only a safeguard); a ``True`` return means the message was
+published, and only then does the worker log it as published.
 
 Worker Auto-Closing
 ---------------------

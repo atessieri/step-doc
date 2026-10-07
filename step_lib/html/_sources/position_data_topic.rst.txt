@@ -107,20 +107,19 @@ messages: the UPER payload on ``v2x/cam/264421_4/g8/u/0/n/5/t/f/r/d`` and the JS
 payload on ``TRIP_SIMULATOR/1234``.
 
 The topic entries are indexed into a mapping keyed by ``message_type`` when the
-manager is constructed, so two entries declaring ``POSITION_DATA`` are not an error:
-the last one silently wins.
+parameters are constructed (``AsyncComManagerParams.find_publish_topic``), so two
+entries declaring ``POSITION_DATA`` are not an error: the last one silently wins.
+The ``POSITION_DATA`` topic is looked up before the record is built: without it, a
+DEBUG record is logged, no ``PositionDataV1`` is built and the CAM is published
+alone.
 
 .. note::
-   When ``AsyncComManagerParams.station_id`` is set,
-   :meth:`~step_lib.async_com_manager.AsyncComManager.publish_its_message` first
-   replaces the station id of the message with it (on a copy, through
-   ``get_message_changed_station_id``, so the caller's message is left untouched) and
-   only then serializes the CAM and publishes the position message. The CAM on the wire
-   and the position topic therefore carry the same, configured station id. With
-   ``station_id=None`` both use the id of the message the caller handed over
-   (``CamMessageV1.station_id``, i.e. ``stationInfo.stationId``).
-   ``FacilitySerializer.serialize`` no longer overrides the station id: it encodes the
-   message as is.
+   The CAM on the wire and the position topic always carry the stationId of the
+   message the caller handed over (``CamMessageV1.station_id``, i.e.
+   ``stationInfo.stationId``): ``AsyncComManagerParams.station_id`` is used only to
+   drop echoes on receive and never rewrites a published message. Call
+   ``get_message_changed_station_id`` before publishing to send a message under
+   another station id.
 
 Field Mapping
 -------------
@@ -186,12 +185,12 @@ and the models they exchange:
             class AsyncComManager {
                 - _publish_its_topics_param: dict[MessageId | GenericMessageType, PublishTopicParams]
                 - _message_serializer: ItsMessageSerializer
-                - _transmit_error_count: int
-                + {static} MAX_TRANSMIT_ERRORS: int = 5
                 + publish_its_message(message, address, current_position, is_station_mobile, sequence_number)
                 - _find_topic_param(message_type) : PublishTopicParams | None
-                - _cam_message_to_position_data(cam_message: CamDataV1) : PositionDataV1 | None
+                - _cam_message_to_position_data(cam_message: CamDataV1, position: ReferencePosition) : PositionDataV1
+                - _build_position_data(cam_message: CamMessageV1, position: ReferencePosition) : PositionDataV1 | None
                 - _publish_position_message(station_id: int, message: PositionDataV1)
+                - _publish_position_best_effort(station_id: int, message: PositionDataV1)
             }
 
             class PublishTopicParams <<frozen>> {
@@ -257,9 +256,10 @@ Sequence Diagram
 ----------------
 
 The following PlantUML diagram shows the two publish operations triggered by one CAM.
-The position message is published **after** the CAM has reached the broker, inside the
-same ``publish_its_message`` call, so a failure of the CAM publish means no position
-message is sent:
+The position record is **built before** the CAM is published, so a record that cannot
+be built is known before anything leaves the client, and it is **published after** the
+CAM has reached the broker, inside the same ``publish_its_message`` call, so a failure
+of the CAM publish means no position message is sent:
 
 .. container:: scrollable-diagram
 
@@ -281,86 +281,95 @@ message is sent:
         ACM --> ACM: PublishTopicParams(header_topic, geohash_precision, qos)
         deactivate ACM
 
+        alt message is a CamMessageV1
+            ACM -> ACM: _build_position_data(cam_message, reference_position)
+            activate ACM
+            ACM -> Time: create_from_iso_time(creationTime)
+            activate Time
+            Time --> ACM: its_time.epoch_ms
+            deactivate Time
+            ACM -> Pos: PositionDataV1(fixTime, latitude, longitude,\naltitude, speed, bearing, accuracy)
+            activate Pos
+            Pos --> ACM: position_message
+            deactivate Pos
+            alt building fails
+                ACM -> ACM: log ERROR "Position data not built"
+                ACM --> ACM: None
+            end
+            deactivate ACM
+        end
+
+        ACM -> ACM: geohash(reference_position, precision)
         ACM -> Serializer: serialize(facility_message, address, position, is_mobile)
         activate Serializer
         Serializer --> ACM: message_bytes
         deactivate Serializer
-
-        ACM -> ACM: geohash(reference_position, precision)
         ACM -> Broker: publish("<header_topic>/g8/<c1>/.../<c8>", message_bytes, qos)
         activate Broker
         Broker --> ACM: published
         deactivate Broker
 
-        alt message is a CamMessageV1
-            ACM -> ACM: _cam_message_to_position_data(cam_message)
+        opt position_message is not None
+            ACM -> ACM: _publish_position_best_effort(station_id, position_message)
             activate ACM
+            ACM -> ACM: _find_topic_param(GenericMessageType.POSITION_DATA)
 
-            alt cam_message.position is None
-                ACM --> ACM: None
-            else position available
-                ACM -> Time: create_from_iso_time(creationTime)
-                activate Time
-                Time --> ACM: its_time.epoch_ms
-                deactivate Time
-                ACM -> Pos: PositionDataV1(fixTime, latitude, longitude,\naltitude, speed, bearing, accuracy)
+            alt no POSITION_DATA topic configured
+                ACM -> ACM: log DEBUG "Topic not found", return
+            else topic configured
+                ACM -> Pos: model_dump_json()
                 activate Pos
-                Pos --> ACM: position_message
+                Pos --> ACM: json_payload
                 deactivate Pos
+                ACM -> Broker: publish("<header_topic>/<station_id>", json_payload, qos)
+                activate Broker
+                alt published
+                    Broker --> ACM: published
+                    ACM -> ACM: log INFO "Published message position_data"
+                else aiomqtt.MqttError
+                    Broker --> ACM: MqttError
+                    ACM -> ACM: log WARNING "Position data not published,\nconnection lost"
+                else any other exception
+                    ACM -> ACM: log ERROR "Position data not published"
+                end
+                deactivate Broker
             end
             deactivate ACM
-
-            opt position_message is not None
-                ACM -> ACM: _publish_position_message(station_id, position_message)
-                activate ACM
-
-                ACM -> ACM: _find_topic_param(GenericMessageType.POSITION_DATA)
-
-                alt no POSITION_DATA topic configured
-                    ACM -> ACM: log DEBUG "Topic not found", return
-                else topic configured
-                    ACM -> Pos: model_dump_json()
-                    activate Pos
-                    Pos --> ACM: json_payload
-                    deactivate Pos
-                    ACM -> Broker: publish("<header_topic>/<station_id>", json_payload, qos)
-                    activate Broker
-                    Broker --> ACM: published
-                    deactivate Broker
-                    ACM -> ACM: log INFO "Published message position_data"
-                end
-                deactivate ACM
-            end
         end
 
-        ACM -> ACM: _transmit_error_count = 0
-        ACM --> App: success
+        ACM --> App: success (the CAM was published)
         deactivate ACM
 
 Error Handling
 --------------
 
-The position publish shares the error handling of the enclosing
-:meth:`~step_lib.async_com_manager.AsyncComManager.publish_its_message` call:
+The CAM keeps the error handling of
+:meth:`~step_lib.async_com_manager.AsyncComManager.publish_its_message`:
 
-* an ``aiomqtt.MqttError`` is a transport failure: it is logged and raised at once as a
+* an ``aiomqtt.MqttError`` is a transport failure: it is logged and raised as a
   :class:`~step_lib.exception.StepLibMqttError` (chaining the original error as
   ``__cause__``), so the caller can reconnect and publish again;
-* a :class:`~step_lib.exception.StepLibError` is a message error: it is re-raised
-  without counting as a transmit error;
-* any other exception is logged and counted, and the call returns normally until
-  ``MAX_TRANSMIT_ERRORS`` (5) consecutive failures occur, at which point a
-  :class:`~step_lib.exception.StepLibError` chaining it is raised and the counter is
-  reset. A successful publish resets the counter.
+* a :class:`~step_lib.exception.StepLibError` is a message error: it is re-raised as
+  is;
+* any other exception (e.g. an ASN.1 constraint violation while encoding) is
+  deterministic, so retrying cannot help: it is logged and raised as a
+  :class:`~step_lib.exception.StepLibPublishError` chaining it.
 
 Every exception leaving the call is therefore a
-:class:`~step_lib.exception.StepLibError`.
+:class:`~step_lib.exception.StepLibError`, and a normal return means the CAM was
+published.
 
-Since the position message is published inside the same ``try`` block and after the
-CAM, a transport failure on the position publish is reported to the caller even though
-the CAM itself was already accepted by the broker. A caller that retries the call
-therefore republishes both messages, so subscribers of the ITS topic must tolerate a
-duplicate CAM.
+The position record is derived data, superseded by the station's next CAM, so it is
+published **at most once** and its failures never fail the call:
+
+* a record that cannot be built (``_build_position_data``) is logged at ERROR and the
+  CAM is published on its own;
+* a failed position publish, which can only happen after the CAM was accepted by the
+  broker (``_publish_position_best_effort``), is logged -- at WARNING for an
+  ``aiomqtt.MqttError``, at ERROR otherwise -- and the call returns normally. Raising
+  would make a retrying caller, such as the publish worker, publish the CAM again (a
+  duplicate) or report a published CAM as lost. A broken connection is reported by the
+  next publish, which makes the caller reconnect.
 
 Process Topology
 ----------------

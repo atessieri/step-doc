@@ -549,11 +549,15 @@ Graceful Shutdown
 
 Triggered by ``SyncComManager.stop()``. The health-check thread is stopped
 and joined *first*, so no further ``check_health()`` call can race with the
-teardown sequence that follows. The shutdown is ordered so that no accepted
-message is lost: the PUSH socket is closed with a linger, the ZMQ context
-termination waits until the queued messages reached the workers, and only then
-are the workers asked to stop; each worker publishes what is left in its PULL
-buffer (with its MQTT connection still open) before exiting.
+teardown sequence that follows. The shutdown makes a best effort to publish
+every accepted message within ``publish_graceful_shutdown_timeout``: the PUSH
+socket is closed with a linger, the ZMQ context termination waits until the
+queued messages reached the workers, and only then are the workers asked to
+stop; each worker publishes what is left in its PULL buffer (with its MQTT
+connection still open) before exiting. Messages can still be lost when a worker
+is not connected to the broker when the stop arrives, when a worker's drain
+stops at its first failed publish, and for the messages in the pipe of a dead
+or terminated worker (up to about ``2 * publish_hwm``).
 
 .. container:: scrollable-diagram
 

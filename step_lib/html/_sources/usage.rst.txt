@@ -54,8 +54,10 @@ The following example explains how to publish a CAM message using the STEP Libra
 Synchronous Usage
 -----------------
 
-The synchronous *Non-blocking* approach uses an transfer thread that manages the communication.
-The library create a message FIFO queue to avoid any block due to transmission / reception delay.
+The synchronous *Non-blocking* approach runs the MQTT connection (subscriptions and
+reception) on a background thread, and publishes through a pool of publish worker
+processes fed through a ZeroMQ PUSH/PULL pipe, so the caller never blocks on
+transmission or reception delays.
 
 Configuration
 -------------
@@ -77,7 +79,8 @@ The following snippet explains how to create the data-class of parameters.
             certfile=None,
             keyfile=None,
             cert_reqs=ssl.VerifyMode.CERT_REQUIRED,
-            tls_version=ssl.PROTOCOL_TLSv1_2,
+            # None: the TLS client default, which negotiates TLS 1.2 or later
+            tls_version=None,
             ciphers=None,
             keyfile_password=None,
         )
@@ -103,7 +106,7 @@ The following snippet explains how to create the data-class of parameters.
             socket_options=None,
             session_expiry=0,
             receive_maximum=10,
-            maximum_packet_size=4096,
+            maximum_packet_size=32768,
             topic_alias_maximum=0,
             publish_topics_params=[
                 PublishTopicParams(
@@ -119,6 +122,12 @@ The following snippet explains how to create the data-class of parameters.
                     qos=MqttQoS.QOS_0,
                 ),
                 PublishTopicParams(
+                    message_type=MessageId.DENM_PDU,
+                    header_topic="v2x/denm/264421_4",
+                    geohash_precision=8,
+                    qos=MqttQoS.QOS_1,
+                ),
+                PublishTopicParams(
                     message_type=GenericMessageType.POSITION_DATA,
                     header_topic="TRIP_SIMULATOR",
                     geohash_precision=8,  # ignored for POSITION_DATA
@@ -126,31 +135,18 @@ The following snippet explains how to create the data-class of parameters.
                 ),
             ],
             cache_dir="./.cache",
-            reconnect_interval=2,
-            max_incoming_queue_rooms=60,
-            max_outgoing_queue_rooms=60,
-            publish_worker_count=2,
-            publish_worker_startup_timeout=30.0,
-            publish_hwm=2000,
-            publish_health_check_interval=1.0,
-            publish_heartbeat_interval=0.5,
-            publish_heartbeat_timeout=30.0,
-            publish_parent_watchdog_interval=1.0,
-            publish_graceful_shutdown_timeout=5.0,
-            publish_forceful_join_timeout=5.0,
-            publish_max_connect_attempts=5,
         )
 
 .. note::
 
-    The ``station_id`` field can be None if the library is able to send messages created
-    by different stations. If ``station_id`` is None, it isn't used; otherwise, the
-    library discards received messages carrying ``station_id`` (the client's own
-    echoes) and replaces the station id of the published messages with it. The
-    override is performed by ``AsyncComManager.publish_its_message`` (called by the
-    publish worker of ``SyncComManager``), before serialization and before the
-    position data topic is built; ``FacilitySerializer`` encodes the message's
-    station id as is.
+    ``station_id`` is used only on receive: messages carrying this stationId are
+    dropped as echoes of the client's own transmissions (``StepLibEchoMessageError``).
+    Published messages are sent unchanged, so set their stationId yourself (see
+    ``FacilityMessage.get_message_changed_station_id``); when ``station_id`` is set
+    and a published message carries a different stationId, a WARNING is logged,
+    since its echo will not be filtered. ``None`` disables the echo filter, e.g. for
+    a client that publishes messages of many stations. The position data topic
+    ``<header_topic>/<station_id>`` always uses the stationId of the published CAM.
 
 .. note::
 
@@ -170,24 +166,29 @@ The following snippet explains how to create the data-class of parameters.
         - ``publish_worker_count``: number of publish worker processes to spawn.
         - ``publish_worker_startup_timeout``: seconds to wait for a spawned worker
           to signal readiness before treating it as failed.
-        - ``publish_hwm``: high-water mark for the worker pool's ZMQ PUSH socket.
+        - ``publish_hwm``: high-water mark for the worker pool's ZMQ PUSH socket;
+          must be at least ``1`` (ZMQ treats ``0`` as unlimited, which would
+          disable backpressure).
         - ``publish_health_check_interval``: seconds between periodic worker
           health checks.
         - ``publish_heartbeat_interval``: seconds between worker heartbeat
           refreshes.
         - ``publish_heartbeat_timeout``: seconds of heartbeat staleness after
           which a worker is considered blocked; keep it well above the time a
-          worker needs to compile the ASN.1 grammar on its first connect.
+          worker needs to compile the ASN.1 grammar on its first connect. With a
+          ``cache_dir``, ``start()`` compiles the grammar into it before spawning
+          the workers, so each worker only loads it from disk.
         - ``publish_parent_watchdog_interval``: seconds between a worker's checks
           that its parent process is still alive.
         - ``publish_graceful_shutdown_timeout``: bound of each of the two phases
           of a graceful stop: handing the queued messages to the workers, then
           letting every worker publish the messages it already received (drain)
-          before exiting. ``stop()`` can therefore wait about twice this value
-          before escalating to a forceful termination. If this manager runs inside
-          a container/service manager, keep that (plus
-          ``publish_forceful_join_timeout``) safely below the manager's own outer
-          shutdown grace period.
+          before exiting. The worst-case duration of ``stop()`` is the pool's
+          ``close_budget()`` (both graceful phases, the forceful termination and
+          their margins) plus ``4 * (timeout + 1)`` seconds for the background
+          thread; with the default parameters it exceeds 10 s. If this manager runs
+          inside a container/service manager, keep the manager's own outer
+          shutdown grace period (e.g. ``stop_grace_period``) at least this long.
         - ``publish_forceful_join_timeout``: seconds to wait for a
           forcefully-terminated worker to exit before escalating further.
         - ``publish_max_connect_attempts``: consecutive failed MQTT connect
@@ -260,8 +261,12 @@ Delivery and time notes
       transport error is published again after the worker reconnects, up to 3
       attempts, so a subscriber can receive it twice. The pending message lives only
       in the worker's memory.
-    - **Graceful stop**: ``stop()`` publishes every message already handed to
-      ``publish_its_message()`` before returning, within the time budget above.
+    - **Graceful stop**: ``stop()`` makes a best effort to publish every message
+      already handed to ``publish_its_message()`` within
+      ``publish_graceful_shutdown_timeout``. Messages can still be lost when a
+      worker is not connected to the broker when the stop arrives, when a worker's
+      drain stops at its first failed publish, and for the messages in the pipe of
+      a dead or terminated worker (up to about ``2 * publish_hwm``).
     - **Sequence numbers**: the GeoNetworking sequence number is assigned by the
       pool, so the worker processes never reuse one; it starts at a random value.
     - **Times rebuilt on reception**: a CAM carries only
@@ -337,6 +342,8 @@ The following snippet of code:
         StepLibError,
         SyncComManager,
     )
+
+    logger = logging.getLogger(name=__name__)
 
     # Use context manager for automatic resource cleanup
     params = create_sync_com_manager_params()
@@ -562,10 +569,15 @@ The following snippet of code:
     back, unless ``station_id`` is set: the receiver then drops them as echoes. With
     ``station_id=None`` ``subscribe()`` logs this at INFO.
 
-    ``subscribe()`` returns once the command is queued; the SUBACK is logged later by
-    the background thread: INFO when the requested QoS was granted, WARNING when the
-    broker granted a lower QoS (the subscription works, with weaker delivery
-    guarantees), ERROR with the reason (e.g. ``Not authorized``) when it was refused.
+    ``subscribe()`` never blocks: it records the desired subscription, which replaces
+    any previous one, and the background thread applies it as soon as it is
+    connected, and again after every reconnect (a request made while reconnecting is
+    accepted too). Repeating an identical request sends nothing to the broker.
+    ``start()`` clears the subscription, so call ``subscribe()`` after every
+    ``start()``. The SUBACK is logged by the background thread: INFO when the
+    requested QoS was granted, WARNING when the broker granted a lower QoS (the
+    subscription works, with weaker delivery guarantees), ERROR with the reason
+    (e.g. ``Not authorized``) when it was refused.
 
 Manual management
 -----------------
@@ -849,7 +861,8 @@ it to build a ready-to-use ``AsyncComManager`` instance.
             certfile=None,
             keyfile=None,
             cert_reqs=ssl.VerifyMode.CERT_REQUIRED,
-            tls_version=ssl.PROTOCOL_TLSv1_2,
+            # None: the TLS client default, which negotiates TLS 1.2 or later
+            tls_version=None,
             ciphers=None,
             keyfile_password=None,
         )
@@ -875,7 +888,7 @@ it to build a ready-to-use ``AsyncComManager`` instance.
             socket_options=None,
             session_expiry=0,
             receive_maximum=10,
-            maximum_packet_size=4096,
+            maximum_packet_size=32768,
             topic_alias_maximum=0,
             publish_topics_params=[
                 PublishTopicParams(
@@ -891,6 +904,12 @@ it to build a ready-to-use ``AsyncComManager`` instance.
                     qos=MqttQoS.QOS_0,
                 ),
                 PublishTopicParams(
+                    message_type=MessageId.DENM_PDU,
+                    header_topic="v2x/denm/264421_4",
+                    geohash_precision=8,
+                    qos=MqttQoS.QOS_1,
+                ),
+                PublishTopicParams(
                     message_type=GenericMessageType.POSITION_DATA,
                     header_topic="TRIP_SIMULATOR",
                     geohash_precision=8,  # ignored for POSITION_DATA
@@ -903,12 +922,14 @@ it to build a ready-to-use ``AsyncComManager`` instance.
 
 .. note::
 
-    The ``station_id`` field can be None if the library is able to send messages created
-    by different stations. If ``station_id`` is None, it isn't used; otherwise, the
-    library discards received messages carrying ``station_id`` (the client's own
-    echoes) and ``publish_its_message`` replaces the station id of the message to
-    publish with it, before serialization and before the position data topic
-    ``<header_topic>/<station_id>`` is built.
+    ``station_id`` is used only on receive: messages carrying this stationId are
+    dropped as echoes of the client's own transmissions (``StepLibEchoMessageError``).
+    Published messages are sent unchanged, so set their stationId yourself (see
+    ``FacilityMessage.get_message_changed_station_id``); when ``station_id`` is set
+    and a published message carries a different stationId, a WARNING is logged,
+    since its echo will not be filtered. ``None`` disables the echo filter, e.g. for
+    a client that publishes messages of many stations. The position data topic
+    ``<header_topic>/<station_id>`` always uses the stationId of the published CAM.
 
 Using Context Manager
 -----------------------------------
@@ -966,6 +987,7 @@ The following snippet of code:
         YawRate,
     )
     from step_lib import (
+        AsyncComManager,
         CamMessageV1,
         CpmMessageV1,
         DenmMessageV1,
@@ -975,9 +997,17 @@ The following snippet of code:
         StepLibError,
     )
 
-    # create_async_com_manager is the function defined above; receive_messages
-    # is an application-defined helper (not part of step_lib)
+    logger = logging.getLogger(name=__name__)
 
+
+    async def receive_messages(client: AsyncComManager, logger: logging.Logger) -> None:
+        # Application-defined receive loop (see "Receive Example" below)
+        async for message in client.its_messages:
+            if logger.isEnabledFor(level=logging.INFO):
+                logger.info(msg=f"Message received: {message.its_payload}")
+
+
+    # create_async_com_manager is the function defined above
     # Use context manager for automatic resource cleanup
     async with create_async_com_manager(logger=logger) as client:
         topics = [
@@ -1219,14 +1249,17 @@ The following snippet of code:
 
 .. note::
 
-    Every exception raised by ``publish_its_message`` is a ``StepLibError``, so
-    catching it is enough to log a message that was not sent: an MQTT transport
-    failure is raised as ``StepLibMqttError`` (chaining the ``aiomqtt.MqttError``),
-    and a message that fails ``MAX_TRANSMIT_ERRORS`` consecutive times as a
-    ``StepLibError`` chaining the last error. The previous failures are logged by the
-    library and the call returns normally. The connection (``async with``) and
-    ``subscribe`` are inherited from ``aiomqtt.Client`` and still raise
-    ``aiomqtt.MqttError``.
+    Every exception raised by ``publish_its_message`` is a ``StepLibError``. It
+    returns ``False``, without publishing, when no publish topic is configured for
+    the message type; a ``True`` return means the message was published (async) or
+    queued for the publish workers (sync). Catching ``StepLibError`` is therefore
+    enough to log a message that was not sent: an MQTT transport failure is raised
+    as ``StepLibMqttError`` (chaining the ``aiomqtt.MqttError``; the message can be
+    published again after reconnecting), and a message that cannot be built or
+    encoded (e.g. an ASN.1 constraint violation) as ``StepLibPublishError``
+    chaining the original error (publishing it again would fail the same way). The
+    connection (``async with``) and ``subscribe`` are inherited from
+    ``aiomqtt.Client`` and still raise ``aiomqtt.MqttError``.
 
 Receive Example
 ---------------
