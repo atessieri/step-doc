@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>test.test_step_message_save_config module &mdash; STEP Client 1.1.4 documentation</title>
+  <title>test.test_step_message_save_config module &mdash; STEP Client 1.2.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/tabs.css?v=4c969af8" />
@@ -16,7 +16,7 @@
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=00f267c6"></script>
+      <script src="../_static/documentation_options.js?v=6efca38a"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/tabs.js?v=3ee01567"></script>
@@ -24,6 +24,7 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Changelog" href="../changelog.html" />
     <link rel="prev" title="test.test_step_exception module" href="test.test_step_exception.html" /> 
 </head>
 
@@ -64,6 +65,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../commands.html#version-command">Version Command</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../commands.html#configuration-schema-generation">Configuration Schema Generation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../commands.html#configuration-template-generation">Configuration Template Generation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../commands.html#file-conversion">File Conversion</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../commands.html#running-with-configuration">Running with Configuration</a></li>
 </ul>
 </li>
@@ -95,7 +97,30 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../usage.html#running-step-message-save-as-a-service">Running STEP Message Save as a Service</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../usage.html#converting-a-saved-file">Converting a Saved File</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../usage.html#command-line-options">Command-Line Options</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../loaders_writers.html">Creating a Loader or Writer</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../loaders_writers.html#how-the-conversion-works">How the conversion works</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../loaders_writers.html#the-contract">The contract</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../loaders_writers.html#creating-a-loader">Creating a loader</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../loaders_writers.html#step-1-write-the-class">Step 1: write the class</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../loaders_writers.html#step-2-register-the-loader">Step 2: register the loader</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../loaders_writers.html#creating-a-writer">Creating a writer</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../loaders_writers.html#id2">Step 1: write the class</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../loaders_writers.html#step-2-register-the-writer">Step 2: register the writer</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../loaders_writers.html#completing-the-integration">Completing the integration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../loaders_writers.html#dependencies">Dependencies</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../loaders_writers.html#unit-tests">Unit tests</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../loaders_writers.html#documentation">Documentation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../loaders_writers.html#programmatic-use">Programmatic use</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../package_script.html">Package Script</a><ul>
@@ -122,6 +147,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../architecture.html#mqtt-credential-loading">MQTT Credential Loading</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../architecture.html#steplogger">StepLogger</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../architecture.html#stepexception">StepException</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../architecture.html#file-conversion">File Conversion</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../architecture.html#component-diagram">Component Diagram</a></li>
 </ul>
 </li>
@@ -182,25 +208,82 @@
 <li class="toctree-l3"><a class="reference internal" href="../schemas_rst/denm_message.html">DENM Message</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html">DENM Data V1 Schema</a><ul>
 <li class="toctree-l5"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#denm-data-version-1">DENM Data Version 1</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#accident-cause">Accident Cause</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#accident-sub-cause-code">Accident Sub Cause Code</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#action-id">Action Id</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#adhesion-sub-cause-code">Adhesion Sub Cause Code</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#adverse-weather-condition-precipitation-sub-cause-code">Adverse Weather Condition Precipitation Sub Cause Code</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#adverse-weather-condition-visibility-sub-cause-code">Adverse Weather Condition Visibility Sub Cause Code</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#adverse-weather-condition-wind-sub-cause-code">Adverse Weather Condition Wind Sub Cause Code</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#reference-altitude">Reference Altitude</a></li>
-<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#cause-code">Cause Code</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#animal-on-the-road-cause">Animal On The Road Cause</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#aquaplaning-cause">Aquaplaning Cause</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#collision-risk-cause">Collision Risk Cause</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#collision-risk-sub-cause-code">Collision Risk Sub Cause Code</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#dangerous-curve-cause">Dangerous Curve Cause</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#dangerous-end-of-queue-sub-cause-code">Dangerous End Of Queue Sub Cause Code</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#dangerous-situation-cause">Dangerous Situation Cause</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#dangerous-situation-sub-cause-code">Dangerous Situation Sub Cause Code</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#detected-roadworks-cause">Detected Roadworks Cause</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#dont-panic-cause">Dont Panic Cause</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#emergency-vehicle-approaching-sub-cause-code">Emergency Vehicle Approaching Sub Cause Code</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#emergency-vehicle-cause">Emergency Vehicle Cause</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#generic-sub-cause-code">Generic Sub Cause Code</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#hazardous-location-animal-on-the-road-sub-cause-code">Hazardous Location Animal On The Road Sub Cause Code</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#hazardous-location-dangerous-curve-sub-cause-code">Hazardous Location Dangerous Curve Sub Cause Code</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#hazardous-location-obstacle-on-the-road-sub-cause-code">Hazardous Location Obstacle On The Road Sub Cause Code</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#hazardous-location-surface-condition-sub-cause-code">Hazardous Location Surface Condition Sub Cause Code</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#heading">Heading</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#human-presence-on-the-road-cause">Human Presence On The Road Cause</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#human-presence-on-the-road-sub-cause-code">Human Presence On The Road Sub Cause Code</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#human-problem-cause">Human Problem Cause</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#human-problem-sub-cause-code">Human Problem Sub Cause Code</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#impassability-cause">Impassability Cause</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#impassability-sub-cause-code">Impassability Sub Cause Code</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#location-container">Location Container</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#low-adhesion-cause">Low Adhesion Cause</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#denm-management-container">DENM Management Container</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#object-dimension">Object Dimension</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#object-face">Object Face</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#obstacle-on-the-road-cause">Obstacle On The Road Cause</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#path-point-predicted">Path Point Predicted</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#perceived-object">Perceived Object</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#position-confidence-ellipse">Position Confidence Ellipse</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#post-crash-cause">Post Crash Cause</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#post-crash-sub-cause-code">Post Crash Sub Cause Code</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#pre-crash-container">Pre-Crash Container</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#precipitation-cause">Precipitation Cause</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#public-transport-cause">Public Transport Cause</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#railway-level-crossing-cause">Railway Level Crossing Cause</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#railway-level-crossing-sub-cause-code">Railway Level Crossing Sub Cause Code</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#reference-position">Reference Position</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#rescue-recovery-and-maintenance-work-in-progress-cause">Rescue Recovery And Maintenance Work In Progress Cause</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#rescue-recovery-and-maintenance-work-in-progress-sub-cause-code">Rescue Recovery And Maintenance Work In Progress Sub Cause Code</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#road-type">Road Type</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#roadworkers-cause">Roadworkers Cause</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#roadworks-sub-cause-code">Roadworks Sub Cause Code</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#signal-violation-cause">Signal Violation Cause</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#signal-violation-sub-cause-code">Signal Violation Sub Cause Code</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#situation-container">Situation Container</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#slow-vehicle-cause">Slow Vehicle Cause</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#slow-vehicle-sub-cause-code">Slow Vehicle Sub Cause Code</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#speed">Speed</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#stationary-vehicle-cause">Stationary Vehicle Cause</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#stationary-vehicle-sub-cause-code">Stationary Vehicle Sub Cause Code</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#surface-condition-cause">Surface Condition Cause</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#denm-termination-type">DENM Termination Type</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#traffic-condition-cause">Traffic Condition Cause</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#traffic-condition-sub-cause-code">Traffic Condition Sub Cause Code</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#traffic-direction-type">Traffic Direction Type</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#traffic-participant-type">Traffic Participant Type</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#vehicle-breakdown-cause">Vehicle Breakdown Cause</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#vehicle-breakdown-sub-cause-code">Vehicle Breakdown Sub Cause Code</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#vehicle-queue-cause">Vehicle Queue Cause</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#violence-cause">Violence Cause</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#visibility-cause">Visibility Cause</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#wind-cause">Wind Cause</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#wrong-way-driving-cause">Wrong Way Driving Cause</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#wrong-way-driving-sub-cause-code">Wrong Way Driving Sub Cause Code</a></li>
 </ul>
 </li>
 </ul>
@@ -228,7 +311,7 @@
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/step_message_save_config_schema.html#message-type">Message Type</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/step_message_save_config_schema.html#mqtt-client-configuration">MQTT Client Configuration</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/step_message_save_config_schema.html#mqtt-protocol">MQTT Protocol</a></li>
-<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/step_message_save_config_schema.html#quality-of-service">Quality of Service</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/step_message_save_config_schema.html#mqtt-quality-of-service">MQTT Quality of Service</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/step_message_save_config_schema.html#step-broker-configuration">STEP Broker Configuration</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/step_message_save_config_schema.html#mqtt-subscription-topic-parameters">MQTT Subscription Topic Parameters</a></li>
 </ul>
@@ -242,7 +325,73 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../step_message_save_rst/step_message_save.html">step_message_save package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../step_message_save_rst/step_message_save.html#subpackages">Subpackages</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../step_message_save_rst/loaders/step_message_save.loaders.html">step_message_save.loaders package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../step_message_save_rst/loaders/step_message_save.loaders.html#submodules">Submodules</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../step_message_save_rst/loaders/step_message_save.loaders.file_loader.html">step_message_save.loaders.file_loader module</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="../step_message_save_rst/loaders/step_message_save.loaders.file_loader.html#step_message_save.loaders.file_loader.FileLoader"><code class="docutils literal notranslate"><span class="pre">FileLoader</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="../step_message_save_rst/loaders/step_message_save.loaders.file_loader.html#step_message_save.loaders.file_loader.FileLoader.__call__"><code class="docutils literal notranslate"><span class="pre">FileLoader.__call__()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="../step_message_save_rst/loaders/step_message_save.loaders.file_loader.html#step_message_save.loaders.file_loader.FileLoader.__init_subclass__"><code class="docutils literal notranslate"><span class="pre">FileLoader.__init_subclass__()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="../step_message_save_rst/loaders/step_message_save.loaders.file_loader.html#step_message_save.loaders.file_loader.FileLoader.get_extension"><code class="docutils literal notranslate"><span class="pre">FileLoader.get_extension</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="../step_message_save_rst/loaders/step_message_save.loaders.jsonl_loader.html">step_message_save.loaders.jsonl_loader module</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="../step_message_save_rst/loaders/step_message_save.loaders.jsonl_loader.html#step_message_save.loaders.jsonl_loader.JsonlLoader"><code class="docutils literal notranslate"><span class="pre">JsonlLoader</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="../step_message_save_rst/loaders/step_message_save.loaders.jsonl_loader.html#step_message_save.loaders.jsonl_loader.JsonlLoader.__call__"><code class="docutils literal notranslate"><span class="pre">JsonlLoader.__call__()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="../step_message_save_rst/loaders/step_message_save.loaders.pickle_actor_loader.html">step_message_save.loaders.pickle_actor_loader module</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="../step_message_save_rst/loaders/step_message_save.loaders.pickle_actor_loader.html#step_message_save.loaders.pickle_actor_loader.PickleActorLoader"><code class="docutils literal notranslate"><span class="pre">PickleActorLoader</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="../step_message_save_rst/loaders/step_message_save.loaders.pickle_actor_loader.html#step_message_save.loaders.pickle_actor_loader.PickleActorLoader.__call__"><code class="docutils literal notranslate"><span class="pre">PickleActorLoader.__call__()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../step_message_save_rst/writers/step_message_save.writers.html">step_message_save.writers package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../step_message_save_rst/writers/step_message_save.writers.html#submodules">Submodules</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../step_message_save_rst/writers/step_message_save.writers.file_writer.html">step_message_save.writers.file_writer module</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="../step_message_save_rst/writers/step_message_save.writers.file_writer.html#step_message_save.writers.file_writer.FileWriter"><code class="docutils literal notranslate"><span class="pre">FileWriter</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="../step_message_save_rst/writers/step_message_save.writers.file_writer.html#step_message_save.writers.file_writer.FileWriter.__call__"><code class="docutils literal notranslate"><span class="pre">FileWriter.__call__()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="../step_message_save_rst/writers/step_message_save.writers.file_writer.html#step_message_save.writers.file_writer.FileWriter.__init_subclass__"><code class="docutils literal notranslate"><span class="pre">FileWriter.__init_subclass__()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="../step_message_save_rst/writers/step_message_save.writers.file_writer.html#step_message_save.writers.file_writer.FileWriter.get_extension"><code class="docutils literal notranslate"><span class="pre">FileWriter.get_extension</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="../step_message_save_rst/writers/step_message_save.writers.gpx_writer.html">step_message_save.writers.gpx_writer module</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="../step_message_save_rst/writers/step_message_save.writers.gpx_writer.html#step_message_save.writers.gpx_writer.GpxWriter"><code class="docutils literal notranslate"><span class="pre">GpxWriter</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="../step_message_save_rst/writers/step_message_save.writers.gpx_writer.html#step_message_save.writers.gpx_writer.GpxWriter.__call__"><code class="docutils literal notranslate"><span class="pre">GpxWriter.__call__()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../step_message_save_rst/step_message_save.html#submodules">Submodules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../step_message_save_rst/step_message_save.file_converter.html">step_message_save.file_converter module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../step_message_save_rst/step_message_save.file_converter.html#step_message_save.file_converter.FileConverter"><code class="docutils literal notranslate"><span class="pre">FileConverter</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../step_message_save_rst/step_message_save.file_converter.html#step_message_save.file_converter.FileConverter.loaders"><code class="docutils literal notranslate"><span class="pre">FileConverter.loaders</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_message_save_rst/step_message_save.file_converter.html#step_message_save.file_converter.FileConverter.writers"><code class="docutils literal notranslate"><span class="pre">FileConverter.writers</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_message_save_rst/step_message_save.file_converter.html#step_message_save.file_converter.FileConverter.__call__"><code class="docutils literal notranslate"><span class="pre">FileConverter.__call__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_message_save_rst/step_message_save.file_converter.html#step_message_save.file_converter.FileConverter.load"><code class="docutils literal notranslate"><span class="pre">FileConverter.load()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_message_save_rst/step_message_save.file_converter.html#step_message_save.file_converter.FileConverter.output_file"><code class="docutils literal notranslate"><span class="pre">FileConverter.output_file()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_message_save_rst/step_message_save.file_converter.html#step_message_save.file_converter.FileConverter.output_formats"><code class="docutils literal notranslate"><span class="pre">FileConverter.output_formats</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../step_message_save_rst/step_message_save.step_broker.html">step_message_save.step_broker module</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../step_message_save_rst/step_message_save.step_broker.html#step_message_save.step_broker.StepBroker"><code class="docutils literal notranslate"><span class="pre">StepBroker</span></code></a><ul>
 <li class="toctree-l5"><a class="reference internal" href="../step_message_save_rst/step_message_save.step_broker.html#step_message_save.step_broker.StepBroker.instance_name"><code class="docutils literal notranslate"><span class="pre">StepBroker.instance_name</span></code></a></li>
@@ -256,9 +405,11 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../step_message_save_rst/step_message_save.step_exception.html">step_message_save.step_exception module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../step_message_save_rst/step_message_save.step_exception.html#step_message_save.step_exception.LoaderError"><code class="docutils literal notranslate"><span class="pre">LoaderError</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../step_message_save_rst/step_message_save.step_exception.html#step_message_save.step_exception.ShutdownRequestedError"><code class="docutils literal notranslate"><span class="pre">ShutdownRequestedError</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../step_message_save_rst/step_message_save.step_exception.html#step_message_save.step_exception.StepCliError"><code class="docutils literal notranslate"><span class="pre">StepCliError</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../step_message_save_rst/step_message_save.step_exception.html#step_message_save.step_exception.StepMessageSaveError"><code class="docutils literal notranslate"><span class="pre">StepMessageSaveError</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../step_message_save_rst/step_message_save.step_exception.html#step_message_save.step_exception.WriterError"><code class="docutils literal notranslate"><span class="pre">WriterError</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../step_message_save_rst/step_message_save.step_message_save_config.html">step_message_save.step_message_save_config module</a><ul>
@@ -266,7 +417,6 @@
 <li class="toctree-l5"><a class="reference internal" href="../step_message_save_rst/step_message_save.step_message_save_config.html#step_message_save.step_message_save_config.MessageType.CAM"><code class="docutils literal notranslate"><span class="pre">MessageType.CAM</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_message_save_rst/step_message_save.step_message_save_config.html#step_message_save.step_message_save_config.MessageType.CPM"><code class="docutils literal notranslate"><span class="pre">MessageType.CPM</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_message_save_rst/step_message_save.step_message_save_config.html#step_message_save.step_message_save_config.MessageType.DENM"><code class="docutils literal notranslate"><span class="pre">MessageType.DENM</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../step_message_save_rst/step_message_save.step_message_save_config.html#step_message_save.step_message_save_config.MessageType.__get_pydantic_json_schema__"><code class="docutils literal notranslate"><span class="pre">MessageType.__get_pydantic_json_schema__()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l4"><a class="reference internal" href="../step_message_save_rst/step_message_save.step_message_save_config.html#step_message_save.step_message_save_config.MqttClientConfig"><code class="docutils literal notranslate"><span class="pre">MqttClientConfig</span></code></a><ul>
@@ -309,7 +459,6 @@
 <li class="toctree-l5"><a class="reference internal" href="../step_message_save_rst/step_message_save.step_message_save_config.html#step_message_save.step_message_save_config.MqttQoSConfig.QOS_0"><code class="docutils literal notranslate"><span class="pre">MqttQoSConfig.QOS_0</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_message_save_rst/step_message_save.step_message_save_config.html#step_message_save.step_message_save_config.MqttQoSConfig.QOS_1"><code class="docutils literal notranslate"><span class="pre">MqttQoSConfig.QOS_1</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_message_save_rst/step_message_save.step_message_save_config.html#step_message_save.step_message_save_config.MqttQoSConfig.QOS_2"><code class="docutils literal notranslate"><span class="pre">MqttQoSConfig.QOS_2</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../step_message_save_rst/step_message_save.step_message_save_config.html#step_message_save.step_message_save_config.MqttQoSConfig.__get_pydantic_json_schema__"><code class="docutils literal notranslate"><span class="pre">MqttQoSConfig.__get_pydantic_json_schema__()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l4"><a class="reference internal" href="../step_message_save_rst/step_message_save.step_message_save_config.html#step_message_save.step_message_save_config.StepBrokerConfig"><code class="docutils literal notranslate"><span class="pre">StepBrokerConfig</span></code></a><ul>
@@ -354,9 +503,83 @@
 <li class="toctree-l1 current"><a class="reference internal" href="test.html">Unit Test package</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="test.html#subpackages">Subpackages</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="file_compare/test.file_compare.html">test.file_compare package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="file_compare/test.file_compare.html#test.file_compare.files_equal_as_text"><code class="docutils literal notranslate"><span class="pre">files_equal_as_text()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="file_compare/test.file_compare.html#subpackages">Subpackages</a><ul>
 <li class="toctree-l5"><a class="reference internal" href="file_compare/schemas/test.file_compare.schemas.html">test.file_compare.schemas package</a></li>
 <li class="toctree-l5"><a class="reference internal" href="file_compare/templates/test.file_compare.templates.html">test.file_compare.templates package</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="loaders/test.loaders.html">test.loaders package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="loaders/test.loaders.html#submodules">Submodules</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="loaders/test.loaders.test_file_loader.html">test.loaders.test_file_loader module</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="loaders/test.loaders.test_file_loader.html#test.loaders.test_file_loader.TestFileLoader"><code class="docutils literal notranslate"><span class="pre">TestFileLoader</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="loaders/test.loaders.test_file_loader.html#test.loaders.test_file_loader.TestFileLoader.test___call__"><code class="docutils literal notranslate"><span class="pre">TestFileLoader.test___call__()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="loaders/test.loaders.test_file_loader.html#test.loaders.test_file_loader.TestFileLoader.test___init_subclass__"><code class="docutils literal notranslate"><span class="pre">TestFileLoader.test___init_subclass__()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="loaders/test.loaders.test_file_loader.html#test.loaders.test_file_loader.TestFileLoader.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestFileLoader.test___slots__()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="loaders/test.loaders.test_file_loader.html#test.loaders.test_file_loader.TestFileLoader.test__build_cam_data"><code class="docutils literal notranslate"><span class="pre">TestFileLoader.test__build_cam_data()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="loaders/test.loaders.test_file_loader.html#test.loaders.test_file_loader.TestFileLoader.test_abstract"><code class="docutils literal notranslate"><span class="pre">TestFileLoader.test_abstract()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="loaders/test.loaders.test_file_loader.html#test.loaders.test_file_loader.TestFileLoader.test_get_extension"><code class="docutils literal notranslate"><span class="pre">TestFileLoader.test_get_extension()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="loaders/test.loaders.test_jsonl_loader.html">test.loaders.test_jsonl_loader module</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="loaders/test.loaders.test_jsonl_loader.html#test.loaders.test_jsonl_loader.TestJsonlLoader"><code class="docutils literal notranslate"><span class="pre">TestJsonlLoader</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="loaders/test.loaders.test_jsonl_loader.html#test.loaders.test_jsonl_loader.TestJsonlLoader.test___call__"><code class="docutils literal notranslate"><span class="pre">TestJsonlLoader.test___call__()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="loaders/test.loaders.test_jsonl_loader.html#test.loaders.test_jsonl_loader.TestJsonlLoader.test___call___invalid"><code class="docutils literal notranslate"><span class="pre">TestJsonlLoader.test___call___invalid()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="loaders/test.loaders.test_jsonl_loader.html#test.loaders.test_jsonl_loader.TestJsonlLoader.test___call___unsupported_type"><code class="docutils literal notranslate"><span class="pre">TestJsonlLoader.test___call___unsupported_type()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="loaders/test.loaders.test_jsonl_loader.html#test.loaders.test_jsonl_loader.TestJsonlLoader.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestJsonlLoader.test___slots__()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="loaders/test.loaders.test_jsonl_loader.html#test.loaders.test_jsonl_loader.TestJsonlLoader.test_get_extension"><code class="docutils literal notranslate"><span class="pre">TestJsonlLoader.test_get_extension()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="loaders/test.loaders.test_pickle_actor_loader.html">test.loaders.test_pickle_actor_loader module</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="loaders/test.loaders.test_pickle_actor_loader.html#test.loaders.test_pickle_actor_loader.TestPickleActorLoader"><code class="docutils literal notranslate"><span class="pre">TestPickleActorLoader</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="loaders/test.loaders.test_pickle_actor_loader.html#test.loaders.test_pickle_actor_loader.TestPickleActorLoader.test___call__"><code class="docutils literal notranslate"><span class="pre">TestPickleActorLoader.test___call__()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="loaders/test.loaders.test_pickle_actor_loader.html#test.loaders.test_pickle_actor_loader.TestPickleActorLoader.test___call___invalid"><code class="docutils literal notranslate"><span class="pre">TestPickleActorLoader.test___call___invalid()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="loaders/test.loaders.test_pickle_actor_loader.html#test.loaders.test_pickle_actor_loader.TestPickleActorLoader.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestPickleActorLoader.test___slots__()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="loaders/test.loaders.test_pickle_actor_loader.html#test.loaders.test_pickle_actor_loader.TestPickleActorLoader.test__dict_to_cam_data"><code class="docutils literal notranslate"><span class="pre">TestPickleActorLoader.test__dict_to_cam_data()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="loaders/test.loaders.test_pickle_actor_loader.html#test.loaders.test_pickle_actor_loader.TestPickleActorLoader.test_get_extension"><code class="docutils literal notranslate"><span class="pre">TestPickleActorLoader.test_get_extension()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="writers/test.writers.html">test.writers package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="writers/test.writers.html#submodules">Submodules</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="writers/test.writers.test_file_writer.html">test.writers.test_file_writer module</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="writers/test.writers.test_file_writer.html#test.writers.test_file_writer.TestFileWriter"><code class="docutils literal notranslate"><span class="pre">TestFileWriter</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="writers/test.writers.test_file_writer.html#test.writers.test_file_writer.TestFileWriter.test___call__"><code class="docutils literal notranslate"><span class="pre">TestFileWriter.test___call__()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="writers/test.writers.test_file_writer.html#test.writers.test_file_writer.TestFileWriter.test___init_subclass__"><code class="docutils literal notranslate"><span class="pre">TestFileWriter.test___init_subclass__()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="writers/test.writers.test_file_writer.html#test.writers.test_file_writer.TestFileWriter.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestFileWriter.test___slots__()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="writers/test.writers.test_file_writer.html#test.writers.test_file_writer.TestFileWriter.test_abstract"><code class="docutils literal notranslate"><span class="pre">TestFileWriter.test_abstract()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="writers/test.writers.test_file_writer.html#test.writers.test_file_writer.TestFileWriter.test_get_extension"><code class="docutils literal notranslate"><span class="pre">TestFileWriter.test_get_extension()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="writers/test.writers.test_gpx_writer.html">test.writers.test_gpx_writer module</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="writers/test.writers.test_gpx_writer.html#test.writers.test_gpx_writer.TestGpxWriter"><code class="docutils literal notranslate"><span class="pre">TestGpxWriter</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="writers/test.writers.test_gpx_writer.html#test.writers.test_gpx_writer.TestGpxWriter.test___call__"><code class="docutils literal notranslate"><span class="pre">TestGpxWriter.test___call__()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="writers/test.writers.test_gpx_writer.html#test.writers.test_gpx_writer.TestGpxWriter.test___call___extension_prefix"><code class="docutils literal notranslate"><span class="pre">TestGpxWriter.test___call___extension_prefix()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="writers/test.writers.test_gpx_writer.html#test.writers.test_gpx_writer.TestGpxWriter.test___call___unwritable"><code class="docutils literal notranslate"><span class="pre">TestGpxWriter.test___call___unwritable()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="writers/test.writers.test_gpx_writer.html#test.writers.test_gpx_writer.TestGpxWriter.test___init__"><code class="docutils literal notranslate"><span class="pre">TestGpxWriter.test___init__()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="writers/test.writers.test_gpx_writer.html#test.writers.test_gpx_writer.TestGpxWriter.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestGpxWriter.test___slots__()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="writers/test.writers.test_gpx_writer.html#test.writers.test_gpx_writer.TestGpxWriter.test__build_track"><code class="docutils literal notranslate"><span class="pre">TestGpxWriter.test__build_track()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="writers/test.writers.test_gpx_writer.html#test.writers.test_gpx_writer.TestGpxWriter.test__cam_to_point"><code class="docutils literal notranslate"><span class="pre">TestGpxWriter.test__cam_to_point()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="writers/test.writers.test_gpx_writer.html#test.writers.test_gpx_writer.TestGpxWriter.test__cam_to_point_without_position"><code class="docutils literal notranslate"><span class="pre">TestGpxWriter.test__cam_to_point_without_position()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="writers/test.writers.test_gpx_writer.html#test.writers.test_gpx_writer.TestGpxWriter.test__rounded_text"><code class="docutils literal notranslate"><span class="pre">TestGpxWriter.test__rounded_text()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="writers/test.writers.test_gpx_writer.html#test.writers.test_gpx_writer.TestGpxWriter.test_get_extension"><code class="docutils literal notranslate"><span class="pre">TestGpxWriter.test_get_extension()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -372,57 +595,75 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="test.test___main__.html">test.test___main__ module</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="test.test___main__.html#test.test___main__.TestExitCode"><code class="docutils literal notranslate"><span class="pre">TestExitCode</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="test.test___main__.html#test.test___main__.TestExitCode.test_enum_length"><code class="docutils literal notranslate"><span class="pre">TestExitCode.test_enum_length()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test.test___main__.html#test.test___main__.TestExitCode.test_enum_values"><code class="docutils literal notranslate"><span class="pre">TestExitCode.test_enum_values()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l4"><a class="reference internal" href="test.test___main__.html#test.test___main__.TestGetMqttCredential"><code class="docutils literal notranslate"><span class="pre">TestGetMqttCredential</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="test.test___main__.html#test.test___main__.TestGetMqttCredential.test_missing_required_var_raises"><code class="docutils literal notranslate"><span class="pre">TestGetMqttCredential.test_missing_required_var_raises()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test.test___main__.html#test.test___main__.TestGetMqttCredential.test_optional_username_password_missing"><code class="docutils literal notranslate"><span class="pre">TestGetMqttCredential.test_optional_username_password_missing()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test.test___main__.html#test.test___main__.TestGetMqttCredential.test_reads_env_vars"><code class="docutils literal notranslate"><span class="pre">TestGetMqttCredential.test_reads_env_vars()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l4"><a class="reference internal" href="test.test___main__.html#test.test___main__.TestStepMessageWriteRun"><code class="docutils literal notranslate"><span class="pre">TestStepMessageWriteRun</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="test.test___main__.html#test.test___main__.TestStepMessageWriteRun.test_preserves_existing_file_content"><code class="docutils literal notranslate"><span class="pre">TestStepMessageWriteRun.test_preserves_existing_file_content()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test.test___main__.html#test.test___main__.TestStepMessageWriteRun.test_writes_queued_messages_to_file"><code class="docutils literal notranslate"><span class="pre">TestStepMessageWriteRun.test_writes_queued_messages_to_file()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test.test___main__.html#test.test___main__.TestExitCode.test_value"><code class="docutils literal notranslate"><span class="pre">TestExitCode.test_value()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l4"><a class="reference internal" href="test.test___main__.html#test.test___main__.test_args_parse"><code class="docutils literal notranslate"><span class="pre">test_args_parse()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test.test___main__.html#test.test___main__.test_args_parse_usage_error"><code class="docutils literal notranslate"><span class="pre">test_args_parse_usage_error()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test.test___main__.html#test.test___main__.test_args_parse_version"><code class="docutils literal notranslate"><span class="pre">test_args_parse_version()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test.test___main__.html#test.test___main__.test_conversion_constants"><code class="docutils literal notranslate"><span class="pre">test_conversion_constants()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test.test___main__.html#test.test___main__.test_conversion_run"><code class="docutils literal notranslate"><span class="pre">test_conversion_run()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test.test___main__.html#test.test___main__.test_conversion_run_not_requested"><code class="docutils literal notranslate"><span class="pre">test_conversion_run_not_requested()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test.test___main__.html#test.test___main__.test_conversion_run_usage_error"><code class="docutils literal notranslate"><span class="pre">test_conversion_run_usage_error()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test.test___main__.html#test.test___main__.test_drain_queue"><code class="docutils literal notranslate"><span class="pre">test_drain_queue()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="test.test___main__.html#test.test___main__.test_dunder_main_guard"><code class="docutils literal notranslate"><span class="pre">test_dunder_main_guard()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="test.test___main__.html#test.test___main__.test_exception_handler"><code class="docutils literal notranslate"><span class="pre">test_exception_handler()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="test.test___main__.html#test.test___main__.test_get_config_schema_file"><code class="docutils literal notranslate"><span class="pre">test_get_config_schema_file()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="test.test___main__.html#test.test___main__.test_get_config_template_file"><code class="docutils literal notranslate"><span class="pre">test_get_config_template_file()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test.test___main__.html#test.test___main__.test_get_mqtt_credential"><code class="docutils literal notranslate"><span class="pre">test_get_mqtt_credential()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="test.test___main__.html#test.test___main__.test_log_received_message"><code class="docutils literal notranslate"><span class="pre">test_log_received_message()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="test.test___main__.html#test.test___main__.test_main"><code class="docutils literal notranslate"><span class="pre">test_main()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="test.test___main__.html#test.test___main__.test_main_async"><code class="docutils literal notranslate"><span class="pre">test_main_async()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="test.test___main__.html#test.test___main__.test_main_async_non_windows_signal_handlers"><code class="docutils literal notranslate"><span class="pre">test_main_async_non_windows_signal_handlers()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="test.test___main__.html#test.test___main__.test_main_async_shutdown_requested"><code class="docutils literal notranslate"><span class="pre">test_main_async_shutdown_requested()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="test.test___main__.html#test.test___main__.test_main_async_windows_signal_handlers"><code class="docutils literal notranslate"><span class="pre">test_main_async_windows_signal_handlers()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="test.test___main__.html#test.test___main__.test_main_interrupt_exception"><code class="docutils literal notranslate"><span class="pre">test_main_interrupt_exception()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="test.test___main__.html#test.test___main__.test_signal_handler_raises_keyboard_interrupt"><code class="docutils literal notranslate"><span class="pre">test_signal_handler_raises_keyboard_interrupt()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="test.test___main__.html#test.test___main__.test_signal_handler_schedules_shutdown_when_published"><code class="docutils literal notranslate"><span class="pre">test_signal_handler_schedules_shutdown_when_published()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test.test___main__.html#test.test___main__.test_main_async_shutdown_during_connect_failures"><code class="docutils literal notranslate"><span class="pre">test_main_async_shutdown_during_connect_failures()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test.test___main__.html#test.test___main__.test_main_conversion_error"><code class="docutils literal notranslate"><span class="pre">test_main_conversion_error()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test.test___main__.html#test.test___main__.test_main_keyboard_interrupt"><code class="docutils literal notranslate"><span class="pre">test_main_keyboard_interrupt()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test.test___main__.html#test.test___main__.test_main_parse_args_system_exit"><code class="docutils literal notranslate"><span class="pre">test_main_parse_args_system_exit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test.test___main__.html#test.test___main__.test_main_unhandled_exception"><code class="docutils literal notranslate"><span class="pre">test_main_unhandled_exception()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test.test___main__.html#test.test___main__.test_runner_run"><code class="docutils literal notranslate"><span class="pre">test_runner_run()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test.test___main__.html#test.test___main__.test_signal_handler"><code class="docutils literal notranslate"><span class="pre">test_signal_handler()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test.test___main__.html#test.test___main__.test_signals_install"><code class="docutils literal notranslate"><span class="pre">test_signals_install()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test.test___main__.html#test.test___main__.test_step_broker_run"><code class="docutils literal notranslate"><span class="pre">test_step_broker_run()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test.test___main__.html#test.test___main__.test_step_message_write_run"><code class="docutils literal notranslate"><span class="pre">test_step_message_write_run()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="test.test___main__.html#test.test___main__.test_step_receive_run"><code class="docutils literal notranslate"><span class="pre">test_step_receive_run()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test.test___main__.html#test.test___main__.test_unraisable_handler"><code class="docutils literal notranslate"><span class="pre">test_unraisable_handler()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="test.test___main__.html#test.test___main__.test_wait_for_shutdown"><code class="docutils literal notranslate"><span class="pre">test_wait_for_shutdown()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="test.test_file_converter.html">test.test_file_converter module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="test.test_file_converter.html#test.test_file_converter.TestFileConverter"><code class="docutils literal notranslate"><span class="pre">TestFileConverter</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test.test_file_converter.html#test.test_file_converter.TestFileConverter.test___call__"><code class="docutils literal notranslate"><span class="pre">TestFileConverter.test___call__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test.test_file_converter.html#test.test_file_converter.TestFileConverter.test___call___invalid"><code class="docutils literal notranslate"><span class="pre">TestFileConverter.test___call___invalid()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test.test_file_converter.html#test.test_file_converter.TestFileConverter.test___call___output_directory_error"><code class="docutils literal notranslate"><span class="pre">TestFileConverter.test___call___output_directory_error()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test.test_file_converter.html#test.test_file_converter.TestFileConverter.test___init__"><code class="docutils literal notranslate"><span class="pre">TestFileConverter.test___init__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test.test_file_converter.html#test.test_file_converter.TestFileConverter.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestFileConverter.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test.test_file_converter.html#test.test_file_converter.TestFileConverter.test__writer"><code class="docutils literal notranslate"><span class="pre">TestFileConverter.test__writer()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test.test_file_converter.html#test.test_file_converter.TestFileConverter.test_load"><code class="docutils literal notranslate"><span class="pre">TestFileConverter.test_load()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test.test_file_converter.html#test.test_file_converter.TestFileConverter.test_load_real_files"><code class="docutils literal notranslate"><span class="pre">TestFileConverter.test_load_real_files()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test.test_file_converter.html#test.test_file_converter.TestFileConverter.test_load_rejected"><code class="docutils literal notranslate"><span class="pre">TestFileConverter.test_load_rejected()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test.test_file_converter.html#test.test_file_converter.TestFileConverter.test_output_file"><code class="docutils literal notranslate"><span class="pre">TestFileConverter.test_output_file()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test.test_file_converter.html#test.test_file_converter.TestFileConverter.test_output_file_unsupported_format"><code class="docutils literal notranslate"><span class="pre">TestFileConverter.test_output_file_unsupported_format()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test.test_file_converter.html#test.test_file_converter.TestFileConverter.test_output_formats"><code class="docutils literal notranslate"><span class="pre">TestFileConverter.test_output_formats()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="test.test_step_broker.html">test.test_step_broker module</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="test.test_step_broker.html#test.test_step_broker.TestStepBroker"><code class="docutils literal notranslate"><span class="pre">TestStepBroker</span></code></a><ul>
 <li class="toctree-l5"><a class="reference internal" href="test.test_step_broker.html#test.test_step_broker.TestStepBroker.test___aenter__"><code class="docutils literal notranslate"><span class="pre">TestStepBroker.test___aenter__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test.test_step_broker.html#test.test_step_broker.TestStepBroker.test___init__"><code class="docutils literal notranslate"><span class="pre">TestStepBroker.test___init__()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test.test_step_broker.html#test.test_step_broker.TestStepBroker.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestStepBroker.test___slots__()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test.test_step_broker.html#test.test_step_broker.TestStepBroker.test_init"><code class="docutils literal notranslate"><span class="pre">TestStepBroker.test_init()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test.test_step_broker.html#test.test_step_broker.TestStepBroker.test_init_credential_auth_fallback"><code class="docutils literal notranslate"><span class="pre">TestStepBroker.test_init_credential_auth_fallback()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test.test_step_broker.html#test.test_step_broker.TestStepBroker.test_subscribe_execution_no_subscription_topics"><code class="docutils literal notranslate"><span class="pre">TestStepBroker.test_subscribe_execution_no_subscription_topics()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test.test_step_broker.html#test.test_step_broker.TestStepBroker.test_subscribe_execution_qos_downgrade_accepted"><code class="docutils literal notranslate"><span class="pre">TestStepBroker.test_subscribe_execution_qos_downgrade_accepted()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test.test_step_broker.html#test.test_step_broker.TestStepBroker.test_subscribe_execution_qos_mismatch"><code class="docutils literal notranslate"><span class="pre">TestStepBroker.test_subscribe_execution_qos_mismatch()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test.test_step_broker.html#test.test_step_broker.TestStepBroker.test_subscribe_execution_qos_mismatch_with_reason_code_results"><code class="docutils literal notranslate"><span class="pre">TestStepBroker.test_subscribe_execution_qos_mismatch_with_reason_code_results()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test.test_step_broker.html#test.test_step_broker.TestStepBroker.test_subscribe_execution_result_count_mismatch"><code class="docutils literal notranslate"><span class="pre">TestStepBroker.test_subscribe_execution_result_count_mismatch()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test.test_step_broker.html#test.test_step_broker.TestStepBroker.test_subscribe_execution_success"><code class="docutils literal notranslate"><span class="pre">TestStepBroker.test_subscribe_execution_success()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test.test_step_broker.html#test.test_step_broker.TestStepBroker.test_subscribe_execution_success_with_reason_code_results"><code class="docutils literal notranslate"><span class="pre">TestStepBroker.test_subscribe_execution_success_with_reason_code_results()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test.test_step_broker.html#test.test_step_broker.TestStepBroker.test_subscribe_execution"><code class="docutils literal notranslate"><span class="pre">TestStepBroker.test_subscribe_execution()</span></code></a></li>
 </ul>
 </li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="test.test_step_exception.html">test.test_step_exception module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="test.test_step_exception.html#test.test_step_exception.TestLoaderError"><code class="docutils literal notranslate"><span class="pre">TestLoaderError</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test.test_step_exception.html#test.test_step_exception.TestLoaderError.test_is_step_message_save_error_subclass"><code class="docutils literal notranslate"><span class="pre">TestLoaderError.test_is_step_message_save_error_subclass()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test.test_step_exception.html#test.test_step_exception.TestLoaderError.test_message"><code class="docutils literal notranslate"><span class="pre">TestLoaderError.test_message()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test.test_step_exception.html#test.test_step_exception.TestLoaderError.test_raise_and_catch"><code class="docutils literal notranslate"><span class="pre">TestLoaderError.test_raise_and_catch()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l4"><a class="reference internal" href="test.test_step_exception.html#test.test_step_exception.TestShutdownRequestedError"><code class="docutils literal notranslate"><span class="pre">TestShutdownRequestedError</span></code></a><ul>
 <li class="toctree-l5"><a class="reference internal" href="test.test_step_exception.html#test.test_step_exception.TestShutdownRequestedError.test_is_step_message_save_error_subclass"><code class="docutils literal notranslate"><span class="pre">TestShutdownRequestedError.test_is_step_message_save_error_subclass()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test.test_step_exception.html#test.test_step_exception.TestShutdownRequestedError.test_raise_and_catch"><code class="docutils literal notranslate"><span class="pre">TestShutdownRequestedError.test_raise_and_catch()</span></code></a></li>
@@ -440,52 +681,47 @@
 <li class="toctree-l5"><a class="reference internal" href="test.test_step_exception.html#test.test_step_exception.TestStepMessageSaveError.test_raise_and_catch"><code class="docutils literal notranslate"><span class="pre">TestStepMessageSaveError.test_raise_and_catch()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l4"><a class="reference internal" href="test.test_step_exception.html#test.test_step_exception.TestWriterError"><code class="docutils literal notranslate"><span class="pre">TestWriterError</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test.test_step_exception.html#test.test_step_exception.TestWriterError.test_is_step_message_save_error_subclass"><code class="docutils literal notranslate"><span class="pre">TestWriterError.test_is_step_message_save_error_subclass()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test.test_step_exception.html#test.test_step_exception.TestWriterError.test_message"><code class="docutils literal notranslate"><span class="pre">TestWriterError.test_message()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test.test_step_exception.html#test.test_step_exception.TestWriterError.test_raise_and_catch"><code class="docutils literal notranslate"><span class="pre">TestWriterError.test_raise_and_catch()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">test.test_step_message_save_config module</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#test.test_step_message_save_config.TestConfigGenerateJsonSchema"><code class="docutils literal notranslate"><span class="pre">TestConfigGenerateJsonSchema</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="#test.test_step_message_save_config.TestConfigGenerateJsonSchema.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestConfigGenerateJsonSchema.test___slots__()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="#test.test_step_message_save_config.TestConfigGenerateJsonSchema.test_generate"><code class="docutils literal notranslate"><span class="pre">TestConfigGenerateJsonSchema.test_generate()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="#test.test_step_message_save_config.TestConfigGenerateJsonSchema.test_generate_with_validation_mode"><code class="docutils literal notranslate"><span class="pre">TestConfigGenerateJsonSchema.test_generate_with_validation_mode()</span></code></a></li>
-</ul>
-</li>
 <li class="toctree-l4"><a class="reference internal" href="#test.test_step_message_save_config.TestMessageType"><code class="docutils literal notranslate"><span class="pre">TestMessageType</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#test.test_step_message_save_config.TestMessageType.test___get_pydantic_json_schema__"><code class="docutils literal notranslate"><span class="pre">TestMessageType.test___get_pydantic_json_schema__()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#test.test_step_message_save_config.TestMessageType.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestMessageType.test___slots__()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="#test.test_step_message_save_config.TestMessageType.test_get_pydantic_json_schema"><code class="docutils literal notranslate"><span class="pre">TestMessageType.test_get_pydantic_json_schema()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#test.test_step_message_save_config.TestMessageType.test_value"><code class="docutils literal notranslate"><span class="pre">TestMessageType.test_value()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l4"><a class="reference internal" href="#test.test_step_message_save_config.TestMqttClientConfig"><code class="docutils literal notranslate"><span class="pre">TestMqttClientConfig</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="#test.test_step_message_save_config.TestMqttClientConfig.test_frozen_instance_raises"><code class="docutils literal notranslate"><span class="pre">TestMqttClientConfig.test_frozen_instance_raises()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#test.test_step_message_save_config.TestMqttClientConfig.test_field_validation"><code class="docutils literal notranslate"><span class="pre">TestMqttClientConfig.test_field_validation()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#test.test_step_message_save_config.TestMqttClientConfig.test_get_default"><code class="docutils literal notranslate"><span class="pre">TestMqttClientConfig.test_get_default()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#test.test_step_message_save_config.TestMqttClientConfig.test_model_config"><code class="docutils literal notranslate"><span class="pre">TestMqttClientConfig.test_model_config()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l4"><a class="reference internal" href="#test.test_step_message_save_config.TestMqttCredential"><code class="docutils literal notranslate"><span class="pre">TestMqttCredential</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#test.test_step_message_save_config.TestMqttCredential.test___post_init__"><code class="docutils literal notranslate"><span class="pre">TestMqttCredential.test___post_init__()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#test.test_step_message_save_config.TestMqttCredential.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestMqttCredential.test___slots__()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="#test.test_step_message_save_config.TestMqttCredential.test_empty_url_raises"><code class="docutils literal notranslate"><span class="pre">TestMqttCredential.test_empty_url_raises()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="#test.test_step_message_save_config.TestMqttCredential.test_init"><code class="docutils literal notranslate"><span class="pre">TestMqttCredential.test_init()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="#test.test_step_message_save_config.TestMqttCredential.test_init_optional_credentials_none"><code class="docutils literal notranslate"><span class="pre">TestMqttCredential.test_init_optional_credentials_none()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="#test.test_step_message_save_config.TestMqttCredential.test_port_boundary_valid"><code class="docutils literal notranslate"><span class="pre">TestMqttCredential.test_port_boundary_valid()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="#test.test_step_message_save_config.TestMqttCredential.test_port_out_of_range_raises"><code class="docutils literal notranslate"><span class="pre">TestMqttCredential.test_port_out_of_range_raises()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#test.test_step_message_save_config.TestMqttCredential.test_class_constants"><code class="docutils literal notranslate"><span class="pre">TestMqttCredential.test_class_constants()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#test.test_step_message_save_config.TestMqttCredential.test_frozen"><code class="docutils literal notranslate"><span class="pre">TestMqttCredential.test_frozen()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l4"><a class="reference internal" href="#test.test_step_message_save_config.TestMqttProtocolConfig"><code class="docutils literal notranslate"><span class="pre">TestMqttProtocolConfig</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="#test.test_step_message_save_config.TestMqttProtocolConfig.test_frozen_instance_raises"><code class="docutils literal notranslate"><span class="pre">TestMqttProtocolConfig.test_frozen_instance_raises()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#test.test_step_message_save_config.TestMqttProtocolConfig.test_field_validation"><code class="docutils literal notranslate"><span class="pre">TestMqttProtocolConfig.test_field_validation()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#test.test_step_message_save_config.TestMqttProtocolConfig.test_get_default"><code class="docutils literal notranslate"><span class="pre">TestMqttProtocolConfig.test_get_default()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#test.test_step_message_save_config.TestMqttProtocolConfig.test_model_config"><code class="docutils literal notranslate"><span class="pre">TestMqttProtocolConfig.test_model_config()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="#test.test_step_message_save_config.TestMqttProtocolConfig.test_subscription_topics_empty_list_raises"><code class="docutils literal notranslate"><span class="pre">TestMqttProtocolConfig.test_subscription_topics_empty_list_raises()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="#test.test_step_message_save_config.TestMqttProtocolConfig.test_subscription_topics_none"><code class="docutils literal notranslate"><span class="pre">TestMqttProtocolConfig.test_subscription_topics_none()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l4"><a class="reference internal" href="#test.test_step_message_save_config.TestMqttQoSConfig"><code class="docutils literal notranslate"><span class="pre">TestMqttQoSConfig</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="#test.test_step_message_save_config.TestMqttQoSConfig.test_get_pydantic_json_schema"><code class="docutils literal notranslate"><span class="pre">TestMqttQoSConfig.test_get_pydantic_json_schema()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#test.test_step_message_save_config.TestMqttQoSConfig.test___get_pydantic_json_schema__"><code class="docutils literal notranslate"><span class="pre">TestMqttQoSConfig.test___get_pydantic_json_schema__()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#test.test_step_message_save_config.TestMqttQoSConfig.test_value"><code class="docutils literal notranslate"><span class="pre">TestMqttQoSConfig.test_value()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l4"><a class="reference internal" href="#test.test_step_message_save_config.TestStepBrokerConfig"><code class="docutils literal notranslate"><span class="pre">TestStepBrokerConfig</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="#test.test_step_message_save_config.TestStepBrokerConfig.test_cache_dir_none"><code class="docutils literal notranslate"><span class="pre">TestStepBrokerConfig.test_cache_dir_none()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="#test.test_step_message_save_config.TestStepBrokerConfig.test_frozen_instance_raises"><code class="docutils literal notranslate"><span class="pre">TestStepBrokerConfig.test_frozen_instance_raises()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#test.test_step_message_save_config.TestStepBrokerConfig.test_field_validation"><code class="docutils literal notranslate"><span class="pre">TestStepBrokerConfig.test_field_validation()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#test.test_step_message_save_config.TestStepBrokerConfig.test_get_default"><code class="docutils literal notranslate"><span class="pre">TestStepBrokerConfig.test_get_default()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#test.test_step_message_save_config.TestStepBrokerConfig.test_model_config"><code class="docutils literal notranslate"><span class="pre">TestStepBrokerConfig.test_model_config()</span></code></a></li>
 </ul>
@@ -496,19 +732,16 @@
 </ul>
 </li>
 <li class="toctree-l4"><a class="reference internal" href="#test.test_step_message_save_config.TestStepMessageSaveConfig"><code class="docutils literal notranslate"><span class="pre">TestStepMessageSaveConfig</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="#test.test_step_message_save_config.TestStepMessageSaveConfig.test_frozen_instance_raises"><code class="docutils literal notranslate"><span class="pre">TestStepMessageSaveConfig.test_frozen_instance_raises()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#test.test_step_message_save_config.TestStepMessageSaveConfig.test_STEP_CONFIG_SCHEMA"><code class="docutils literal notranslate"><span class="pre">TestStepMessageSaveConfig.test_STEP_CONFIG_SCHEMA()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#test.test_step_message_save_config.TestStepMessageSaveConfig.test_field_validation"><code class="docutils literal notranslate"><span class="pre">TestStepMessageSaveConfig.test_field_validation()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#test.test_step_message_save_config.TestStepMessageSaveConfig.test_get_default"><code class="docutils literal notranslate"><span class="pre">TestStepMessageSaveConfig.test_get_default()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#test.test_step_message_save_config.TestStepMessageSaveConfig.test_model_config"><code class="docutils literal notranslate"><span class="pre">TestStepMessageSaveConfig.test_model_config()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#test.test_step_message_save_config.TestStepMessageSaveConfig.test_print_config_example"><code class="docutils literal notranslate"><span class="pre">TestStepMessageSaveConfig.test_print_config_example()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#test.test_step_message_save_config.TestStepMessageSaveConfig.test_print_config_schema"><code class="docutils literal notranslate"><span class="pre">TestStepMessageSaveConfig.test_print_config_schema()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="#test.test_step_message_save_config.TestStepMessageSaveConfig.test_step_config_schema_constant"><code class="docutils literal notranslate"><span class="pre">TestStepMessageSaveConfig.test_step_config_schema_constant()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="#test.test_step_message_save_config.TestStepMessageSaveConfig.test_step_receiver_number_bounds"><code class="docutils literal notranslate"><span class="pre">TestStepMessageSaveConfig.test_step_receiver_number_bounds()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l4"><a class="reference internal" href="#test.test_step_message_save_config.TestSubscriptionTopicParams"><code class="docutils literal notranslate"><span class="pre">TestSubscriptionTopicParams</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="#test.test_step_message_save_config.TestSubscriptionTopicParams.test_construct"><code class="docutils literal notranslate"><span class="pre">TestSubscriptionTopicParams.test_construct()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="#test.test_step_message_save_config.TestSubscriptionTopicParams.test_empty_topic_raises"><code class="docutils literal notranslate"><span class="pre">TestSubscriptionTopicParams.test_empty_topic_raises()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="#test.test_step_message_save_config.TestSubscriptionTopicParams.test_frozen_instance_raises"><code class="docutils literal notranslate"><span class="pre">TestSubscriptionTopicParams.test_frozen_instance_raises()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#test.test_step_message_save_config.TestSubscriptionTopicParams.test_field_validation"><code class="docutils literal notranslate"><span class="pre">TestSubscriptionTopicParams.test_field_validation()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#test.test_step_message_save_config.TestSubscriptionTopicParams.test_get_default"><code class="docutils literal notranslate"><span class="pre">TestSubscriptionTopicParams.test_get_default()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#test.test_step_message_save_config.TestSubscriptionTopicParams.test_model_config"><code class="docutils literal notranslate"><span class="pre">TestSubscriptionTopicParams.test_model_config()</span></code></a></li>
 </ul>
@@ -517,6 +750,56 @@
 </li>
 </ul>
 </li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">Changelog</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../changelog.html#id1">1.2.0 - 2026-10-09</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../changelog.html#added">1.2.0 - Added</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../changelog.html#changed">1.2.0 - Changed</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../changelog.html#id2">1.1.4 - 2026-09-22</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../changelog.html#id3">1.1.4 - Changed</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../changelog.html#id4">1.1.3 - 2026-09-20</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../changelog.html#fixed">1.1.3 - Fixed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../changelog.html#id5">1.1.3 - Changed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../changelog.html#id6">1.1.3 - Added</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../changelog.html#id7">1.1.2 - 2026-09-15</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../changelog.html#id8">1.1.2 - Changed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../changelog.html#id9">1.1.2 - Added</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../changelog.html#id10">1.1.1 - 2026-09-15</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../changelog.html#id11">1.1.1 - Changed</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../changelog.html#id12">1.1.0 - 2026-09-12</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../changelog.html#id13">1.1.0 - Added</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../changelog.html#id14">1.1.0 - Changed</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../changelog.html#id15">1.0.5 - 2026-09-11</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../changelog.html#id16">1.0.5 - Added</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../changelog.html#id17">1.0.5 - Changed</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../changelog.html#id18">1.0.4 - 2026-08-30</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../changelog.html#id19">1.0.4 - Added</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../changelog.html#id20">1.0.4 - Changed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../changelog.html#removed">1.0.4 - Removed</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../changelog.html#id21">1.0.3 - 2026-08-21</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../changelog.html#id22">1.0.3 - Added</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../changelog.html#id23">1.0.3 - Changed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../changelog.html#id24">1.0.3 - Fixed</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../changelog.html#earlier-versions">Earlier versions</a></li>
 </ul>
 </li>
 </ul>
@@ -548,102 +831,21 @@
              
   <section id="module-test.test_step_message_save_config">
 <span id="test-test-step-message-save-config-module"></span><h1>test.test_step_message_save_config module<a class="headerlink" href="#module-test.test_step_message_save_config" title="Link to this heading"></a></h1>
-<p>Test module for step_message_save configuration components.</p>
-<p>This module contains comprehensive unit tests for the step_message_save configuration
-system, specifically testing the MQTT client/protocol configuration models, message
-type and QoS enumerations, and the main <code class="docutils literal notranslate"><span class="pre">StepMessageSaveConfig</span></code> class. The tests
-ensure proper functionality, default value settings, and schema/example file
-generation capabilities.</p>
-<p>Key Testing Features:</p>
-<blockquote>
-<div><ul class="simple">
-<li><p>Default configuration validation for all configuration model classes</p></li>
-<li><p>Parameterized testing for enumeration value conversions</p></li>
-<li><p>File comparison testing for schema and template generation</p></li>
-<li><p>Error handling testing for invalid input values</p></li>
-<li><p>Temporary directory usage to avoid filesystem pollution</p></li>
-</ul>
-</div></blockquote>
-<dl class="py class">
-<dt class="sig sig-object py" id="test.test_step_message_save_config.TestConfigGenerateJsonSchema">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">test.test_step_message_save_config.</span></span><span class="sig-name descname"><span class="pre">TestConfigGenerateJsonSchema</span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestConfigGenerateJsonSchema"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestConfigGenerateJsonSchema" title="Link to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>Test suite for the <code class="docutils literal notranslate"><span class="pre">_ConfigGenerateJsonSchema</span></code> class.</p>
-<p>This class contains tests to verify the correct behavior of the
-<code class="docutils literal notranslate"><span class="pre">_ConfigGenerateJsonSchema.generate</span></code> method, ensuring it properly customizes the
-JSON schema with the correct $id and $schema fields.</p>
-<dl class="py method">
-<dt class="sig sig-object py" id="test.test_step_message_save_config.TestConfigGenerateJsonSchema.test___slots__">
-<span class="sig-name descname"><span class="pre">test___slots__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestConfigGenerateJsonSchema.test___slots__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestConfigGenerateJsonSchema.test___slots__" title="Link to this definition"></a></dt>
-<dd><p>Test that the <code class="docutils literal notranslate"><span class="pre">_ConfigGenerateJsonSchema</span></code> class defines the expected
-<code class="docutils literal notranslate"><span class="pre">__slots__</span></code>.</p>
-<p>This test verifies that the <code class="docutils literal notranslate"><span class="pre">_ConfigGenerateJsonSchema</span></code> class has the correct
-attributes defined in its <code class="docutils literal notranslate"><span class="pre">__slots__</span></code> to ensure memory efficiency
-and attribute management.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>None</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="test.test_step_message_save_config.TestConfigGenerateJsonSchema.test_generate">
-<span class="sig-name descname"><span class="pre">test_generate</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestConfigGenerateJsonSchema.test_generate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestConfigGenerateJsonSchema.test_generate" title="Link to this definition"></a></dt>
-<dd><p>Test that the generate method returns a JSON schema with custom $id and
-$schema.</p>
-<p>Verifies that:</p>
-<blockquote>
-<div><ul class="simple">
-<li><p>The returned object is a dictionary</p></li>
-<li><p>The $id field is set to <code class="docutils literal notranslate"><span class="pre">STEP_CONFIG_SCHEMA</span></code></p></li>
-<li><p>The $schema field is set to the schema_dialect of <code class="docutils literal notranslate"><span class="pre">_ConfigGenerateJsonSchema</span></code></p></li>
-</ul>
-</div></blockquote>
-<dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>None</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="test.test_step_message_save_config.TestConfigGenerateJsonSchema.test_generate_with_validation_mode">
-<span class="sig-name descname"><span class="pre">test_generate_with_validation_mode</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestConfigGenerateJsonSchema.test_generate_with_validation_mode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestConfigGenerateJsonSchema.test_generate_with_validation_mode" title="Link to this definition"></a></dt>
-<dd><p>Test that the generate method works correctly with explicit validation mode.</p>
-<p>Verifies that:</p>
-<blockquote>
-<div><ul class="simple">
-<li><p>The method accepts “validation” as the mode parameter</p></li>
-<li><p>The returned schema contains the custom $id and $schema fields</p></li>
-</ul>
-</div></blockquote>
-<dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>None</p>
-</dd>
-</dl>
-</dd></dl>
-
-</dd></dl>
-
+<p>Unit tests for step_message_save.step_message_save_config.</p>
+<p>This module contains unit tests for the step_message_save configuration system: the
+<code class="docutils literal notranslate"><span class="pre">MqttCredential</span></code> dataclass, the MQTT client/protocol configuration models, the
+message type and QoS enumerations, and the top-level <code class="docutils literal notranslate"><span class="pre">StepMessageSaveConfig</span></code>
+class, including its schema and template file generation.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="test.test_step_message_save_config.TestMessageType">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">test.test_step_message_save_config.</span></span><span class="sig-name descname"><span class="pre">TestMessageType</span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestMessageType"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestMessageType" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>Test class for MessageType enum validation.</p>
-<p>This test class contains test methods to verify the correct behavior and values of
-the MessageType enumeration. It ensures that each MessageType enum member maps to
-the correct MessageId value and validates the overall structure of the enum. The
-class uses parameterized testing to efficiently test multiple enum-value pairs in a
-single test method.</p>
+<p>Test suite for the <code class="docutils literal notranslate"><span class="pre">MessageType</span></code> enumeration.</p>
 <dl class="py method">
-<dt class="sig sig-object py" id="test.test_step_message_save_config.TestMessageType.test___slots__">
-<span class="sig-name descname"><span class="pre">test___slots__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestMessageType.test___slots__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestMessageType.test___slots__" title="Link to this definition"></a></dt>
-<dd><p>Test that the MessageType class defines the expected <code class="docutils literal notranslate"><span class="pre">__slots__</span></code>.</p>
-<p>This test verifies that the MessageType class has the correct
-attributes defined in its <code class="docutils literal notranslate"><span class="pre">__slots__</span></code> to ensure memory efficiency
-and attribute management.</p>
+<dt class="sig sig-object py" id="test.test_step_message_save_config.TestMessageType.test___get_pydantic_json_schema__">
+<span class="sig-name descname"><span class="pre">test___get_pydantic_json_schema__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestMessageType.test___get_pydantic_json_schema__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestMessageType.test___get_pydantic_json_schema__" title="Link to this definition"></a></dt>
+<dd><p>Test that the JSON Schema hook installed by <code class="docutils literal notranslate"><span class="pre">json_schema_text</span></code> sets the
+title and description of the enumeration’s schema.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>None</p>
@@ -652,10 +854,9 @@ and attribute management.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="test.test_step_message_save_config.TestMessageType.test_get_pydantic_json_schema">
-<span class="sig-name descname"><span class="pre">test_get_pydantic_json_schema</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestMessageType.test_get_pydantic_json_schema"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestMessageType.test_get_pydantic_json_schema" title="Link to this definition"></a></dt>
-<dd><p>Test that <code class="docutils literal notranslate"><span class="pre">__get_pydantic_json_schema__</span></code> adds a title and description to
-the generated schema.</p>
+<dt class="sig sig-object py" id="test.test_step_message_save_config.TestMessageType.test___slots__">
+<span class="sig-name descname"><span class="pre">test___slots__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestMessageType.test___slots__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestMessageType.test___slots__" title="Link to this definition"></a></dt>
+<dd><p>Test that <code class="docutils literal notranslate"><span class="pre">MessageType</span></code> defines empty <code class="docutils literal notranslate"><span class="pre">__slots__</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>None</p>
@@ -666,20 +867,13 @@ the generated schema.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="test.test_step_message_save_config.TestMessageType.test_value">
 <span class="sig-name descname"><span class="pre">test_value</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">enum</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../step_message_save_rst/step_message_save.step_message_save_config.html#step_message_save.step_message_save_config.MessageType" title="step_message_save.step_message_save_config.MessageType"><span class="pre">MessageType</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">expected</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MessageId</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestMessageType.test_value"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestMessageType.test_value" title="Link to this definition"></a></dt>
-<dd><p>Test that the MessageType enum value matches the expected MessageId.</p>
-<p>This test verifies that:</p>
-<blockquote>
-<div><ol class="arabic simple">
-<li><p>The enum’s value property returns the expected MessageId</p></li>
-<li><p>The MessageType enum contains exactly 3 members</p></li>
-</ol>
-</div></blockquote>
+<dd><p>Test that each <code class="docutils literal notranslate"><span class="pre">MessageType</span></code> member maps to the expected <code class="docutils literal notranslate"><span class="pre">MessageId</span></code>
+and that the enumeration has exactly three members.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>enum</strong> (<a class="reference internal" href="../step_message_save_rst/step_message_save.step_message_save_config.html#step_message_save.step_message_save_config.MessageType" title="step_message_save.step_message_save_config.MessageType"><em>MessageType</em></a>) – The MessageType enum instance to test</p></li>
-<li><p><strong>expected</strong> (<em>MessageId</em>) – The expected MessageId value that
-should match the enum’s value</p></li>
+<li><p><strong>enum</strong> (<a class="reference internal" href="../step_message_save_rst/step_message_save.step_message_save_config.html#step_message_save.step_message_save_config.MessageType" title="step_message_save.step_message_save_config.MessageType"><em>MessageType</em></a>) – The enumeration member under test.</p></li>
+<li><p><strong>expected</strong> (<em>MessageId</em>) – The expected <code class="docutils literal notranslate"><span class="pre">MessageId</span></code> value.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -694,27 +888,22 @@ should match the enum’s value</p></li>
 <dt class="sig sig-object py" id="test.test_step_message_save_config.TestMqttClientConfig">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">test.test_step_message_save_config.</span></span><span class="sig-name descname"><span class="pre">TestMqttClientConfig</span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestMqttClientConfig"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestMqttClientConfig" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>Test suite for MqttClientConfig class.</p>
-<p>This test class validates the configuration and behavior of the MqttClientConfig
-class, ensuring that default configurations are properly set and that all
-SSL/TLS security settings are correctly initialized.
-The tests verify:</p>
-<blockquote>
-<div><ul class="simple">
-<li><p>Default configuration values</p></li>
-<li><p>SSL/TLS certificate and key file paths</p></li>
-<li><p>Security settings and authentication parameters</p></li>
-<li><p>Proper instance creation and type validation</p></li>
-</ul>
-</div></blockquote>
+<p>Test suite for the <code class="docutils literal notranslate"><span class="pre">MqttClientConfig</span></code> model.</p>
 <dl class="py method">
-<dt class="sig sig-object py" id="test.test_step_message_save_config.TestMqttClientConfig.test_frozen_instance_raises">
-<span class="sig-name descname"><span class="pre">test_frozen_instance_raises</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestMqttClientConfig.test_frozen_instance_raises"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestMqttClientConfig.test_frozen_instance_raises" title="Link to this definition"></a></dt>
-<dd><p>Test that mutating a MqttClientConfig instance raises an error since the
-model is frozen.</p>
+<dt class="sig sig-object py" id="test.test_step_message_save_config.TestMqttClientConfig.test_field_validation">
+<span class="sig-name descname"><span class="pre">test_field_validation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">field</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">valid</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestMqttClientConfig.test_field_validation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestMqttClientConfig.test_field_validation" title="Link to this definition"></a></dt>
+<dd><p>Test that each field accepts valid values (including <code class="docutils literal notranslate"><span class="pre">None</span></code> for the
+optional files) and rejects empty strings, coerced types, and extra fields.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>None</p>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>field</strong> (<em>str</em>) – The name of the field to override.</p></li>
+<li><p><strong>value</strong> (<em>Any</em>) – The value assigned to <code class="docutils literal notranslate"><span class="pre">field</span></code>.</p></li>
+<li><p><strong>valid</strong> (<em>bool</em>) – Whether validation is expected to succeed.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
 </dd>
 </dl>
 </dd></dl>
@@ -722,17 +911,8 @@ model is frozen.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="test.test_step_message_save_config.TestMqttClientConfig.test_get_default">
 <span class="sig-name descname"><span class="pre">test_get_default</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestMqttClientConfig.test_get_default"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestMqttClientConfig.test_get_default" title="Link to this definition"></a></dt>
-<dd><p>Test that MqttClientConfig.get_default() returns a properly configured
-instance.</p>
-<p>Verifies that the default configuration contains:</p>
-<blockquote>
-<div><ul class="simple">
-<li><p>SSL enabled</p></li>
-<li><p>Proper SSL certificate and key file paths</p></li>
-<li><p>SSL certificate verification enabled</p></li>
-<li><p>CA certificates file path configured</p></li>
-</ul>
-</div></blockquote>
+<dd><p>Test that <code class="docutils literal notranslate"><span class="pre">get_default</span></code> returns an instance with the documented default
+values.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>None</p>
@@ -743,8 +923,7 @@ instance.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="test.test_step_message_save_config.TestMqttClientConfig.test_model_config">
 <span class="sig-name descname"><span class="pre">test_model_config</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestMqttClientConfig.test_model_config"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestMqttClientConfig.test_model_config" title="Link to this definition"></a></dt>
-<dd><p>Test that the MqttClientConfig model is frozen, strict, and forbids extra
-fields.</p>
+<dd><p>Test that <code class="docutils literal notranslate"><span class="pre">MqttClientConfig</span></code> is frozen, strict, and forbids extra fields.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>None</p>
@@ -760,9 +939,31 @@ fields.</p>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Test suite for the <code class="docutils literal notranslate"><span class="pre">MqttCredential</span></code> frozen dataclass.</p>
 <dl class="py method">
+<dt class="sig sig-object py" id="test.test_step_message_save_config.TestMqttCredential.test___post_init__">
+<span class="sig-name descname"><span class="pre">test___post_init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mqtt_url</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mqtt_port</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mqtt_username</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mqtt_password</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">error</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestMqttCredential.test___post_init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestMqttCredential.test___post_init__" title="Link to this definition"></a></dt>
+<dd><p>Test that <code class="docutils literal notranslate"><span class="pre">__post_init__</span></code> accepts valid fields and raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>
+naming the offending field for an empty/blank URL or an out-of-range port.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mqtt_url</strong> (<em>str</em>) – The broker URL under test.</p></li>
+<li><p><strong>mqtt_port</strong> (<em>int</em>) – The broker port under test.</p></li>
+<li><p><strong>mqtt_username</strong> (<em>str</em><em> | </em><em>None</em>) – The optional username under test.</p></li>
+<li><p><strong>mqtt_password</strong> (<em>str</em><em> | </em><em>None</em>) – The optional password under test.</p></li>
+<li><p><strong>error</strong> (<em>str</em><em> | </em><em>None</em>) – The field name expected in the <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>
+message, or None when construction must succeed.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="test.test_step_message_save_config.TestMqttCredential.test___slots__">
 <span class="sig-name descname"><span class="pre">test___slots__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestMqttCredential.test___slots__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestMqttCredential.test___slots__" title="Link to this definition"></a></dt>
-<dd><p>Test that the <code class="docutils literal notranslate"><span class="pre">MqttCredential</span></code> class defines the expected <code class="docutils literal notranslate"><span class="pre">__slots__</span></code>.</p>
+<dd><p>Test that <code class="docutils literal notranslate"><span class="pre">MqttCredential</span></code> defines the expected <code class="docutils literal notranslate"><span class="pre">__slots__</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>None</p>
@@ -771,24 +972,9 @@ fields.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="test.test_step_message_save_config.TestMqttCredential.test_empty_url_raises">
-<span class="sig-name descname"><span class="pre">test_empty_url_raises</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mqtt_url</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestMqttCredential.test_empty_url_raises"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestMqttCredential.test_empty_url_raises" title="Link to this definition"></a></dt>
-<dd><p>Test that an empty or whitespace-only <code class="docutils literal notranslate"><span class="pre">mqtt_url</span></code> raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>mqtt_url</strong> (<em>str</em>) – The empty/whitespace-only URL under test.</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>None</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="test.test_step_message_save_config.TestMqttCredential.test_init">
-<span class="sig-name descname"><span class="pre">test_init</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestMqttCredential.test_init"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestMqttCredential.test_init" title="Link to this definition"></a></dt>
-<dd><p>Test that MqttCredential stores the given mqtt_url, mqtt_port,
-mqtt_username, and mqtt_password.</p>
+<dt class="sig sig-object py" id="test.test_step_message_save_config.TestMqttCredential.test_class_constants">
+<span class="sig-name descname"><span class="pre">test_class_constants</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestMqttCredential.test_class_constants"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestMqttCredential.test_class_constants" title="Link to this definition"></a></dt>
+<dd><p>Test that the port range class constants have the expected values.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>None</p>
@@ -797,41 +983,13 @@ mqtt_username, and mqtt_password.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="test.test_step_message_save_config.TestMqttCredential.test_init_optional_credentials_none">
-<span class="sig-name descname"><span class="pre">test_init_optional_credentials_none</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestMqttCredential.test_init_optional_credentials_none"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestMqttCredential.test_init_optional_credentials_none" title="Link to this definition"></a></dt>
-<dd><p>Test that MqttCredential accepts <code class="docutils literal notranslate"><span class="pre">None</span></code> for mqtt_username and
-mqtt_password.</p>
+<dt class="sig sig-object py" id="test.test_step_message_save_config.TestMqttCredential.test_frozen">
+<span class="sig-name descname"><span class="pre">test_frozen</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestMqttCredential.test_frozen"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestMqttCredential.test_frozen" title="Link to this definition"></a></dt>
+<dd><p>Test that assigning a field of an <code class="docutils literal notranslate"><span class="pre">MqttCredential</span></code> raises
+<code class="docutils literal notranslate"><span class="pre">FrozenInstanceError</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>None</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="test.test_step_message_save_config.TestMqttCredential.test_port_boundary_valid">
-<span class="sig-name descname"><span class="pre">test_port_boundary_valid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mqtt_port</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestMqttCredential.test_port_boundary_valid"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestMqttCredential.test_port_boundary_valid" title="Link to this definition"></a></dt>
-<dd><p>Test that the <code class="docutils literal notranslate"><span class="pre">mqtt_port</span></code> boundary values 1 and 65535 are accepted.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>mqtt_port</strong> (<em>int</em>) – The boundary port value under test.</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>None</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="test.test_step_message_save_config.TestMqttCredential.test_port_out_of_range_raises">
-<span class="sig-name descname"><span class="pre">test_port_out_of_range_raises</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mqtt_port</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestMqttCredential.test_port_out_of_range_raises"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestMqttCredential.test_port_out_of_range_raises" title="Link to this definition"></a></dt>
-<dd><p>Test that a <code class="docutils literal notranslate"><span class="pre">mqtt_port</span></code> outside the 1-65535 range raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>mqtt_port</strong> (<em>int</em>) – The out-of-range port under test.</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>None</p>
 </dd>
 </dl>
 </dd></dl>
@@ -842,30 +1000,23 @@ mqtt_password.</p>
 <dt class="sig sig-object py" id="test.test_step_message_save_config.TestMqttProtocolConfig">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">test.test_step_message_save_config.</span></span><span class="sig-name descname"><span class="pre">TestMqttProtocolConfig</span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestMqttProtocolConfig"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestMqttProtocolConfig" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>Test suite for MqttProtocolConfig class.</p>
-<p>This test class validates the configuration and behavior of the MqttProtocolConfig
-class, ensuring that default configurations are properly set and that all
-MQTT protocol parameters are correctly initialized.
-The tests verify:</p>
-<blockquote>
-<div><ul class="simple">
-<li><p>Default configuration values</p></li>
-<li><p>Session expiry settings</p></li>
-<li><p>Timeout configurations</p></li>
-<li><p>Keepalive parameters</p></li>
-<li><p>Message queue settings and limits</p></li>
-<li><p>QoS settings and subscription parameters</p></li>
-<li><p>Proper instance creation and type validation</p></li>
-</ul>
-</div></blockquote>
+<p>Test suite for the <code class="docutils literal notranslate"><span class="pre">MqttProtocolConfig</span></code> model.</p>
 <dl class="py method">
-<dt class="sig sig-object py" id="test.test_step_message_save_config.TestMqttProtocolConfig.test_frozen_instance_raises">
-<span class="sig-name descname"><span class="pre">test_frozen_instance_raises</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestMqttProtocolConfig.test_frozen_instance_raises"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestMqttProtocolConfig.test_frozen_instance_raises" title="Link to this definition"></a></dt>
-<dd><p>Test that mutating a MqttProtocolConfig instance raises an error since
-the model is frozen.</p>
+<dt class="sig sig-object py" id="test.test_step_message_save_config.TestMqttProtocolConfig.test_field_validation">
+<span class="sig-name descname"><span class="pre">test_field_validation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">field</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">valid</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestMqttProtocolConfig.test_field_validation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestMqttProtocolConfig.test_field_validation" title="Link to this definition"></a></dt>
+<dd><p>Test that each numeric field accepts its boundary values and rejects the
+values just outside them, that <code class="docutils literal notranslate"><span class="pre">subscriptionTopics</span></code> accepts <code class="docutils literal notranslate"><span class="pre">None</span></code> but not
+an empty list, and that coerced types and extra fields are rejected.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>None</p>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>field</strong> (<em>str</em>) – The name of the field to override.</p></li>
+<li><p><strong>value</strong> (<em>Any</em>) – The value assigned to <code class="docutils literal notranslate"><span class="pre">field</span></code>.</p></li>
+<li><p><strong>valid</strong> (<em>bool</em>) – Whether validation is expected to succeed.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
 </dd>
 </dl>
 </dd></dl>
@@ -873,25 +1024,8 @@ the model is frozen.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="test.test_step_message_save_config.TestMqttProtocolConfig.test_get_default">
 <span class="sig-name descname"><span class="pre">test_get_default</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestMqttProtocolConfig.test_get_default"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestMqttProtocolConfig.test_get_default" title="Link to this definition"></a></dt>
-<dd><p>Test that MqttProtocolConfig.get_default() returns a properly configured
-instance.</p>
-<p>Verifies that the default configuration contains:</p>
-<blockquote>
-<div><ul class="simple">
-<li><p>Session expiry set to 0</p></li>
-<li><p>Timeout set to 30 seconds</p></li>
-<li><p>Keepalive set to 600 seconds</p></li>
-<li><p>Receive maximum set to 10</p></li>
-<li><p>Maximum packet size set to 4096 bytes</p></li>
-<li><p>Max queued incoming messages set to 60</p></li>
-<li><p>Max queued outgoing messages set to 60</p></li>
-<li><p>Max inflight messages set to 60</p></li>
-<li><p>Max concurrent outgoing calls set to 60</p></li>
-<li><p>Clean start enabled</p></li>
-<li><p>Max subscription QoS set to QOS_1</p></li>
-<li><p>Subscription topics containing the default topic parameters</p></li>
-</ul>
-</div></blockquote>
+<dd><p>Test that <code class="docutils literal notranslate"><span class="pre">get_default</span></code> returns an instance with the documented default
+values.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>None</p>
@@ -902,31 +1036,7 @@ instance.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="test.test_step_message_save_config.TestMqttProtocolConfig.test_model_config">
 <span class="sig-name descname"><span class="pre">test_model_config</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestMqttProtocolConfig.test_model_config"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestMqttProtocolConfig.test_model_config" title="Link to this definition"></a></dt>
-<dd><p>Test that the MqttProtocolConfig model is frozen, strict, and forbids extra
-fields.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>None</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="test.test_step_message_save_config.TestMqttProtocolConfig.test_subscription_topics_empty_list_raises">
-<span class="sig-name descname"><span class="pre">test_subscription_topics_empty_list_raises</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestMqttProtocolConfig.test_subscription_topics_empty_list_raises"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestMqttProtocolConfig.test_subscription_topics_empty_list_raises" title="Link to this definition"></a></dt>
-<dd><p>Test that an empty subscriptionTopics list fails validation since
-<code class="docutils literal notranslate"><span class="pre">min_length=1</span></code>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>None</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="test.test_step_message_save_config.TestMqttProtocolConfig.test_subscription_topics_none">
-<span class="sig-name descname"><span class="pre">test_subscription_topics_none</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestMqttProtocolConfig.test_subscription_topics_none"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestMqttProtocolConfig.test_subscription_topics_none" title="Link to this definition"></a></dt>
-<dd><p>Test that MqttProtocolConfig accepts <code class="docutils literal notranslate"><span class="pre">None</span></code> for subscriptionTopics.</p>
+<dd><p>Test that <code class="docutils literal notranslate"><span class="pre">MqttProtocolConfig</span></code> is frozen, strict, and forbids extra fields.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>None</p>
@@ -940,17 +1050,12 @@ fields.</p>
 <dt class="sig sig-object py" id="test.test_step_message_save_config.TestMqttQoSConfig">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">test.test_step_message_save_config.</span></span><span class="sig-name descname"><span class="pre">TestMqttQoSConfig</span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestMqttQoSConfig"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestMqttQoSConfig" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>Test class for MqttQoSConfig enum validation.</p>
-<p>This test class contains test methods to verify the correct behavior and values of
-the MqttQoSConfig enumeration. It ensures that each MqttQoSConfig enum member maps
-to the correct MqttQoS value and validates the overall structure of the enum. The
-class uses parameterized testing to efficiently test multiple enum-value pairs in a
-single test method.</p>
+<p>Test suite for the <code class="docutils literal notranslate"><span class="pre">MqttQoSConfig</span></code> enumeration.</p>
 <dl class="py method">
-<dt class="sig sig-object py" id="test.test_step_message_save_config.TestMqttQoSConfig.test_get_pydantic_json_schema">
-<span class="sig-name descname"><span class="pre">test_get_pydantic_json_schema</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestMqttQoSConfig.test_get_pydantic_json_schema"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestMqttQoSConfig.test_get_pydantic_json_schema" title="Link to this definition"></a></dt>
-<dd><p>Test that <code class="docutils literal notranslate"><span class="pre">__get_pydantic_json_schema__</span></code> adds a title and description to
-the generated schema.</p>
+<dt class="sig sig-object py" id="test.test_step_message_save_config.TestMqttQoSConfig.test___get_pydantic_json_schema__">
+<span class="sig-name descname"><span class="pre">test___get_pydantic_json_schema__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestMqttQoSConfig.test___get_pydantic_json_schema__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestMqttQoSConfig.test___get_pydantic_json_schema__" title="Link to this definition"></a></dt>
+<dd><p>Test that the JSON Schema hook installed by <code class="docutils literal notranslate"><span class="pre">json_schema_text</span></code> sets the
+title and description of the enumeration’s schema.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>None</p>
@@ -961,20 +1066,13 @@ the generated schema.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="test.test_step_message_save_config.TestMqttQoSConfig.test_value">
 <span class="sig-name descname"><span class="pre">test_value</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">enum</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../step_message_save_rst/step_message_save.step_message_save_config.html#step_message_save.step_message_save_config.MqttQoSConfig" title="step_message_save.step_message_save_config.MqttQoSConfig"><span class="pre">MqttQoSConfig</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">expected</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MqttQoS</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestMqttQoSConfig.test_value"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestMqttQoSConfig.test_value" title="Link to this definition"></a></dt>
-<dd><p>Test that the MqttQoSConfig enum value matches the expected MqttQoS.</p>
-<p>This test verifies that:</p>
-<blockquote>
-<div><ol class="arabic simple">
-<li><p>The enum’s value property returns the expected MqttQoS</p></li>
-<li><p>The MqttQoSConfig enum contains exactly 3 members</p></li>
-</ol>
-</div></blockquote>
+<dd><p>Test that each <code class="docutils literal notranslate"><span class="pre">MqttQoSConfig</span></code> member maps to the expected <code class="docutils literal notranslate"><span class="pre">MqttQoS</span></code>
+and that the enumeration has exactly three members.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>enum</strong> (<a class="reference internal" href="../step_message_save_rst/step_message_save.step_message_save_config.html#step_message_save.step_message_save_config.MqttQoSConfig" title="step_message_save.step_message_save_config.MqttQoSConfig"><em>MqttQoSConfig</em></a>) – The MqttQoSConfig enum instance to test</p></li>
-<li><p><strong>expected</strong> (<em>MqttQoS</em>) – The expected MqttQoS value that
-should match the enum’s value</p></li>
+<li><p><strong>enum</strong> (<a class="reference internal" href="../step_message_save_rst/step_message_save.step_message_save_config.html#step_message_save.step_message_save_config.MqttQoSConfig" title="step_message_save.step_message_save_config.MqttQoSConfig"><em>MqttQoSConfig</em></a>) – The enumeration member under test.</p></li>
+<li><p><strong>expected</strong> (<em>MqttQoS</em>) – The expected <code class="docutils literal notranslate"><span class="pre">MqttQoS</span></code> value.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -989,39 +1087,22 @@ should match the enum’s value</p></li>
 <dt class="sig sig-object py" id="test.test_step_message_save_config.TestStepBrokerConfig">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">test.test_step_message_save_config.</span></span><span class="sig-name descname"><span class="pre">TestStepBrokerConfig</span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestStepBrokerConfig"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestStepBrokerConfig" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>Test suite for StepBrokerConfig class.</p>
-<p>This test class validates the configuration and behavior of the StepBrokerConfig
-class, ensuring that default configurations are properly set and that all
-broker configuration components are correctly initialized.
-The tests verify:</p>
-<blockquote>
-<div><ul class="simple">
-<li><p>Default configuration values</p></li>
-<li><p>MQTT client configuration integration</p></li>
-<li><p>MQTT protocol configuration integration</p></li>
-<li><p>Cache directory settings</p></li>
-<li><p>Proper instance creation and type validation</p></li>
+<p>Test suite for the <code class="docutils literal notranslate"><span class="pre">StepBrokerConfig</span></code> model.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="test.test_step_message_save_config.TestStepBrokerConfig.test_field_validation">
+<span class="sig-name descname"><span class="pre">test_field_validation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">field</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">valid</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestStepBrokerConfig.test_field_validation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestStepBrokerConfig.test_field_validation" title="Link to this definition"></a></dt>
+<dd><p>Test that <code class="docutils literal notranslate"><span class="pre">cacheDir</span></code> accepts <code class="docutils literal notranslate"><span class="pre">None</span></code> or a non-empty path, and that an
+empty path and extra fields are rejected.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>field</strong> (<em>str</em>) – The name of the field to override.</p></li>
+<li><p><strong>value</strong> (<em>Any</em>) – The value assigned to <code class="docutils literal notranslate"><span class="pre">field</span></code>.</p></li>
+<li><p><strong>valid</strong> (<em>bool</em>) – Whether validation is expected to succeed.</p></li>
 </ul>
-</div></blockquote>
-<dl class="py method">
-<dt class="sig sig-object py" id="test.test_step_message_save_config.TestStepBrokerConfig.test_cache_dir_none">
-<span class="sig-name descname"><span class="pre">test_cache_dir_none</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestStepBrokerConfig.test_cache_dir_none"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestStepBrokerConfig.test_cache_dir_none" title="Link to this definition"></a></dt>
-<dd><p>Test that StepBrokerConfig accepts <code class="docutils literal notranslate"><span class="pre">None</span></code> for cacheDir.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>None</p>
 </dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="test.test_step_message_save_config.TestStepBrokerConfig.test_frozen_instance_raises">
-<span class="sig-name descname"><span class="pre">test_frozen_instance_raises</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestStepBrokerConfig.test_frozen_instance_raises"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestStepBrokerConfig.test_frozen_instance_raises" title="Link to this definition"></a></dt>
-<dd><p>Test that mutating a StepBrokerConfig instance raises an error since the
-model is frozen.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>None</p>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1029,16 +1110,8 @@ model is frozen.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="test.test_step_message_save_config.TestStepBrokerConfig.test_get_default">
 <span class="sig-name descname"><span class="pre">test_get_default</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestStepBrokerConfig.test_get_default"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestStepBrokerConfig.test_get_default" title="Link to this definition"></a></dt>
-<dd><p>Test that StepBrokerConfig.get_default() returns a properly configured
-instance.</p>
-<p>Verifies that the default configuration contains:</p>
-<blockquote>
-<div><ul class="simple">
-<li><p>MQTT client configuration with default values</p></li>
-<li><p>MQTT protocol configuration with default values</p></li>
-<li><p>Cache directory set to “.cache”</p></li>
-</ul>
-</div></blockquote>
+<dd><p>Test that <code class="docutils literal notranslate"><span class="pre">get_default</span></code> combines the default MQTT client and protocol
+configurations with the <code class="docutils literal notranslate"><span class="pre">&quot;.cache&quot;</span></code> cache directory.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>None</p>
@@ -1049,8 +1122,7 @@ instance.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="test.test_step_message_save_config.TestStepBrokerConfig.test_model_config">
 <span class="sig-name descname"><span class="pre">test_model_config</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestStepBrokerConfig.test_model_config"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestStepBrokerConfig.test_model_config" title="Link to this definition"></a></dt>
-<dd><p>Test that the StepBrokerConfig model is frozen, strict, and forbids extra
-fields.</p>
+<dd><p>Test that <code class="docutils literal notranslate"><span class="pre">StepBrokerConfig</span></code> is frozen, strict, and forbids extra fields.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>None</p>
@@ -1064,24 +1136,11 @@ fields.</p>
 <dt class="sig sig-object py" id="test.test_step_message_save_config.TestStepConfigVersion">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">test.test_step_message_save_config.</span></span><span class="sig-name descname"><span class="pre">TestStepConfigVersion</span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestStepConfigVersion"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestStepConfigVersion" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>Test class for StepConfigVersion enum.</p>
-<p>This test class validates the behavior and properties of the StepConfigVersion enum,
-ensuring that enum values are correctly defined and accessible.
-The class contains parameterized tests that verify:</p>
-<blockquote>
-<div><ul class="simple">
-<li><p>Enum values match their expected string representations</p></li>
-<li><p>The enum contains the correct number of members</p></li>
-<li><p>Proper enum functionality and consistency</p></li>
-</ul>
-</div></blockquote>
+<p>Test suite for the <code class="docutils literal notranslate"><span class="pre">StepConfigVersion</span></code> enumeration.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="test.test_step_message_save_config.TestStepConfigVersion.test___slots__">
 <span class="sig-name descname"><span class="pre">test___slots__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestStepConfigVersion.test___slots__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestStepConfigVersion.test___slots__" title="Link to this definition"></a></dt>
-<dd><p>Test that the StepConfigVersion class defines the expected <code class="docutils literal notranslate"><span class="pre">__slots__</span></code>.</p>
-<p>This test verifies that the StepConfigVersion class has the correct
-attributes defined in its <code class="docutils literal notranslate"><span class="pre">__slots__</span></code> to ensure memory efficiency
-and attribute management.</p>
+<dd><p>Test that <code class="docutils literal notranslate"><span class="pre">StepConfigVersion</span></code> defines empty <code class="docutils literal notranslate"><span class="pre">__slots__</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>None</p>
@@ -1092,19 +1151,13 @@ and attribute management.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="test.test_step_message_save_config.TestStepConfigVersion.test_value">
 <span class="sig-name descname"><span class="pre">test_value</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">enum</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../step_message_save_rst/step_message_save.step_message_save_config.html#step_message_save.step_message_save_config.StepConfigVersion" title="step_message_save.step_message_save_config.StepConfigVersion"><span class="pre">StepConfigVersion</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">expected</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestStepConfigVersion.test_value"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestStepConfigVersion.test_value" title="Link to this definition"></a></dt>
-<dd><p>Test that the enum value matches the expected string value.</p>
-<p>This test verifies that:</p>
-<blockquote>
-<div><ol class="arabic simple">
-<li><p>The enum’s value property returns the expected string</p></li>
-<li><p>The StepConfigVersion enum contains exactly one member</p></li>
-</ol>
-</div></blockquote>
+<dd><p>Test that each <code class="docutils literal notranslate"><span class="pre">StepConfigVersion</span></code> member has the expected value and
+that the enumeration has exactly one member.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>enum</strong> (<a class="reference internal" href="../step_message_save_rst/step_message_save.step_message_save_config.html#step_message_save.step_message_save_config.StepConfigVersion" title="step_message_save.step_message_save_config.StepConfigVersion"><em>StepConfigVersion</em></a>) – The enum instance to test</p></li>
-<li><p><strong>expected</strong> (<em>str</em>) – The expected string value of the enum</p></li>
+<li><p><strong>enum</strong> (<a class="reference internal" href="../step_message_save_rst/step_message_save.step_message_save_config.html#step_message_save.step_message_save_config.StepConfigVersion" title="step_message_save.step_message_save_config.StepConfigVersion"><em>StepConfigVersion</em></a>) – The enumeration member under test.</p></li>
+<li><p><strong>expected</strong> (<em>str</em>) – The expected value of the member.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -1119,27 +1172,11 @@ and attribute management.</p>
 <dt class="sig sig-object py" id="test.test_step_message_save_config.TestStepMessageSaveConfig">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">test.test_step_message_save_config.</span></span><span class="sig-name descname"><span class="pre">TestStepMessageSaveConfig</span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestStepMessageSaveConfig"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestStepMessageSaveConfig" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>Test suite for <code class="docutils literal notranslate"><span class="pre">StepMessageSaveConfig</span></code> class.</p>
-<p>This test class validates the configuration and behavior of the
-StepMessageSaveConfig class, ensuring that default configurations are properly set
-and that all STEP message save configuration components are correctly initialized.
-The tests verify:</p>
-<blockquote>
-<div><ul class="simple">
-<li><p>Default configuration values</p></li>
-<li><p>Template version settings</p></li>
-<li><p>Output file, receiver number, and queue/reconnect settings</p></li>
-<li><p>STEP broker configuration integration</p></li>
-<li><p>Logging configuration integration</p></li>
-<li><p>Schema and example file generation</p></li>
-<li><p>Proper instance creation and type validation</p></li>
-</ul>
-</div></blockquote>
+<p>Test suite for the <code class="docutils literal notranslate"><span class="pre">StepMessageSaveConfig</span></code> model.</p>
 <dl class="py method">
-<dt class="sig sig-object py" id="test.test_step_message_save_config.TestStepMessageSaveConfig.test_frozen_instance_raises">
-<span class="sig-name descname"><span class="pre">test_frozen_instance_raises</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestStepMessageSaveConfig.test_frozen_instance_raises"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestStepMessageSaveConfig.test_frozen_instance_raises" title="Link to this definition"></a></dt>
-<dd><p>Test that mutating a StepMessageSaveConfig instance raises an error
-since the model is frozen.</p>
+<dt class="sig sig-object py" id="test.test_step_message_save_config.TestStepMessageSaveConfig.test_STEP_CONFIG_SCHEMA">
+<span class="sig-name descname"><span class="pre">test_STEP_CONFIG_SCHEMA</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestStepMessageSaveConfig.test_STEP_CONFIG_SCHEMA"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestStepMessageSaveConfig.test_STEP_CONFIG_SCHEMA" title="Link to this definition"></a></dt>
+<dd><p>Test that <code class="docutils literal notranslate"><span class="pre">STEP_CONFIG_SCHEMA</span></code> is derived from the configuration version.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>None</p>
@@ -1148,21 +1185,30 @@ since the model is frozen.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="test.test_step_message_save_config.TestStepMessageSaveConfig.test_field_validation">
+<span class="sig-name descname"><span class="pre">test_field_validation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">field</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">valid</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestStepMessageSaveConfig.test_field_validation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestStepMessageSaveConfig.test_field_validation" title="Link to this definition"></a></dt>
+<dd><p>Test that each field accepts its boundary values and rejects the values
+just outside them, a wrong template version, an empty output file, and
+extra fields.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>field</strong> (<em>str</em>) – The name of the field to override.</p></li>
+<li><p><strong>value</strong> (<em>Any</em>) – The value assigned to <code class="docutils literal notranslate"><span class="pre">field</span></code>.</p></li>
+<li><p><strong>valid</strong> (<em>bool</em>) – Whether validation is expected to succeed.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="test.test_step_message_save_config.TestStepMessageSaveConfig.test_get_default">
 <span class="sig-name descname"><span class="pre">test_get_default</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestStepMessageSaveConfig.test_get_default"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestStepMessageSaveConfig.test_get_default" title="Link to this definition"></a></dt>
-<dd><p>Test that <code class="docutils literal notranslate"><span class="pre">get_default()</span></code> returns a properly configured instance.</p>
-<p>Verifies that the default configuration contains:</p>
-<blockquote>
-<div><ul class="simple">
-<li><p>Template version set to StepConfigVersion.VERSION</p></li>
-<li><p>Output file set to “/path/to/output_file.json”</p></li>
-<li><p>STEP receiver number set to 4</p></li>
-<li><p>Max file writer queue rooms set to 1000</p></li>
-<li><p>Reconnection interval set to 2 seconds</p></li>
-<li><p>STEP broker configuration with default values</p></li>
-<li><p>Log configuration with default values</p></li>
-</ul>
-</div></blockquote>
+<dd><p>Test that <code class="docutils literal notranslate"><span class="pre">get_default</span></code> returns an instance with the documented default
+values.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>None</p>
@@ -1173,8 +1219,7 @@ since the model is frozen.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="test.test_step_message_save_config.TestStepMessageSaveConfig.test_model_config">
 <span class="sig-name descname"><span class="pre">test_model_config</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestStepMessageSaveConfig.test_model_config"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestStepMessageSaveConfig.test_model_config" title="Link to this definition"></a></dt>
-<dd><p>Test that the StepMessageSaveConfig model is frozen, strict, and forbids
-extra fields.</p>
+<dd><p>Test that <code class="docutils literal notranslate"><span class="pre">StepMessageSaveConfig</span></code> is frozen, strict, and forbids extra fields.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>None</p>
@@ -1184,61 +1229,27 @@ extra fields.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="test.test_step_message_save_config.TestStepMessageSaveConfig.test_print_config_example">
-<span class="sig-name descname"><span class="pre">test_print_config_example</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestStepMessageSaveConfig.test_print_config_example"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestStepMessageSaveConfig.test_print_config_example" title="Link to this definition"></a></dt>
-<dd><p>Tests the <code class="docutils literal notranslate"><span class="pre">print_config_example</span></code> method of <code class="docutils literal notranslate"><span class="pre">StepMessageSaveConfig</span></code> by
-verifying that the generated configuration example file matches the reference
-template file.</p>
-<p>This test:</p>
-<blockquote>
-<div><ul class="simple">
-<li><p>Uses a temporary directory to generate the config example.</p></li>
-<li><p>Compares the generated file with the expected template
-file for exact content match.</p></li>
-</ul>
-</div></blockquote>
+<span class="sig-name descname"><span class="pre">test_print_config_example</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tmp_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestStepMessageSaveConfig.test_print_config_example"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestStepMessageSaveConfig.test_print_config_example" title="Link to this definition"></a></dt>
+<dd><p>Test that <code class="docutils literal notranslate"><span class="pre">print_config_example</span></code> writes a template file that matches the
+reference template file and validates back to <code class="docutils literal notranslate"><span class="pre">get_default()</span></code>.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>None</p>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>tmp_path</strong> (<em>Path</em>) – pytest fixture providing a temporary directory.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="test.test_step_message_save_config.TestStepMessageSaveConfig.test_print_config_schema">
-<span class="sig-name descname"><span class="pre">test_print_config_schema</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestStepMessageSaveConfig.test_print_config_schema"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestStepMessageSaveConfig.test_print_config_schema" title="Link to this definition"></a></dt>
-<dd><p>Tests the <code class="docutils literal notranslate"><span class="pre">print_config_schema</span></code> method of <code class="docutils literal notranslate"><span class="pre">StepMessageSaveConfig</span></code> by
-verifying that the generated schema file matches the reference schema file.</p>
-<p>It does so by creating a temporary directory, invoking the method to output
-the schema, and then comparing the generated file with the expected schema
-file for equality.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>None</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="test.test_step_message_save_config.TestStepMessageSaveConfig.test_step_config_schema_constant">
-<span class="sig-name descname"><span class="pre">test_step_config_schema_constant</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestStepMessageSaveConfig.test_step_config_schema_constant"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestStepMessageSaveConfig.test_step_config_schema_constant" title="Link to this definition"></a></dt>
-<dd><p>Test that <code class="docutils literal notranslate"><span class="pre">STEP_CONFIG_SCHEMA</span></code> is derived from the configuration version.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>None</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="test.test_step_message_save_config.TestStepMessageSaveConfig.test_step_receiver_number_bounds">
-<span class="sig-name descname"><span class="pre">test_step_receiver_number_bounds</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">step_receiver_number</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">valid</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestStepMessageSaveConfig.test_step_receiver_number_bounds"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestStepMessageSaveConfig.test_step_receiver_number_bounds" title="Link to this definition"></a></dt>
-<dd><p>Test that <code class="docutils literal notranslate"><span class="pre">stepReceiverNumber</span></code> is validated against its <code class="docutils literal notranslate"><span class="pre">[1,</span> <span class="pre">50]</span></code> bounds.</p>
+<span class="sig-name descname"><span class="pre">test_print_config_schema</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tmp_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestStepMessageSaveConfig.test_print_config_schema"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestStepMessageSaveConfig.test_print_config_schema" title="Link to this definition"></a></dt>
+<dd><p>Test that <code class="docutils literal notranslate"><span class="pre">print_config_schema</span></code> writes a schema file, stamped with the
+<code class="docutils literal notranslate"><span class="pre">STEP_CONFIG_SCHEMA</span></code> <code class="docutils literal notranslate"><span class="pre">$id</span></code>, matching the reference schema file.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>step_receiver_number</strong> (<em>int</em>) – The candidate value for <code class="docutils literal notranslate"><span class="pre">stepReceiverNumber</span></code>.</p></li>
-<li><p><strong>valid</strong> (<em>bool</em>) – Whether the value is expected to pass validation.</p></li>
-</ul>
+<dd class="field-odd"><p><strong>tmp_path</strong> (<em>Path</em>) – pytest fixture providing a temporary directory.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>None</p>
@@ -1252,19 +1263,18 @@ file for equality.</p>
 <dt class="sig sig-object py" id="test.test_step_message_save_config.TestSubscriptionTopicParams">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">test.test_step_message_save_config.</span></span><span class="sig-name descname"><span class="pre">TestSubscriptionTopicParams</span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestSubscriptionTopicParams"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestSubscriptionTopicParams" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>Test suite for SubscriptionTopicParams class.</p>
-<p>This test class validates the functionality of the SubscriptionTopicParams class,
-including its default configuration factory method and proper initialization of
-topic and message type parameters.</p>
+<p>Test suite for the <code class="docutils literal notranslate"><span class="pre">SubscriptionTopicParams</span></code> model.</p>
 <dl class="py method">
-<dt class="sig sig-object py" id="test.test_step_message_save_config.TestSubscriptionTopicParams.test_construct">
-<span class="sig-name descname"><span class="pre">test_construct</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../step_message_save_rst/step_message_save.step_message_save_config.html#step_message_save.step_message_save_config.MessageType" title="step_message_save.step_message_save_config.MessageType"><span class="pre">MessageType</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">topic</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestSubscriptionTopicParams.test_construct"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestSubscriptionTopicParams.test_construct" title="Link to this definition"></a></dt>
-<dd><p>Test that SubscriptionTopicParams stores the given messageType and topic.</p>
+<dt class="sig sig-object py" id="test.test_step_message_save_config.TestSubscriptionTopicParams.test_field_validation">
+<span class="sig-name descname"><span class="pre">test_field_validation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">field</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">valid</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestSubscriptionTopicParams.test_field_validation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestSubscriptionTopicParams.test_field_validation" title="Link to this definition"></a></dt>
+<dd><p>Test that every message type and a non-empty topic are accepted, while an
+unknown message type, an empty topic, and extra fields are rejected.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>message_type</strong> (<a class="reference internal" href="../step_message_save_rst/step_message_save.step_message_save_config.html#step_message_save.step_message_save_config.MessageType" title="step_message_save.step_message_save_config.MessageType"><em>MessageType</em></a>) – The message type used to construct the instance.</p></li>
-<li><p><strong>topic</strong> (<em>str</em>) – The topic used to construct the instance.</p></li>
+<li><p><strong>field</strong> (<em>str</em>) – The name of the field to override.</p></li>
+<li><p><strong>value</strong> (<em>Any</em>) – The value assigned to <code class="docutils literal notranslate"><span class="pre">field</span></code>.</p></li>
+<li><p><strong>valid</strong> (<em>bool</em>) – Whether validation is expected to succeed.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -1274,40 +1284,9 @@ topic and message type parameters.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="test.test_step_message_save_config.TestSubscriptionTopicParams.test_empty_topic_raises">
-<span class="sig-name descname"><span class="pre">test_empty_topic_raises</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestSubscriptionTopicParams.test_empty_topic_raises"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestSubscriptionTopicParams.test_empty_topic_raises" title="Link to this definition"></a></dt>
-<dd><p>Test that an empty topic string fails validation since <code class="docutils literal notranslate"><span class="pre">min_length=1</span></code>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>None</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="test.test_step_message_save_config.TestSubscriptionTopicParams.test_frozen_instance_raises">
-<span class="sig-name descname"><span class="pre">test_frozen_instance_raises</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestSubscriptionTopicParams.test_frozen_instance_raises"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestSubscriptionTopicParams.test_frozen_instance_raises" title="Link to this definition"></a></dt>
-<dd><p>Test that mutating a SubscriptionTopicParams instance raises an error
-since the model is frozen.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>None</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
 <dt class="sig sig-object py" id="test.test_step_message_save_config.TestSubscriptionTopicParams.test_get_default">
 <span class="sig-name descname"><span class="pre">test_get_default</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestSubscriptionTopicParams.test_get_default"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestSubscriptionTopicParams.test_get_default" title="Link to this definition"></a></dt>
-<dd><p>Test that SubscriptionTopicParams.get_default() returns a properly configured
-instance.</p>
-<p>Verifies that the default configuration contains:</p>
-<blockquote>
-<div><ul class="simple">
-<li><p>Message type set to MessageType.CAM</p></li>
-<li><p>Topic set to “topic”</p></li>
-</ul>
-</div></blockquote>
+<dd><p>Test that <code class="docutils literal notranslate"><span class="pre">get_default</span></code> returns a CAM subscription on <code class="docutils literal notranslate"><span class="pre">&quot;topic&quot;</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>None</p>
@@ -1318,8 +1297,7 @@ instance.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="test.test_step_message_save_config.TestSubscriptionTopicParams.test_model_config">
 <span class="sig-name descname"><span class="pre">test_model_config</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_step_message_save_config.html#TestSubscriptionTopicParams.test_model_config"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_step_message_save_config.TestSubscriptionTopicParams.test_model_config" title="Link to this definition"></a></dt>
-<dd><p>Test that the SubscriptionTopicParams model is frozen, strict, and forbids
-extra fields.</p>
+<dd><p>Test that <code class="docutils literal notranslate"><span class="pre">SubscriptionTopicParams</span></code> is frozen, strict, and forbids extra fields.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>None</p>
@@ -1336,6 +1314,7 @@ extra fields.</p>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="test.test_step_exception.html" class="btn btn-neutral float-left" title="test.test_step_exception module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../changelog.html" class="btn btn-neutral float-right" title="Changelog" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

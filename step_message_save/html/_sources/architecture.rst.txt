@@ -13,6 +13,10 @@ configured topics, receives ITS messages, and appends them, as JSON lines, to a 
 local output file. There is no Redis integration, message publication, or CloudEvents
 conversion involved: the client is a receive-only bridge between MQTT and the filesystem.
 
+Next to the client, the package provides an offline file conversion feature: a file of
+ITS messages (e.g. the JSON-lines output file, or a pickle actor trajectory file) can be
+converted into another format (e.g. GPX) through pluggable file loaders and writers.
+
 Library
 -------
 
@@ -43,6 +47,12 @@ step_message_save's own source):
        ``SubscribeOptions``) to build MQTT subscription options and interpret SUBACK reason
        codes.
 
+    #. **python-dotenv**: Used by ``_get_mqtt_credential()`` in ``__main__.py`` to load
+       the MQTT connection secrets from a ``.env`` file.
+
+    #. **gpx**: Used by ``GpxWriter`` to build and write GPX documents (tracks,
+       segments, track points and their extensions).
+
 **Transitive Dependencies Used Indirectly** (not imported by step_message_save's own source,
 but relied upon underneath a direct dependency):
 
@@ -72,6 +82,8 @@ Main Components:
     #. **StepLogger**: Logging utilities used by the client (from the
        ``step_cloud_schemas`` library)
     #. **StepException**: Custom exceptions for error handling
+    #. **File Conversion**: ``FileConverter`` with the pluggable ``FileLoader`` and
+       ``FileWriter`` subclasses, used by the ``-f``/``-x``/``-o`` command-line options
 
 StepBroker
 ^^^^^^^^^^
@@ -147,8 +159,9 @@ queue or the output file. It is composed of:
        naturally serialized without a lock. Writes are buffered and are not explicitly
        flushed after each message — they reach disk once the buffer fills or the file
        is closed.
-    #. **The reconnect loop**: ``_main_async()`` resolves the output file path and
-       creates the shared queue once, then wraps broker creation, subscription, and the
+    #. **The reconnect loop**: ``_main_async()`` resolves the output file path,
+       creates its directory and the shared queue once, then starts
+       ``_step_broker_run()``, which wraps broker creation, subscription, and the
        receiver/writer ``TaskGroup`` in a ``while True`` loop. If an unhandled
        exception propagates out of the broker/task-group block (e.g. a lost MQTT
        connection), it is logged, the broker and all receiver/writer tasks are torn
@@ -157,6 +170,15 @@ queue or the output file. It is composed of:
        brand-new ``StepBroker`` and starting a fresh ``_step_message_write_run()`` task
        — which reopens the *same* output file in append mode — against the *same*
        shared queue.
+    #. **The graceful shutdown**: ``_main_async()`` runs ``_step_broker_run()`` in an
+       outer ``TaskGroup`` next to ``_wait_for_shutdown()``, which waits on a
+       ``stop_event`` set by the shutdown signal handler (``SIGINT``/``SIGTERM`` on
+       POSIX, ``SIGBREAK`` on Windows) and then raises ``ShutdownRequestedError``. The
+       outer ``TaskGroup`` cancels ``_step_broker_run()`` wherever it is (connecting,
+       subscribing, running its tasks or waiting to reconnect), so ``StepBroker``
+       disconnects cleanly even while the broker is unreachable. Once the group has
+       unwound, ``_drain_queue()`` appends the messages still queued to the output
+       file, and the program exits with ``ExitCode.ABORTED``.
 
 StepMessageSaveConfig
 ^^^^^^^^^^^^^^^^^^^^^
@@ -282,14 +304,96 @@ distinguish STEP Message Save errors from other unhandled exceptions:
        returned QoS doesn't match the configured one.
     #. **StepCliError**: Subclass of ``StepMessageSaveError`` raised for CLI-specific
        errors in ``main()`` — such as passing ``-c/--config`` without ``-i/--instance``
-       or vice versa.
+       or vice versa, or ``-x/--convert`` without ``-f/--file``. ``main()`` maps it to
+       ``ExitCode.USAGE``.
+    #. **ShutdownRequestedError**: Internal signal raised by ``_wait_for_shutdown()``
+       to unwind the outer ``TaskGroup`` of ``_main_async()`` on a graceful shutdown;
+       it never leaves ``__main__.py``.
+    #. **LoaderError**: Raised by a ``FileLoader`` when its input file does not match,
+       or cannot be parsed as, its format, and by ``FileConverter`` when no loader
+       accepts the input file.
+    #. **WriterError**: Raised by a ``FileWriter`` when its output file cannot be
+       written, and by ``FileConverter`` when the output directory cannot be created.
 
-Both classes are message-only exceptions (the message is carried via the standard
+``main()`` maps ``LoaderError`` and ``WriterError`` to ``ExitCode.ERROR``, logging only
+the message, without a traceback.
+
+All classes are message-only exceptions (the message is carried via the standard
 ``Exception`` args, not a dedicated attribute); there is no structured error context,
 error-type classification, or recovery-hint mechanism beyond what the raised message
 string conveys. Callers catch and log these via the standard Python exception handling
-already used throughout ``__main__.py`` (e.g. the top-level ``except Exception`` in
-``main()`` and ``_main_async()``).
+already used throughout ``__main__.py`` (e.g. the top-level ``except`` clauses in
+``main()`` and the ``except*`` clause of the reconnect loop in ``_step_broker_run()``).
+
+File Conversion
+^^^^^^^^^^^^^^^
+
+The file conversion is independent of the MQTT client: it runs offline, before the
+client is started, when ``-f``/``--file`` is given. It is built on three components:
+
+    #. **FileLoader** (``loaders/file_loader.py``): Abstract base class of the loaders.
+       A loader is a stateless, callable parser for one format: given a file path, it
+       returns the ``list[FacilityMessage]`` the file contains, or raises
+       ``LoaderError`` if the file does not match its format. The handled extension is
+       declared in the ``EXTENSION`` class attribute, checked by ``__init_subclass__``
+       when the subclass is defined. The protected ``_build_cam_data()`` helper builds
+       a ``CamDataV1`` from scalar trajectory values. Concrete loaders:
+
+        * ``JsonlLoader`` (``.jsonl``): one ``ItsMessageRoot`` (CAM, CPM, DENM) per line
+        * ``PickleActorLoader`` (``.pkl``): vehicle trajectories, one CAM per point
+
+    #. **FileWriter** (``writers/file_writer.py``): Abstract base class of the writers,
+       the inverse of a loader: given a file path and a ``list[FacilityMessage]``, it
+       writes the messages it can represent, or raises ``WriterError``. Concrete
+       writers:
+
+        * ``GpxWriter`` (``.gpx``): one track per station, built from the CAM messages
+          with a position, in the track format read by step_publisher_pkl
+
+    #. **FileConverter** (``file_converter.py``): Chains a loader and a writer. The
+       input format is deduced from the file: the loaders owning the input file
+       extension are tried first, then all the others, and the first one that does
+       not raise ``LoaderError`` wins. The output format is selected by name (the
+       writer's extension without the dot). It also resolves the output file path and
+       creates its missing directories, only after the input file has been loaded.
+
+The loader and writer classes used by the command line are listed in the
+``CONVERSION_LOADERS`` and ``CONVERSION_WRITERS`` constants of ``__main__.py``; the
+``-x``/``--convert`` choices are derived from ``CONVERSION_WRITERS``. See
+:doc:`loaders_writers` for how to add a new format.
+
+.. container:: scrollable-diagram
+
+   .. plantuml::
+      :align: center
+
+      @startuml
+
+      actor "CLI (-f, -x, -o)" as CLI
+      participant "FileConverter" as Conv
+      participant "FileLoader(s)" as Loader
+      participant "FileWriter" as Writer
+      database "Input File" as In
+      database "Output File" as Out
+
+      CLI -> Conv : __call__(input_file, output_format, output_path)
+      Conv -> Conv : select writer by output_format
+      Conv -> Conv : resolve output file
+      loop loaders owning the extension first, then the others
+         Conv -> Loader : __call__(input_file)
+         Loader -> In : read
+         alt file accepted
+            Loader --> Conv : list[FacilityMessage]
+         else LoaderError
+            Loader --> Conv : LoaderError (try next loader)
+         end
+      end
+      Conv -> Conv : create output directories
+      Conv -> Writer : __call__(output_file, messages)
+      Writer -> Out : write
+      Conv --> CLI : output file path
+
+      @enduml
 
 Component Diagram
 ^^^^^^^^^^^^^^^^^
@@ -413,11 +517,51 @@ methods anywhere in that chain.
          class StepMessageSaveError
          class StepCliError
          StepCliError --|> StepMessageSaveError
+         class ShutdownRequestedError
+         class LoaderError
+         class WriterError
+         ShutdownRequestedError --|> StepMessageSaveError
+         LoaderError --|> StepMessageSaveError
+         WriterError --|> StepMessageSaveError
+
+         class FileConverter {
+            +output_formats: list[str]
+            +load(input_file)
+            +output_file(input_file, output_format, output_path)
+            +__call__(input_file, output_format, output_path)
+         }
+
+         package "loaders" {
+            abstract class FileLoader {
+               +EXTENSION: ClassVar[str]
+               +get_extension: str
+               +{abstract} __call__(file_path)
+               #_build_cam_data(...)
+            }
+            class JsonlLoader
+            class PickleActorLoader
+            FileLoader <|-- JsonlLoader
+            FileLoader <|-- PickleActorLoader
+         }
+
+         package "writers" {
+            abstract class FileWriter {
+               +EXTENSION: ClassVar[str]
+               +get_extension: str
+               +{abstract} __call__(file_path, messages)
+            }
+            class GpxWriter
+            FileWriter <|-- GpxWriter
+         }
       }
 
       StepBroker --> StepMessageSaveConfig : uses
       StepBroker --> StepLogger : uses
       StepBroker --> StepMessageSaveError : throws
+      FileConverter o-- FileLoader
+      FileConverter o-- FileWriter
+      FileLoader ..> LoaderError : throws
+      FileWriter ..> WriterError : throws
 
       @enduml
 
@@ -498,6 +642,6 @@ On an unmanaged exception (e.g. a lost MQTT connection), the exception propagate
 the ``async with StepBroker(...)``/``TaskGroup`` block in ``_main_async()``, tearing down
 the current broker and all receiver/writer tasks. The reconnect loop then waits
 ``reconnectInterval`` seconds and retries the whole connect-subscribe-receive cycle with a
-brand-new ``StepBroker`` instance. The output file handle opened at the start of
-``_main_async()`` is untouched by this teardown/retry and is reused by the new writer
-task, so messages persisted before the drop are not lost.
+brand-new ``StepBroker`` instance. The new writer task reopens the output file in append
+mode, so messages persisted before the drop are not lost, and drains the shared queue,
+so messages queued before the drop are not lost either.

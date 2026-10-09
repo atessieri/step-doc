@@ -36,7 +36,7 @@ STEP Message Save: Overview
    :target: https://www.sphinx-doc.org/en/master/index.html
    :alt: Sphinx
 .. |TOX| image:: https://img.shields.io/badge/local%20automation-tox-brightgreen.svg
-   :target: https://tox.readthedocs.io/
+   :target: https://tox.wiki/en/latest/
    :alt: Tox
 .. |TEST_COVERAGE| image:: ./badges/test_coverage.svg
    :alt: Test Coverage
@@ -78,6 +78,7 @@ STEP Message Save: Overview
    installation
    commands
    usage
+   loaders_writers
    package_script
    architecture
    docstring_coverage_report
@@ -85,13 +86,15 @@ STEP Message Save: Overview
    schemas_rst/json_schemas
    step_message_save_rst/step_message_save
    test_rst/test
+   changelog
 
 
 The STEP Message Save package provides a robust interface for communicating with the STEP (Safer Transport for Europe Platform) ecosystem.
 It serves as a client that subscribes to the STEP MQTT broker and appends the received
 Intelligent Transport Systems (ITS) messages such as CAM (Cooperative Awareness Messages), CPM (Cooperative
 Perception Messages) and DENM (Decentralized Environmental Notification Messages), as JSON lines, to a local
-output file.
+output file. It can also convert a saved file (JSONL or pickle actor) into another format (GPX), offline,
+through pluggable file loaders and writers.
 
 Goal
 ----
@@ -111,9 +114,12 @@ Key Features
 * Comprehensive error handling and logging
 * Quality of Service (QoS) controls for reliable message delivery
 * Automatic reconnection with a configurable retry interval
+* Graceful shutdown that saves the messages still queued to the output file
+* Offline file conversion (JSONL or pickle actor to GPX) with pluggable loaders and writers,
+  see :doc:`loaders_writers<loaders_writers>` to add a new format
 
 Environment Variables
-----------------------
+---------------------
 
 MQTT broker connection secrets are kept out of the (persisted) JSON configuration file and
 are instead read from the process environment at startup, optionally loaded from a ``.env``
@@ -131,6 +137,7 @@ traffic by:
 * Running multiple concurrent receiver tasks for higher message throughput
 * Serializing received messages to JSON and appending them to a single output file
 * Providing a standardized approach to ITS message persistence for offline analysis
+* Converting saved files into formats used by other tools (e.g. GPX tracks)
 
 Getting Started
 ---------------

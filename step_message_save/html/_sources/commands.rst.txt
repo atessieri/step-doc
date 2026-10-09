@@ -14,6 +14,7 @@ The CLI allows users to:
 * View the program version
 * Generate JSON schema documentation for configuration
 * Create configuration templates
+* Convert a saved file (JSONL or pickle actor) into another format (GPX)
 * Load and run the client with a specific configuration and instance name
 
 Basic Usage
@@ -36,11 +37,13 @@ The following command line options are available:
 ``-v, --version``
     Show the program version and exit.
 
-``-s, --conf_schema <schema file>``
-    Write the configuration JSON schema to the specified file.
+``-s, --conf_schema <schema dir>``
+    Write the configuration JSON schema into the specified directory (created if
+    missing) as ``step_message_save_config_v1_schema.json``.
 
-``-t, --conf_template <template file>``
-    Write a configuration template to the specified file.
+``-t, --conf_template <template dir>``
+    Write a configuration template into the specified directory (created if
+    missing) as ``step_message_save_config_v1_schema_template.json``.
 
 ``-c, --config <config file>``
     Load the configuration from the specified file and run the client. Requires
@@ -48,6 +51,23 @@ The following command line options are available:
 
 ``-i, --instance <instance name>``
     Specify the instance name. Requires ``-c``/``--config`` to also be specified.
+
+``-f, --file <input file>``
+    Input file to convert. Its format (JSONL or pickle actor) is deduced from the
+    file. Requires ``-x``/``--convert`` to also be specified.
+
+``-x, --convert {gpx}``
+    Output format of the conversion. Requires ``-f``/``--file`` to also be specified.
+
+``-o, --output <output path>``
+    Output file or directory of the conversion, created if missing; a path without
+    extension is a directory. Requires ``-f``/``--file`` to also be specified.
+    Defaults to the input file with the output format extension.
+
+``-f``/``--file`` enables the conversion: ``-x``/``--convert`` and ``-o``/``--output``
+require it. The conversion can be combined with ``-c``/``--config`` and
+``-i``/``--instance``: the file is converted first, then the client starts saving the
+received messages.
 
 Detailed Command Description
 ============================
@@ -81,9 +101,10 @@ To generate a JSON schema file documenting all configuration options:
 
 .. code-block:: bash
 
-    step_message_save --conf_schema /path/to/schema_file.json
+    step_message_save --conf_schema /path/to/schema_dir
 
-This command creates a JSON schema file at the specified path. The file describes
+This command creates the JSON schema file ``step_message_save_config_v1_schema.json``
+in the specified directory. The file describes
 all available configuration options, their types, defaults, and constraints.
 The schema can be used for validation or as a reference for creating custom configurations.
 
@@ -94,10 +115,41 @@ To generate a configuration template file with default values:
 
 .. code-block:: bash
 
-    step_message_save --conf_template /path/to/template_file.json
+    step_message_save --conf_template /path/to/template_dir
 
-This command creates a JSON configuration file with default values
+This command creates the JSON configuration file
+``step_message_save_config_v1_schema_template.json`` with default values
 for all settings. Users can modify this file as needed to customize their configuration.
+
+File Conversion
+---------------
+
+To convert a saved file into another format:
+
+.. code-block:: bash
+
+    step_message_save --file /path/to/input_file --convert gpx --output /path/to/output
+
+The input format is deduced from the file: the loaders owning the file extension
+(``.jsonl`` for JSONL, ``.pkl`` for pickle actor) are tried first, then all the
+others, and the first one that parses the file is used. The output file is:
+
+* the input file with the output format extension, if ``--output`` is omitted;
+* ``<output dir>/<input file name>.<output format>``, if ``--output`` is an existing
+  directory or has no extension;
+* the ``--output`` path itself otherwise.
+
+The missing directories of the output file are created, after the input file has been
+loaded: an invalid input file leaves no empty directories behind.
+
+The GPX output contains only the CAM messages with a position, one track per station
+named ``Path actor <station_id>_none``, in the same format read by step_publisher_pkl.
+The conversion runs offline: it does not connect to the STEP broker. A file that
+cannot be loaded or written terminates the program with exit code ``2`` (ERROR); when
+combined with ``--config``, the client is then not started.
+
+The available input and output formats are defined by the loaders and writers registered
+in ``step_message_save/__main__.py``; see :doc:`loaders_writers` to add a new one.
 
 Running with Configuration
 --------------------------
@@ -139,8 +191,9 @@ The program uses the following exit codes:
 
 * ``0`` (OK): Successful termination
 * ``1`` (USAGE): Command line usage error
-* ``2`` (ERROR): General error during execution
-* ``3`` (ABORTED): Operation aborted by user or system
+* ``2`` (ERROR): General error during execution, including a file conversion failure
+  (input file missing or not accepted by any loader, output file not writable)
+* ``3`` (ABORTED): Operation aborted by user or system (e.g. a graceful shutdown signal)
 
 Examples
 ========
@@ -149,13 +202,13 @@ Generate a configuration schema:
 
 .. code-block:: bash
 
-    step_message_save --conf_schema ./schema.json
+    step_message_save --conf_schema ./schema
 
 Create a configuration template:
 
 .. code-block:: bash
 
-    step_message_save --conf_template ./template.json
+    step_message_save --conf_template ./template
 
 Run with specific configuration:
 
@@ -163,29 +216,44 @@ Run with specific configuration:
 
     step_message_save --config ./my_config.json --instance my_instance
 
+Convert a JSONL file into a GPX file next to it:
+
+.. code-block:: bash
+
+    step_message_save --file ./received.jsonl --convert gpx
+
+Convert a pickle actor file into a GPX file in a directory:
+
+.. code-block:: bash
+
+    step_message_save -f ./scenario.pkl -x gpx -o ./tracks
+
 Generate both schema and template:
 
 .. code-block:: bash
 
-    step_message_save --conf_schema ./schema.json --conf_template ./template.json
+    step_message_save --conf_schema ./schema --conf_template ./template
 
 Program Operation
 =================
 
 When running with a configuration file, step_message_save performs the following operations:
 
-   #. Opens the output file once, before connecting, and keeps that handle open for the
-      whole run
+   #. Creates the output file directory and the queue shared by the receiver tasks and the
+      file writer task, once, before connecting
    #. Connects to the STEP gateway using MQTT settings and subscribes to the configured topics
    #. Starts the configured number of concurrent STEP receiver tasks, each listening for ITS
       messages from the STEP broker
-   #. Starts a single dedicated file writer task that owns the output file exclusively
+   #. Starts a single dedicated file writer task that opens the output file in append
+      mode and owns it exclusively
    #. Each receiver task serializes received messages to JSON and puts them on a shared queue;
       the writer task dequeues them and appends them, one per line, to the output file
    #. Automatically handles reconnection if the MQTT connection is lost (using the specified
-      reconnect interval), without reopening or truncating the output file, so previously
-      saved messages are preserved across reconnects
-   #. Manages graceful shutdown when interrupted
+      reconnect interval); the new writer task reopens the output file in append mode,
+      never truncating it, so previously saved messages are preserved across reconnects,
+      and the messages still queued are written by the writer task of the next cycle
+   #. Manages graceful shutdown when interrupted: the broker is disconnected and the
+      messages still queued are appended to the output file before exiting
 
 The client will continue running until manually interrupted (e.g., with Ctrl+C) or until a system signal is received.
 
@@ -197,6 +265,9 @@ Signal Handling
 
 step_message_save properly handles system signals for graceful shutdown. When a signal is
 received, it cleans up resources and terminates with the appropriate exit code.
+The shutdown signals are ``SIGINT`` and ``SIGTERM`` on Linux and macOS, and ``SIGBREAK``
+(Ctrl+Break) on Windows. On a graceful shutdown, the messages still waiting in the
+file writer queue are appended to the output file, so they are not lost.
 
 Logging
 -------

@@ -46,6 +46,10 @@ ITS message capture. Key concepts include:
       CPM (Cooperative Perception Messages) and DENM (Decentralized Environmental Notification
       Messages)
     * **Output File**: The single JSON-lines file that received messages are appended to
+    * **FileConverter**: Converts a saved file into another format, chaining a **loader**
+      (``FileLoader`` subclass, which parses a file into ITS messages) and a **writer**
+      (``FileWriter`` subclass, which serializes ITS messages into a file); see
+      :doc:`loaders_writers` to add a new format
 
 Configuration
 -------------
@@ -60,9 +64,10 @@ To create a default configuration template:
 
 .. code-block:: bash
 
-    step_message_save --conf_template my_config_template.json
+    step_message_save --conf_template my_config_template
 
-This generates a template that you can customize for your specific needs.
+This generates ``my_config_template/step_message_save_config_v1_schema_template.json``,
+a template that you can customize for your specific needs.
 
 Key Configuration Parameters
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -148,6 +153,49 @@ This will start the client, which will:
     #. Receive ITS messages using the configured number of concurrent receiver tasks
     #. Serialize each received message to JSON and append it to the configured output file
 
+On a graceful shutdown (``SIGINT``/``SIGTERM`` on Linux and macOS, ``SIGBREAK``, i.e.
+Ctrl+Break, on Windows) the client disconnects from the broker and appends the messages
+still queued to the output file before exiting with exit code ``3`` (ABORTED).
+
+Converting a Saved File
+-----------------------
+
+A file of ITS messages can be converted into another format without connecting to the
+broker:
+
+.. code-block:: bash
+
+    step_message_save --file /path/to/received.jsonl --convert gpx
+
+The supported formats are:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 15 60
+
+   * - Format
+     - Direction
+     - Content
+   * - JSONL (``.jsonl``)
+     - input
+     - One ITS message (CAM, CPM, DENM) per line, as written by the client
+   * - Pickle actor (``.pkl``)
+     - input
+     - Vehicle trajectories (``trajectories`` → ``vehicles``), converted into CAM messages
+   * - GPX (``.gpx``)
+     - output
+     - One track per station, named ``Path actor <station_id>_none``, built from the
+       CAM messages with a position; heading and speed are stored in the Garmin
+       ``TrackPointExtension`` ``course``/``speed`` elements
+
+The input format is deduced from the file, the output format is selected with
+``--convert``. The output is written next to the input file, unless ``--output`` gives
+another file or directory. See :doc:`commands` for the full rules, and
+:doc:`loaders_writers` to add a new input or output format.
+
+The conversion can be combined with ``--config``/``--instance``: the file is converted
+first, then the client starts.
+
 Command-Line Options
 --------------------
 
@@ -155,7 +203,10 @@ STEP Message Save supports several command-line options:
 
     * ``--config``, ``-c``: Path to configuration file (requires ``--instance``)
     * ``--instance``, ``-i``: Instance name (required together with ``--config``)
-    * ``--conf_schema``, ``-s``: Write the configuration JSON schema to a file
-    * ``--conf_template``, ``-t``: Generate a configuration template
+    * ``--conf_schema``, ``-s``: Write the configuration JSON schema into a directory
+    * ``--conf_template``, ``-t``: Generate a configuration template into a directory
+    * ``--file``, ``-f``: Input file to convert (requires ``--convert``)
+    * ``--convert``, ``-x``: Output format of the conversion (requires ``--file``)
+    * ``--output``, ``-o``: Output file or directory of the conversion (requires ``--file``)
     * ``--version``, ``-v``: Show version information
     * ``--help``, ``-h``: Show help information

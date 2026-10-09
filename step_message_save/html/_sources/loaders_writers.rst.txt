@@ -1,0 +1,479 @@
+============================
+Creating a Loader or Writer
+============================
+
+This guide explains how to add support for a new file format to the file conversion
+feature of STEP Message Save (``-f``/``--file`` and ``-x``/``--convert``, see
+:doc:`commands`), by writing a new **loader** (a new *input* format) or a new
+**writer** (a new *output* format).
+
+How the conversion works
+========================
+
+The conversion is implemented by
+:class:`~step_message_save.file_converter.FileConverter`, which chains two kinds of
+pluggable components:
+
+* a **loader**, a subclass of :class:`~step_message_save.loaders.file_loader.FileLoader`,
+  parses a file into a ``list[FacilityMessage]`` (``step_lib`` CAM, CPM, DENM messages);
+* a **writer**, a subclass of :class:`~step_message_save.writers.file_writer.FileWriter`,
+  serializes a ``list[FacilityMessage]`` into a file.
+
+``FacilityMessage`` is the common in-memory representation: any loader can be combined
+with any writer.
+
+.. container:: scrollable-diagram
+
+   .. plantuml::
+      :align: center
+
+      @startuml
+
+      !theme plain
+      skinparam classAttributeIconSize 0
+
+      abstract class FileLoader {
+         +EXTENSION: ClassVar[str]
+         +get_extension: str
+         +{abstract} __call__(file_path): list[FacilityMessage]
+         #_build_cam_data(...): CamDataV1
+      }
+
+      abstract class FileWriter {
+         +EXTENSION: ClassVar[str]
+         +get_extension: str
+         +{abstract} __call__(file_path, messages): None
+      }
+
+      class FileConverter {
+         +output_formats: list[str]
+         +load(input_file): list[FacilityMessage]
+         +output_file(input_file, output_format, output_path): Path
+         +__call__(input_file, output_format, output_path): Path
+      }
+
+      class JsonlLoader
+      class PickleActorLoader
+      class GpxWriter
+
+      FileLoader <|-- JsonlLoader
+      FileLoader <|-- PickleActorLoader
+      FileWriter <|-- GpxWriter
+
+      FileConverter o-- "*" FileLoader
+      FileConverter o-- "*" FileWriter
+
+      @enduml
+
+The input format is **never** given on the command line: it is deduced from the file.
+``FileConverter.load`` first tries the loaders whose ``EXTENSION`` matches the input
+file suffix (compared lower-case), then every other loader, each group in registration
+order. The first loader that returns without raising
+:class:`~step_message_save.step_exception.LoaderError` wins; if every loader rejects
+the file, a ``LoaderError`` listing the error of each loader is raised.
+
+The output format is selected by name: the writer's ``EXTENSION`` without the leading
+dot (``.gpx`` → ``gpx``). The writer's extension is also the suffix of the output file
+when ``-o``/``--output`` is omitted or is a directory.
+
+The loaders and writers used by the command line are listed in two constants in
+``step_message_save/__main__.py``:
+
+.. code-block:: python
+
+   # Loaders tried, in this order, against the file to convert: the input format
+   # is deduced from the file, never given on the command line.
+   CONVERSION_LOADERS: Final[tuple[type[FileLoader], ...]] = (
+       JsonlLoader,
+       PickleActorLoader,
+   )
+   # Writers selectable with -x/--convert, by their extension without the dot.
+   CONVERSION_WRITERS: Final[tuple[type[FileWriter], ...]] = (GpxWriter,)
+
+The contract
+============
+
+Loaders and writers share the same rules:
+
+* **One format per class.** The class attribute ``EXTENSION`` declares the file
+  extension the class handles, *including* the leading dot and in lower case
+  (e.g. ``".csv"``). It is checked by ``__init_subclass__`` when the class is
+  defined: a concrete subclass without a string ``EXTENSION`` starting with ``"."``
+  raises ``TypeError`` at import time.
+* **Callable object.** The whole work is done in ``__call__``, decorated with
+  ``typing.override``.
+* **No constructor arguments.** The command line instantiates every class with
+  ``loader_cls()`` / ``writer_cls()``. An ``__init__`` without arguments is allowed
+  (see ``GpxWriter``, which registers an XML namespace prefix).
+* **Stateless.** The same instance is reused for every conversion: never keep
+  per-file state on ``self``. Declare ``__slots__ = ()``, as the base classes do.
+* **Package exceptions only.** Every expected failure must be raised as
+  ``LoaderError`` (loader) or ``WriterError`` (writer), chained with ``from exc``.
+  ``main()`` maps both to exit code ``2`` (ERROR) and logs only the message, without a
+  traceback. Any other exception is reported as an unmanaged exception.
+
+Loader-specific rules:
+
+* **Reject what is not yours.** A loader is also tried against files with *other*
+  extensions, whenever the loaders owning the extension reject the file. It must
+  therefore validate its input strictly and raise ``LoaderError`` as soon as the file
+  does not match its format, instead of returning a partial or empty result.
+* **Catch every parsing exception.** ``FileConverter.load`` falls back to the next
+  loader only on ``LoaderError``: an ``OSError``, ``ValueError``, ``KeyError`` ...
+  escaping from ``__call__`` aborts the whole conversion instead of letting another
+  loader try. Wrap the full parsing code in a ``try`` block, as the existing loaders
+  do.
+* **Return all the messages.** ``__call__`` returns a ``list[FacilityMessage]``;
+  the order of the list is preserved up to the writer.
+
+Writer-specific rules:
+
+* **Filter what you cannot write.** A writer receives every message produced by the
+  loader, of any type. Skip the messages the output format cannot represent (e.g.
+  ``GpxWriter`` keeps only the ``CamMessageV1`` messages with a position) instead of
+  failing.
+* **Do not create directories.** ``FileConverter`` creates the missing parent
+  directories of the output file before calling the writer.
+* **Wrap I/O errors.** Raise ``WriterError`` when the file cannot be written
+  (typically from an ``OSError``).
+* **Unique extension.** Writers are indexed by format name: two writers with the same
+  ``EXTENSION`` cannot be registered together (the last one silently replaces the
+  first).
+
+.. _creating_a_loader:
+
+Creating a loader
+=================
+
+The example adds a loader for a CSV file of vehicle trajectory points with the
+header ``station_id,timestamp,latitude,longitude,altitude,heading,speed``, where
+``timestamp`` is an ISO 8601 date-time with its UTC offset (e.g.
+``2026-10-08T19:37:09.132+00:00``) and the last three columns may be empty.
+
+Step 1: write the class
+-----------------------
+
+Create ``src/step_message_save/loaders/csv_loader.py``:
+
+.. code-block:: python
+
+   """CSV trajectory file loader.
+
+   Loads vehicle trajectory points from a CSV file into FacilityMessage
+   (CamMessageV1) instances.
+
+   Complexity:
+       - Time: O(r), dominated by CsvLoader.__call__, r = number of rows.
+       - Space: O(r), dominated by CsvLoader.__call__, one CamMessageV1 per row.
+
+   Classes:
+       - CsvLoader: Parses a CSV file of vehicle trajectory points.
+         Complexity: time O(r), space O(r), r = number of rows.
+   """
+
+   # Standard Library Imports
+   import datetime as dt
+   from csv import DictReader
+   from csv import Error as CsvError
+   from pathlib import Path
+   from typing import ClassVar, override
+
+   # Third Party Imports
+   from step_lib import CamMessageV1, FacilityMessage
+
+   # step_message_save Package Imports
+   from step_message_save.loaders.file_loader import FileLoader
+   from step_message_save.step_exception import LoaderError
+
+
+   class CsvLoader(FileLoader):
+       """Loads vehicle trajectory points from a CSV file.
+
+       Complexity:
+           - Time: O(r), where r is the number of rows in the file.
+           - Space: O(r), one CamMessageV1 is stored per row.
+       """
+
+       __slots__ = ()
+
+       EXTENSION: ClassVar[str] = ".csv"
+
+       _HEADER: ClassVar[tuple[str, ...]] = (
+           "station_id",
+           "timestamp",
+           "latitude",
+           "longitude",
+           "altitude",
+           "heading",
+           "speed",
+       )
+
+       @override
+       def __call__(self, file_path: Path) -> list[FacilityMessage]:
+           """Parse file_path as a CSV file of vehicle trajectory points.
+
+           Args:
+               file_path (Path): Path to the CSV file to parse.
+
+           Returns:
+               list[FacilityMessage]: One CamMessageV1 per row.
+
+           Raises:
+               LoaderError: file_path cannot be read, its header is not the
+                   expected one, or a row holds an invalid value.
+
+           Complexity:
+               - Time: O(r), where r is the number of rows.
+               - Space: O(r), one CamMessageV1 is stored per row.
+           """
+           messages: list[FacilityMessage] = []
+           try:
+               with file_path.open(mode="r", encoding="utf-8", newline="") as file:
+                   reader = DictReader(file)
+                   # Strict check: reject any other CSV (or non-CSV) file
+                   if tuple(reader.fieldnames or ()) != self._HEADER:
+                       raise LoaderError(f"Unexpected CSV header {reader.fieldnames}")
+                   messages.extend(
+                       CamMessageV1(
+                           message_param=self._build_cam_data(
+                               station_id=int(row["station_id"]),
+                               timestamp=dt.datetime.fromisoformat(row["timestamp"]),
+                               latitude=float(row["latitude"]),
+                               longitude=float(row["longitude"]),
+                               altitude=self._optional_float(text=row["altitude"]),
+                               heading=self._optional_float(text=row["heading"]),
+                               speed=self._optional_float(text=row["speed"]),
+                           )
+                       )
+                       for row in reader
+                   )
+           except (OSError, UnicodeDecodeError, CsvError, TypeError, ValueError) as exc:
+               raise LoaderError(
+                   f"File {file_path} is not a valid CSV trajectory file: {exc}"
+               ) from exc
+           return messages
+
+       @staticmethod
+       def _optional_float(text: str | None) -> float | None:
+           """Convert an optional CSV cell into a float.
+
+           Args:
+               text (str | None): The cell text, empty or None when missing.
+
+           Returns:
+               float | None: The cell value, or None when the cell is empty.
+
+           Complexity:
+               - Time: O(1), a single float conversion.
+               - Space: O(1), no additional data structures are allocated.
+           """
+           return float(text) if text else None
+
+Points to notice:
+
+* ``LoaderError`` raised inside the ``try`` block (the header check) is not caught by
+  the ``except`` clause, because ``LoaderError`` is not one of the listed exceptions:
+  it propagates unchanged.
+* ``pydantic.ValidationError`` is a ``ValueError`` subclass, so the ``ValueError``
+  clause also covers the validation of the CAM fields (e.g. a latitude out of range).
+* ``FileLoader._build_cam_data`` builds a ``CamDataV1`` from scalar trajectory values
+  (station id, time, position, optional altitude/heading/speed), as done by
+  ``PickleActorLoader``. A loader producing CPM or DENM messages
+  builds its ``CpmDataV1`` / ``DenmDataV1`` and wraps it in ``CpmMessageV1`` /
+  ``DenmMessageV1`` instead (see ``JsonlLoader``).
+
+Step 2: register the loader
+---------------------------
+
+Add the class to ``CONVERSION_LOADERS`` in ``src/step_message_save/__main__.py``:
+
+.. code-block:: python
+
+   from step_message_save.loaders.csv_loader import CsvLoader
+
+   CONVERSION_LOADERS: Final[tuple[type[FileLoader], ...]] = (
+       JsonlLoader,
+       PickleActorLoader,
+       CsvLoader,
+   )
+
+The tuple order is the order used to try the loaders that do not own the input file
+extension: put the cheapest and strictest loaders first.
+
+Then update the help text of the ``-f``/``--file`` option in ``_args_parse``, which
+lists the accepted input formats:
+
+.. code-block:: python
+
+   parser.add_argument(
+       "-f",
+       "--file",
+       help="Input file to convert (jsonl, pickle actor or csv), its format is deduced from the file",
+       ...
+   )
+
+Creating a writer
+=================
+
+The example adds a writer producing a JSONL file, i.e. the same format the client
+writes while receiving messages from the broker and that ``JsonlLoader`` reads back.
+
+Step 1: write the class
+-----------------------
+
+Create ``src/step_message_save/writers/jsonl_writer.py``:
+
+.. code-block:: python
+
+   """JSONL file writer.
+
+   Writes a FacilityMessage list into a JSONL file, one JSON-encoded ITS message
+   per line, in the format read back by JsonlLoader.
+
+   Complexity:
+       - Time: O(n), dominated by JsonlWriter.__call__, n = number of messages.
+       - Space: O(1), dominated by JsonlWriter.__call__, messages are written one
+         at a time.
+
+   Classes:
+       - JsonlWriter: Writes ITS messages into a JSONL file. Complexity: time
+         O(n), space O(1), n = number of messages.
+   """
+
+   # Standard Library Imports
+   from pathlib import Path
+   from typing import ClassVar, override
+
+   # Third Party Imports
+   from step_lib import FacilityMessage
+
+   # step_message_save Package Imports
+   from step_message_save.step_exception import WriterError
+   from step_message_save.writers.file_writer import FileWriter
+
+
+   class JsonlWriter(FileWriter):
+       """Writes ITS messages into a JSONL file.
+
+       Complexity:
+           - Time: O(n), where n is the number of messages.
+           - Space: O(1), messages are written one at a time.
+       """
+
+       __slots__ = ()
+
+       EXTENSION: ClassVar[str] = ".jsonl"
+
+       @override
+       def __call__(self, file_path: Path, messages: list[FacilityMessage]) -> None:
+           """Write messages to file_path, one JSON-encoded message per line.
+
+           Args:
+               file_path (Path): Path to the JSONL file to write.
+               messages (list[FacilityMessage]): The messages to write.
+
+           Returns:
+               None: The messages are written to file_path as a side effect.
+
+           Raises:
+               WriterError: file_path cannot be written to.
+
+           Complexity:
+               - Time: O(n), where n is the number of messages.
+               - Space: O(1), messages are written one at a time.
+           """
+           try:
+               with file_path.open(mode="w", encoding="utf-8", newline="") as file:
+                   for message in messages:
+                       file.write(message.to_json(indent=None) + "\n")
+           except OSError as exc:
+               raise WriterError(f"Cannot write jsonl file {file_path}: {exc}") from exc
+
+Step 2: register the writer
+---------------------------
+
+Add the class to ``CONVERSION_WRITERS`` in ``src/step_message_save/__main__.py``:
+
+.. code-block:: python
+
+   from step_message_save.writers.jsonl_writer import JsonlWriter
+
+   CONVERSION_WRITERS: Final[tuple[type[FileWriter], ...]] = (GpxWriter, JsonlWriter)
+
+Nothing else is needed for the command line: ``CONVERSION_OUTPUT_FORMATS`` is computed
+from the writer classes, so ``jsonl`` becomes a valid ``-x``/``--convert`` choice and
+appears in ``--help``:
+
+.. code-block:: bash
+
+   step_message_save -f ./scenario.pkl -x jsonl -o ./converted
+
+Completing the integration
+==========================
+
+The following steps apply to both loaders and writers.
+
+Dependencies
+------------
+
+If the new class relies on a third-party library, add it to ``dependencies`` in
+``pyproject.toml`` and to the ``imports`` list of the ``[tool.autoflake]`` section,
+as done for ``gpx``.
+
+Unit tests
+----------
+
+Tests mirror the ``src`` layout: the tests of
+``src/step_message_save/loaders/csv_loader.py`` go in ``test/loaders/test_csv_loader.py``
+and the tests of ``src/step_message_save/writers/jsonl_writer.py`` in
+``test/writers/test_jsonl_writer.py``. Cover at least:
+
+* a valid file, checking the returned / written messages;
+* every rejection path of a loader (unreadable file, wrong format, invalid value),
+  checking that ``LoaderError`` is raised;
+* the messages a writer skips, and an unwritable output path raising ``WriterError``;
+* a round trip, when both a loader and a writer exist for the format;
+* the end-to-end conversion through ``FileConverter`` in ``test/test_file_converter.py``.
+
+Documentation
+-------------
+
+* Regenerate the API pages with ``uv run tox -e apidoc``, or add by hand the module
+  page (e.g. ``step_message_save_rst/loaders/step_message_save.loaders.csv_loader.rst``
+  and ``test_rst/loaders/test.loaders.test_csv_loader.rst``) and its entry in the
+  ``toctree`` of the subpackage page.
+* Add the class to the ``Classes`` list of the subpackage docstring
+  (``loaders/__init__.py`` or ``writers/__init__.py``) and the module to the
+  ``Modules`` and ``Complexity summary`` sections of the root ``__init__.py`` docstring.
+* Update the list of supported formats in :doc:`commands` (``-f``/``-x`` options and
+  the *File Conversion* section), :doc:`usage` and ``README.rst``.
+
+Programmatic use
+================
+
+``FileConverter`` does not depend on the command line: it can be built with any set of
+loader and writer instances, including classes that are not registered in
+``__main__.py`` (e.g. a loader still under development):
+
+.. code-block:: python
+
+   from pathlib import Path
+
+   from step_message_save.file_converter import FileConverter
+   from step_message_save.loaders.jsonl_loader import JsonlLoader
+   from step_message_save.loaders.pickle_actor_loader import PickleActorLoader
+   from step_message_save.writers.gpx_writer import GpxWriter
+
+   converter = FileConverter(
+       loaders=[JsonlLoader(), PickleActorLoader()],
+       writers=[GpxWriter()],
+   )
+   print(converter.output_formats)  # ['gpx']
+
+   # Load only
+   messages = converter.load(input_file=Path("received.jsonl"))
+
+   # Full conversion: returns the path of the written file
+   output_file = converter(
+       input_file=Path("received.jsonl"), output_format="gpx", output_path=Path("tracks")
+   )

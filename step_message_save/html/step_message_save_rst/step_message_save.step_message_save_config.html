@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>step_message_save.step_message_save_config module &mdash; STEP Client 1.1.4 documentation</title>
+  <title>step_message_save.step_message_save_config module &mdash; STEP Client 1.2.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/tabs.css?v=4c969af8" />
@@ -16,7 +16,7 @@
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=00f267c6"></script>
+      <script src="../_static/documentation_options.js?v=6efca38a"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/tabs.js?v=3ee01567"></script>
@@ -65,6 +65,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../commands.html#version-command">Version Command</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../commands.html#configuration-schema-generation">Configuration Schema Generation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../commands.html#configuration-template-generation">Configuration Template Generation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../commands.html#file-conversion">File Conversion</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../commands.html#running-with-configuration">Running with Configuration</a></li>
 </ul>
 </li>
@@ -96,7 +97,30 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../usage.html#running-step-message-save-as-a-service">Running STEP Message Save as a Service</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../usage.html#converting-a-saved-file">Converting a Saved File</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../usage.html#command-line-options">Command-Line Options</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../loaders_writers.html">Creating a Loader or Writer</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../loaders_writers.html#how-the-conversion-works">How the conversion works</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../loaders_writers.html#the-contract">The contract</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../loaders_writers.html#creating-a-loader">Creating a loader</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../loaders_writers.html#step-1-write-the-class">Step 1: write the class</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../loaders_writers.html#step-2-register-the-loader">Step 2: register the loader</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../loaders_writers.html#creating-a-writer">Creating a writer</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../loaders_writers.html#id2">Step 1: write the class</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../loaders_writers.html#step-2-register-the-writer">Step 2: register the writer</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../loaders_writers.html#completing-the-integration">Completing the integration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../loaders_writers.html#dependencies">Dependencies</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../loaders_writers.html#unit-tests">Unit tests</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../loaders_writers.html#documentation">Documentation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../loaders_writers.html#programmatic-use">Programmatic use</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../package_script.html">Package Script</a><ul>
@@ -123,6 +147,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../architecture.html#mqtt-credential-loading">MQTT Credential Loading</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../architecture.html#steplogger">StepLogger</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../architecture.html#stepexception">StepException</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../architecture.html#file-conversion">File Conversion</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../architecture.html#component-diagram">Component Diagram</a></li>
 </ul>
 </li>
@@ -183,25 +208,82 @@
 <li class="toctree-l3"><a class="reference internal" href="../schemas_rst/denm_message.html">DENM Message</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html">DENM Data V1 Schema</a><ul>
 <li class="toctree-l5"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#denm-data-version-1">DENM Data Version 1</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#accident-cause">Accident Cause</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#accident-sub-cause-code">Accident Sub Cause Code</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#action-id">Action Id</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#adhesion-sub-cause-code">Adhesion Sub Cause Code</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#adverse-weather-condition-precipitation-sub-cause-code">Adverse Weather Condition Precipitation Sub Cause Code</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#adverse-weather-condition-visibility-sub-cause-code">Adverse Weather Condition Visibility Sub Cause Code</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#adverse-weather-condition-wind-sub-cause-code">Adverse Weather Condition Wind Sub Cause Code</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#reference-altitude">Reference Altitude</a></li>
-<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#cause-code">Cause Code</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#animal-on-the-road-cause">Animal On The Road Cause</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#aquaplaning-cause">Aquaplaning Cause</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#collision-risk-cause">Collision Risk Cause</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#collision-risk-sub-cause-code">Collision Risk Sub Cause Code</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#dangerous-curve-cause">Dangerous Curve Cause</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#dangerous-end-of-queue-sub-cause-code">Dangerous End Of Queue Sub Cause Code</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#dangerous-situation-cause">Dangerous Situation Cause</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#dangerous-situation-sub-cause-code">Dangerous Situation Sub Cause Code</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#detected-roadworks-cause">Detected Roadworks Cause</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#dont-panic-cause">Dont Panic Cause</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#emergency-vehicle-approaching-sub-cause-code">Emergency Vehicle Approaching Sub Cause Code</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#emergency-vehicle-cause">Emergency Vehicle Cause</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#generic-sub-cause-code">Generic Sub Cause Code</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#hazardous-location-animal-on-the-road-sub-cause-code">Hazardous Location Animal On The Road Sub Cause Code</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#hazardous-location-dangerous-curve-sub-cause-code">Hazardous Location Dangerous Curve Sub Cause Code</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#hazardous-location-obstacle-on-the-road-sub-cause-code">Hazardous Location Obstacle On The Road Sub Cause Code</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#hazardous-location-surface-condition-sub-cause-code">Hazardous Location Surface Condition Sub Cause Code</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#heading">Heading</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#human-presence-on-the-road-cause">Human Presence On The Road Cause</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#human-presence-on-the-road-sub-cause-code">Human Presence On The Road Sub Cause Code</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#human-problem-cause">Human Problem Cause</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#human-problem-sub-cause-code">Human Problem Sub Cause Code</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#impassability-cause">Impassability Cause</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#impassability-sub-cause-code">Impassability Sub Cause Code</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#location-container">Location Container</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#low-adhesion-cause">Low Adhesion Cause</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#denm-management-container">DENM Management Container</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#object-dimension">Object Dimension</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#object-face">Object Face</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#obstacle-on-the-road-cause">Obstacle On The Road Cause</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#path-point-predicted">Path Point Predicted</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#perceived-object">Perceived Object</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#position-confidence-ellipse">Position Confidence Ellipse</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#post-crash-cause">Post Crash Cause</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#post-crash-sub-cause-code">Post Crash Sub Cause Code</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#pre-crash-container">Pre-Crash Container</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#precipitation-cause">Precipitation Cause</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#public-transport-cause">Public Transport Cause</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#railway-level-crossing-cause">Railway Level Crossing Cause</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#railway-level-crossing-sub-cause-code">Railway Level Crossing Sub Cause Code</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#reference-position">Reference Position</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#rescue-recovery-and-maintenance-work-in-progress-cause">Rescue Recovery And Maintenance Work In Progress Cause</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#rescue-recovery-and-maintenance-work-in-progress-sub-cause-code">Rescue Recovery And Maintenance Work In Progress Sub Cause Code</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#road-type">Road Type</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#roadworkers-cause">Roadworkers Cause</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#roadworks-sub-cause-code">Roadworks Sub Cause Code</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#signal-violation-cause">Signal Violation Cause</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#signal-violation-sub-cause-code">Signal Violation Sub Cause Code</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#situation-container">Situation Container</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#slow-vehicle-cause">Slow Vehicle Cause</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#slow-vehicle-sub-cause-code">Slow Vehicle Sub Cause Code</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#speed">Speed</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#stationary-vehicle-cause">Stationary Vehicle Cause</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#stationary-vehicle-sub-cause-code">Stationary Vehicle Sub Cause Code</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#surface-condition-cause">Surface Condition Cause</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#denm-termination-type">DENM Termination Type</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#traffic-condition-cause">Traffic Condition Cause</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#traffic-condition-sub-cause-code">Traffic Condition Sub Cause Code</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#traffic-direction-type">Traffic Direction Type</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#traffic-participant-type">Traffic Participant Type</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#vehicle-breakdown-cause">Vehicle Breakdown Cause</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#vehicle-breakdown-sub-cause-code">Vehicle Breakdown Sub Cause Code</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#vehicle-queue-cause">Vehicle Queue Cause</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#violence-cause">Violence Cause</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#visibility-cause">Visibility Cause</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#wind-cause">Wind Cause</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#wrong-way-driving-cause">Wrong Way Driving Cause</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/denm_data_v1_schema.html#wrong-way-driving-sub-cause-code">Wrong Way Driving Sub Cause Code</a></li>
 </ul>
 </li>
 </ul>
@@ -229,7 +311,7 @@
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/step_message_save_config_schema.html#message-type">Message Type</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/step_message_save_config_schema.html#mqtt-client-configuration">MQTT Client Configuration</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/step_message_save_config_schema.html#mqtt-protocol">MQTT Protocol</a></li>
-<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/step_message_save_config_schema.html#quality-of-service">Quality of Service</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/step_message_save_config_schema.html#mqtt-quality-of-service">MQTT Quality of Service</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/step_message_save_config_schema.html#step-broker-configuration">STEP Broker Configuration</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/step_message_save_config_schema.html#mqtt-subscription-topic-parameters">MQTT Subscription Topic Parameters</a></li>
 </ul>
@@ -243,7 +325,73 @@
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="step_message_save.html">step_message_save package</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="step_message_save.html#subpackages">Subpackages</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="loaders/step_message_save.loaders.html">step_message_save.loaders package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="loaders/step_message_save.loaders.html#submodules">Submodules</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="loaders/step_message_save.loaders.file_loader.html">step_message_save.loaders.file_loader module</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="loaders/step_message_save.loaders.file_loader.html#step_message_save.loaders.file_loader.FileLoader"><code class="docutils literal notranslate"><span class="pre">FileLoader</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="loaders/step_message_save.loaders.file_loader.html#step_message_save.loaders.file_loader.FileLoader.__call__"><code class="docutils literal notranslate"><span class="pre">FileLoader.__call__()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="loaders/step_message_save.loaders.file_loader.html#step_message_save.loaders.file_loader.FileLoader.__init_subclass__"><code class="docutils literal notranslate"><span class="pre">FileLoader.__init_subclass__()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="loaders/step_message_save.loaders.file_loader.html#step_message_save.loaders.file_loader.FileLoader.get_extension"><code class="docutils literal notranslate"><span class="pre">FileLoader.get_extension</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="loaders/step_message_save.loaders.jsonl_loader.html">step_message_save.loaders.jsonl_loader module</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="loaders/step_message_save.loaders.jsonl_loader.html#step_message_save.loaders.jsonl_loader.JsonlLoader"><code class="docutils literal notranslate"><span class="pre">JsonlLoader</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="loaders/step_message_save.loaders.jsonl_loader.html#step_message_save.loaders.jsonl_loader.JsonlLoader.__call__"><code class="docutils literal notranslate"><span class="pre">JsonlLoader.__call__()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="loaders/step_message_save.loaders.pickle_actor_loader.html">step_message_save.loaders.pickle_actor_loader module</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="loaders/step_message_save.loaders.pickle_actor_loader.html#step_message_save.loaders.pickle_actor_loader.PickleActorLoader"><code class="docutils literal notranslate"><span class="pre">PickleActorLoader</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="loaders/step_message_save.loaders.pickle_actor_loader.html#step_message_save.loaders.pickle_actor_loader.PickleActorLoader.__call__"><code class="docutils literal notranslate"><span class="pre">PickleActorLoader.__call__()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="writers/step_message_save.writers.html">step_message_save.writers package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="writers/step_message_save.writers.html#submodules">Submodules</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="writers/step_message_save.writers.file_writer.html">step_message_save.writers.file_writer module</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="writers/step_message_save.writers.file_writer.html#step_message_save.writers.file_writer.FileWriter"><code class="docutils literal notranslate"><span class="pre">FileWriter</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="writers/step_message_save.writers.file_writer.html#step_message_save.writers.file_writer.FileWriter.__call__"><code class="docutils literal notranslate"><span class="pre">FileWriter.__call__()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="writers/step_message_save.writers.file_writer.html#step_message_save.writers.file_writer.FileWriter.__init_subclass__"><code class="docutils literal notranslate"><span class="pre">FileWriter.__init_subclass__()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="writers/step_message_save.writers.file_writer.html#step_message_save.writers.file_writer.FileWriter.get_extension"><code class="docutils literal notranslate"><span class="pre">FileWriter.get_extension</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="writers/step_message_save.writers.gpx_writer.html">step_message_save.writers.gpx_writer module</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="writers/step_message_save.writers.gpx_writer.html#step_message_save.writers.gpx_writer.GpxWriter"><code class="docutils literal notranslate"><span class="pre">GpxWriter</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="writers/step_message_save.writers.gpx_writer.html#step_message_save.writers.gpx_writer.GpxWriter.__call__"><code class="docutils literal notranslate"><span class="pre">GpxWriter.__call__()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2 current"><a class="reference internal" href="step_message_save.html#submodules">Submodules</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="step_message_save.file_converter.html">step_message_save.file_converter module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="step_message_save.file_converter.html#step_message_save.file_converter.FileConverter"><code class="docutils literal notranslate"><span class="pre">FileConverter</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="step_message_save.file_converter.html#step_message_save.file_converter.FileConverter.loaders"><code class="docutils literal notranslate"><span class="pre">FileConverter.loaders</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_message_save.file_converter.html#step_message_save.file_converter.FileConverter.writers"><code class="docutils literal notranslate"><span class="pre">FileConverter.writers</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_message_save.file_converter.html#step_message_save.file_converter.FileConverter.__call__"><code class="docutils literal notranslate"><span class="pre">FileConverter.__call__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_message_save.file_converter.html#step_message_save.file_converter.FileConverter.load"><code class="docutils literal notranslate"><span class="pre">FileConverter.load()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_message_save.file_converter.html#step_message_save.file_converter.FileConverter.output_file"><code class="docutils literal notranslate"><span class="pre">FileConverter.output_file()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_message_save.file_converter.html#step_message_save.file_converter.FileConverter.output_formats"><code class="docutils literal notranslate"><span class="pre">FileConverter.output_formats</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="step_message_save.step_broker.html">step_message_save.step_broker module</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="step_message_save.step_broker.html#step_message_save.step_broker.StepBroker"><code class="docutils literal notranslate"><span class="pre">StepBroker</span></code></a><ul>
 <li class="toctree-l5"><a class="reference internal" href="step_message_save.step_broker.html#step_message_save.step_broker.StepBroker.instance_name"><code class="docutils literal notranslate"><span class="pre">StepBroker.instance_name</span></code></a></li>
@@ -257,9 +405,11 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="step_message_save.step_exception.html">step_message_save.step_exception module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="step_message_save.step_exception.html#step_message_save.step_exception.LoaderError"><code class="docutils literal notranslate"><span class="pre">LoaderError</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="step_message_save.step_exception.html#step_message_save.step_exception.ShutdownRequestedError"><code class="docutils literal notranslate"><span class="pre">ShutdownRequestedError</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="step_message_save.step_exception.html#step_message_save.step_exception.StepCliError"><code class="docutils literal notranslate"><span class="pre">StepCliError</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="step_message_save.step_exception.html#step_message_save.step_exception.StepMessageSaveError"><code class="docutils literal notranslate"><span class="pre">StepMessageSaveError</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="step_message_save.step_exception.html#step_message_save.step_exception.WriterError"><code class="docutils literal notranslate"><span class="pre">WriterError</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">step_message_save.step_message_save_config module</a><ul>
@@ -267,7 +417,6 @@
 <li class="toctree-l5"><a class="reference internal" href="#step_message_save.step_message_save_config.MessageType.CAM"><code class="docutils literal notranslate"><span class="pre">MessageType.CAM</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#step_message_save.step_message_save_config.MessageType.CPM"><code class="docutils literal notranslate"><span class="pre">MessageType.CPM</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#step_message_save.step_message_save_config.MessageType.DENM"><code class="docutils literal notranslate"><span class="pre">MessageType.DENM</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="#step_message_save.step_message_save_config.MessageType.__get_pydantic_json_schema__"><code class="docutils literal notranslate"><span class="pre">MessageType.__get_pydantic_json_schema__()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l4"><a class="reference internal" href="#step_message_save.step_message_save_config.MqttClientConfig"><code class="docutils literal notranslate"><span class="pre">MqttClientConfig</span></code></a><ul>
@@ -310,7 +459,6 @@
 <li class="toctree-l5"><a class="reference internal" href="#step_message_save.step_message_save_config.MqttQoSConfig.QOS_0"><code class="docutils literal notranslate"><span class="pre">MqttQoSConfig.QOS_0</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#step_message_save.step_message_save_config.MqttQoSConfig.QOS_1"><code class="docutils literal notranslate"><span class="pre">MqttQoSConfig.QOS_1</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#step_message_save.step_message_save_config.MqttQoSConfig.QOS_2"><code class="docutils literal notranslate"><span class="pre">MqttQoSConfig.QOS_2</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="#step_message_save.step_message_save_config.MqttQoSConfig.__get_pydantic_json_schema__"><code class="docutils literal notranslate"><span class="pre">MqttQoSConfig.__get_pydantic_json_schema__()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l4"><a class="reference internal" href="#step_message_save.step_message_save_config.StepBrokerConfig"><code class="docutils literal notranslate"><span class="pre">StepBrokerConfig</span></code></a><ul>
@@ -355,9 +503,83 @@
 <li class="toctree-l1"><a class="reference internal" href="../test_rst/test.html">Unit Test package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../test_rst/test.html#subpackages">Subpackages</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../test_rst/file_compare/test.file_compare.html">test.file_compare package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/file_compare/test.file_compare.html#test.file_compare.files_equal_as_text"><code class="docutils literal notranslate"><span class="pre">files_equal_as_text()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/file_compare/test.file_compare.html#subpackages">Subpackages</a><ul>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/file_compare/schemas/test.file_compare.schemas.html">test.file_compare.schemas package</a></li>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/file_compare/templates/test.file_compare.templates.html">test.file_compare.templates package</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../test_rst/loaders/test.loaders.html">test.loaders package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/loaders/test.loaders.html#submodules">Submodules</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/loaders/test.loaders.test_file_loader.html">test.loaders.test_file_loader module</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="../test_rst/loaders/test.loaders.test_file_loader.html#test.loaders.test_file_loader.TestFileLoader"><code class="docutils literal notranslate"><span class="pre">TestFileLoader</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="../test_rst/loaders/test.loaders.test_file_loader.html#test.loaders.test_file_loader.TestFileLoader.test___call__"><code class="docutils literal notranslate"><span class="pre">TestFileLoader.test___call__()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="../test_rst/loaders/test.loaders.test_file_loader.html#test.loaders.test_file_loader.TestFileLoader.test___init_subclass__"><code class="docutils literal notranslate"><span class="pre">TestFileLoader.test___init_subclass__()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="../test_rst/loaders/test.loaders.test_file_loader.html#test.loaders.test_file_loader.TestFileLoader.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestFileLoader.test___slots__()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="../test_rst/loaders/test.loaders.test_file_loader.html#test.loaders.test_file_loader.TestFileLoader.test__build_cam_data"><code class="docutils literal notranslate"><span class="pre">TestFileLoader.test__build_cam_data()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="../test_rst/loaders/test.loaders.test_file_loader.html#test.loaders.test_file_loader.TestFileLoader.test_abstract"><code class="docutils literal notranslate"><span class="pre">TestFileLoader.test_abstract()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="../test_rst/loaders/test.loaders.test_file_loader.html#test.loaders.test_file_loader.TestFileLoader.test_get_extension"><code class="docutils literal notranslate"><span class="pre">TestFileLoader.test_get_extension()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/loaders/test.loaders.test_jsonl_loader.html">test.loaders.test_jsonl_loader module</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="../test_rst/loaders/test.loaders.test_jsonl_loader.html#test.loaders.test_jsonl_loader.TestJsonlLoader"><code class="docutils literal notranslate"><span class="pre">TestJsonlLoader</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="../test_rst/loaders/test.loaders.test_jsonl_loader.html#test.loaders.test_jsonl_loader.TestJsonlLoader.test___call__"><code class="docutils literal notranslate"><span class="pre">TestJsonlLoader.test___call__()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="../test_rst/loaders/test.loaders.test_jsonl_loader.html#test.loaders.test_jsonl_loader.TestJsonlLoader.test___call___invalid"><code class="docutils literal notranslate"><span class="pre">TestJsonlLoader.test___call___invalid()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="../test_rst/loaders/test.loaders.test_jsonl_loader.html#test.loaders.test_jsonl_loader.TestJsonlLoader.test___call___unsupported_type"><code class="docutils literal notranslate"><span class="pre">TestJsonlLoader.test___call___unsupported_type()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="../test_rst/loaders/test.loaders.test_jsonl_loader.html#test.loaders.test_jsonl_loader.TestJsonlLoader.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestJsonlLoader.test___slots__()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="../test_rst/loaders/test.loaders.test_jsonl_loader.html#test.loaders.test_jsonl_loader.TestJsonlLoader.test_get_extension"><code class="docutils literal notranslate"><span class="pre">TestJsonlLoader.test_get_extension()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/loaders/test.loaders.test_pickle_actor_loader.html">test.loaders.test_pickle_actor_loader module</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="../test_rst/loaders/test.loaders.test_pickle_actor_loader.html#test.loaders.test_pickle_actor_loader.TestPickleActorLoader"><code class="docutils literal notranslate"><span class="pre">TestPickleActorLoader</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="../test_rst/loaders/test.loaders.test_pickle_actor_loader.html#test.loaders.test_pickle_actor_loader.TestPickleActorLoader.test___call__"><code class="docutils literal notranslate"><span class="pre">TestPickleActorLoader.test___call__()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="../test_rst/loaders/test.loaders.test_pickle_actor_loader.html#test.loaders.test_pickle_actor_loader.TestPickleActorLoader.test___call___invalid"><code class="docutils literal notranslate"><span class="pre">TestPickleActorLoader.test___call___invalid()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="../test_rst/loaders/test.loaders.test_pickle_actor_loader.html#test.loaders.test_pickle_actor_loader.TestPickleActorLoader.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestPickleActorLoader.test___slots__()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="../test_rst/loaders/test.loaders.test_pickle_actor_loader.html#test.loaders.test_pickle_actor_loader.TestPickleActorLoader.test__dict_to_cam_data"><code class="docutils literal notranslate"><span class="pre">TestPickleActorLoader.test__dict_to_cam_data()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="../test_rst/loaders/test.loaders.test_pickle_actor_loader.html#test.loaders.test_pickle_actor_loader.TestPickleActorLoader.test_get_extension"><code class="docutils literal notranslate"><span class="pre">TestPickleActorLoader.test_get_extension()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../test_rst/writers/test.writers.html">test.writers package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/writers/test.writers.html#submodules">Submodules</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/writers/test.writers.test_file_writer.html">test.writers.test_file_writer module</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="../test_rst/writers/test.writers.test_file_writer.html#test.writers.test_file_writer.TestFileWriter"><code class="docutils literal notranslate"><span class="pre">TestFileWriter</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="../test_rst/writers/test.writers.test_file_writer.html#test.writers.test_file_writer.TestFileWriter.test___call__"><code class="docutils literal notranslate"><span class="pre">TestFileWriter.test___call__()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="../test_rst/writers/test.writers.test_file_writer.html#test.writers.test_file_writer.TestFileWriter.test___init_subclass__"><code class="docutils literal notranslate"><span class="pre">TestFileWriter.test___init_subclass__()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="../test_rst/writers/test.writers.test_file_writer.html#test.writers.test_file_writer.TestFileWriter.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestFileWriter.test___slots__()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="../test_rst/writers/test.writers.test_file_writer.html#test.writers.test_file_writer.TestFileWriter.test_abstract"><code class="docutils literal notranslate"><span class="pre">TestFileWriter.test_abstract()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="../test_rst/writers/test.writers.test_file_writer.html#test.writers.test_file_writer.TestFileWriter.test_get_extension"><code class="docutils literal notranslate"><span class="pre">TestFileWriter.test_get_extension()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/writers/test.writers.test_gpx_writer.html">test.writers.test_gpx_writer module</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="../test_rst/writers/test.writers.test_gpx_writer.html#test.writers.test_gpx_writer.TestGpxWriter"><code class="docutils literal notranslate"><span class="pre">TestGpxWriter</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="../test_rst/writers/test.writers.test_gpx_writer.html#test.writers.test_gpx_writer.TestGpxWriter.test___call__"><code class="docutils literal notranslate"><span class="pre">TestGpxWriter.test___call__()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="../test_rst/writers/test.writers.test_gpx_writer.html#test.writers.test_gpx_writer.TestGpxWriter.test___call___extension_prefix"><code class="docutils literal notranslate"><span class="pre">TestGpxWriter.test___call___extension_prefix()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="../test_rst/writers/test.writers.test_gpx_writer.html#test.writers.test_gpx_writer.TestGpxWriter.test___call___unwritable"><code class="docutils literal notranslate"><span class="pre">TestGpxWriter.test___call___unwritable()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="../test_rst/writers/test.writers.test_gpx_writer.html#test.writers.test_gpx_writer.TestGpxWriter.test___init__"><code class="docutils literal notranslate"><span class="pre">TestGpxWriter.test___init__()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="../test_rst/writers/test.writers.test_gpx_writer.html#test.writers.test_gpx_writer.TestGpxWriter.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestGpxWriter.test___slots__()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="../test_rst/writers/test.writers.test_gpx_writer.html#test.writers.test_gpx_writer.TestGpxWriter.test__build_track"><code class="docutils literal notranslate"><span class="pre">TestGpxWriter.test__build_track()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="../test_rst/writers/test.writers.test_gpx_writer.html#test.writers.test_gpx_writer.TestGpxWriter.test__cam_to_point"><code class="docutils literal notranslate"><span class="pre">TestGpxWriter.test__cam_to_point()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="../test_rst/writers/test.writers.test_gpx_writer.html#test.writers.test_gpx_writer.TestGpxWriter.test__cam_to_point_without_position"><code class="docutils literal notranslate"><span class="pre">TestGpxWriter.test__cam_to_point_without_position()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="../test_rst/writers/test.writers.test_gpx_writer.html#test.writers.test_gpx_writer.TestGpxWriter.test__rounded_text"><code class="docutils literal notranslate"><span class="pre">TestGpxWriter.test__rounded_text()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="../test_rst/writers/test.writers.test_gpx_writer.html#test.writers.test_gpx_writer.TestGpxWriter.test_get_extension"><code class="docutils literal notranslate"><span class="pre">TestGpxWriter.test_get_extension()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -373,57 +595,75 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../test_rst/test.test___main__.html">test.test___main__ module</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.TestExitCode"><code class="docutils literal notranslate"><span class="pre">TestExitCode</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.TestExitCode.test_enum_length"><code class="docutils literal notranslate"><span class="pre">TestExitCode.test_enum_length()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.TestExitCode.test_enum_values"><code class="docutils literal notranslate"><span class="pre">TestExitCode.test_enum_values()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.TestGetMqttCredential"><code class="docutils literal notranslate"><span class="pre">TestGetMqttCredential</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.TestGetMqttCredential.test_missing_required_var_raises"><code class="docutils literal notranslate"><span class="pre">TestGetMqttCredential.test_missing_required_var_raises()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.TestGetMqttCredential.test_optional_username_password_missing"><code class="docutils literal notranslate"><span class="pre">TestGetMqttCredential.test_optional_username_password_missing()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.TestGetMqttCredential.test_reads_env_vars"><code class="docutils literal notranslate"><span class="pre">TestGetMqttCredential.test_reads_env_vars()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.TestStepMessageWriteRun"><code class="docutils literal notranslate"><span class="pre">TestStepMessageWriteRun</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.TestStepMessageWriteRun.test_preserves_existing_file_content"><code class="docutils literal notranslate"><span class="pre">TestStepMessageWriteRun.test_preserves_existing_file_content()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.TestStepMessageWriteRun.test_writes_queued_messages_to_file"><code class="docutils literal notranslate"><span class="pre">TestStepMessageWriteRun.test_writes_queued_messages_to_file()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.TestExitCode.test_value"><code class="docutils literal notranslate"><span class="pre">TestExitCode.test_value()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_args_parse"><code class="docutils literal notranslate"><span class="pre">test_args_parse()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_args_parse_usage_error"><code class="docutils literal notranslate"><span class="pre">test_args_parse_usage_error()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_args_parse_version"><code class="docutils literal notranslate"><span class="pre">test_args_parse_version()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_conversion_constants"><code class="docutils literal notranslate"><span class="pre">test_conversion_constants()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_conversion_run"><code class="docutils literal notranslate"><span class="pre">test_conversion_run()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_conversion_run_not_requested"><code class="docutils literal notranslate"><span class="pre">test_conversion_run_not_requested()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_conversion_run_usage_error"><code class="docutils literal notranslate"><span class="pre">test_conversion_run_usage_error()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_drain_queue"><code class="docutils literal notranslate"><span class="pre">test_drain_queue()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_dunder_main_guard"><code class="docutils literal notranslate"><span class="pre">test_dunder_main_guard()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_exception_handler"><code class="docutils literal notranslate"><span class="pre">test_exception_handler()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_get_config_schema_file"><code class="docutils literal notranslate"><span class="pre">test_get_config_schema_file()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_get_config_template_file"><code class="docutils literal notranslate"><span class="pre">test_get_config_template_file()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_get_mqtt_credential"><code class="docutils literal notranslate"><span class="pre">test_get_mqtt_credential()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_log_received_message"><code class="docutils literal notranslate"><span class="pre">test_log_received_message()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_main"><code class="docutils literal notranslate"><span class="pre">test_main()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_main_async"><code class="docutils literal notranslate"><span class="pre">test_main_async()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_main_async_non_windows_signal_handlers"><code class="docutils literal notranslate"><span class="pre">test_main_async_non_windows_signal_handlers()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_main_async_shutdown_requested"><code class="docutils literal notranslate"><span class="pre">test_main_async_shutdown_requested()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_main_async_windows_signal_handlers"><code class="docutils literal notranslate"><span class="pre">test_main_async_windows_signal_handlers()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_main_interrupt_exception"><code class="docutils literal notranslate"><span class="pre">test_main_interrupt_exception()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_signal_handler_raises_keyboard_interrupt"><code class="docutils literal notranslate"><span class="pre">test_signal_handler_raises_keyboard_interrupt()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_signal_handler_schedules_shutdown_when_published"><code class="docutils literal notranslate"><span class="pre">test_signal_handler_schedules_shutdown_when_published()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_main_async_shutdown_during_connect_failures"><code class="docutils literal notranslate"><span class="pre">test_main_async_shutdown_during_connect_failures()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_main_conversion_error"><code class="docutils literal notranslate"><span class="pre">test_main_conversion_error()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_main_keyboard_interrupt"><code class="docutils literal notranslate"><span class="pre">test_main_keyboard_interrupt()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_main_parse_args_system_exit"><code class="docutils literal notranslate"><span class="pre">test_main_parse_args_system_exit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_main_unhandled_exception"><code class="docutils literal notranslate"><span class="pre">test_main_unhandled_exception()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_runner_run"><code class="docutils literal notranslate"><span class="pre">test_runner_run()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_signal_handler"><code class="docutils literal notranslate"><span class="pre">test_signal_handler()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_signals_install"><code class="docutils literal notranslate"><span class="pre">test_signals_install()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_step_broker_run"><code class="docutils literal notranslate"><span class="pre">test_step_broker_run()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_step_message_write_run"><code class="docutils literal notranslate"><span class="pre">test_step_message_write_run()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_step_receive_run"><code class="docutils literal notranslate"><span class="pre">test_step_receive_run()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_unraisable_handler"><code class="docutils literal notranslate"><span class="pre">test_unraisable_handler()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_wait_for_shutdown"><code class="docutils literal notranslate"><span class="pre">test_wait_for_shutdown()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../test_rst/test.test_file_converter.html">test.test_file_converter module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_file_converter.html#test.test_file_converter.TestFileConverter"><code class="docutils literal notranslate"><span class="pre">TestFileConverter</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_file_converter.html#test.test_file_converter.TestFileConverter.test___call__"><code class="docutils literal notranslate"><span class="pre">TestFileConverter.test___call__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_file_converter.html#test.test_file_converter.TestFileConverter.test___call___invalid"><code class="docutils literal notranslate"><span class="pre">TestFileConverter.test___call___invalid()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_file_converter.html#test.test_file_converter.TestFileConverter.test___call___output_directory_error"><code class="docutils literal notranslate"><span class="pre">TestFileConverter.test___call___output_directory_error()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_file_converter.html#test.test_file_converter.TestFileConverter.test___init__"><code class="docutils literal notranslate"><span class="pre">TestFileConverter.test___init__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_file_converter.html#test.test_file_converter.TestFileConverter.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestFileConverter.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_file_converter.html#test.test_file_converter.TestFileConverter.test__writer"><code class="docutils literal notranslate"><span class="pre">TestFileConverter.test__writer()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_file_converter.html#test.test_file_converter.TestFileConverter.test_load"><code class="docutils literal notranslate"><span class="pre">TestFileConverter.test_load()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_file_converter.html#test.test_file_converter.TestFileConverter.test_load_real_files"><code class="docutils literal notranslate"><span class="pre">TestFileConverter.test_load_real_files()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_file_converter.html#test.test_file_converter.TestFileConverter.test_load_rejected"><code class="docutils literal notranslate"><span class="pre">TestFileConverter.test_load_rejected()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_file_converter.html#test.test_file_converter.TestFileConverter.test_output_file"><code class="docutils literal notranslate"><span class="pre">TestFileConverter.test_output_file()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_file_converter.html#test.test_file_converter.TestFileConverter.test_output_file_unsupported_format"><code class="docutils literal notranslate"><span class="pre">TestFileConverter.test_output_file_unsupported_format()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_file_converter.html#test.test_file_converter.TestFileConverter.test_output_formats"><code class="docutils literal notranslate"><span class="pre">TestFileConverter.test_output_formats()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../test_rst/test.test_step_broker.html">test.test_step_broker module</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_step_broker.html#test.test_step_broker.TestStepBroker"><code class="docutils literal notranslate"><span class="pre">TestStepBroker</span></code></a><ul>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_broker.html#test.test_step_broker.TestStepBroker.test___aenter__"><code class="docutils literal notranslate"><span class="pre">TestStepBroker.test___aenter__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_broker.html#test.test_step_broker.TestStepBroker.test___init__"><code class="docutils literal notranslate"><span class="pre">TestStepBroker.test___init__()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_broker.html#test.test_step_broker.TestStepBroker.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestStepBroker.test___slots__()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_broker.html#test.test_step_broker.TestStepBroker.test_init"><code class="docutils literal notranslate"><span class="pre">TestStepBroker.test_init()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_broker.html#test.test_step_broker.TestStepBroker.test_init_credential_auth_fallback"><code class="docutils literal notranslate"><span class="pre">TestStepBroker.test_init_credential_auth_fallback()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_broker.html#test.test_step_broker.TestStepBroker.test_subscribe_execution_no_subscription_topics"><code class="docutils literal notranslate"><span class="pre">TestStepBroker.test_subscribe_execution_no_subscription_topics()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_broker.html#test.test_step_broker.TestStepBroker.test_subscribe_execution_qos_downgrade_accepted"><code class="docutils literal notranslate"><span class="pre">TestStepBroker.test_subscribe_execution_qos_downgrade_accepted()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_broker.html#test.test_step_broker.TestStepBroker.test_subscribe_execution_qos_mismatch"><code class="docutils literal notranslate"><span class="pre">TestStepBroker.test_subscribe_execution_qos_mismatch()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_broker.html#test.test_step_broker.TestStepBroker.test_subscribe_execution_qos_mismatch_with_reason_code_results"><code class="docutils literal notranslate"><span class="pre">TestStepBroker.test_subscribe_execution_qos_mismatch_with_reason_code_results()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_broker.html#test.test_step_broker.TestStepBroker.test_subscribe_execution_result_count_mismatch"><code class="docutils literal notranslate"><span class="pre">TestStepBroker.test_subscribe_execution_result_count_mismatch()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_broker.html#test.test_step_broker.TestStepBroker.test_subscribe_execution_success"><code class="docutils literal notranslate"><span class="pre">TestStepBroker.test_subscribe_execution_success()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_broker.html#test.test_step_broker.TestStepBroker.test_subscribe_execution_success_with_reason_code_results"><code class="docutils literal notranslate"><span class="pre">TestStepBroker.test_subscribe_execution_success_with_reason_code_results()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_broker.html#test.test_step_broker.TestStepBroker.test_subscribe_execution"><code class="docutils literal notranslate"><span class="pre">TestStepBroker.test_subscribe_execution()</span></code></a></li>
 </ul>
 </li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../test_rst/test.test_step_exception.html">test.test_step_exception module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_step_exception.html#test.test_step_exception.TestLoaderError"><code class="docutils literal notranslate"><span class="pre">TestLoaderError</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_exception.html#test.test_step_exception.TestLoaderError.test_is_step_message_save_error_subclass"><code class="docutils literal notranslate"><span class="pre">TestLoaderError.test_is_step_message_save_error_subclass()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_exception.html#test.test_step_exception.TestLoaderError.test_message"><code class="docutils literal notranslate"><span class="pre">TestLoaderError.test_message()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_exception.html#test.test_step_exception.TestLoaderError.test_raise_and_catch"><code class="docutils literal notranslate"><span class="pre">TestLoaderError.test_raise_and_catch()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_step_exception.html#test.test_step_exception.TestShutdownRequestedError"><code class="docutils literal notranslate"><span class="pre">TestShutdownRequestedError</span></code></a><ul>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_exception.html#test.test_step_exception.TestShutdownRequestedError.test_is_step_message_save_error_subclass"><code class="docutils literal notranslate"><span class="pre">TestShutdownRequestedError.test_is_step_message_save_error_subclass()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_exception.html#test.test_step_exception.TestShutdownRequestedError.test_raise_and_catch"><code class="docutils literal notranslate"><span class="pre">TestShutdownRequestedError.test_raise_and_catch()</span></code></a></li>
@@ -441,52 +681,47 @@
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_exception.html#test.test_step_exception.TestStepMessageSaveError.test_raise_and_catch"><code class="docutils literal notranslate"><span class="pre">TestStepMessageSaveError.test_raise_and_catch()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_step_exception.html#test.test_step_exception.TestWriterError"><code class="docutils literal notranslate"><span class="pre">TestWriterError</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_exception.html#test.test_step_exception.TestWriterError.test_is_step_message_save_error_subclass"><code class="docutils literal notranslate"><span class="pre">TestWriterError.test_is_step_message_save_error_subclass()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_exception.html#test.test_step_exception.TestWriterError.test_message"><code class="docutils literal notranslate"><span class="pre">TestWriterError.test_message()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_exception.html#test.test_step_exception.TestWriterError.test_raise_and_catch"><code class="docutils literal notranslate"><span class="pre">TestWriterError.test_raise_and_catch()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html">test.test_step_message_save_config module</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestConfigGenerateJsonSchema"><code class="docutils literal notranslate"><span class="pre">TestConfigGenerateJsonSchema</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestConfigGenerateJsonSchema.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestConfigGenerateJsonSchema.test___slots__()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestConfigGenerateJsonSchema.test_generate"><code class="docutils literal notranslate"><span class="pre">TestConfigGenerateJsonSchema.test_generate()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestConfigGenerateJsonSchema.test_generate_with_validation_mode"><code class="docutils literal notranslate"><span class="pre">TestConfigGenerateJsonSchema.test_generate_with_validation_mode()</span></code></a></li>
-</ul>
-</li>
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestMessageType"><code class="docutils literal notranslate"><span class="pre">TestMessageType</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestMessageType.test___get_pydantic_json_schema__"><code class="docutils literal notranslate"><span class="pre">TestMessageType.test___get_pydantic_json_schema__()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestMessageType.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestMessageType.test___slots__()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestMessageType.test_get_pydantic_json_schema"><code class="docutils literal notranslate"><span class="pre">TestMessageType.test_get_pydantic_json_schema()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestMessageType.test_value"><code class="docutils literal notranslate"><span class="pre">TestMessageType.test_value()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestMqttClientConfig"><code class="docutils literal notranslate"><span class="pre">TestMqttClientConfig</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestMqttClientConfig.test_frozen_instance_raises"><code class="docutils literal notranslate"><span class="pre">TestMqttClientConfig.test_frozen_instance_raises()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestMqttClientConfig.test_field_validation"><code class="docutils literal notranslate"><span class="pre">TestMqttClientConfig.test_field_validation()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestMqttClientConfig.test_get_default"><code class="docutils literal notranslate"><span class="pre">TestMqttClientConfig.test_get_default()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestMqttClientConfig.test_model_config"><code class="docutils literal notranslate"><span class="pre">TestMqttClientConfig.test_model_config()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestMqttCredential"><code class="docutils literal notranslate"><span class="pre">TestMqttCredential</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestMqttCredential.test___post_init__"><code class="docutils literal notranslate"><span class="pre">TestMqttCredential.test___post_init__()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestMqttCredential.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestMqttCredential.test___slots__()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestMqttCredential.test_empty_url_raises"><code class="docutils literal notranslate"><span class="pre">TestMqttCredential.test_empty_url_raises()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestMqttCredential.test_init"><code class="docutils literal notranslate"><span class="pre">TestMqttCredential.test_init()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestMqttCredential.test_init_optional_credentials_none"><code class="docutils literal notranslate"><span class="pre">TestMqttCredential.test_init_optional_credentials_none()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestMqttCredential.test_port_boundary_valid"><code class="docutils literal notranslate"><span class="pre">TestMqttCredential.test_port_boundary_valid()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestMqttCredential.test_port_out_of_range_raises"><code class="docutils literal notranslate"><span class="pre">TestMqttCredential.test_port_out_of_range_raises()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestMqttCredential.test_class_constants"><code class="docutils literal notranslate"><span class="pre">TestMqttCredential.test_class_constants()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestMqttCredential.test_frozen"><code class="docutils literal notranslate"><span class="pre">TestMqttCredential.test_frozen()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestMqttProtocolConfig"><code class="docutils literal notranslate"><span class="pre">TestMqttProtocolConfig</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestMqttProtocolConfig.test_frozen_instance_raises"><code class="docutils literal notranslate"><span class="pre">TestMqttProtocolConfig.test_frozen_instance_raises()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestMqttProtocolConfig.test_field_validation"><code class="docutils literal notranslate"><span class="pre">TestMqttProtocolConfig.test_field_validation()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestMqttProtocolConfig.test_get_default"><code class="docutils literal notranslate"><span class="pre">TestMqttProtocolConfig.test_get_default()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestMqttProtocolConfig.test_model_config"><code class="docutils literal notranslate"><span class="pre">TestMqttProtocolConfig.test_model_config()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestMqttProtocolConfig.test_subscription_topics_empty_list_raises"><code class="docutils literal notranslate"><span class="pre">TestMqttProtocolConfig.test_subscription_topics_empty_list_raises()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestMqttProtocolConfig.test_subscription_topics_none"><code class="docutils literal notranslate"><span class="pre">TestMqttProtocolConfig.test_subscription_topics_none()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestMqttQoSConfig"><code class="docutils literal notranslate"><span class="pre">TestMqttQoSConfig</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestMqttQoSConfig.test_get_pydantic_json_schema"><code class="docutils literal notranslate"><span class="pre">TestMqttQoSConfig.test_get_pydantic_json_schema()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestMqttQoSConfig.test___get_pydantic_json_schema__"><code class="docutils literal notranslate"><span class="pre">TestMqttQoSConfig.test___get_pydantic_json_schema__()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestMqttQoSConfig.test_value"><code class="docutils literal notranslate"><span class="pre">TestMqttQoSConfig.test_value()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestStepBrokerConfig"><code class="docutils literal notranslate"><span class="pre">TestStepBrokerConfig</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestStepBrokerConfig.test_cache_dir_none"><code class="docutils literal notranslate"><span class="pre">TestStepBrokerConfig.test_cache_dir_none()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestStepBrokerConfig.test_frozen_instance_raises"><code class="docutils literal notranslate"><span class="pre">TestStepBrokerConfig.test_frozen_instance_raises()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestStepBrokerConfig.test_field_validation"><code class="docutils literal notranslate"><span class="pre">TestStepBrokerConfig.test_field_validation()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestStepBrokerConfig.test_get_default"><code class="docutils literal notranslate"><span class="pre">TestStepBrokerConfig.test_get_default()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestStepBrokerConfig.test_model_config"><code class="docutils literal notranslate"><span class="pre">TestStepBrokerConfig.test_model_config()</span></code></a></li>
 </ul>
@@ -497,19 +732,16 @@
 </ul>
 </li>
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestStepMessageSaveConfig"><code class="docutils literal notranslate"><span class="pre">TestStepMessageSaveConfig</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestStepMessageSaveConfig.test_frozen_instance_raises"><code class="docutils literal notranslate"><span class="pre">TestStepMessageSaveConfig.test_frozen_instance_raises()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestStepMessageSaveConfig.test_STEP_CONFIG_SCHEMA"><code class="docutils literal notranslate"><span class="pre">TestStepMessageSaveConfig.test_STEP_CONFIG_SCHEMA()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestStepMessageSaveConfig.test_field_validation"><code class="docutils literal notranslate"><span class="pre">TestStepMessageSaveConfig.test_field_validation()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestStepMessageSaveConfig.test_get_default"><code class="docutils literal notranslate"><span class="pre">TestStepMessageSaveConfig.test_get_default()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestStepMessageSaveConfig.test_model_config"><code class="docutils literal notranslate"><span class="pre">TestStepMessageSaveConfig.test_model_config()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestStepMessageSaveConfig.test_print_config_example"><code class="docutils literal notranslate"><span class="pre">TestStepMessageSaveConfig.test_print_config_example()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestStepMessageSaveConfig.test_print_config_schema"><code class="docutils literal notranslate"><span class="pre">TestStepMessageSaveConfig.test_print_config_schema()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestStepMessageSaveConfig.test_step_config_schema_constant"><code class="docutils literal notranslate"><span class="pre">TestStepMessageSaveConfig.test_step_config_schema_constant()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestStepMessageSaveConfig.test_step_receiver_number_bounds"><code class="docutils literal notranslate"><span class="pre">TestStepMessageSaveConfig.test_step_receiver_number_bounds()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestSubscriptionTopicParams"><code class="docutils literal notranslate"><span class="pre">TestSubscriptionTopicParams</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestSubscriptionTopicParams.test_construct"><code class="docutils literal notranslate"><span class="pre">TestSubscriptionTopicParams.test_construct()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestSubscriptionTopicParams.test_empty_topic_raises"><code class="docutils literal notranslate"><span class="pre">TestSubscriptionTopicParams.test_empty_topic_raises()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestSubscriptionTopicParams.test_frozen_instance_raises"><code class="docutils literal notranslate"><span class="pre">TestSubscriptionTopicParams.test_frozen_instance_raises()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestSubscriptionTopicParams.test_field_validation"><code class="docutils literal notranslate"><span class="pre">TestSubscriptionTopicParams.test_field_validation()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestSubscriptionTopicParams.test_get_default"><code class="docutils literal notranslate"><span class="pre">TestSubscriptionTopicParams.test_get_default()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestSubscriptionTopicParams.test_model_config"><code class="docutils literal notranslate"><span class="pre">TestSubscriptionTopicParams.test_model_config()</span></code></a></li>
 </ul>
@@ -518,6 +750,56 @@
 </li>
 </ul>
 </li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">Changelog</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../changelog.html#id1">1.2.0 - 2026-10-09</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../changelog.html#added">1.2.0 - Added</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../changelog.html#changed">1.2.0 - Changed</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../changelog.html#id2">1.1.4 - 2026-09-22</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../changelog.html#id3">1.1.4 - Changed</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../changelog.html#id4">1.1.3 - 2026-09-20</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../changelog.html#fixed">1.1.3 - Fixed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../changelog.html#id5">1.1.3 - Changed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../changelog.html#id6">1.1.3 - Added</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../changelog.html#id7">1.1.2 - 2026-09-15</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../changelog.html#id8">1.1.2 - Changed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../changelog.html#id9">1.1.2 - Added</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../changelog.html#id10">1.1.1 - 2026-09-15</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../changelog.html#id11">1.1.1 - Changed</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../changelog.html#id12">1.1.0 - 2026-09-12</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../changelog.html#id13">1.1.0 - Added</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../changelog.html#id14">1.1.0 - Changed</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../changelog.html#id15">1.0.5 - 2026-09-11</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../changelog.html#id16">1.0.5 - Added</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../changelog.html#id17">1.0.5 - Changed</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../changelog.html#id18">1.0.4 - 2026-08-30</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../changelog.html#id19">1.0.4 - Added</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../changelog.html#id20">1.0.4 - Changed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../changelog.html#removed">1.0.4 - Removed</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../changelog.html#id21">1.0.3 - 2026-08-21</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../changelog.html#id22">1.0.3 - Added</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../changelog.html#id23">1.0.3 - Changed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../changelog.html#id24">1.0.3 - Fixed</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../changelog.html#earlier-versions">Earlier versions</a></li>
 </ul>
 </li>
 </ul>
@@ -604,8 +886,6 @@ Complexity: time O(1), space O(1).</p></li>
 Complexity: time O(s), space O(s), s = number of subscription topics.</p></li>
 <li><p>StepBrokerConfig: MQTT client and protocol settings plus cache directory.
 Complexity: time O(s), space O(s), s = number of subscription topics.</p></li>
-<li><p>_ConfigGenerateJsonSchema: JSON schema generator adding a custom <code class="docutils literal notranslate"><span class="pre">$id</span></code> and
-<code class="docutils literal notranslate"><span class="pre">$schema</span></code>. Complexity: time O(f), space O(f).</p></li>
 <li><p>StepMessageSaveConfig: Top-level configuration of the program. Complexity:
 time O(f) (print_config_schema/print_config_example), space O(f), f = total
 number of fields across the configuration hierarchy.</p></li>
@@ -661,35 +941,6 @@ mapping them to their corresponding message identifiers.</p>
 </ul>
 </dd>
 </dl>
-<dl class="py method">
-<dt class="sig sig-object py" id="step_message_save.step_message_save_config.MessageType.__get_pydantic_json_schema__">
-<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">__get_pydantic_json_schema__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">core_schema</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">handler</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Any</span></span></span><a class="headerlink" href="#step_message_save.step_message_save_config.MessageType.__get_pydantic_json_schema__" title="Link to this definition"></a></dt>
-<dd><p>Get custom pydantic JSON schema for the class.</p>
-<p>This method is used to customize the JSON schema generation for pydantic models.
-It adds a title and description to the schema.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>core_schema</strong> (<em>Any</em>) – The core schema object from pydantic.</p></li>
-<li><p><strong>handler</strong> (<em>Any</em>) – The schema handler function from pydantic.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Modified JSON schema with custom title and description.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Any</p>
-</dd>
-<dt class="field-even">Complexity<span class="colon">:</span></dt>
-<dd class="field-even"><ul class="simple">
-<li><p><strong>- Time</strong> – O(1), the handler builds the schema for a fixed enum definition and a
-constant number of keys is added.</p></li>
-<li><p><strong>- Space</strong> – O(1), the returned schema has a constant number of keys.</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
 </dd></dl>
 
 <dl class="py class">
@@ -894,6 +1145,12 @@ allocated.</p></li>
 <span class="sig-name descname"><span class="pre">__post_init__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#step_message_save.step_message_save_config.MqttCredential.__post_init__" title="Link to this definition"></a></dt>
 <dd><p>Validates the MQTT connection credential fields.</p>
 <dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The instance is only validated; nothing is returned.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>ValueError</strong> – If <code class="docutils literal notranslate"><span class="pre">mqtt_url</span></code> is empty/whitespace-only, or
     <code class="docutils literal notranslate"><span class="pre">mqtt_port</span></code> is outside the 1-65535 range.</p>
@@ -1148,35 +1405,6 @@ the highest quality of service level and has the highest overhead.</p>
 </ul>
 </dd>
 </dl>
-<dl class="py method">
-<dt class="sig sig-object py" id="step_message_save.step_message_save_config.MqttQoSConfig.__get_pydantic_json_schema__">
-<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">__get_pydantic_json_schema__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">core_schema</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">handler</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Any</span></span></span><a class="headerlink" href="#step_message_save.step_message_save_config.MqttQoSConfig.__get_pydantic_json_schema__" title="Link to this definition"></a></dt>
-<dd><p>Get custom pydantic JSON schema for the class.</p>
-<p>This method is used to customize the JSON schema generation for pydantic models.
-It adds a title and description to the schema.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>core_schema</strong> (<em>Any</em>) – The core schema object from pydantic.</p></li>
-<li><p><strong>handler</strong> (<em>Any</em>) – The schema handler function from pydantic.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Modified JSON schema with custom title and description.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Any</p>
-</dd>
-<dt class="field-even">Complexity<span class="colon">:</span></dt>
-<dd class="field-even"><ul class="simple">
-<li><p><strong>- Time</strong> – O(1), the handler builds the schema for a fixed enum definition and a
-constant number of keys is added.</p></li>
-<li><p><strong>- Space</strong> – O(1), the returned schema has a constant number of keys.</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
 </dd></dl>
 
 <dl class="py class">
@@ -1295,7 +1523,7 @@ each of constant size.</p></li>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="step_message_save.step_message_save_config.StepMessageSaveConfig">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">step_message_save.step_message_save_config.</span></span><span class="sig-name descname"><span class="pre">StepMessageSaveConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">templateVersion</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="pre">StepConfigVersion.VERSION</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outputFile</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Annotated</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">MinLen</span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">min_length</span></span><span class="o"><span class="pre">=</span></span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stepReceiverNumber</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Annotated</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Ge</span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">ge</span></span><span class="o"><span class="pre">=</span></span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Le</span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">le</span></span><span class="o"><span class="pre">=</span></span><span class="m"><span class="pre">50</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxFileWriterQueueRooms</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Annotated</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Ge</span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">ge</span></span><span class="o"><span class="pre">=</span></span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Le</span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">le</span></span><span class="o"><span class="pre">=</span></span><span class="m"><span class="pre">10000</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reconnectInterval</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Annotated</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Ge</span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">ge</span></span><span class="o"><span class="pre">=</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Le</span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">le</span></span><span class="o"><span class="pre">=</span></span><span class="m"><span class="pre">60</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stepBroker</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#step_message_save.step_message_save_config.StepBrokerConfig" title="step_message_save.step_message_save_config.StepBrokerConfig"><span class="pre">StepBrokerConfig</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">log</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">LogConfig</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#step_message_save.step_message_save_config.StepMessageSaveConfig" title="Link to this definition"></a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">step_message_save.step_message_save_config.</span></span><span class="sig-name descname"><span class="pre">StepMessageSaveConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">templateVersion</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="pre">StepConfigVersion.VERSION</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outputFile</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Annotated</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">MinLen</span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">min_length</span></span><span class="o"><span class="pre">=</span></span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stepReceiverNumber</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Annotated</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Ge</span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">ge</span></span><span class="o"><span class="pre">=</span></span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Le</span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">le</span></span><span class="o"><span class="pre">=</span></span><span class="m"><span class="pre">50</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxFileWriterQueueRooms</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Annotated</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Ge</span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">ge</span></span><span class="o"><span class="pre">=</span></span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Le</span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">le</span></span><span class="o"><span class="pre">=</span></span><span class="m"><span class="pre">10000</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reconnectInterval</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Annotated</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Ge</span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">ge</span></span><span class="o"><span class="pre">=</span></span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Le</span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">le</span></span><span class="o"><span class="pre">=</span></span><span class="m"><span class="pre">60</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stepBroker</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#step_message_save.step_message_save_config.StepBrokerConfig" title="step_message_save.step_message_save_config.StepBrokerConfig"><span class="pre">StepBrokerConfig</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">log</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">LogConfig</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#step_message_save.step_message_save_config.StepMessageSaveConfig" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
 <p>STEP Message Save Configuration class that defines the structure and validation rules
 for STEP message save configuration.</p>
@@ -1350,7 +1578,7 @@ messages from the STEP receiver to the file writer task (1-10000)</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="step_message_save.step_message_save_config.StepMessageSaveConfig.reconnectInterval">
 <span class="sig-name descname"><span class="pre">reconnectInterval</span></span><a class="headerlink" href="#step_message_save.step_message_save_config.StepMessageSaveConfig.reconnectInterval" title="Link to this definition"></a></dt>
-<dd><p>Time in seconds between reconnection attempts (0-60)</p>
+<dd><p>Time in seconds between reconnection attempts (1-60)</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>int</p>
@@ -1383,9 +1611,12 @@ messages from the STEP receiver to the file writer task (1-10000)</p>
 <dl class="field-list simple">
 <dt class="field-odd">Complexity<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>- Time</strong> – O(s), where s is the number of subscription topics configured in the nested
-<code class="docutils literal notranslate"><span class="pre">stepBroker.mqttProtocol</span></code>; validation of the remaining fields is O(1).</p></li>
-<li><p><strong>- Space</strong> – O(s), for the nested MQTT protocol subscription topic list.</p></li>
+<li><p><strong>- Time</strong> – O(f), driven by print_config_schema/print_config_example, where f
+is the total number of fields across the configuration hierarchy;
+validation is O(s), s = number of subscription topics in
+<code class="docutils literal notranslate"><span class="pre">stepBroker.mqttProtocol</span></code>.</p></li>
+<li><p><strong>- Space</strong> – O(f), driven by the JSON schema/template generated by
+print_config_schema/print_config_example; a validated instance is O(s).</p></li>
 </ul>
 </dd>
 </dl>
