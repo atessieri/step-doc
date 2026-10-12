@@ -178,5 +178,120 @@ In the previous diagram, the flows are numerated. The description of each flow i
         :ref:`target_cloud_events_step_producer_schema`.
     7.  **DENM from Producer to client**: The message DENM contains the pre-crash container. The message
         is validated by JSON schema :ref:`target_cloud_events_step_client_schema`.
-    8.  **DENM from client to Producer**: The message DENM contains the environment notification generated 
+    8.  **DENM from client to Producer**: The message DENM contains the environment notification generated
         by other stations. The message is validated by JSON schema :ref:`target_cloud_events_step_producer_schema`.
+
+.. _target_app_runner_structure:
+
+-------------------
+AppRunner Structure
+-------------------
+
+:class:`~step_cloud_schemas.runtime.app_runner.AppRunner` is the entry-point helper
+shared by the long-running STEP programs: it runs an asyncio workload and stops it
+cooperatively on a shutdown signal. The usage is described in :doc:`app_runner<app_runner>`;
+this section describes how it is built.
+
+The structure is made of the following elements:
+
+    #.  **AppRunner**: Singleton, generic in the result type ``R`` of the application.
+        The constructor stores the settings and installs the process-wide hooks
+        (signal handlers and ``sys.unraisablehook``). The method ``run`` opens an
+        ``asyncio.Runner``, installs the loop exception handler, creates the
+        ``stop_event`` and runs ``_main_async``.
+    #.  **SingletonMeta**: Metaclass of ``AppRunner`` and ``WindowsOsShutdownState``.
+        The hooks are process-wide, so a single instance of each class exists.
+    #.  **WindowsOsShutdownState**: Singleton holding the loop and the ``stop_event``
+        of the current run. It is used only on Windows, where ``asyncio`` has no
+        ``loop.add_signal_handler``: the raw ``SIGBREAK`` handler calls
+        ``request_shutdown``, which schedules ``stop_event.set()`` on the loop with
+        ``loop.call_soon_threadsafe``.
+    #.  **_ShutdownRequestedError**: Internal marker exception. It is raised by the
+        watcher task and caught by ``_main_async``; it never leaves the module.
+    #.  **Application**: The class of the program using ``AppRunner`` (e.g. ``MessageSaveApp``
+        of ``step_message_save``). It supplies the workload ``work`` and the callback
+        ``on_shutdown``, both returning ``R``.
+
+The following class diagram shows the structure:
+
+.. container:: scrollable-diagram
+
+   .. plantuml::
+      :align: center
+
+      !theme plain
+      skinparam classAttributeIconSize 0
+
+      class SingletonMeta <<metaclass>> {
+         -{static} _instances: dict[type, object]
+         -{static} _creation_lock: RLock
+         +__call__(*args, **kwargs): object
+      }
+
+      class "AppRunner<R>" as AppRunner {
+         -_logger: Logger
+         -_loop_factory: Callable[[], AbstractEventLoop] | None
+         -_exception_handler: Callable
+         -_unraisable_handler: Callable
+         -_stop_signal: Signals | None
+         +__init__(logger, loop_factory, exception_handler, unraisable_handler)
+         +logger: Logger
+         +run(work, on_shutdown): R
+         -_main_async(work, on_shutdown, stop_event): R
+         -{static} _wait_for_shutdown(stop_event): None
+         -_shutdown_request(signum, stop_event): None
+         -_signal_handler(signum, _frame): None
+         -_signals_install(): None
+         -_unraisable_hook_install(): None
+         -_exception_log(_loop, context): None
+         -_unraisable_log(unraisable): None
+      }
+
+      class WindowsOsShutdownState {
+         -_loop: AbstractEventLoop | None
+         -_stop_event: Event | None
+         +publish(loop, stop_event): None
+         +clear(): None
+         +request_shutdown(): bool
+      }
+
+      class _ShutdownRequestedError
+
+      class Application <<e.g. MessageSaveApp>> {
+         +work(): R
+         +on_shutdown(stop_signal: Signals): R
+      }
+
+      class "asyncio.Runner" as Runner
+      class "asyncio.TaskGroup" as TaskGroup
+      class "asyncio.Event" as Event
+
+      Exception <|-- _ShutdownRequestedError
+      SingletonMeta <.. AppRunner : metaclass
+      SingletonMeta <.. WindowsOsShutdownState : metaclass
+      AppRunner ..> WindowsOsShutdownState : publish / clear /\nrequest_shutdown (Windows)
+      AppRunner ..> _ShutdownRequestedError : raises / catches
+      AppRunner ..> Runner : opens per run
+      AppRunner ..> TaskGroup : work + watcher tasks
+      AppRunner ..> Event : stop_event per run
+      WindowsOsShutdownState o-- Event : stop_event
+      AppRunner ..> Application : calls work / on_shutdown
+
+A run goes through the following steps:
+
+    1.  ``run`` opens the ``asyncio.Runner``, creates the ``stop_event`` and publishes
+        it to the signal handlers before the loop runs: with ``loop.add_signal_handler``
+        for ``SIGINT``/``SIGTERM`` on POSIX, with ``WindowsOsShutdownState.publish`` on
+        Windows.
+    2.  ``_main_async`` creates two sibling tasks in a ``TaskGroup``: the workload
+        ``work()`` and the watcher ``_wait_for_shutdown``, which awaits the ``stop_event``.
+    3.  **Normal end**: when ``work`` ends, a done callback cancels the watcher, the
+        ``TaskGroup`` closes and the result of ``work`` is returned.
+    4.  **Shutdown**: a signal records the stop signal and sets the ``stop_event``. The
+        watcher raises ``_ShutdownRequestedError``, the ``TaskGroup`` cancels ``work``
+        wherever it is and, once every task has unwound, ``on_shutdown`` is called with
+        the stop signal and its result is returned.
+    5.  ``_main_async`` clears ``WindowsOsShutdownState`` (Windows) and ``run`` registers
+        the signal handlers again, once with the loop still open and once after it is
+        closed, because ``asyncio.Runner`` replaces them while the loop is open and
+        resets them to the defaults when it closes.

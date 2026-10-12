@@ -1,0 +1,410 @@
+AppRunner
+=========
+
+The :mod:`step_cloud_schemas.runtime` subpackage provides
+:class:`~step_cloud_schemas.runtime.app_runner.AppRunner`, the entry-point
+helper shared by the long-running STEP programs. It runs an asyncio workload
+and stops it cooperatively when the process receives a shutdown signal.
+
+``AppRunner`` owns the process-wide plumbing every entry point would otherwise
+repeat:
+
+* the ``asyncio.Runner`` and its loop factory;
+* the event loop exception handler;
+* ``sys.unraisablehook``;
+* the shutdown signal handlers (``SIGINT``/``SIGTERM`` on POSIX, ``SIGBREAK``
+  on Windows);
+* the watcher task that turns a shutdown signal into the cancellation of the
+  workload.
+
+The application only supplies two callables:
+
+* *work* — the workload, a coroutine function;
+* *on_shutdown* — what to do once a shutdown signal has stopped the workload.
+
+Both return the same application-defined result type ``R`` (typically the
+program exit code), which is what
+:meth:`~step_cloud_schemas.runtime.app_runner.AppRunner.run` returns.
+
+The examples in this guide are taken from the ``step_message_save`` program,
+which receives ITS messages from the STEP broker and appends them, as JSON
+lines, to an output file.
+
+Quick Start
+-----------
+
+.. code-block:: python
+
+    import logging
+    import sys
+    from enum import IntEnum
+    from signal import Signals
+
+    from step_cloud_schemas import AppRunner
+
+    logger = logging.getLogger(__name__)
+
+
+    class ExitCode(IntEnum):
+        OK = 0
+        ABORTED = 3
+
+
+    async def work() -> ExitCode:
+        # ... the asyncio workload ...
+        return ExitCode.OK
+
+
+    def on_shutdown(stop_signal: Signals) -> ExitCode:
+        logger.info(msg=f"Program interrupted by {stop_signal.name}")
+        return ExitCode.ABORTED
+
+
+    def main() -> int:
+        app_runner = AppRunner[ExitCode](logger=logger)
+        return app_runner.run(work=work, on_shutdown=on_shutdown).value
+
+
+    if __name__ == "__main__":
+        sys.exit(main())
+
+``run`` returns ``ExitCode.OK`` when ``work`` ends on its own and
+``ExitCode.ABORTED`` when a shutdown signal stops it.
+
+Using AppRunner in an Application
+---------------------------------
+
+The steps below follow ``step_message_save/__main__.py``.
+
+Define the result type
+~~~~~~~~~~~~~~~~~~~~~~
+
+``AppRunner`` is generic in the result type ``R``. ``step_message_save`` uses
+its exit codes:
+
+.. code-block:: python
+
+    from enum import IntEnum
+
+
+    class ExitCode(IntEnum):
+        OK = 0
+        USAGE = 1
+        ERROR = 2
+        ABORTED = 3
+
+Write the application class
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+*work* and *on_shutdown* usually share state, so the natural shape is a class
+exposing both as methods. In ``step_message_save`` the shared state is the
+output file and the queue between the receiver tasks and the writer task:
+
+.. code-block:: python
+
+    import logging
+    from asyncio import Queue
+    from logging import Logger
+    from pathlib import Path
+    from signal import Signals
+
+
+    class MessageSaveApp:
+        __slots__ = (
+            "_config",
+            "_instance_name",
+            "_logger",
+            "_mqtt_credential",
+            "_output_file",
+            "_queue",
+        )
+
+        def __init__(
+            self,
+            instance_name: str,
+            config: StepMessageSaveConfig,
+            mqtt_credential: MqttCredential,
+            logger: Logger,
+        ) -> None:
+            self._instance_name = instance_name
+            self._config = config
+            self._mqtt_credential = mqtt_credential
+            self._logger = logger
+            self._output_file = Path(config.outputFile)
+            # Not bound to a loop at creation (Python >= 3.10): created before the run
+            self._queue = Queue[str](maxsize=config.maxFileWriterQueueRooms)
+
+        async def work(self) -> ExitCode:
+            if self._logger.isEnabledFor(level=logging.INFO):
+                self._logger.info(msg="Program started")
+            self._output_file.parent.mkdir(parents=True, exist_ok=True)
+            # Reconnects after any failure: runs until AppRunner cancels it
+            await _step_broker_run(
+                instance_name=self._instance_name,
+                config=self._config,
+                mqtt_credential=self._mqtt_credential,
+                output_file=self._output_file,
+                queue=self._queue,
+                logger=self._logger,
+            )
+            return ExitCode.OK
+
+        def on_shutdown(self, stop_signal: Signals) -> ExitCode:
+            # The writer is gone: persist what is still queued
+            written = _drain_queue(file_path=self._output_file, queue=self._queue)
+            if self._logger.isEnabledFor(level=logging.INFO):
+                self._logger.info(
+                    msg=(
+                        f"Program interrupted by {stop_signal.name}, "
+                        f"{written} queued messages saved"
+                    )
+                )
+            return ExitCode.ABORTED
+
+``work`` never returns here: ``_step_broker_run`` reconnects forever, so the
+only way out is a shutdown signal. When it arrives, ``AppRunner`` cancels
+``work`` wherever it is waiting, lets every task unwind — the writer task
+closes the output file — and only then calls ``on_shutdown``, which can safely
+reopen the file and append the messages still queued:
+
+.. code-block:: python
+
+    def _drain_queue(file_path: Path, queue: Queue[str]) -> int:
+        count = 0
+        with file_path.open(mode="a", encoding="utf-8", newline="") as file:
+            while not queue.empty():
+                file.write(queue.get_nowait() + "\n")
+                queue.task_done()
+                count += 1
+        return count
+
+Create the runner and run the application
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``main`` creates the ``AppRunner`` first, before parsing the command line and
+loading the configuration, so that a signal received during the setup is
+already handled. The application object is built later and its two methods are
+handed to ``run``:
+
+.. code-block:: python
+
+    import asyncio
+    import logging
+
+    from step_cloud_schemas import IS_WINDOWS, AppRunner, StepLogger
+
+
+    def main() -> int:
+        result = ExitCode.OK
+        logger = StepLogger.get_logger(name=None, config=None, instance_name=None)
+        try:
+            # Installs the signal handlers and sys.unraisablehook for the whole run.
+            # aiomqtt (paho) relies on loop.add_reader/add_writer, which the
+            # default Windows ProactorEventLoop does not implement
+            app_runner = AppRunner[ExitCode](
+                logger=logger,
+                loop_factory=asyncio.SelectorEventLoop if IS_WINDOWS else None,
+            )
+            # ... command line parsing, configuration loading ...
+            logger = StepLogger.get_logger(
+                name=None, config=config.log, instance_name=args.instance_name
+            )
+            mqtt_credential = _get_mqtt_credential(logger=logger)
+            app = MessageSaveApp(
+                instance_name=args.instance_name,
+                config=config,
+                mqtt_credential=mqtt_credential,
+                logger=logger,
+            )
+            result = app_runner.run(work=app.work, on_shutdown=app.on_shutdown)
+        except KeyboardInterrupt:
+            if logger.isEnabledFor(level=logging.INFO):
+                logger.info(msg="Program interrupted")
+            result = ExitCode.ABORTED
+        except Exception:
+            if logger.isEnabledFor(level=logging.ERROR):
+                logger.exception(msg="Exception unmanaged")
+            result = ExitCode.ERROR
+        return result.value
+
+.. note::
+
+    ``StepLogger.get_logger(name=None, ...)`` reconfigures the root logger in
+    place, so the logger given to ``AppRunner`` before the configuration is
+    loaded logs with the final configuration once it is applied.
+
+Constructor Arguments
+---------------------
+
+All arguments but *logger* are optional:
+
+* *logger* (``Logger``) — logger used by the default exception and unraisable
+  handlers.
+* *loop_factory* (``Callable[[], AbstractEventLoop] | None``) — factory of the
+  event loop created by every ``run``, forwarded to ``asyncio.Runner``.
+  ``None`` (default) uses the asyncio default loop.
+* *exception_handler*
+  (``Callable[[AbstractEventLoop, dict[str, Any]], object] | None``) —
+  installed with ``loop.set_exception_handler`` on the loop of every ``run``.
+  ``None`` (default) logs the exception of the context on *logger* at ERROR
+  level.
+* *unraisable_handler* (``Callable[[sys.UnraisableHookArgs], object] | None``)
+  — installed as ``sys.unraisablehook``. ``None`` (default) logs on *logger*,
+  at ERROR level, the exceptions CPython cannot raise, such as those raised by
+  a ``__del__`` run by the garbage collector.
+
+.. warning::
+
+    ``AppRunner`` is a singleton
+    (:class:`~step_cloud_schemas.classes.singleton_meta.SingletonMeta`): the
+    hooks it installs are process-wide, so only the first construction stores
+    the arguments and installs them. Arguments passed to later
+    ``AppRunner(...)`` calls are silently ignored. Construct it once, from the
+    main thread, as early as possible.
+
+The work Callable
+-----------------
+
+*work* is a **factory** of the workload coroutine: a callable taking no
+arguments and returning a coroutine, not the coroutine itself.
+
+.. code-block:: python
+
+    # Correct: the bound coroutine method is passed, AppRunner calls it
+    app_runner.run(work=app.work, on_shutdown=app.on_shutdown)
+
+    # Wrong: a coroutine object is passed, AppRunner cannot call it
+    app_runner.run(work=app.work(), on_shutdown=app.on_shutdown)
+
+A workload needing arguments is wrapped with :func:`functools.partial`:
+
+.. code-block:: python
+
+    from functools import partial
+
+    app_runner.run(
+        work=partial(serve, host="0.0.0.0", port=8080),
+        on_shutdown=on_shutdown,
+    )
+
+On a shutdown signal ``work`` is cancelled at the ``await`` it is suspended
+on, exactly like any cancelled asyncio task. The workload therefore has to be
+cancellation-safe:
+
+* release resources with ``async with``/``with`` or ``try``/``finally``;
+* never swallow ``asyncio.CancelledError``; re-raise it after any cleanup;
+* create child tasks in a ``TaskGroup``, so they are cancelled and awaited
+  together with ``work``.
+
+The on_shutdown Callable
+------------------------
+
+*on_shutdown* is a plain (non ``async``) function receiving the
+``signal.Signals`` member that stopped the run. It is called once every task
+has unwound, so the resources held by ``work`` are already released. Its
+return value becomes the result of ``run``.
+
+``on_shutdown`` is called only when a shutdown signal stops the run: it is not
+called when ``work`` ends on its own, nor when ``work`` raises. Cleanup that
+must always happen belongs in ``work`` itself (``try``/``finally``).
+
+It runs on the event loop thread and cannot ``await``: keep it short and
+synchronous, as the queue drain of ``step_message_save`` is.
+
+Only the first signal is recorded: a second Ctrl+C during the shutdown does
+not change the *stop_signal* handed to ``on_shutdown``.
+
+Shutdown Signals
+----------------
+
+.. list-table::
+   :header-rows: 1
+   :widths: 15 25 60
+
+   * - Platform
+     - Signal
+     - Behavior
+   * - POSIX
+     - ``SIGINT``, ``SIGTERM``
+     - While ``run`` is in progress: cooperative shutdown, ``on_shutdown`` is
+       called. Outside ``run``: ``KeyboardInterrupt``.
+   * - Windows
+     - ``SIGBREAK`` (Ctrl+Break)
+     - While ``run`` is in progress: cooperative shutdown, ``on_shutdown`` is
+       called. Outside ``run``: ``KeyboardInterrupt``.
+   * - Windows
+     - ``SIGINT`` (Ctrl+C)
+     - Not handled by ``AppRunner``: the Python/asyncio default applies and
+       ``KeyboardInterrupt`` is raised, ``on_shutdown`` is not called.
+
+A cooperative shutdown never interrupts the workload at an arbitrary
+instruction: the signal only sets an ``asyncio.Event``, and the workload is
+cancelled at its next suspension point.
+
+A signal received between the construction of the ``AppRunner`` and the start
+of the workload is not lost either: it is raised as ``KeyboardInterrupt``
+before ``run`` publishes the event, and stops the run at once after that.
+
+To stop a container gracefully, send ``SIGTERM`` (the default of
+``docker stop``). On Windows, send ``CTRL_BREAK_EVENT`` to the process group:
+
+.. code-block:: python
+
+    import signal
+    import subprocess
+
+    process = subprocess.Popen(
+        args=["step_message_save", "-c", "config.json", "-i", "instance_1"],
+        creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
+    )
+    # ...
+    process.send_signal(signal.CTRL_BREAK_EVENT)
+
+Error Handling
+--------------
+
+``run`` lets three kinds of outcome reach its caller, and ``main`` has to
+handle each of them:
+
+* **Result** — the value returned by ``work`` or by ``on_shutdown``.
+* **ExceptionGroup** — an exception raised by ``work`` is wrapped by the
+  internal ``TaskGroup`` and propagates out of ``run`` as an
+  ``ExceptionGroup``. ``except Exception`` catches it; use ``except*`` to
+  match the exceptions it contains.
+* **KeyboardInterrupt** — a signal received outside the cooperative window
+  (see the table above). ``on_shutdown`` has not been called in this case.
+
+This is why ``step_message_save`` wraps the whole of ``main`` in a single
+``try`` with both an ``except KeyboardInterrupt`` and an ``except Exception``
+branch, each mapped to an exit code.
+
+Exceptions that reach the event loop without a caller (e.g. an exception in a
+callback) and exceptions raised during finalization are not propagated: they
+are logged by the *exception_handler* and by the *unraisable_handler*.
+
+Running More Than Once
+----------------------
+
+``run`` can be called several times on the same ``AppRunner``: each call
+opens a new event loop from *loop_factory*, starts with no stop signal
+recorded and registers the signal handlers again when it ends.
+
+.. code-block:: python
+
+    app_runner = AppRunner[ExitCode](logger=logger)
+    result = app_runner.run(work=first.work, on_shutdown=first.on_shutdown)
+    if result is ExitCode.OK:
+        result = app_runner.run(work=second.work, on_shutdown=second.on_shutdown)
+
+Objects bound to an event loop (clients, locks created inside ``work``) must
+not be carried from one run to the next, since every run has its own loop.
+
+See Also
+--------
+
+* :doc:`step_cloud_schemas_rst/runtime/step_cloud_schemas.runtime` for the
+  full API reference.
+* :ref:`target_app_runner_structure` in the architecture page for the class
+  diagram and the internal structure.
+* :doc:`step_cloud_schemas_rst/logging/step_cloud_schemas.logging` for how
+  to configure the logger given to ``AppRunner``.
