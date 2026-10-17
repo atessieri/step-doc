@@ -131,10 +131,14 @@ To run the STEP Client as a standalone service:
 
 This will start the client, which will:
 
-    #. Connect to the configured MQTT broker
+    #. Open the Redis connection pool
+    #. Connect to the configured STEP MQTT broker
     #. Subscribe to the specified topics
-    #. Connect to Redis
     #. Process ITS messages between MQTT and Redis
+
+The DENM messages read from the Redis input stream keep the stationId set by the producer: it
+should equal ``stationId`` of the client configuration, otherwise their echo is not filtered and,
+with a DENM subscription, the client forwards its own DENMs back to the producer stream.
 
 Command-Line Options
 --------------------

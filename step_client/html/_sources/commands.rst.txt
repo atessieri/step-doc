@@ -7,7 +7,7 @@ Overview
 
 The step_client command line interface (CLI) provides a way to interact with the STEP
 (Safer Transport for Europe Platform) broker and ITS ETSI messages. It facilitates
-the exchange of messages between the STEP gateway and Redis streams.
+the exchange of messages between the STEP broker and Redis streams.
 
 The CLI allows users to:
 
@@ -36,10 +36,10 @@ The following command line options are available:
 ``-v, --version``
     Show the program version and exit.
 
-``-s, --conf_schema <schema file>``
+``-s, --conf_schema <schema dir>``
     Write the configuration JSON schema into the specified directory (created if missing).
 
-``-t, --conf_template <template file>``
+``-t, --conf_template <template dir>``
     Write a configuration template into the specified directory (created if missing).
 
 ``-c, --config <config file>``
@@ -85,7 +85,8 @@ To generate a JSON schema file documenting all configuration options:
 
 This command creates the directory if needed and writes
 ``step_client_config_v1_schema.json`` in it. The file describes
-all available configuration options, their types, defaults, and constraints. 
+all available configuration options, their types, examples, and constraints (every
+field is required).
 The schema can be used for validation or as a reference for creating custom configurations.
 
 Configuration Template Generation
@@ -111,7 +112,7 @@ To run the client with a specific configuration:
     step_client --config /path/to/config_file.json --instance my_instance
 
 This loads the configuration from the specified file and starts the step_client.
-The client will connect to the STEP gateway and Redis streams as specified in the configuration.
+The client will connect to the STEP broker and Redis streams as specified in the configuration.
 The ``-i/--instance`` option is required whenever ``-c/--config`` is used.
 
 Configuration File Structure
@@ -145,9 +146,13 @@ Exit Codes
 The program uses the following exit codes:
 
 * ``0`` (OK): Successful termination
-* ``1`` (USAGE): Command line usage error
+* ``1`` (USAGE): No arguments given, or only one of ``-c/--config`` and
+  ``-i/--instance``
 * ``2`` (ERROR): General error during execution
 * ``3`` (ABORTED): Operation aborted by user or system
+
+An invalid or unknown option is rejected by ``argparse`` itself, which prints the
+usage and exits with status ``2``, the same value as ``ERROR``.
 
 Examples
 ========
@@ -181,18 +186,21 @@ Program Operation
 
 When running with a configuration file, the step_client performs the following operations:
 
+   #. Reads the MQTT and Redis credentials (``MQTT_URL``, ``MQTT_PORT``, ``MQTT_USERNAME``, ``MQTT_PASSWORD``,
+      ``REDIS_URL``, ``REDIS_PORT``, ``REDIS_USERNAME``, ``REDIS_PASSWORD``) from the environment, first loading the ``.env`` file found in the current working directory (or an ancestor of it), if any
    #. Connects to the Redis server using the provided connection settings
-   #. Connects to the STEP gateway using MQTT settings
+   #. Connects to the STEP broker using MQTT settings
    #. Subscribes to the specified MQTT topics
-   #. Starts four asynchronous tasks:
+   #. Starts three asynchronous tasks:
 
-      - One task listens for MQTT ITS ETSI messages from the STEP gateway and publishes them to Redis streams
-      - Another task listens for messages from Redis streams and publishes them to the STEP gateway
+      - One task listens for MQTT ITS ETSI messages from the STEP broker and publishes them to Redis streams
+      - Another task listens for DENM messages on the Redis input stream and publishes them to the STEP broker
       - A third task runs a periodic Redis stream health check to keep the connection pool validated
-      - A fourth task watches for a shutdown request (``SIGINT``/``SIGTERM``, or ``SIGBREAK`` on Windows) and unwinds the others
 
    #. Automatically handles reconnection if connections are lost (using the specified reconnect interval)
-   #. Manages graceful shutdown when interrupted
+   #. Manages graceful shutdown when interrupted: ``AppRunner`` (from ``step_cloud_schemas``) watches for a shutdown
+      request (``SIGINT``/``SIGTERM``, or ``SIGINT``/``SIGBREAK`` on Windows), cancels the running tasks and exits with
+      code 3 (``ABORTED``)
 
 The client will continue running until manually interrupted (e.g., with Ctrl+C) or until a system signal is received.
 

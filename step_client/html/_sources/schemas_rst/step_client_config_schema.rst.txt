@@ -14,17 +14,16 @@ class containing several nested configuration components for different aspects o
   * **Base Configuration**
 
       * ``templateVersion``: The version of the template (currently "1")
-      * ``instanceName``: A unique name for the STEP client instance
-      * ``stationId``: Identification number of the station
+      * ``stationId``: Identification number of the station (also the GeoNetworking
+        MAC id of published messages)
       * ``latitude``: Geographical latitude of the station (degrees)
       * ``longitude``: Geographical longitude of the station (degrees)
       * ``reconnectInterval``: Time between reconnection attempts (seconds)
 
   * **MQTT Client Configuration**
 
-      * Connection parameters (host, port)
-      * Authentication (username, password)
-      * SSL/TLS security settings (certificates, keys)
+      * SSL/TLS security settings (certificates, keys, server certificate
+        verification)
 
   * **MQTT Protocol Configuration**
 
@@ -35,8 +34,10 @@ class containing several nested configuration components for different aspects o
 
   * **Redis Client Configuration**
 
-      * Connection parameters for message broker integration
-      * Security settings
+      * Connection pool and socket parameters (database, timeouts, keepalive,
+        health check, retries, protocol)
+      * SSL/TLS security settings
+      * Stream ids and lengths (adapter/producer outputs, client input)
 
   * **Logging Configuration**
 
@@ -44,13 +45,23 @@ class containing several nested configuration components for different aspects o
       * Log levels
       * Formatting options
 
+Not part of the file:
+
+  * The instance name, given on the command line with ``-i/--instance``.
+  * The MQTT and Redis host, port and credentials, read from the environment
+    (``MQTT_URL``, ``MQTT_PORT``, ``MQTT_USERNAME``, ``MQTT_PASSWORD``,
+    ``REDIS_URL``, ``REDIS_PORT``, ``REDIS_USERNAME``, ``REDIS_PASSWORD``; a
+    ``.env`` file is loaded first). The URLs and ports are required, the
+    usernames and passwords optional.
+
 Features and Benefits
 ---------------------
 
 * **Type Validation**: Strong typing and constraints via Pydantic fields
 * **Immutable Design**: Configuration is frozen after loading to prevent runtime errors
 * **Comprehensive Documentation**: Detailed field descriptions and examples
-* **Default Values**: Sensible defaults provided for all configuration options
+* **Template**: Every field is required (no implicit defaults); ``step_client -t <dir>``
+  writes a complete example configuration to start from
 * **Strict Validation**: Prevents configuration errors before they cause runtime issues
 
 Example
