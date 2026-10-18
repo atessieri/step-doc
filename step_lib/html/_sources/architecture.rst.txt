@@ -73,6 +73,19 @@ The step_lib package relies on the following third-party libraries:
   - Defines common data types (ItsTime, ReferencePosition, TrafficParticipantType)
   - Enables bidirectional conversion between ASN.1 and JSON formats
 
+**Configuration**
+
+- **pydantic**: Data validation
+
+  - Validates ``MqttClientConfig``, the SSL/TLS settings of an application
+    configuration file, and generates its JSON schema
+
+- **python-dotenv**: ``.env`` file loader
+
+  - Used by ``MqttCredential.from_env`` to read the broker host, port and
+    credentials from a ``.env`` file when they are not set in the environment
+    (see :ref:`step_lib_credentials`)
+
 Standard Library Usage
 ~~~~~~~~~~~~~~~~~~~~~~
 
@@ -105,7 +118,7 @@ The following PlantUML diagram illustrates the main classes and their relationsh
                 - _params: AsyncComManagerParams
                 - _echo_station_id: int | None
                 + __init__(params: AsyncComManagerParams, logger: Logger)
-                + __aenter__() : AsyncComManager
+                + __aenter__() : Self <<translates connect errors>>
                 + publish_its_message(message, address, position, is_mobile, sequence_number)
                 + subscribe(topic, qos, options) <<inherited from aiomqtt.Client>>
                 + {property} its_messages : ItsMessagesIterator
@@ -221,6 +234,25 @@ The following PlantUML diagram illustrates the main classes and their relationsh
                 + header_topic: str
                 + geohash_precision: int
                 + qos: MqttQoS
+            }
+
+            class MqttClientConfig <<pydantic>> {
+                + sslEnable: bool
+                + sslClientKeyFile: str | None
+                + sslClientKeyFilePassword: str | None
+                + sslClientCertFile: str | None
+                + sslVerifyServerCert: bool
+                + sslCaCertsFile: str | None
+                + {static} get_default() : MqttClientConfig
+                + to_tls_params(logger) : TLSParameters | None
+            }
+
+            class MqttCredential <<dataclass>> {
+                + mqtt_url: str
+                + mqtt_port: int
+                + mqtt_username: str | None
+                + mqtt_password: str | None
+                + {static} from_env(logger) : MqttCredential
             }
         }
         
@@ -438,7 +470,13 @@ The following PlantUML diagram illustrates the main classes and their relationsh
             class StepLibEchoMessageError
             class StepLibBackpressureError
             class StepLibMqttError
+            class StepLibMqttFatalError
             class StepLibPublishError
+
+            class MqttErrorTranslator <<context manager>> {
+                - _FATAL_CONNACK_REASON_CODES: frozenset[int]
+                + {static} translate() : Iterator[None]
+            }
 
             StepLibError <|-- StepLibUnsupportedMessageError
             StepLibError <|-- StepLibMessageNoDataUsefulError
@@ -447,7 +485,10 @@ The following PlantUML diagram illustrates the main classes and their relationsh
             StepLibError <|-- StepLibEchoMessageError
             StepLibError <|-- StepLibBackpressureError
             StepLibError <|-- StepLibMqttError
+            StepLibMqttError <|-- StepLibMqttFatalError
             StepLibError <|-- StepLibPublishError
+            MqttErrorTranslator ..> StepLibMqttError : raises
+            MqttErrorTranslator ..> StepLibMqttFatalError : raises\n(CONNACK 134/135/138/140)
         }
         
         ' Relationships - Communication Layer
@@ -466,6 +507,9 @@ The following PlantUML diagram illustrates the main classes and their relationsh
         SyncComManagerParams --|> AsyncComManagerParams
         
         AsyncComManagerParams *-- PublishTopicParams
+        MqttClientConfig ..> AsyncComManagerParams : tls_params\n(to_tls_params)
+        MqttCredential ..> AsyncComManagerParams : host, port,\nusername, password
+        AsyncComManager ..> MqttErrorTranslator : connect
         PublishTopicParams ..> GenericMessageType : POSITION_DATA entry\nis keyed by
         AsyncComManager ..> PositionDataV1 : derives from each published CAM\nand publishes as JSON
         CamMessageV1 ..> PositionDataV1 : projected onto\n(_cam_message_to_position_data)
@@ -515,6 +559,8 @@ The step_lib package is organized into several layers, each with specific respon
    - Handles MQTT broker connections (async and sync)
    - Manages message publishing and subscription
    - Implements automatic reconnection logic
+   - Translates connection failures into ``StepLibMqttError`` /
+     ``StepLibMqttFatalError``
    - Provides thread-safe message queuing
 
 2. **Serialization Layer**
@@ -543,6 +589,102 @@ The step_lib package is organized into several layers, each with specific respon
    - Implements Basic Transport Protocol
    - Maps message types to well-known ports
    - Supports BTP-A and BTP-B message types
+
+Connection Settings and Connection Errors
+-----------------------------------------
+
+Connection settings
+~~~~~~~~~~~~~~~~~~~
+
+The description of an MQTT connection is split in two, so that secrets are never
+written to a configuration file (module :mod:`step_lib.step_lib_config`):
+
+- **MqttClientConfig**: a Pydantic model with the SSL/TLS settings, meant to be a
+  field of the application configuration file. ``to_tls_params(logger)`` turns it
+  into the picklable ``TLSParameters`` of ``AsyncComManagerParams`` /
+  ``SyncComManagerParams`` (``None`` when ``sslEnable`` is false), logging a
+  WARNING when the server certificate is not verified.
+- **MqttCredential**: a frozen dataclass with the broker host, port, username and
+  password. ``from_env(logger)`` reads them from ``MQTT_URL``, ``MQTT_PORT``,
+  ``MQTT_USERNAME`` and ``MQTT_PASSWORD``, loading a ``.env`` file first if one is
+  found from the current directory upwards; an empty username or password counts
+  as unset. See :ref:`step_lib_credentials` and the example
+  :download:`env/.env.mqtt.examples <env/.env.mqtt.examples>`.
+
+Both are optional: the parameters can also be filled with values of any origin.
+
+Connection errors
+~~~~~~~~~~~~~~~~~
+
+``AsyncComManager.__aenter__`` connects to the broker inside
+``MqttErrorTranslator.translate`` (module :mod:`step_lib.mqtt_error_translator`),
+so a connection failure never leaves step_lib as a raw ``aiomqtt`` exception:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 46 30 24
+
+   * - aiomqtt error
+     - step_lib exception
+     - Can a reconnect fix it?
+   * - ``MqttConnectError`` with CONNACK reason code 134 (Bad user name or
+       password), 135 (Not authorized), 138 (Banned) or 140 (Bad authentication
+       method)
+     - ``StepLibMqttFatalError``
+     - no
+   * - any other ``MqttConnectError`` (e.g. 136 Server unavailable, 137 Server
+       busy)
+     - ``StepLibMqttError``
+     - yes
+   * - ``MqttError`` (broker unreachable, TLS handshake failure, CONNACK timeout)
+     - ``StepLibMqttError``
+     - yes
+
+The original error is chained as ``__cause__``, its ``rc`` carrying the reason
+code.
+
+.. container:: scrollable-diagram
+
+    .. plantuml::
+        :align: center
+
+        participant "Application" as App
+        participant "AsyncComManager" as ACM
+        participant "MqttErrorTranslator" as Tr
+        participant "MQTT Broker" as Broker
+
+        App -> ACM: async with
+        activate ACM
+        ACM -> Tr: translate()
+        activate Tr
+        Tr -> Broker: CONNECT (aiomqtt.Client.__aenter__)
+        activate Broker
+        alt CONNACK accepted
+            Broker --> Tr: CONNACK 0
+            Tr --> ACM: connected
+            ACM --> App: connected manager
+        else CONNACK 134/135/138/140
+            Broker --> Tr: CONNACK refused (MqttConnectError)
+            Tr --> App: StepLibMqttFatalError
+        else other failure
+            Broker --> Tr: MqttError / other CONNACK
+            Tr --> App: StepLibMqttError
+        end
+        deactivate Broker
+        deactivate Tr
+        deactivate ACM
+
+Notes:
+
+- ``StepLibMqttFatalError`` is a ``StepLibMqttError``, so existing handlers of
+  transport failures still catch it. An application that reconnects (e.g. one
+  built on ``ReconnectingApp`` of step_cloud_schemas) lists it among its fatal
+  errors to stop instead of retrying forever.
+- ``SyncComManager`` and the publish workers keep retrying after any connection
+  failure, fatal or not, as before (each failure counts toward the worker's
+  ``publish_max_connect_attempts``).
+- ``subscribe`` and the iteration of the received messages are inherited from
+  ``aiomqtt.Client`` and still raise ``aiomqtt.MqttError``.
 
 Multiprocess Publish Worker Pool
 ---------------------------------
@@ -815,7 +957,12 @@ Synchronous Communication Flow
         AsyncThread -> ACM: __aenter__()
         ACM -> Broker: connect
         activate Broker
-        Broker --> ACM: connected
+        alt connected
+            Broker --> ACM: connected
+        else connect failure
+            Broker --> ACM: refused / unreachable
+            ACM --> AsyncThread: StepLibMqttError\n(retried after reconnect_interval)
+        end
         deactivate Broker
         deactivate ACM
 
@@ -1374,8 +1521,11 @@ Custom exception hierarchy for specific error scenarios:
 - **StepLibEchoMessageError**: Own message received (filtered by station_id)
 - **StepLibBackpressureError**: Every worker's send pipe is saturated, or no
   publish worker is currently connected (backpressure)
-- **StepLibMqttError**: MQTT transport failure while publishing (the message can be
-  published again after reconnecting)
+- **StepLibMqttError**: MQTT transport failure while connecting or publishing
+  (reconnecting may fix it; the message can be published again)
+- **StepLibMqttFatalError**: The broker rejected the client's authentication or
+  authorization at connect (CONNACK 134/135/138/140): reconnecting cannot fix it
+  (see `Connection errors`_)
 - **StepLibPublishError**: A message that cannot be built or encoded (publishing it
   again would fail the same way)
 
@@ -1432,8 +1582,11 @@ Production Checklist
 
 1. **Security**:
 
-   - Use TLS/SSL for MQTT connections (configure ``tls_params``)
-   - Secure credential management (avoid hardcoded passwords)
+   - Use TLS/SSL for MQTT connections (configure ``tls_params``, e.g. with
+     ``MqttClientConfig.to_tls_params``)
+   - Keep credentials out of the configuration file: read them with
+     ``MqttCredential.from_env`` (environment or a git-ignored ``.env``, see
+     :ref:`step_lib_credentials`)
    - Validate certificates in production
 
 2. **Logging**:
@@ -1452,6 +1605,7 @@ Production Checklist
 
    - Use MQTT broker clustering
    - Configure automatic reconnection (``reconnect_interval``)
+   - Treat ``StepLibMqttFatalError`` as permanent: stop instead of reconnecting
    - Implement message persistence for critical events
    - Handle QoS appropriately (QoS 1 or 2 for important messages)
 

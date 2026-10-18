@@ -36,8 +36,94 @@ The broker is selected with two environment variables:
        pipeline sets it to ``localhost`` (the broker runs inside the test job).
 
 Each variable is read from the environment first and, when it is not set there,
-from a ``.env`` file in the project root. A variable set in the environment always
-takes precedence over the value in ``.env``.
+from a ``.env`` file in the project root, created from the template described in
+`Test Environment File`_.
+
+.. _step_lib_test_env:
+
+---------------------
+Test Environment File
+---------------------
+
+``doc/source/env/.env.test.examples`` is the template of the local ``.env`` file
+for the MQTT integration tests only: it holds no credentials and is not read by
+the applications, whose broker credentials have their own template (see
+:ref:`step_lib_credentials`). It was previously named ``.env.examples``.
+
+.. literalinclude:: env/.env.test.examples
+   :language: bash
+
+Download the template: :download:`.env.test.examples <env/.env.test.examples>`
+(save it as ``.env`` in the project root).
+
+.. note::
+
+    These variables are separate from the broker credentials of the applications
+    (see :ref:`step_lib_credentials`). Both sets of variables can live in the same
+    ``.env``.
+
+**Where the file goes.** Put ``.env`` in the **project root**. The test module
+calls ``dotenv_values()`` without arguments, which looks for ``.env`` starting
+from the directory of the test file (``test/``) and walking up the parent
+directories: the ``.env`` of the project root is found whatever the directory
+``pytest`` or ``tox`` is launched from.
+
+**How it is read.**
+
+* The values are read with ``dotenv_values()``, which **never changes**
+  ``os.environ``: the test ``.env`` has no effect on anything else running in the
+  same process, other tests and ``MqttCredential.from_env`` included.
+* For each variable the environment wins: the test uses
+  ``os.environ.get(name) or <value in .env>``, so a variable set in the shell or
+  by the CI pipeline overrides the file, and an empty value counts as unset.
+* When ``STEP_LIB_MQTT_TEST_PORT`` is set neither in the environment nor in
+  ``.env``, the three tests are **skipped** with the reason
+  ``STEP_LIB_MQTT_TEST_PORT is not set``; ``STEP_LIB_MQTT_TEST_HOST`` falls back
+  to ``127.0.0.1``.
+
+**Ways to provide the variables**, from the highest precedence:
+
+#. **CI pipeline**: ``.gitlab-ci.yml`` sets ``STEP_LIB_MQTT_TEST_HOST=localhost``
+   and ``STEP_LIB_MQTT_TEST_PORT=1883`` in the test job, so no ``.env`` is needed
+   (see `CI Usage`_);
+#. **shell**: export the variables before running the tests (see the last step of
+   `Run the Broker Locally with Podman`_). ``tox`` forwards them to the test
+   environments through ``passenv`` (``tox.ini``);
+#. **.env file** in the project root, created from the template. It is read
+   directly from disk, so it works with and without ``tox``.
+
+**One .env for the tests and the applications.** The ``STEP_LIB_MQTT_TEST_*``
+variables and the ``MQTT_*`` broker credentials of an application can live in the
+same ``.env`` of the project root: the tests read only their own variables, and a
+demo launched from ``doc/examples`` finds the root ``.env`` walking up, when there
+is none in ``doc/examples``. The two templates differ as follows:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 39 39
+
+   * -
+     - ``.env.test.examples``
+     - ``.env.mqtt.examples``
+   * - Read by
+     - ``test/test_integration_mqtt.py``
+     - ``MqttCredential.from_env`` (applications, ``step_publish`` demo)
+   * - Looked up from
+     - the ``test/`` directory, walking up
+     - the current directory, walking up
+   * - Effect on ``os.environ``
+     - none (``dotenv_values``)
+     - missing variables are added (``load_dotenv``)
+   * - Holds secrets
+     - no
+     - yes (username and password)
+
+See :ref:`step_lib_credentials` and
+:download:`env/.env.mqtt.examples <env/.env.mqtt.examples>` for the application
+credentials.
+
+**Never commit .env.** ``.env`` is listed in ``.gitignore``: only the
+``*.examples`` templates are versioned.
 
 ------------
 Broker Image
@@ -156,30 +242,28 @@ Pick one tab and use the same one in the following steps.
    On Windows, podman runs containers inside a virtual machine: if the command fails
    because podman cannot connect, start it with ``podman machine start``.
 
-#. Configure the tests: copy ``doc/source/env/.env.examples`` to ``.env`` in the
-   project root (``.env`` is git-ignored, so local settings are never committed):
+#. Configure the tests: copy ``doc/source/env/.env.test.examples`` to ``.env`` in
+   the project root (``.env`` is git-ignored, so local settings are never
+   committed; see `Test Environment File`_ for how the file is read):
 
    .. tab:: bash
 
       .. code-block:: bash
 
-          cp doc/source/env/.env.examples .env
+          cp doc/source/env/.env.test.examples .env
 
    .. tab:: PowerShell
 
       .. code-block:: powershell
 
-          Copy-Item doc/source/env/.env.examples .env
+          Copy-Item doc/source/env/.env.test.examples .env
 
    The template sets ``STEP_LIB_MQTT_TEST_HOST`` to ``127.0.0.1`` and
    ``STEP_LIB_MQTT_TEST_PORT`` to ``18830``, the address and port mapped above with
-   ``-p 127.0.0.1:18830:1883``:
-
-   .. literalinclude:: env/.env.examples
-      :language: bash
-
-   Change the port in ``.env`` only if you chose a different entry port with ``-p``
-   (see `Broker entry port`_).
+   ``-p 127.0.0.1:18830:1883``. Change the port in ``.env`` only if you chose a
+   different entry port with ``-p`` (see `Broker entry port`_). If the root
+   ``.env`` already holds the ``MQTT_*`` credentials of an application, append the
+   two variables to it instead of overwriting it.
 
 #. Run the tests, either the whole suite through tox or the integration module
    alone:

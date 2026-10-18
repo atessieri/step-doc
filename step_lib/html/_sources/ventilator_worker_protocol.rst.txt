@@ -314,7 +314,10 @@ with AsyncComManager(...)`` plus the inner receive loop -- in an outer
      - Yes -- increments
        ``consecutive_connect_failures``
      - Evidence this worker specifically cannot reach the broker at all
-       (bad credentials, unreachable host, TLS misconfiguration).
+       (bad credentials, unreachable host, TLS misconfiguration). The
+       connection failure is a ``StepLibMqttError``
+       (``StepLibMqttFatalError`` for rejected credentials), counted as a
+       failed connect attempt like any other.
    * - A previously-successful connection drops mid-stream
      - No -- resets the counter to ``0``
        on the *next* successful connect,

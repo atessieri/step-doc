@@ -205,6 +205,192 @@ The following snippet explains how to create the data-class of parameters.
     processes: an unpicklable value (e.g. a ``queue_type`` defined inside a
     function) raises ``ValueError`` naming the field.
 
+Configuration from a configuration file and the environment
+-----------------------------------------------------------
+
+Both ways build the same parameters: the snippet above passes the host, the
+credentials and the ``TLSParameters`` directly, while ``MqttClientConfig`` and
+``MqttCredential`` only derive ``tls_params`` and the host/credential fields from a
+configuration file and from the environment. ``MqttClientConfig`` is a Pydantic
+model with the SSL/TLS settings, meant to be a field of the application
+configuration model; ``MqttCredential.from_env`` reads the broker host, port and
+credentials from the environment or a ``.env`` file (see
+:ref:`step_lib_credentials`), so that no secret is written to the configuration
+file.
+
+.. code-block:: python
+
+    import logging
+
+    from step_cloud_schemas import MessageId
+    from step_lib import (
+        MqttClientConfig,
+        MqttCredential,
+        MqttQoS,
+        PublishTopicParams,
+        SyncComManagerParams,
+    )
+
+    def create_sync_com_manager_params_from_env(
+        logger: logging.Logger,
+    ) -> SyncComManagerParams:
+        # Host, port and credential from the environment (or a .env file)
+        credential = MqttCredential.from_env(logger=logger)
+        # TLS settings, usually a field of the application configuration file;
+        # get_default() returns a complete set of placeholder settings
+        mqtt_client = MqttClientConfig.get_default()
+        return SyncComManagerParams(
+            instance_name="step_lib_test_1",
+            host=credential.mqtt_url,
+            port=credential.mqtt_port,
+            username=credential.mqtt_username,
+            password=credential.mqtt_password,
+            station_id=123,
+            timeout=10,
+            keepalive=30,
+            bind_address="",
+            bind_port=0,
+            clean_start=True,
+            queue_type=None,
+            max_queued_incoming_messages=60,
+            max_queued_outgoing_messages=60,
+            max_inflight_messages=60,
+            max_concurrent_outgoing_calls=60,
+            # None when sslEnable is false; logs a warning when the server
+            # certificate is not verified
+            tls_params=mqtt_client.to_tls_params(logger=logger),
+            proxy=None,
+            socket_options=None,
+            session_expiry=0,
+            receive_maximum=10,
+            maximum_packet_size=32768,
+            topic_alias_maximum=0,
+            publish_topics_params=[
+                PublishTopicParams(
+                    message_type=MessageId.CAM_PDU,
+                    header_topic="v2x/cam/264421_4",
+                    geohash_precision=8,
+                    qos=MqttQoS.QOS_0,
+                ),
+            ],
+            cache_dir="./.cache",
+        )
+
+Read the credential once at start-up, outside any reconnect loop: a missing
+variable raises ``ValueError`` and must stop the program instead of being retried.
+
+.. _step_lib_credentials:
+
+Broker credentials: environment variables and .env file
+-------------------------------------------------------
+
+The broker host, port and credentials are not part of the configuration file
+(``MqttClientConfig`` holds only the SSL/TLS settings): ``MqttCredential.from_env``
+reads them from the environment, so that secrets never end up in a repository or
+in a configuration JSON document.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 15 60
+
+   * - Variable
+     - Required
+     - Meaning
+   * - ``MQTT_URL``
+     - yes
+     - Host name or IP address of the MQTT broker.
+   * - ``MQTT_PORT``
+     - yes
+     - TCP port of the broker (1-65535); usually 8883 with TLS, 1883 without.
+   * - ``MQTT_USERNAME``
+     - no
+     - Username for broker authentication. Unset or empty connects anonymously.
+   * - ``MQTT_PASSWORD``
+     - no
+     - Password for broker authentication. Ignored, with a WARNING, when
+       ``MQTT_USERNAME`` is not set (aiomqtt sends credentials only together with
+       a username).
+
+**How MqttCredential.from_env reads them.**
+
+* It first loads the ``.env`` file found in the **current working directory** or
+  in its nearest parent directory (``find_dotenv(usecwd=True)``): what counts is
+  the directory the program is launched from, not the directory of the installed
+  package. Without a ``.env`` file only the environment is read.
+* A variable already set in the environment **wins** over the ``.env`` file:
+  ``load_dotenv`` adds the missing variables and never overrides an existing one.
+* An empty ``MQTT_USERNAME`` or ``MQTT_PASSWORD`` counts as unset.
+* The settings are logged at INFO level: host, port and whether a username is set;
+  the username and the password are never logged.
+
+**Errors.** ``ValueError`` is raised when ``MQTT_URL`` or ``MQTT_PORT`` is missing,
+when the port is not an integer or is out of range, or when the host is empty. A
+broker that rejects the credentials is detected later, when connecting:
+``async with`` raises ``StepLibMqttFatalError`` (see the note on exceptions in
+`Asynchronous Usage`_).
+
+**Format of the .env file.**
+
+* One ``KEY=VALUE`` line per variable, no ``export`` needed;
+* ``#`` starts a comment;
+* quote a value only if it contains spaces or ``#`` (``MQTT_PASSWORD="a #b"``);
+* keep the file out of version control: ``.env`` is listed in ``.gitignore``, only
+  the ``*.examples`` templates are versioned.
+
+**Template.** ``doc/source/env/.env.mqtt.examples`` is a commented template:
+
+.. literalinclude:: env/.env.mqtt.examples
+   :language: bash
+
+Download the template: :download:`.env.mqtt.examples <env/.env.mqtt.examples>`
+(save it as ``.env``). For the ``step_publish`` demo, copy it to ``doc/examples``,
+the directory the demo is launched from:
+
+.. tab:: bash
+
+   .. code-block:: bash
+
+       cp doc/source/env/.env.mqtt.examples doc/examples/.env
+
+.. tab:: PowerShell
+
+   .. code-block:: powershell
+
+       Copy-Item doc/source/env/.env.mqtt.examples doc/examples/.env
+
+**Alternatives to the file.** Variables set in the shell or by a container runtime
+take precedence over ``.env``:
+
+.. tab:: bash
+
+   .. code-block:: bash
+
+       export MQTT_URL=broker.example.com
+       export MQTT_PORT=8883
+
+.. tab:: PowerShell
+
+   .. code-block:: powershell
+
+       $env:MQTT_URL = "broker.example.com"
+       $env:MQTT_PORT = "8883"
+
+.. tab:: Docker Compose
+
+   .. code-block:: yaml
+
+       services:
+         app:
+           env_file: .env          # or, one by one:
+           environment:
+             MQTT_URL: broker.example.com
+             MQTT_PORT: "8883"
+
+.. note::
+
+    The MQTT integration tests use a separate template, with no credentials, see
+    :ref:`step_lib_test_env`. Both sets of variables can live in the same ``.env``.
+
 .. _step_lib_tls:
 
 TLS configuration
@@ -231,6 +417,13 @@ hand-built ``SSLContext``:
      - ``certfile``, ``keyfile``, ``keyfile_password``
    * - ``minimum_version=TLSv1_2``
      - the default of Python 3.10 and later
+
+When the TLS settings come from a configuration file, ``MqttClientConfig.to_tls_params``
+builds the ``TLSParameters`` from them: it returns ``None`` when ``sslEnable`` is
+false, sets ``ca_certs``, ``certfile``, ``keyfile`` and ``keyfile_password`` from
+the corresponding fields, and ``cert_reqs`` to ``None`` (``CERT_REQUIRED``) when
+``sslVerifyServerCert`` is true or to ``ssl.CERT_NONE`` when it is false, logging a
+WARNING since any server certificate is then accepted.
 
 .. _step_lib_leap_seconds:
 
@@ -921,6 +1114,68 @@ it to build a ready-to-use ``AsyncComManager`` instance.
     a client that publishes messages of many stations. The position data topic
     ``<header_topic>/<station_id>`` always uses the stationId of the published CAM.
 
+Configuration from a configuration file and the environment (asynchronous)
+---------------------------------------------------------------------------
+
+As for the synchronous manager, the parameters can also be derived from a
+``MqttClientConfig`` and from ``MqttCredential.from_env`` (see
+:ref:`step_lib_credentials`); both ways build the same ``AsyncComManager``.
+
+.. code-block:: python
+
+    import logging
+
+    from step_cloud_schemas import MessageId
+    from step_lib import (
+        AsyncComManager,
+        AsyncComManagerParams,
+        MqttClientConfig,
+        MqttCredential,
+        MqttQoS,
+        PublishTopicParams,
+    )
+
+    def create_async_com_manager_from_env(logger: logging.Logger) -> AsyncComManager:
+        # Host, port and credential from the environment (or a .env file)
+        credential = MqttCredential.from_env(logger=logger)
+        # TLS settings, usually a field of the application configuration file
+        mqtt_client = MqttClientConfig.get_default()
+        params = AsyncComManagerParams(
+            instance_name="step_lib_test_1",
+            host=credential.mqtt_url,
+            port=credential.mqtt_port,
+            username=credential.mqtt_username,
+            password=credential.mqtt_password,
+            station_id=123,
+            timeout=10,
+            keepalive=30,
+            bind_address="",
+            bind_port=0,
+            clean_start=True,
+            queue_type=None,
+            max_queued_incoming_messages=60,
+            max_queued_outgoing_messages=60,
+            max_inflight_messages=60,
+            max_concurrent_outgoing_calls=60,
+            tls_params=mqtt_client.to_tls_params(logger=logger),
+            proxy=None,
+            socket_options=None,
+            session_expiry=0,
+            receive_maximum=10,
+            maximum_packet_size=32768,
+            topic_alias_maximum=0,
+            publish_topics_params=[
+                PublishTopicParams(
+                    message_type=MessageId.CAM_PDU,
+                    header_topic="v2x/cam/264421_4",
+                    geohash_precision=8,
+                    qos=MqttQoS.QOS_0,
+                ),
+            ],
+            cache_dir="./.cache",
+        )
+        return AsyncComManager(params=params, logger=logger)
+
 Using Context Manager
 -----------------------------------
 
@@ -1247,9 +1502,17 @@ The following snippet of code:
     as ``StepLibMqttError`` (chaining the ``aiomqtt.MqttError``; the message can be
     published again after reconnecting), and a message that cannot be built or
     encoded (e.g. an ASN.1 constraint violation) as ``StepLibPublishError``
-    chaining the original error (publishing it again would fail the same way). The
-    connection (``async with``) and ``subscribe`` are inherited from
-    ``aiomqtt.Client`` and still raise ``aiomqtt.MqttError``.
+    chaining the original error (publishing it again would fail the same way).
+
+    Entering ``async with`` raises ``StepLibMqttError`` on a connection failure
+    (broker unreachable, TLS handshake failure, CONNACK timeout), or
+    ``StepLibMqttFatalError`` when the broker rejects the credentials or the
+    authorization (CONNACK reason code 134 Bad user name or password, 135 Not
+    authorized, 138 Banned or 140 Bad authentication method): reconnecting cannot
+    fix it, so stop instead of retrying. ``StepLibMqttFatalError`` is a
+    ``StepLibMqttError``, so a handler of transport failures still catches it.
+    ``subscribe`` is inherited from ``aiomqtt.Client`` and still raises
+    ``aiomqtt.MqttError``.
 
 Receive Example
 ---------------
@@ -1277,8 +1540,14 @@ refer to the API Reference section :ref:`step_lib_api`.
 Complete Example
 ----------------
 
-Following example demonstrates how to use the STEP Library to publish and receive messages using 
+Following example demonstrates how to use the STEP Library to publish and receive messages using
 both synchronous and asynchronous approaches.
+
+The ``step_publish`` demo reads the broker credentials with
+``MqttCredential.from_env`` from a ``.env`` file in ``doc/examples``: start from
+:download:`env/.env.mqtt.examples <env/.env.mqtt.examples>` (see
+:ref:`step_lib_credentials`), and keep the TLS settings in the ``mqttClient``
+section of its configuration file (a ``MqttClientConfig``).
 
 Asynchronous example:
 
