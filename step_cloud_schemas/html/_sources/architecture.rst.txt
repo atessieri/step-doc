@@ -214,9 +214,16 @@ The structure is made of the following elements:
         callback), both returning ``R``. It holds no state and defines an empty
         ``__slots__``; ``AppRunner`` depends only on this class, never on the concrete
         application.
+    #.  **ReconnectingApp**: Abstract subclass of ``AbstractApp[R]`` for the programs
+        that keep a connection open. It implements ``work`` as a loop around the
+        abstract coroutine ``cycle``: an error raised during a shutdown cancellation
+        is turned back into ``CancelledError``, an error listed in ``_FATAL_ERRORS``
+        (or nested in an ``ExceptionGroup``) ends the run with ``fatal_result()``,
+        any other error starts the next cycle after ``reconnect_interval`` seconds.
     #.  **Application**: The class of the program using ``AppRunner`` (e.g. ``MessageSaveApp``
-        of ``step_message_save``). It derives from ``AbstractApp[R]``, defines ``work``
-        and ``on_shutdown`` and keeps the state they share; an instance is handed to
+        of ``step_message_save``). It derives from ``AbstractApp[R]``, or from
+        ``ReconnectingApp[R]`` when it reconnects (e.g. ``StepProducerApp``), defines
+        the abstract methods and keeps the state they share; an instance is handed to
         ``run``.
 
 The following class diagram shows the structure:
@@ -269,6 +276,17 @@ The following class diagram shows the structure:
          +{abstract} on_shutdown(stop_signal: Signals): R
       }
 
+      abstract class "ReconnectingApp<R>" as ReconnectingApp {
+         -{static} _FATAL_ERRORS: tuple[type[Exception], ...]
+         -_logger: Logger
+         -_reconnect_interval: int
+         +__init__(logger, reconnect_interval)
+         +work(): R
+         +{abstract} cycle(): None
+         +{abstract} fatal_result(): R
+         -{static} _is_fatal(exc): bool
+      }
+
       class Application <<e.g. MessageSaveApp>> {
          +work(): R
          +on_shutdown(stop_signal: Signals): R
@@ -289,6 +307,8 @@ The following class diagram shows the structure:
       AppRunner ..> Event : stop_event per run
       WindowsOsShutdownState o-- Event : stop_event
       AbstractApp <|-- Application
+      AbstractApp <|-- ReconnectingApp
+      ReconnectingApp <|-- Application
       AppRunner ..> AbstractApp : calls work / on_shutdown
 
 A run goes through the following steps:

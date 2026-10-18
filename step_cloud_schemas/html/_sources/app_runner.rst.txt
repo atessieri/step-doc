@@ -240,6 +240,142 @@ already handled. The application object is built later and handed to ``run``:
     place, so the logger given to ``AppRunner`` before the configuration is
     loaded logs with the final configuration once it is applied.
 
+Reconnecting Applications
+-------------------------
+
+A program that keeps a connection open (Redis, MQTT) and reconnects after any
+failure derives from
+:class:`~step_cloud_schemas.runtime.reconnecting_app.ReconnectingApp` instead.
+It implements ``work`` itself and leaves to the subclass:
+
+* *cycle* — open the connections and run the tasks until one of them fails;
+* *fatal_result* — the result of the run after an error no reconnect can fix;
+* *on_shutdown* — as for ``AbstractApp``;
+* ``_FATAL_ERRORS`` — the errors no reconnect can fix.
+
+When ``cycle`` raises, ``work`` restores ``CancelledError`` if a shutdown is in
+progress, returns ``fatal_result()`` if the error (or any error nested in an
+``ExceptionGroup``) is one of ``_FATAL_ERRORS``, and otherwise waits
+*reconnect_interval* seconds and runs ``cycle`` again. If ``cycle`` returns
+normally, the next cycle starts at once.
+
+``ReconnectingApp`` stores the logger as ``_logger`` in its own slot: the
+subclass calls ``super().__init__`` and does not list ``_logger`` again in its
+``__slots__``.
+
+The complete program below reads the lines sent by a TCP server and logs
+them, reconnecting whenever the connection is refused or lost:
+
+.. code-block:: python
+
+    import asyncio
+    import logging
+    import socket
+    import sys
+    from enum import IntEnum
+    from logging import Logger
+    from signal import Signals
+
+    from step_cloud_schemas import AppRunner, ReconnectingApp
+
+    logger = logging.getLogger(__name__)
+
+
+    class ExitCode(IntEnum):
+        OK = 0
+        ERROR = 2
+        ABORTED = 3
+
+
+    class LineReaderApp(ReconnectingApp[ExitCode]):
+        # A reconnect cannot fix a host name that does not resolve
+        _FATAL_ERRORS = (socket.gaierror,)
+
+        # _logger and _reconnect_interval are slots of ReconnectingApp
+        __slots__ = ("_host", "_port")
+
+        def __init__(self, host: str, port: int, logger: Logger) -> None:
+            super().__init__(logger=logger, reconnect_interval=5)
+            self._host = host
+            self._port = port
+
+        async def cycle(self) -> None:
+            reader, writer = await asyncio.open_connection(
+                host=self._host, port=self._port
+            )
+            try:
+                # Ends when the server closes the connection: reconnect at once
+                while line := await reader.readline():
+                    self._logger.info(msg=line.decode().rstrip())
+            finally:
+                writer.close()
+                await writer.wait_closed()
+
+        def fatal_result(self) -> ExitCode:
+            return ExitCode.ERROR
+
+        def on_shutdown(self, stop_signal: Signals) -> ExitCode:
+            self._logger.info(msg=f"Program interrupted by {stop_signal.name}")
+            return ExitCode.ABORTED
+
+
+    def main() -> int:
+        logging.basicConfig(level=logging.INFO)
+        app_runner = AppRunner[ExitCode](logger_param=logger)
+        app = LineReaderApp(host="127.0.0.1", port=9000, logger=logger)
+        return app_runner.run(app=app).value
+
+
+    if __name__ == "__main__":
+        sys.exit(main())
+
+``run`` never returns ``ExitCode.OK`` here, since ``work`` loops until it is
+stopped:
+
+* the server is down (``ConnectionRefusedError``) or drops the connection
+  (``ConnectionResetError``) — ``work`` logs the traceback, logs
+  ``Connection retry in 5 s`` and runs ``cycle`` again;
+* the server closes the connection cleanly — ``readline`` returns ``b""``,
+  ``cycle`` returns and the next cycle starts at once;
+* the host name does not resolve (``socket.gaierror``) — ``work`` logs the
+  traceback and the CRITICAL ``Permanent error`` message and returns
+  ``ExitCode.ERROR``;
+* a shutdown signal arrives — ``cycle`` is cancelled, the ``finally`` closes
+  the connection and ``run`` returns ``ExitCode.ABORTED``.
+
+A program holding several connections opens them all in ``cycle`` and runs
+its tasks in a ``TaskGroup``: when one task fails, the group cancels the
+others and raises an ``ExceptionGroup``, which ``work`` inspects for the
+``_FATAL_ERRORS`` before reconnecting. This is the shape of ``step_producer``:
+
+.. code-block:: python
+
+    from asyncio import TaskGroup
+    from signal import Signals
+
+    from step_cloud_schemas import ReconnectingApp
+    from step_redis import StepRedisFatalError, StepRedisPool
+
+
+    class StepProducerApp(ReconnectingApp[ExitCode]):
+        _FATAL_ERRORS = (StepRedisFatalError,)
+
+        __slots__ = ("_config", "_den_service", "_instance_name", "_redis_credential")
+
+        def __init__(self, instance_name, config, logger) -> None:
+            super().__init__(logger=logger, reconnect_interval=config.reconnectInterval)
+            ...
+
+        async def cycle(self) -> None:
+            async with (StepRedisPool(...) as redis_pool, TaskGroup() as group):
+                group.create_task(...)  # receive, cleanup, health check
+
+        def fatal_result(self) -> ExitCode:
+            return ExitCode.ERROR
+
+        def on_shutdown(self, stop_signal: Signals) -> ExitCode:
+            return ExitCode.ABORTED
+
 Constructor Arguments
 ---------------------
 
@@ -328,21 +464,19 @@ killed.
 Shutdown Signals
 ----------------
 
-.. list-table::
-   :header-rows: 1
-   :widths: 15 25 60
+.. tab:: Windows
 
-   * - Platform
-     - Signal
-     - Behavior
-   * - POSIX
-     - ``SIGINT``, ``SIGTERM``
-     - While ``run`` is in progress: cooperative shutdown, ``on_shutdown`` is
-       called. Outside ``run``: ``KeyboardInterrupt``.
-   * - Windows
-     - ``SIGINT`` (Ctrl+C), ``SIGBREAK`` (Ctrl+Break)
-     - While ``run`` is in progress: cooperative shutdown, ``on_shutdown`` is
-       called. Outside ``run``: ``KeyboardInterrupt``.
+   * **Signals**: ``SIGINT`` (Ctrl+C), ``SIGBREAK`` (Ctrl+Break).
+   * **While** ``run`` **is in progress**: cooperative shutdown, ``on_shutdown``
+     is called.
+   * **Outside** ``run``: ``KeyboardInterrupt``.
+
+.. tab:: Linux, MacOS
+
+   * **Signals**: ``SIGINT``, ``SIGTERM``.
+   * **While** ``run`` **is in progress**: cooperative shutdown, ``on_shutdown``
+     is called.
+   * **Outside** ``run``: ``KeyboardInterrupt``.
 
 A cooperative shutdown never interrupts the workload at an arbitrary
 instruction: the signal only sets an ``asyncio.Event``, and the workload is
@@ -380,7 +514,7 @@ handle each of them:
   ``ExceptionGroup``. ``except Exception`` catches it; use ``except*`` to
   match the exceptions it contains.
 * **KeyboardInterrupt** — a signal received outside the cooperative window
-  (see the table above). ``on_shutdown`` has not been called in this case.
+  (see Shutdown Signals above). ``on_shutdown`` has not been called in this case.
 
 This is why ``step_message_save`` wraps the whole of ``main`` in a single
 ``try`` with both an ``except KeyboardInterrupt`` and an ``except Exception``
