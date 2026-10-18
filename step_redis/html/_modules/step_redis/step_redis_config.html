@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>step_redis.step_redis_config &mdash; STEP Redis 1.6.0 documentation</title>
+  <title>step_redis.step_redis_config &mdash; STEP Redis 1.6.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=4c969af8" />
@@ -15,7 +15,7 @@
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=72d88caf"></script>
+      <script src="../../_static/documentation_options.js?v=d6a008b6"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/tabs.js?v=3ee01567"></script>
@@ -1259,52 +1259,58 @@
 <span class="linenos">376</span><span class="sd">        Loads the ``.env`` file found in the current working directory or its</span>
 <span class="linenos">377</span><span class="sd">        nearest parent, if any, then reads ``REDIS_URL``, ``REDIS_PORT``,</span>
 <span class="linenos">378</span><span class="sd">        ``REDIS_USERNAME`` and ``REDIS_PASSWORD``. The username and password are</span>
-<span class="linenos">379</span><span class="sd">        optional; the URL and port are required. The settings are logged at INFO</span>
-<span class="linenos">380</span><span class="sd">        level, password excluded. A commented template of the ``.env`` file is</span>
-<span class="linenos">381</span><span class="sd">        ``doc/source/env/.env.redis.examples`` in the repository.</span>
-<span class="linenos">382</span>
-<span class="linenos">383</span><span class="sd">        Args:</span>
-<span class="linenos">384</span><span class="sd">            logger (Logger): Logger used for the INFO line with the settings.</span>
-<span class="linenos">385</span>
-<span class="linenos">386</span><span class="sd">        Returns:</span>
-<span class="linenos">387</span><span class="sd">            RedisCredential: The credential assembled from the environment.</span>
-<span class="linenos">388</span>
-<span class="linenos">389</span><span class="sd">        Raises:</span>
-<span class="linenos">390</span><span class="sd">            ValueError: If ``REDIS_URL`` or ``REDIS_PORT`` is not set, if the port</span>
-<span class="linenos">391</span><span class="sd">                is not an integer, or if the URL is empty or the port out of range.</span>
-<span class="linenos">392</span>
-<span class="linenos">393</span><span class="sd">        Complexity:</span>
-<span class="linenos">394</span><span class="sd">            - Time: O(1), a fixed number of environment variables is read.</span>
-<span class="linenos">395</span><span class="sd">            - Space: O(1), a single fixed-size instance is allocated.</span>
-<span class="linenos">396</span><span class="sd">        """</span>
-<span class="linenos">397</span>        <span class="c1"># Without usecwd, find_dotenv() starts from this module's directory (inside</span>
-<span class="linenos">398</span>        <span class="c1"># site-packages once installed), not from where the program is launched</span>
-<span class="linenos">399</span>        <span class="n">load_dotenv</span><span class="p">(</span><span class="n">dotenv_path</span><span class="o">=</span><span class="n">find_dotenv</span><span class="p">(</span><span class="n">usecwd</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
-<span class="linenos">400</span>        <span class="n">redis_url</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">_URL_VAR_NAME</span><span class="p">)</span>
-<span class="linenos">401</span>        <span class="k">if</span> <span class="n">redis_url</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">402</span>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Environment variable </span><span class="si">{</span><span class="bp">cls</span><span class="o">.</span><span class="n">_URL_VAR_NAME</span><span class="si">}</span><span class="s2"> is not set."</span><span class="p">)</span>
-<span class="linenos">403</span>        <span class="n">redis_port</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">_PORT_VAR_NAME</span><span class="p">)</span>
-<span class="linenos">404</span>        <span class="k">if</span> <span class="n">redis_port</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">405</span>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Environment variable </span><span class="si">{</span><span class="bp">cls</span><span class="o">.</span><span class="n">_PORT_VAR_NAME</span><span class="si">}</span><span class="s2"> is not set."</span><span class="p">)</span>
-<span class="linenos">406</span>        <span class="k">try</span><span class="p">:</span>
-<span class="linenos">407</span>            <span class="n">port</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">redis_port</span><span class="p">)</span>
-<span class="linenos">408</span>        <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
-<span class="linenos">409</span>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-<span class="linenos">410</span>                <span class="sa">f</span><span class="s2">"Environment variable </span><span class="si">{</span><span class="bp">cls</span><span class="o">.</span><span class="n">_PORT_VAR_NAME</span><span class="si">}</span><span class="s2"> must be an integer, "</span>
-<span class="linenos">411</span>                <span class="sa">f</span><span class="s2">"got </span><span class="si">{</span><span class="n">redis_port</span><span class="si">!r}</span><span class="s2">."</span>
-<span class="linenos">412</span>            <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
-<span class="linenos">413</span>        <span class="n">redis_username</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">_USERNAME_VAR_NAME</span><span class="p">)</span>
-<span class="linenos">414</span>        <span class="k">if</span> <span class="n">logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">):</span>
-<span class="linenos">415</span>            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-<span class="linenos">416</span>                <span class="n">msg</span><span class="o">=</span><span class="s2">"Creating RedisCredential with the following settings: "</span>
-<span class="linenos">417</span>                <span class="sa">f</span><span class="s2">"redis_host=</span><span class="si">{</span><span class="n">redis_url</span><span class="si">}</span><span class="s2">, redis_port=</span><span class="si">{</span><span class="n">port</span><span class="si">}</span><span class="s2">, redis_user=</span><span class="si">{</span><span class="n">redis_username</span><span class="si">}</span><span class="s2">"</span>
-<span class="linenos">418</span>            <span class="p">)</span>
-<span class="linenos">419</span>        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
-<span class="linenos">420</span>            <span class="n">redis_url</span><span class="o">=</span><span class="n">redis_url</span><span class="p">,</span>
-<span class="linenos">421</span>            <span class="n">redis_port</span><span class="o">=</span><span class="n">port</span><span class="p">,</span>
-<span class="linenos">422</span>            <span class="n">redis_username</span><span class="o">=</span><span class="n">redis_username</span><span class="p">,</span>
-<span class="linenos">423</span>            <span class="n">redis_password</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">_PASSWORD_VAR_NAME</span><span class="p">),</span>
-<span class="linenos">424</span>        <span class="p">)</span></div>
+<span class="linenos">379</span><span class="sd">        optional and an empty value counts as unset; the URL and port are</span>
+<span class="linenos">380</span><span class="sd">        required. The settings are logged at INFO level, username and password</span>
+<span class="linenos">381</span><span class="sd">        excluded (only whether a username is set). A commented template of the</span>
+<span class="linenos">382</span><span class="sd">        ``.env`` file is ``doc/source/env/.env.redis.examples`` in the repository.</span>
+<span class="linenos">383</span>
+<span class="linenos">384</span><span class="sd">        Args:</span>
+<span class="linenos">385</span><span class="sd">            logger (Logger): Logger used for the INFO line with the settings.</span>
+<span class="linenos">386</span>
+<span class="linenos">387</span><span class="sd">        Returns:</span>
+<span class="linenos">388</span><span class="sd">            RedisCredential: The credential assembled from the environment.</span>
+<span class="linenos">389</span>
+<span class="linenos">390</span><span class="sd">        Raises:</span>
+<span class="linenos">391</span><span class="sd">            ValueError: If ``REDIS_URL`` or ``REDIS_PORT`` is not set, if the port</span>
+<span class="linenos">392</span><span class="sd">                is not an integer, or if the URL is empty or the port out of range.</span>
+<span class="linenos">393</span>
+<span class="linenos">394</span><span class="sd">        Complexity:</span>
+<span class="linenos">395</span><span class="sd">            - Time: O(1), a fixed number of environment variables is read.</span>
+<span class="linenos">396</span><span class="sd">            - Space: O(1), a single fixed-size instance is allocated.</span>
+<span class="linenos">397</span><span class="sd">        """</span>
+<span class="linenos">398</span>        <span class="c1"># Without usecwd, find_dotenv() starts from this module's directory (inside</span>
+<span class="linenos">399</span>        <span class="c1"># site-packages once installed), not from where the program is launched</span>
+<span class="linenos">400</span>        <span class="n">load_dotenv</span><span class="p">(</span><span class="n">dotenv_path</span><span class="o">=</span><span class="n">find_dotenv</span><span class="p">(</span><span class="n">usecwd</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+<span class="linenos">401</span>        <span class="n">redis_url</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">_URL_VAR_NAME</span><span class="p">)</span>
+<span class="linenos">402</span>        <span class="k">if</span> <span class="n">redis_url</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">403</span>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Environment variable </span><span class="si">{</span><span class="bp">cls</span><span class="o">.</span><span class="n">_URL_VAR_NAME</span><span class="si">}</span><span class="s2"> is not set."</span><span class="p">)</span>
+<span class="linenos">404</span>        <span class="n">redis_port</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">_PORT_VAR_NAME</span><span class="p">)</span>
+<span class="linenos">405</span>        <span class="k">if</span> <span class="n">redis_port</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">406</span>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Environment variable </span><span class="si">{</span><span class="bp">cls</span><span class="o">.</span><span class="n">_PORT_VAR_NAME</span><span class="si">}</span><span class="s2"> is not set."</span><span class="p">)</span>
+<span class="linenos">407</span>        <span class="k">try</span><span class="p">:</span>
+<span class="linenos">408</span>            <span class="n">port</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">redis_port</span><span class="p">)</span>
+<span class="linenos">409</span>        <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+<span class="linenos">410</span>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+<span class="linenos">411</span>                <span class="sa">f</span><span class="s2">"Environment variable </span><span class="si">{</span><span class="bp">cls</span><span class="o">.</span><span class="n">_PORT_VAR_NAME</span><span class="si">}</span><span class="s2"> must be an integer, "</span>
+<span class="linenos">412</span>                <span class="sa">f</span><span class="s2">"got </span><span class="si">{</span><span class="n">redis_port</span><span class="si">!r}</span><span class="s2">."</span>
+<span class="linenos">413</span>            <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
+<span class="linenos">414</span>        <span class="c1"># An empty value counts as unset</span>
+<span class="linenos">415</span>        <span class="n">redis_username</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">_USERNAME_VAR_NAME</span><span class="p">)</span> <span class="ow">or</span> <span class="kc">None</span>
+<span class="linenos">416</span>        <span class="n">redis_password</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">_PASSWORD_VAR_NAME</span><span class="p">)</span> <span class="ow">or</span> <span class="kc">None</span>
+<span class="linenos">417</span>        <span class="k">if</span> <span class="n">logger</span><span class="o">.</span><span class="n">isEnabledFor</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">):</span>
+<span class="linenos">418</span>            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+<span class="linenos">419</span>                <span class="n">msg</span><span class="o">=</span><span class="p">(</span>
+<span class="linenos">420</span>                    <span class="s2">"Creating RedisCredential with the following settings: "</span>
+<span class="linenos">421</span>                    <span class="sa">f</span><span class="s2">"redis_host=</span><span class="si">{</span><span class="n">redis_url</span><span class="si">}</span><span class="s2">, redis_port=</span><span class="si">{</span><span class="n">port</span><span class="si">}</span><span class="s2">, "</span>
+<span class="linenos">422</span>                    <span class="sa">f</span><span class="s2">"redis_auth=</span><span class="si">{</span><span class="n">redis_username</span><span class="w"> </span><span class="ow">is</span><span class="w"> </span><span class="ow">not</span><span class="w"> </span><span class="kc">None</span><span class="si">}</span><span class="s2">"</span>
+<span class="linenos">423</span>                <span class="p">)</span>
+<span class="linenos">424</span>            <span class="p">)</span>
+<span class="linenos">425</span>        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+<span class="linenos">426</span>            <span class="n">redis_url</span><span class="o">=</span><span class="n">redis_url</span><span class="p">,</span>
+<span class="linenos">427</span>            <span class="n">redis_port</span><span class="o">=</span><span class="n">port</span><span class="p">,</span>
+<span class="linenos">428</span>            <span class="n">redis_username</span><span class="o">=</span><span class="n">redis_username</span><span class="p">,</span>
+<span class="linenos">429</span>            <span class="n">redis_password</span><span class="o">=</span><span class="n">redis_password</span><span class="p">,</span>
+<span class="linenos">430</span>        <span class="p">)</span></div>
 </div>
 
 </pre></div>

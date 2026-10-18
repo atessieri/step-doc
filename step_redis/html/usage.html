@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Redis Usage Guide &mdash; STEP Redis 1.6.0 documentation</title>
+  <title>Redis Usage Guide &mdash; STEP Redis 1.6.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="_static/tabs.css?v=4c969af8" />
@@ -16,7 +16,7 @@
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=72d88caf"></script>
+      <script src="_static/documentation_options.js?v=d6a008b6"></script>
       <script src="_static/doctools.js?v=fd6eb6e6"></script>
       <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="_static/tabs.js?v=3ee01567"></script>
@@ -1032,13 +1032,14 @@ the directory the program is launched from, not the directory of the installed
 package. Without a <code class="docutils literal notranslate"><span class="pre">.env</span></code> file only the environment is read.</p></li>
 <li><p>A variable already set in the environment <strong>wins</strong> over the <code class="docutils literal notranslate"><span class="pre">.env</span></code> file:
 <code class="docutils literal notranslate"><span class="pre">load_dotenv</span></code> adds the missing variables and never overrides an existing one.</p></li>
-<li><p>An empty <code class="docutils literal notranslate"><span class="pre">REDIS_USERNAME</span></code> or <code class="docutils literal notranslate"><span class="pre">REDIS_PASSWORD</span></code> behaves like an unset one:
-redis-py authenticates only when the username or the password is non-empty,
-and sends the username only when it is non-empty (otherwise <code class="docutils literal notranslate"><span class="pre">AUTH</span></code> uses the
+<li><p>An empty <code class="docutils literal notranslate"><span class="pre">REDIS_USERNAME</span></code> or <code class="docutils literal notranslate"><span class="pre">REDIS_PASSWORD</span></code> counts as unset (<code class="docutils literal notranslate"><span class="pre">None</span></code>):
+redis-py authenticates only when the username or the password is set,
+and sends the username only when it is set (otherwise <code class="docutils literal notranslate"><span class="pre">AUTH</span></code> uses the
 <code class="docutils literal notranslate"><span class="pre">default</span></code> user). With a username and an empty password, <code class="docutils literal notranslate"><span class="pre">AUTH</span> <span class="pre">&lt;username&gt;</span> <span class="pre">&quot;&quot;</span></code>
 is sent, which the server accepts only for an ACL user configured with
 <code class="docutils literal notranslate"><span class="pre">nopass</span></code>.</p></li>
-<li><p>The host, port and username are logged at INFO level; the password never is.</p></li>
+<li><p>The host and port are logged at INFO level, together with whether a username
+is set; the username and the password never are.</p></li>
 </ul>
 <p><strong>Format of the .env file.</strong></p>
 <ul class="simple">
