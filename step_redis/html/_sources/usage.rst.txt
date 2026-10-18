@@ -4,8 +4,8 @@ Redis Usage Guide
 Introduction
 ------------
 
-The STEP (Safer Transport for Europe Platform) Library provides robust Redis integration through the ``step_redis`` module. 
-This module offers asynchronous Redis interaction capabilities specifically designed for the STEP Framework, including connection 
+The STEP (Safer Transport for Europe Platform) Library provides robust Redis integration through the ``step_redis`` module.
+This module offers asynchronous Redis interaction capabilities specifically designed for the STEP Framework, including connection
 pooling, SSL/TLS support, and efficient stream management.
 
 This guide explains how to use the Redis components in the STEP Library, with examples based on actual implementation patterns.
@@ -13,16 +13,32 @@ This guide explains how to use the Redis components in the STEP Library, with ex
 Key Components
 --------------
 
-The ``step_redis`` module provides three main components:
+The ``step_redis`` module provides the following main components:
 
-    #. **StepRedisPoolParams**: A dataclass containing all connection parameters for Redis, 
-       including host, port, authentication details, SSL settings, and connection parameters.
-    #. **StepRedisPool**: An enhanced blocking connection pool with asynchronous context 
-       management, supporting both SSL and non-SSL connections.
-    #. **StepRedisStreamParams**: A dataclass containing all stream configuration parameters,
-       including stream ID, group ID, consumer name, timeouts, and TTL settings.
-    #. **StepRedisStream**: A Redis Streams interface for publish/subscribe patterns, providing 
-       methods for creating streams, publishing messages, and consuming messages.
+    #. **RedisConnection**: A Pydantic model holding the Redis connection settings
+       of an application configuration file: database, socket timeouts, TCP
+       keepalive, SSL/TLS, health check, pool timeout, protocol and retry count.
+       Host, port and credentials are deliberately not part of it.
+    #. **RedisCredential**: A frozen dataclass holding the Redis host, port,
+       username and password, read from the environment by
+       ``RedisCredential.from_env``, so that secrets never end up in a
+       configuration file.
+    #. **StepRedisPoolParams**: A dataclass containing all connection parameters
+       for Redis; ``StepRedisPoolParams.from_connection`` builds it from a
+       ``RedisConnection`` and a ``RedisCredential``.
+    #. **StepRedisPool**: An enhanced blocking connection pool with asynchronous
+       context management, supporting both SSL and non-SSL connections.
+    #. **StepRedisStreamParams**: A dataclass containing all stream configuration
+       parameters, including stream ID, group ID, consumer name, timeouts, and TTL
+       settings; ``StepRedisStreamParams.ttl_seconds_from_wait_timeout`` computes a
+       TTL consistent with the receive wait timeout.
+    #. **StepRedisStream**: A Redis Streams interface for publish/subscribe
+       patterns, providing methods for creating streams, publishing messages, and
+       consuming messages.
+    #. **StepRedisError**: The base of the exceptions raised for a Redis failure
+       (``StepRedisFatalError``, ``StepRedisConnectionError``,
+       ``StepRedisCommandError``): redis-py exceptions never leave a public
+       ``step_redis`` method.
 
 Basic Usage
 -----------
@@ -39,14 +55,14 @@ The typical usage pattern involves:
     #. Use asynchronous context managers for proper resource management
 
 .. code-block:: python
-    
+
     import asyncio
     from logging import getLogger
     from step_redis import StepRedisPoolParams, StepRedisPool, StepRedisStream, StepRedisStreamParams
 
     async def main():
         logger = getLogger()
-        
+
         # 1. Configure connection parameters
         redis_params = StepRedisPoolParams(
             host="redis.example.com",
@@ -54,7 +70,7 @@ The typical usage pattern involves:
             username="user",  # Optional
             password="secret",
             db=0,
-            socket_timeout=30,
+            socket_timeout=40,
             socket_connect_timeout=30,
             socket_keep_idle=30,
             socket_keep_alive=30,
@@ -71,7 +87,7 @@ The typical usage pattern involves:
             protocol=3,
             retry_count=3,
         )
-        
+
         # 2. Configure stream parameters
         stream_params = StepRedisStreamParams(
             stream_id="demo_stream",
@@ -81,31 +97,263 @@ The typical usage pattern involves:
             consumer_name="demo_consumer_1",
             ttl_seconds=60,
         )
-        
+
         # 3. Create and use connection pool as context manager
         async with StepRedisPool(params=redis_params, logger=logger) as pool:
             # 4. Create a stream interface
             async with StepRedisStream(pool=pool, config=stream_params, logger=logger) as stream:
                 # 5. Create a stream and consumer group
                 await stream.create_input_stream()
-                
+
                 # 6. Publish a message
                 await stream.publish_message(message="Hello, Redis!")
-                
+
                 # 7. Receive a message
                 async for message in stream.receive_message():
                     logger.info("Received message: %s", message)
                     break
-                
+
     if __name__ == "__main__":
         asyncio.run(main())
+
+.. _step_redis_credentials:
+
+Configuration File and Environment
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A STEP application keeps the connection settings in its JSON configuration file,
+as a ``RedisConnection`` field of its configuration model, and the host, port and
+credentials in the environment, so that secrets are never written to the file:
+
+.. list-table::
+   :header-rows: 1
+
+   * - Variable
+     - Required
+     - Description
+   * - ``REDIS_URL``
+     - yes
+     - Redis server host
+   * - ``REDIS_PORT``
+     - yes
+     - Redis server port (1-65535)
+   * - ``REDIS_USERNAME``
+     - no
+     - ACL username, when the server requires authentication
+   * - ``REDIS_PASSWORD``
+     - no
+     - Password, when the server requires authentication
+
+``RedisCredential.from_env`` first loads the ``.env`` file found in the current
+working directory or its nearest parent, if any, then reads the variables. A
+missing ``REDIS_URL`` or ``REDIS_PORT``, a non-integer or out-of-range port, or
+an empty host raise ``ValueError``. Read the credential once at start-up, outside
+any reconnect loop, so that a misconfiguration stops the program instead of being
+retried forever.
+
+**How RedisCredential.from_env reads them.**
+
+* It first loads the ``.env`` file found in the **current working directory** or
+  in its nearest parent directory (``find_dotenv(usecwd=True)``): what counts is
+  the directory the program is launched from, not the directory of the installed
+  package. Without a ``.env`` file only the environment is read.
+* A variable already set in the environment **wins** over the ``.env`` file:
+  ``load_dotenv`` adds the missing variables and never overrides an existing one.
+* An empty ``REDIS_USERNAME`` or ``REDIS_PASSWORD`` behaves like an unset one:
+  redis-py authenticates only when the username or the password is non-empty,
+  and sends the username only when it is non-empty (otherwise ``AUTH`` uses the
+  ``default`` user). With a username and an empty password, ``AUTH <username> ""``
+  is sent, which the server accepts only for an ACL user configured with
+  ``nopass``.
+* The host, port and username are logged at INFO level; the password never is.
+
+**Format of the .env file.**
+
+* One ``KEY=VALUE`` line per variable, no ``export`` needed;
+* ``#`` starts a comment;
+* quote a value only if it contains spaces or ``#`` (``REDIS_PASSWORD="a #b"``);
+* keep the file out of version control: ``.env`` is listed in ``.gitignore``, only
+  the ``*.examples`` template is versioned.
+
+**Template.** ``doc/source/env/.env.redis.examples`` is a commented template:
+
+.. literalinclude:: env/.env.redis.examples
+   :language: bash
+
+Download the template: :download:`.env.redis.examples <env/.env.redis.examples>`
+(save it as ``.env``). For the demos, copy it to ``doc/examples``, the directory
+they are launched from:
+
+.. tab:: bash
+
+   .. code-block:: bash
+
+       cp doc/source/env/.env.redis.examples doc/examples/.env
+
+.. tab:: PowerShell
+
+   .. code-block:: powershell
+
+       Copy-Item doc/source/env/.env.redis.examples doc/examples/.env
+
+**Alternatives to the file.** Variables set in the shell or by a container runtime
+take precedence over ``.env``:
+
+.. tab:: bash
+
+   .. code-block:: bash
+
+       export REDIS_URL=redis.example.com
+       export REDIS_PORT=6380
+
+.. tab:: PowerShell
+
+   .. code-block:: powershell
+
+       $env:REDIS_URL = "redis.example.com"
+       $env:REDIS_PORT = "6380"
+
+.. tab:: Docker Compose
+
+   .. code-block:: yaml
+
+       services:
+         app:
+           env_file: .env          # or, one by one:
+           environment:
+             REDIS_URL: redis.example.com
+             REDIS_PORT: "6380"
+
+``StepRedisPoolParams.from_connection`` combines both into the pool parameters,
+and logs a warning when TLS is enabled without server certificate verification
+(``sslCertRequested`` false). ``StepRedisStreamParams.ttl_seconds_from_wait_timeout``
+returns twice the receive wait timeout, rounded up to whole seconds, so the stream
+never expires while a consumer is blocked on it.
+
+.. note::
+
+   ``socketTimeout`` must be longer than the receive wait timeout (STEP
+   applications require at least 5 seconds more): otherwise a blocking
+   ``XREADGROUP`` fails with a socket timeout before Redis answers.
+
+``RedisConnection.get_default()`` returns a complete set of settings, useful to
+generate a configuration template.
+
+.. code-block:: python
+
+    import asyncio
+    from logging import getLogger
+    from pathlib import Path
+
+    from pydantic import BaseModel
+
+    from step_redis import (
+        RedisConnection,
+        RedisCredential,
+        StepRedisPool,
+        StepRedisPoolParams,
+        StepRedisStream,
+        StepRedisStreamParams,
+    )
+
+
+    class AppConfig(BaseModel):
+        """Minimal application configuration embedding the Redis settings."""
+
+        connection: RedisConnection
+        waitTimeout: int
+
+
+    async def main() -> None:
+        logger = getLogger()
+        config = AppConfig.model_validate_json(
+            Path("config.json").read_text(encoding="utf-8")
+        )
+        # Host, port and credential from the environment (or a .env file)
+        credential = RedisCredential.from_env(logger=logger)
+        pool_params = StepRedisPoolParams.from_connection(
+            config=config.connection,
+            credential=credential,
+            max_connections=2,
+            logger=logger,
+        )
+        stream_params = StepRedisStreamParams(
+            stream_id="demo_stream",
+            group_id="demo_group",
+            wait_timeout_ms=config.waitTimeout,
+            published_message_max_retained=1000,
+            consumer_name="demo_consumer_1",
+            ttl_seconds=StepRedisStreamParams.ttl_seconds_from_wait_timeout(
+                wait_timeout_ms=config.waitTimeout
+            ),
+        )
+        async with (
+            StepRedisPool(params=pool_params, logger=logger) as pool,
+            StepRedisStream(pool=pool, config=stream_params, logger=logger) as stream,
+        ):
+            await stream.create_input_stream()
+            async for message in stream.receive_message():
+                logger.info("Received message: %s", message)
+                break
+
+
+    if __name__ == "__main__":
+        asyncio.run(main())
+
+Error Handling
+~~~~~~~~~~~~~~
+
+redis-py exceptions never leave a public ``step_redis`` method: they are
+translated into the ``StepRedisError`` hierarchy, with the original error chained
+as ``__cause__``.
+
+.. list-table::
+   :header-rows: 1
+
+   * - Exception
+     - Raised for
+     - Typical reaction
+   * - ``StepRedisFatalError``
+     - Rejected credentials, ACL denial (on connection or on a command,
+       ``NOPERM``), credential provider failure, missing or unreadable SSL key or
+       certificate file, untrusted server certificate
+     - Stop the program: reconnecting cannot fix it
+   * - ``StepRedisConnectionError``
+     - Connection refused or lost, timeout, connection pool exhausted
+     - Wait and reconnect
+   * - ``StepRedisCommandError``
+     - Any other command rejected by Redis
+     - Log it, then reconnect or skip the operation
+
+A reconnect loop therefore retries every ``StepRedisError`` except
+``StepRedisFatalError``:
+
+.. code-block:: python
+
+    from step_redis import StepRedisError, StepRedisFatalError
+
+    async def run(pool_params, logger, reconnect_interval: int) -> int:
+        while True:
+            try:
+                async with StepRedisPool(params=pool_params, logger=logger) as pool:
+                    ...  # open the streams and process the messages
+            except StepRedisFatalError:
+                logger.exception("Permanent Redis error: exiting")
+                return 2
+            except StepRedisError:
+                logger.exception("Redis error: reconnecting")
+                await asyncio.sleep(reconnect_interval)
+
+When the stream tasks run in an ``asyncio.TaskGroup``, their errors arrive wrapped
+in an ``ExceptionGroup``: test it with
+``group.subgroup(StepRedisFatalError) is not None``.
 
 Advanced Usage: Stream Demo Example
 -----------------------------------
 
 The ``step_redis`` module includes a comprehensive demonstration example in the ``stream_demo``
-package. This example showcases how to use the Redis components with STEP Cloud Schemas for 
-ITS (Intelligent Transport Systems) applications, specifically for handling DENM 
+package. This example showcases how to use the Redis components with STEP Cloud Schemas for
+ITS (Intelligent Transport Systems) applications, specifically for handling DENM
 (Decentralized Environmental Notification Message) data.
 
 Stream Demo Components
@@ -113,152 +361,139 @@ Stream Demo Components
 
 The example uses the following key components:
 
-    #. **StepRedisPoolParams**: Configuration for Redis connection
-    #. **StepRedisStreamParams**: Configuration for stream operations  
-    #. **StepClientRedisStream**: A specialized stream implementation for STEP client applications
+    #. **RedisCredential**: Redis host, port and credential read from the environment
+    #. **RedisConnection** and **StepRedisPoolParams.from_connection**: Connection
+       settings turned into pool parameters
+    #. **StepRedisStreamParams**: Configuration for stream operations, with the TTL
+       computed by ``ttl_seconds_from_wait_timeout``
+    #. **StepClientRedisStream**: A specialized stream implementation for STEP client
+       applications
     #. **DenmDataV1**: ITS message format from step_cloud_schemas
 
-Let's look at how these components are used:
+Let's look at how these components are used in ``StreamDemoApp``:
 
 .. code-block:: python
 
     # Standard Library Imports
-    import asyncio
-    from logging import getLogger
-    
+    import logging
+    from typing import ClassVar
+
     # Third Party Imports
-    from step_cloud_schemas import DenmDataV1
-    
+    from step_cloud_schemas import AbstractApp, DenmDataV1
+
     # step_redis Package Imports
     from step_redis import (
-        StepRedisPool, 
-        StepRedisPoolParams, 
+        RedisConnection,
+        RedisCredential,
+        StepClientRedisStream,
+        StepRedisPool,
+        StepRedisPoolParams,
         StepRedisStreamParams,
     )
-    from step_redis.step_client_redis_stream import StepClientRedisStream
-    
-    # Create Redis connection parameters
-    def create_redis_params() -> StepRedisPoolParams:
-        """Create Redis connection parameters for demonstration."""
-        return StepRedisPoolParams(
-            host="redis-demo.example.com",
-            port=6379,
-            username="default",
-            password="your-password",
-            db=0,
-            socket_timeout=30,
-            socket_connect_timeout=30,
-            socket_keep_idle=30,
-            socket_keep_alive=30,
-            socket_keep_cnt=5,
-            ssl_enable=False,
-            ssl_client_key_file=None,
-            ssl_client_key_file_password=None,
-            ssl_client_cert_file=None,
-            ssl_cert_requested=False,
-            ssl_ca_certs_file=None,
-            health_check_interval=20,
-            max_connections=2,
-            connection_available_timeout=2,
-            protocol=3,
-            retry_count=3,
-        )
-    
-    # Create Redis stream parameters
-    def create_stream_params() -> StepRedisStreamParams:
-        """Create Redis stream parameters for demonstration."""
-        return StepRedisStreamParams(
-            stream_id="demo_stream",
-            group_id="demo_group",
-            wait_timeout_ms=30000,
-            published_message_max_retained=1000,
-            consumer_name="demo_consumer_1",
-            ttl_seconds=60,
-        )
-    
-    # Main demonstration function
-    async def main():
-        """Main function demonstrating Redis stream usage."""
-        logger = getLogger()
-        
-        # Create connection pool and stream interface
-        async with StepRedisPool(
-            params=create_redis_params(), logger=logger
-        ) as redis_pool:
-            async with StepClientRedisStream(
-                pool=redis_pool, 
-                config=create_stream_params(), 
-                logger=logger
-            ) as stream:
-                # Create the input stream and consumer group
-                await stream.create_input_stream()
-                
-                # Publish a DENM message
-                await stream.publish_denm_message(
-                    message=DenmDataV1.get_default()
-                )
-                
-                # Receive a message
-                async for msg in stream.receive_client_message():
-                    logger.info("Received message: %s", msg)
-                    break
+
+
+    class StreamDemoApp(AbstractApp[ExitCode]):
+        _REDIS_MAX_CONNECTIONS: ClassVar[int] = 2
+        _WAIT_TIMEOUT_MS: ClassVar[int] = 30000
+
+        def _create_step_redis_pool_params(self) -> StepRedisPoolParams:
+            connection = RedisConnection(
+                db=0,
+                # Must exceed the receive wait timeout, otherwise a blocking
+                # XREADGROUP times out on the socket before Redis answers
+                socketTimeout=40,
+                socketConnectTimeout=30,
+                socketKeepIdle=30,
+                socketKeepAlive=30,
+                socketKeepCnt=5,
+                sslEnable=False,
+                sslClientKeyFile=None,
+                sslClientKeyFilePassword=None,
+                sslClientCertFile=None,
+                sslCertRequested=False,
+                sslCaCertsFile=None,
+                healthCheckInterval=20,
+                connectionAvailableTimeout=2,
+                protocol=3,
+                retryCount=3,
+            )
+            return StepRedisPoolParams.from_connection(
+                config=connection,
+                credential=RedisCredential.from_env(logger=self._logger),
+                max_connections=self._REDIS_MAX_CONNECTIONS,
+                logger=self._logger,
+            )
+
+        def _create_redis_stream_params(self) -> StepRedisStreamParams:
+            return StepRedisStreamParams(
+                stream_id="demo_stream",
+                group_id="demo_group",
+                wait_timeout_ms=self._WAIT_TIMEOUT_MS,
+                published_message_max_retained=1000,
+                consumer_name="demo_consumer_1",
+                ttl_seconds=StepRedisStreamParams.ttl_seconds_from_wait_timeout(
+                    wait_timeout_ms=self._WAIT_TIMEOUT_MS
+                ),
+            )
+
+        async def work(self) -> ExitCode:
+            exit_code = ExitCode.OK
+            try:
+                async with (
+                    StepRedisPool(
+                        params=self._create_step_redis_pool_params(), logger=self._logger
+                    ) as redis_pool,
+                    StepClientRedisStream(
+                        pool=redis_pool,
+                        config=self._create_redis_stream_params(),
+                        logger=self._logger,
+                    ) as stream,
+                ):
+                    await stream.create_input_stream()
+                    await stream.publish_denm_message(message=DenmDataV1.get_default())
+                    async for message in stream.receive_client_message():
+                        if self._logger.isEnabledFor(level=logging.INFO):
+                            self._logger.info(msg=f"Received message: {message}")
+                        break
+            except* Exception:
+                if self._logger.isEnabledFor(level=logging.ERROR):
+                    self._logger.exception(msg="Exception unmanaged")
+                exit_code = ExitCode.ERROR
+            return exit_code
 
 Running the Demo Application
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The demo package also includes a complete runnable application that demonstrates a continuous loop
-of publishing and consuming messages. Here's an excerpt from the main implementation:
+``StreamDemoApp`` is an ``AbstractApp`` run by ``AppRunner`` (from
+``step_cloud_schemas``), which owns the event loop and turns SIGINT/SIGTERM into a
+cooperative shutdown:
 
 .. code-block:: python
 
-    # Additional imports for the demo
-    from asyncio import get_running_loop
-    from logging import Logger
-    from step_cloud_schemas import DenmDataV1
+    from step_cloud_schemas import AppRunner
+    from stream_demo.stream_demo_app import ExitCode, StreamDemoApp
 
-    async def main_async(logger: Logger) -> None:
-        """Main async function for the Redis stream demo."""
-        
-        # Set up exception handling for the event loop
-        get_running_loop().set_exception_handler(
-            handler=lambda _, context: exception_handler(context=context, logger=logger)
-        )
-        
-        # Use async context managers for proper resource management
-        async with (
-            StepRedisPool(
-                params=create_redis_params(), logger=logger
-            ) as redis_pool,
-            StepClientRedisStream(
-                pool=redis_pool, config=create_stream_params(), logger=logger
-            ) as stream,
-        ):
-            logger.info("Stream input connection established")
-            
-            # Create the input stream and consumer group
-            await stream.create_input_stream()
-            
-            # Publish a DENM message
-            await stream.publish_denm_message(message=DenmDataV1.get_default())
-            
-            # Receive and log the message
-            async for msg in stream.receive_client_message():
-                logger.info("Received message: %s", msg)
-                break
+    def main() -> int:
+        logger = _create_logger()
+        app_runner = AppRunner[ExitCode](logger_param=logger)
+        return app_runner.run(app=StreamDemoApp(logger=logger)).value
 
-    # Run the demo
-    if __name__ == "__main__":
-        asyncio.run(main_async(logger=getLogger()))
-
-You can run the demo application directly with:
+Copy :download:`env/.env.redis.examples <env/.env.redis.examples>` to
+``doc/examples/.env`` and set at least ``REDIS_URL`` and ``REDIS_PORT`` (plus
+``REDIS_USERNAME`` and ``REDIS_PASSWORD`` if the server requires authentication;
+see :ref:`step_redis_credentials`), then run the demo from the ``doc/examples``
+directory:
 
 .. code-block:: console
 
     $ python -m stream_demo
 
+The log is written to ``stream_demo.log`` in the current directory.
+
 The demo showcases best practices for Redis stream usage, including:
 
-    #. Proper signal handling for clean shutdown
+    #. Credentials read from the environment, never hardcoded
+    #. Cooperative shutdown on SIGINT/SIGTERM through ``AppRunner``
     #. Comprehensive error handling
     #. Efficient resource management with async context managers
     #. Stream TTL management for automatic cleanup
@@ -266,24 +501,46 @@ The demo showcases best practices for Redis stream usage, including:
     #. CloudEvents-compliant ITS message formatting
     #. Publishing and consuming DENM messages
 
+Monitoring Demo
+~~~~~~~~~~~~~~~
+
+The ``monitor_demo`` package runs a publisher and a consumer of the monitoring
+stream concurrently in an ``asyncio.TaskGroup``, on the same connection pool, with
+``StepMonitoringRedisStream``: the publisher sends ten default
+``ActorTrajectoryForecasted`` messages one second apart, the consumer logs them.
+It reads the environment like ``stream_demo`` (same
+:download:`env/.env.redis.examples <env/.env.redis.examples>`):
+
+.. code-block:: console
+
+    $ python -m monitor_demo
+
 Best Practices
 --------------
 
-    #. **Use Context Managers**: Always use async context managers with Redis pools and streams 
+    #. **Use Context Managers**: Always use async context managers with Redis pools and streams
        to ensure proper resource cleanup.
-    #. **Configure Timeouts**: Set appropriate socket and connection timeouts based 
-       on your network environment.
-    #. **Enable SSL for Production**: In production environments, enable SSL/TLS encryption 
+    #. **Keep Secrets out of Configuration Files**: Read the host, port and credentials
+       with ``RedisCredential.from_env`` and keep the other settings in a
+       ``RedisConnection``; build the pool with ``StepRedisPoolParams.from_connection``.
+       Keep the ``.env`` file out of version control.
+    #. **Configure Timeouts**: Set appropriate socket and connection timeouts based
+       on your network environment; ``socketTimeout`` must exceed the receive wait
+       timeout.
+    #. **Enable SSL for Production**: In production environments, enable SSL/TLS encryption
        for secure Redis connections.
     #. **Limit Pool Size**: Set reasonable max_connections value to avoid exhausting system resources.
-    #. **Handle Errors**: Implement proper error handling for common Redis exceptions, 
-       especially for network-related issues.
+    #. **Handle Errors**: Stop on ``StepRedisFatalError`` and reconnect on any other
+       ``StepRedisError`` (see `Error Handling`_).
     #. **Monitor Health**: Set ``health_check_interval`` on ``StepRedisPoolParams``, and spawn
        ``stream.run_health_check()`` as a background task (e.g. in an ``asyncio.TaskGroup``
        alongside your publish/consume tasks) to actively probe the connection even while the
        stream is otherwise idle, rather than relying only on redis-py's opportunistic
        per-command health check.
-    #. **Use Configuration Dataclasses**: Use ``StepRedisPoolParams`` and ``StepRedisStreamParams``
-       to organize connection and stream settings.
+    #. **Use Configuration Dataclasses**: Use ``RedisConnection``,
+       ``StepRedisPoolParams`` and ``StepRedisStreamParams`` to organize connection
+       and stream settings.
     #. **Implement Ping**: Periodically use the ``ping()`` method to verify Redis connectivity.
-    #. **Manage Stream TTL**: Set appropriate TTL values to ensure automatic cleanup of streams.
+    #. **Manage Stream TTL**: Derive ``ttl_seconds`` from the wait timeout with
+       ``StepRedisStreamParams.ttl_seconds_from_wait_timeout``, so a blocked consumer
+       never sees its stream expire.

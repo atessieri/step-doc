@@ -47,6 +47,9 @@ The package consists of the following main components:
 5. **StepProducerRedisStream**: Specialized stream handler for STEP Producer messages (DENM and collision arrays)
 6. **StepCrashPredictionRedisStream**: Specialized stream handler for Crash Prediction messages (position arrays)
 7. **StepMonitoringRedisStream**: Specialized stream handler for STEP Monitoring messages (forecasted trajectory data)
+8. **RedisConnection** and **RedisCredential**: The connection settings of an
+   application configuration file and the host, port and credential read from
+   the environment (see `Connection Settings`_)
 
 Component Details
 -----------------
@@ -120,6 +123,58 @@ the pool instance itself *is* the ``BlockingConnectionPool``. It stores only the
 ``logger`` reference and the configured ``health_check_interval`` (exposed via
 the read-only ``health_check_interval`` property, consumed by
 ``StepRedisStream.run_health_check`` — see `Connection Health Monitoring`_).
+
+Connection Settings
+~~~~~~~~~~~~~~~~~~~
+
+The parameters of ``StepRedisPool`` are usually built from two halves, kept apart
+so that secrets are never written to a configuration file (module
+``step_redis.step_redis_config``):
+
+* **RedisConnection**: a Pydantic model with the settings that belong to the
+  application configuration file (database, socket timeouts, TCP keepalive,
+  SSL/TLS, health check, pool timeout, protocol, retry count);
+* **RedisCredential**: a frozen dataclass with the Redis host, port, username and
+  password. ``RedisCredential.from_env`` reads them from ``REDIS_URL``,
+  ``REDIS_PORT``, ``REDIS_USERNAME`` and ``REDIS_PASSWORD``, loading a ``.env``
+  file first if one is found from the current directory upwards.
+
+``StepRedisPoolParams.from_connection`` combines both, logging a warning when TLS
+is enabled without server certificate verification. See
+:ref:`step_redis_credentials` and the example
+:download:`env/.env.redis.examples <env/.env.redis.examples>`.
+
+.. container:: scrollable-diagram
+
+   .. plantuml::
+      :align: center
+
+      !theme plain
+      skinparam classAttributeIconSize 0
+
+      class RedisConnection <<pydantic>> {
+         +db: int
+         +socketTimeout: int
+         +sslEnable: bool
+         +sslCertRequested: bool
+         +...
+         +{static} get_default(): RedisConnection
+      }
+
+      class RedisCredential <<dataclass>> {
+         +redis_url: str
+         +redis_port: int
+         +redis_username: str | None
+         +redis_password: str | None
+         +{static} from_env(logger): RedisCredential
+      }
+
+      class StepRedisPoolParams {
+         +{static} from_connection(config, credential, max_connections, logger): StepRedisPoolParams
+      }
+
+      RedisConnection ..> StepRedisPoolParams : settings
+      RedisCredential ..> StepRedisPoolParams : host, port,\nusername, password
 
 StepRedisStreamParams
 ~~~~~~~~~~~~~~~~~~~~~
