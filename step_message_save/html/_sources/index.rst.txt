@@ -113,7 +113,8 @@ Key Features
 * Configurable connection parameters
 * Comprehensive error handling and logging
 * Quality of Service (QoS) controls for reliable message delivery
-* Automatic reconnection with a configurable retry interval
+* Automatic reconnection with a configurable retry interval; a broker refusing the
+  client's authentication or authorization ends the program instead of retrying forever
 * Graceful shutdown that saves the messages still queued to the output file
 * Offline file conversion (JSONL or pickle actor to GPX) with pluggable loaders and writers,
   see :doc:`loaders_writers<loaders_writers>` to add a new format
@@ -121,11 +122,12 @@ Key Features
 Environment Variables
 ---------------------
 
-MQTT broker connection secrets are kept out of the (persisted) JSON configuration file and
-are instead read from the process environment at startup, optionally loaded from a ``.env``
-file, via the ``MQTT_URL``, ``MQTT_PORT``, ``MQTT_USERNAME``, and ``MQTT_PASSWORD``
-variables; the URL and port are required, while the username and password are optional. See
-the :doc:`usage<usage>` section for the full variable reference and an example ``.env`` file.
+The MQTT broker host, port and credentials are not part of the configuration file: they
+are read from the environment (``MQTT_URL``, ``MQTT_PORT`` and the optional
+``MQTT_USERNAME``/``MQTT_PASSWORD``), after loading the ``.env`` file of the directory the
+program is launched from. A missing or invalid required variable stops the program with
+exit code ``2`` (``ERROR``). See :ref:`step_message_save_credentials` for the full
+reference and the :download:`.env.example <env/.env.example>` template.
 
 Purpose
 -------

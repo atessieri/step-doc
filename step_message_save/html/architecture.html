@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Architecture &mdash; STEP Client 1.2.5 documentation</title>
+  <title>Architecture &mdash; STEP Client 1.2.6 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="_static/tabs.css?v=4c969af8" />
@@ -16,7 +16,7 @@
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=36f53d34"></script>
+      <script src="_static/documentation_options.js?v=010db75e"></script>
       <script src="_static/doctools.js?v=fd6eb6e6"></script>
       <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="_static/tabs.js?v=3ee01567"></script>
@@ -91,11 +91,8 @@
 <li class="toctree-l3"><a class="reference internal" href="usage.html#example-configuration">Example Configuration</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="usage.html#environment-variables-configuration">Environment Variables Configuration</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="usage.html#activating-the-virtual-environment">Activating the virtual environment</a></li>
-<li class="toctree-l3"><a class="reference internal" href="usage.html#creating-the-env-file">Creating the .env file</a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#environment-variables">Environment Variables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#activating-the-virtual-environment">Activating the virtual environment</a></li>
 <li class="toctree-l2"><a class="reference internal" href="usage.html#running-step-message-save-as-a-service">Running STEP Message Save as a Service</a></li>
 <li class="toctree-l2"><a class="reference internal" href="usage.html#converting-a-saved-file">Converting a Saved File</a></li>
 <li class="toctree-l2"><a class="reference internal" href="usage.html#command-line-options">Command-Line Options</a></li>
@@ -143,9 +140,10 @@
 <li class="toctree-l2"><a class="reference internal" href="#components">Components</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#stepbroker">StepBroker</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#message-pipeline">Message Pipeline</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#apprunner">AppRunner</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#entry-point-and-apprunner">Entry Point and AppRunner</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#application-runtime-step-cloud-schemas">Application Runtime (step_cloud_schemas)</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#stepmessagesaveconfig">StepMessageSaveConfig</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#mqtt-credential-loading">MQTT Credential Loading</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#environment-variables">Environment Variables</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#steplogger">StepLogger</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#stepexception">StepException</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#file-conversion">File Conversion</a></li>
@@ -405,8 +403,9 @@
 <li class="toctree-l5"><a class="reference internal" href="step_message_save_rst/step_message_save.message_save_app.html#step_message_save.message_save_app.MessageSaveApp.instance_name"><code class="docutils literal notranslate"><span class="pre">MessageSaveApp.instance_name</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="step_message_save_rst/step_message_save.message_save_app.html#step_message_save.message_save_app.MessageSaveApp.config"><code class="docutils literal notranslate"><span class="pre">MessageSaveApp.config</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="step_message_save_rst/step_message_save.message_save_app.html#step_message_save.message_save_app.MessageSaveApp.logger"><code class="docutils literal notranslate"><span class="pre">MessageSaveApp.logger</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_message_save_rst/step_message_save.message_save_app.html#step_message_save.message_save_app.MessageSaveApp.cycle"><code class="docutils literal notranslate"><span class="pre">MessageSaveApp.cycle()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_message_save_rst/step_message_save.message_save_app.html#step_message_save.message_save_app.MessageSaveApp.fatal_result"><code class="docutils literal notranslate"><span class="pre">MessageSaveApp.fatal_result()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="step_message_save_rst/step_message_save.message_save_app.html#step_message_save.message_save_app.MessageSaveApp.on_shutdown"><code class="docutils literal notranslate"><span class="pre">MessageSaveApp.on_shutdown()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="step_message_save_rst/step_message_save.message_save_app.html#step_message_save.message_save_app.MessageSaveApp.work"><code class="docutils literal notranslate"><span class="pre">MessageSaveApp.work()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -446,14 +445,6 @@
 <li class="toctree-l5"><a class="reference internal" href="step_message_save_rst/step_message_save.step_message_save_config.html#step_message_save.step_message_save_config.MqttClientConfig.sslCaCertsFile"><code class="docutils literal notranslate"><span class="pre">MqttClientConfig.sslCaCertsFile</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="step_message_save_rst/step_message_save.step_message_save_config.html#step_message_save.step_message_save_config.MqttClientConfig.get_default"><code class="docutils literal notranslate"><span class="pre">MqttClientConfig.get_default()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="step_message_save_rst/step_message_save.step_message_save_config.html#step_message_save.step_message_save_config.MqttClientConfig.model_config"><code class="docutils literal notranslate"><span class="pre">MqttClientConfig.model_config</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l4"><a class="reference internal" href="step_message_save_rst/step_message_save.step_message_save_config.html#step_message_save.step_message_save_config.MqttCredential"><code class="docutils literal notranslate"><span class="pre">MqttCredential</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="step_message_save_rst/step_message_save.step_message_save_config.html#step_message_save.step_message_save_config.MqttCredential.mqtt_url"><code class="docutils literal notranslate"><span class="pre">MqttCredential.mqtt_url</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="step_message_save_rst/step_message_save.step_message_save_config.html#step_message_save.step_message_save_config.MqttCredential.mqtt_port"><code class="docutils literal notranslate"><span class="pre">MqttCredential.mqtt_port</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="step_message_save_rst/step_message_save.step_message_save_config.html#step_message_save.step_message_save_config.MqttCredential.mqtt_username"><code class="docutils literal notranslate"><span class="pre">MqttCredential.mqtt_username</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="step_message_save_rst/step_message_save.step_message_save_config.html#step_message_save.step_message_save_config.MqttCredential.mqtt_password"><code class="docutils literal notranslate"><span class="pre">MqttCredential.mqtt_password</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="step_message_save_rst/step_message_save.step_message_save_config.html#step_message_save.step_message_save_config.MqttCredential.__post_init__"><code class="docutils literal notranslate"><span class="pre">MqttCredential.__post_init__()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l4"><a class="reference internal" href="step_message_save_rst/step_message_save.step_message_save_config.html#step_message_save.step_message_save_config.MqttProtocolConfig"><code class="docutils literal notranslate"><span class="pre">MqttProtocolConfig</span></code></a><ul>
@@ -612,16 +603,16 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="test_rst/test.test___main__.html">test.test___main__ module</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test_args_parse"><code class="docutils literal notranslate"><span class="pre">test_args_parse()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test_args_parse_usage_error"><code class="docutils literal notranslate"><span class="pre">test_args_parse_usage_error()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test_args_parse_version"><code class="docutils literal notranslate"><span class="pre">test_args_parse_version()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test__args_parse"><code class="docutils literal notranslate"><span class="pre">test__args_parse()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test__args_parse_usage_error"><code class="docutils literal notranslate"><span class="pre">test__args_parse_usage_error()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test__args_parse_version"><code class="docutils literal notranslate"><span class="pre">test__args_parse_version()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test__conversion_run"><code class="docutils literal notranslate"><span class="pre">test__conversion_run()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test__conversion_run_not_requested"><code class="docutils literal notranslate"><span class="pre">test__conversion_run_not_requested()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test__conversion_run_usage_error"><code class="docutils literal notranslate"><span class="pre">test__conversion_run_usage_error()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test__get_config_schema_file"><code class="docutils literal notranslate"><span class="pre">test__get_config_schema_file()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test__get_config_template_file"><code class="docutils literal notranslate"><span class="pre">test__get_config_template_file()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test_conversion_constants"><code class="docutils literal notranslate"><span class="pre">test_conversion_constants()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test_conversion_run"><code class="docutils literal notranslate"><span class="pre">test_conversion_run()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test_conversion_run_not_requested"><code class="docutils literal notranslate"><span class="pre">test_conversion_run_not_requested()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test_conversion_run_usage_error"><code class="docutils literal notranslate"><span class="pre">test_conversion_run_usage_error()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test_dunder_main_guard"><code class="docutils literal notranslate"><span class="pre">test_dunder_main_guard()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test_get_config_schema_file"><code class="docutils literal notranslate"><span class="pre">test_get_config_schema_file()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test_get_config_template_file"><code class="docutils literal notranslate"><span class="pre">test_get_config_template_file()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test_main"><code class="docutils literal notranslate"><span class="pre">test_main()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test_main_conversion_error"><code class="docutils literal notranslate"><span class="pre">test_main_conversion_error()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test___main__.html#test.test___main__.test_main_keyboard_interrupt"><code class="docutils literal notranslate"><span class="pre">test_main_keyboard_interrupt()</span></code></a></li>
@@ -656,16 +647,15 @@
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_message_save_app.html#test.test_message_save_app.TestMessageSaveApp.test___init__"><code class="docutils literal notranslate"><span class="pre">TestMessageSaveApp.test___init__()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_message_save_app.html#test.test_message_save_app.TestMessageSaveApp.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestMessageSaveApp.test___slots__()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_message_save_app.html#test.test_message_save_app.TestMessageSaveApp.test__drain_queue"><code class="docutils literal notranslate"><span class="pre">TestMessageSaveApp.test__drain_queue()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_message_save_app.html#test.test_message_save_app.TestMessageSaveApp.test__env_optional"><code class="docutils literal notranslate"><span class="pre">TestMessageSaveApp.test__env_optional()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_message_save_app.html#test.test_message_save_app.TestMessageSaveApp.test__get_mqtt_credential"><code class="docutils literal notranslate"><span class="pre">TestMessageSaveApp.test__get_mqtt_credential()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_message_save_app.html#test.test_message_save_app.TestMessageSaveApp.test__log_received_message"><code class="docutils literal notranslate"><span class="pre">TestMessageSaveApp.test__log_received_message()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_message_save_app.html#test.test_message_save_app.TestMessageSaveApp.test__port_parse"><code class="docutils literal notranslate"><span class="pre">TestMessageSaveApp.test__port_parse()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_message_save_app.html#test.test_message_save_app.TestMessageSaveApp.test__step_broker_run"><code class="docutils literal notranslate"><span class="pre">TestMessageSaveApp.test__step_broker_run()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_message_save_app.html#test.test_message_save_app.TestMessageSaveApp.test__step_message_write_run"><code class="docutils literal notranslate"><span class="pre">TestMessageSaveApp.test__step_message_write_run()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_message_save_app.html#test.test_message_save_app.TestMessageSaveApp.test__step_receive_run"><code class="docutils literal notranslate"><span class="pre">TestMessageSaveApp.test__step_receive_run()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_message_save_app.html#test.test_message_save_app.TestMessageSaveApp.test_constants"><code class="docutils literal notranslate"><span class="pre">TestMessageSaveApp.test_constants()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_message_save_app.html#test.test_message_save_app.TestMessageSaveApp.test_class_variables"><code class="docutils literal notranslate"><span class="pre">TestMessageSaveApp.test_class_variables()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_message_save_app.html#test.test_message_save_app.TestMessageSaveApp.test_cycle"><code class="docutils literal notranslate"><span class="pre">TestMessageSaveApp.test_cycle()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_message_save_app.html#test.test_message_save_app.TestMessageSaveApp.test_fatal_result"><code class="docutils literal notranslate"><span class="pre">TestMessageSaveApp.test_fatal_result()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_message_save_app.html#test.test_message_save_app.TestMessageSaveApp.test_on_shutdown"><code class="docutils literal notranslate"><span class="pre">TestMessageSaveApp.test_on_shutdown()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_message_save_app.html#test.test_message_save_app.TestMessageSaveApp.test_work"><code class="docutils literal notranslate"><span class="pre">TestMessageSaveApp.test_work()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_message_save_app.html#test.test_message_save_app.TestMessageSaveApp.test_work_fatal"><code class="docutils literal notranslate"><span class="pre">TestMessageSaveApp.test_work_fatal()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_message_save_app.html#test.test_message_save_app.TestMessageSaveApp.test_work_reconnect"><code class="docutils literal notranslate"><span class="pre">TestMessageSaveApp.test_work_reconnect()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -682,24 +672,28 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="test_rst/test.test_step_exception.html">test.test_step_exception module</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_exception.html#test.test_step_exception.TestLoaderError"><code class="docutils literal notranslate"><span class="pre">TestLoaderError</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_exception.html#test.test_step_exception.TestLoaderError.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestLoaderError.test___slots__()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_exception.html#test.test_step_exception.TestLoaderError.test_is_step_message_save_error_subclass"><code class="docutils literal notranslate"><span class="pre">TestLoaderError.test_is_step_message_save_error_subclass()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_exception.html#test.test_step_exception.TestLoaderError.test_message"><code class="docutils literal notranslate"><span class="pre">TestLoaderError.test_message()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_exception.html#test.test_step_exception.TestLoaderError.test_raise_and_catch"><code class="docutils literal notranslate"><span class="pre">TestLoaderError.test_raise_and_catch()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_exception.html#test.test_step_exception.TestStepCliError"><code class="docutils literal notranslate"><span class="pre">TestStepCliError</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_exception.html#test.test_step_exception.TestStepCliError.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestStepCliError.test___slots__()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_exception.html#test.test_step_exception.TestStepCliError.test_is_step_message_save_error_subclass"><code class="docutils literal notranslate"><span class="pre">TestStepCliError.test_is_step_message_save_error_subclass()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_exception.html#test.test_step_exception.TestStepCliError.test_message"><code class="docutils literal notranslate"><span class="pre">TestStepCliError.test_message()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_exception.html#test.test_step_exception.TestStepCliError.test_raise_and_catch"><code class="docutils literal notranslate"><span class="pre">TestStepCliError.test_raise_and_catch()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_exception.html#test.test_step_exception.TestStepMessageSaveError"><code class="docutils literal notranslate"><span class="pre">TestStepMessageSaveError</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_exception.html#test.test_step_exception.TestStepMessageSaveError.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestStepMessageSaveError.test___slots__()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_exception.html#test.test_step_exception.TestStepMessageSaveError.test_is_exception_subclass"><code class="docutils literal notranslate"><span class="pre">TestStepMessageSaveError.test_is_exception_subclass()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_exception.html#test.test_step_exception.TestStepMessageSaveError.test_message"><code class="docutils literal notranslate"><span class="pre">TestStepMessageSaveError.test_message()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_exception.html#test.test_step_exception.TestStepMessageSaveError.test_raise_and_catch"><code class="docutils literal notranslate"><span class="pre">TestStepMessageSaveError.test_raise_and_catch()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_exception.html#test.test_step_exception.TestWriterError"><code class="docutils literal notranslate"><span class="pre">TestWriterError</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_exception.html#test.test_step_exception.TestWriterError.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestWriterError.test___slots__()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_exception.html#test.test_step_exception.TestWriterError.test_is_step_message_save_error_subclass"><code class="docutils literal notranslate"><span class="pre">TestWriterError.test_is_step_message_save_error_subclass()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_exception.html#test.test_step_exception.TestWriterError.test_message"><code class="docutils literal notranslate"><span class="pre">TestWriterError.test_message()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_exception.html#test.test_step_exception.TestWriterError.test_raise_and_catch"><code class="docutils literal notranslate"><span class="pre">TestWriterError.test_raise_and_catch()</span></code></a></li>
@@ -718,13 +712,6 @@
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestMqttClientConfig.test_field_validation"><code class="docutils literal notranslate"><span class="pre">TestMqttClientConfig.test_field_validation()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestMqttClientConfig.test_get_default"><code class="docutils literal notranslate"><span class="pre">TestMqttClientConfig.test_get_default()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestMqttClientConfig.test_model_config"><code class="docutils literal notranslate"><span class="pre">TestMqttClientConfig.test_model_config()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestMqttCredential"><code class="docutils literal notranslate"><span class="pre">TestMqttCredential</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestMqttCredential.test___post_init__"><code class="docutils literal notranslate"><span class="pre">TestMqttCredential.test___post_init__()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestMqttCredential.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestMqttCredential.test___slots__()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestMqttCredential.test_class_constants"><code class="docutils literal notranslate"><span class="pre">TestMqttCredential.test_class_constants()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestMqttCredential.test_frozen"><code class="docutils literal notranslate"><span class="pre">TestMqttCredential.test_frozen()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_message_save_config.html#test.test_step_message_save_config.TestMqttProtocolConfig"><code class="docutils literal notranslate"><span class="pre">TestMqttProtocolConfig</span></code></a><ul>
@@ -771,74 +758,79 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id1">1.2.5 - 2026-10-16</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#changed">1.2.5 - Changed</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changelog.html#id1">1.2.6 - 2026-10-19</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="changelog.html#changed">1.2.6 - Changed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="changelog.html#fixed">1.2.6 - Fixed</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id2">1.2.4 - 2026-10-16</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#id3">1.2.4 - Changed</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changelog.html#id2">1.2.5 - 2026-10-16</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="changelog.html#id3">1.2.5 - Changed</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id4">1.2.3 - 2026-10-16</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#fixed">1.2.3 - Fixed</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changelog.html#id4">1.2.4 - 2026-10-16</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="changelog.html#id5">1.2.4 - Changed</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="changelog.html#id6">1.2.3 - 2026-10-16</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="changelog.html#id7">1.2.3 - Fixed</a></li>
 <li class="toctree-l3"><a class="reference internal" href="changelog.html#added">1.2.3 - Added</a></li>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#id5">1.2.3 - Changed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="changelog.html#id8">1.2.3 - Changed</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id6">1.2.2 - 2026-10-14</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#id7">1.2.2 - Changed</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changelog.html#id9">1.2.2 - 2026-10-14</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="changelog.html#id10">1.2.2 - Changed</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id8">1.2.1 - 2026-10-12</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#id9">1.2.1 - Added</a></li>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#id10">1.2.1 - Changed</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changelog.html#id11">1.2.1 - 2026-10-12</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="changelog.html#id12">1.2.1 - Added</a></li>
+<li class="toctree-l3"><a class="reference internal" href="changelog.html#id13">1.2.1 - Changed</a></li>
 <li class="toctree-l3"><a class="reference internal" href="changelog.html#removed">1.2.1 - Removed</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id11">1.2.0 - 2026-10-09</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#id12">1.2.0 - Added</a></li>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#id13">1.2.0 - Changed</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changelog.html#id14">1.2.0 - 2026-10-09</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="changelog.html#id15">1.2.0 - Added</a></li>
+<li class="toctree-l3"><a class="reference internal" href="changelog.html#id16">1.2.0 - Changed</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id14">1.1.4 - 2026-09-22</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#id15">1.1.4 - Changed</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changelog.html#id17">1.1.4 - 2026-09-22</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="changelog.html#id18">1.1.4 - Changed</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id16">1.1.3 - 2026-09-20</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#id17">1.1.3 - Fixed</a></li>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#id18">1.1.3 - Changed</a></li>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#id19">1.1.3 - Added</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changelog.html#id19">1.1.3 - 2026-09-20</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="changelog.html#id20">1.1.3 - Fixed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="changelog.html#id21">1.1.3 - Changed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="changelog.html#id22">1.1.3 - Added</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id20">1.1.2 - 2026-09-15</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#id21">1.1.2 - Changed</a></li>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#id22">1.1.2 - Added</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changelog.html#id23">1.1.2 - 2026-09-15</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="changelog.html#id24">1.1.2 - Changed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="changelog.html#id25">1.1.2 - Added</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id23">1.1.1 - 2026-09-15</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#id24">1.1.1 - Changed</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changelog.html#id26">1.1.1 - 2026-09-15</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="changelog.html#id27">1.1.1 - Changed</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id25">1.1.0 - 2026-09-12</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#id26">1.1.0 - Added</a></li>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#id27">1.1.0 - Changed</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changelog.html#id28">1.1.0 - 2026-09-12</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="changelog.html#id29">1.1.0 - Added</a></li>
+<li class="toctree-l3"><a class="reference internal" href="changelog.html#id30">1.1.0 - Changed</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id28">1.0.5 - 2026-09-11</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#id29">1.0.5 - Added</a></li>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#id30">1.0.5 - Changed</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changelog.html#id31">1.0.5 - 2026-09-11</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="changelog.html#id32">1.0.5 - Added</a></li>
+<li class="toctree-l3"><a class="reference internal" href="changelog.html#id33">1.0.5 - Changed</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id31">1.0.4 - 2026-08-30</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#id32">1.0.4 - Added</a></li>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#id33">1.0.4 - Changed</a></li>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#id34">1.0.4 - Removed</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changelog.html#id34">1.0.4 - 2026-08-30</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="changelog.html#id35">1.0.4 - Added</a></li>
+<li class="toctree-l3"><a class="reference internal" href="changelog.html#id36">1.0.4 - Changed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="changelog.html#id37">1.0.4 - Removed</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#id35">1.0.3 - 2026-08-21</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#id36">1.0.3 - Added</a></li>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#id37">1.0.3 - Changed</a></li>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#id38">1.0.3 - Fixed</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changelog.html#id38">1.0.3 - 2026-08-21</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="changelog.html#id39">1.0.3 - Added</a></li>
+<li class="toctree-l3"><a class="reference internal" href="changelog.html#id40">1.0.3 - Changed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="changelog.html#id41">1.0.3 - Fixed</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="changelog.html#earlier-versions">Earlier versions</a></li>
@@ -900,7 +892,18 @@ loading, validation, and JSON schema generation.</p></li>
 <li><p><strong>step_cloud_schemas</strong>: Provides standardized data schemas for ITS
 messages including CAM (Cooperative Awareness Messages), CPM (Cooperative
 Perception Messages) and DENM (Decentralized Environmental Notification
-Messages) identifiers, and the <code class="docutils literal notranslate"><span class="pre">StepLogger</span></code> logging utility.</p></li>
+Messages) identifiers. It also provides the runtime used by STEP Message Save:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">AppRunner</span></code>/<code class="docutils literal notranslate"><span class="pre">AbstractApp</span></code>: asyncio application runner with a cooperative
+shutdown on <code class="docutils literal notranslate"><span class="pre">SIGINT</span></code>/<code class="docutils literal notranslate"><span class="pre">SIGTERM</span></code> (<code class="docutils literal notranslate"><span class="pre">SIGINT</span></code>/<code class="docutils literal notranslate"><span class="pre">SIGBREAK</span></code> on Windows)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ReconnectingApp</span></code>: the <code class="docutils literal notranslate"><span class="pre">AbstractApp</span></code> running <code class="docutils literal notranslate"><span class="pre">cycle()</span></code> forever, with
+the reconnect loop and the fatal error handling</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">StepLogger</span></code>: logger factory</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">IS_WINDOWS</span></code>: platform flag selecting the event loop</p></li>
+</ul>
+</div></blockquote>
+</li>
 <li><p><strong>step_lib</strong>: Core library providing fundamental components including:</p>
 <blockquote>
 <div><ul class="simple">
@@ -908,15 +911,19 @@ Messages) identifiers, and the <code class="docutils literal notranslate"><span 
 <li><p><code class="docutils literal notranslate"><span class="pre">FacilityMessage</span></code>: ITS message handling and encoding/decoding functionality</p></li>
 <li><p>MQTT utilities including <code class="docutils literal notranslate"><span class="pre">MqttQoS</span></code> enumerations</p></li>
 <li><p>TLS/SSL security parameter management</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MqttCredential</span></code>: the MQTT broker host, port and authentication, read
+from the environment by <code class="docutils literal notranslate"><span class="pre">from_env()</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">StepLibMqttFatalError</span></code>: the MQTT connection refusals a reconnect cannot fix</p></li>
 </ul>
 </div></blockquote>
 </li>
 <li><p><strong>paho-mqtt</strong>: Imported directly in <code class="docutils literal notranslate"><span class="pre">StepBroker</span></code> (<code class="docutils literal notranslate"><span class="pre">ReasonCode</span></code>,
 <code class="docutils literal notranslate"><span class="pre">SubscribeOptions</span></code>) to build MQTT subscription options and interpret SUBACK reason
 codes.</p></li>
-<li><p><strong>python-dotenv</strong>: Used by <code class="docutils literal notranslate"><span class="pre">MessageSaveApp._get_mqtt_credential()</span></code> in
-<code class="docutils literal notranslate"><span class="pre">message_save_app.py</span></code> to load
-the MQTT connection secrets from a <code class="docutils literal notranslate"><span class="pre">.env</span></code> file.</p></li>
+<li><p><strong>python-dotenv</strong> (through step_lib): <code class="docutils literal notranslate"><span class="pre">MqttCredential.from_env()</span></code>, called by
+<code class="docutils literal notranslate"><span class="pre">MessageSaveApp.__init__()</span></code>, loads the <code class="docutils literal notranslate"><span class="pre">.env</span></code> file found in the current
+working directory (or an ancestor of it) into the environment before the
+credential is read.</p></li>
 <li><p><strong>gpx</strong>: Used by <code class="docutils literal notranslate"><span class="pre">GpxWriter</span></code> to build and write GPX documents (tracks,
 segments, track points and their extensions).</p></li>
 </ol>
@@ -941,18 +948,19 @@ and maintainability in the system design.</p>
 <p>Main Components:</p>
 <blockquote>
 <div><ol class="arabic simple">
+<li><p><strong>main / AppRunner</strong>: CLI entry point and process runner (<code class="docutils literal notranslate"><span class="pre">AppRunner</span></code> from the
+<code class="docutils literal notranslate"><span class="pre">step_cloud_schemas</span></code> library)</p></li>
+<li><p><strong>AbstractApp / ReconnectingApp</strong>: Abstract workload classes (from the
+<code class="docutils literal notranslate"><span class="pre">step_cloud_schemas</span></code> library) that <code class="docutils literal notranslate"><span class="pre">MessageSaveApp</span></code> derives from</p></li>
 <li><p><strong>StepBroker</strong>: Gateway class for MQTT communication with the STEP broker</p></li>
 <li><p><strong>Message Pipeline</strong> (<code class="docutils literal notranslate"><span class="pre">MessageSaveApp</span></code> in <code class="docutils literal notranslate"><span class="pre">message_save_app.py</span></code>): The
 receiver/writer tasks and the
-<code class="docutils literal notranslate"><span class="pre">asyncio.Queue</span></code> connecting them; this is the part of the application that
-actually reads from <code class="docutils literal notranslate"><span class="pre">StepBroker</span></code> and appends to the output file</p></li>
-<li><p><strong>AppRunner</strong>: Entry-point helper (from the <code class="docutils literal notranslate"><span class="pre">step_cloud_schemas</span></code> library)
-that owns the event loop and stops the message pipeline cooperatively on a
-shutdown signal</p></li>
+<code class="docutils literal notranslate"><span class="pre">asyncio.Queue</span></code> connecting them, with reconnect handling; this is the part of
+the application that actually reads from <code class="docutils literal notranslate"><span class="pre">StepBroker</span></code> and appends to the
+output file</p></li>
 <li><p><strong>StepMessageSaveConfig</strong>: Configuration management for the client</p></li>
-<li><p><strong>MQTT Credential Loading</strong> (<code class="docutils literal notranslate"><span class="pre">MessageSaveApp._get_mqtt_credential()</span></code> in
-<code class="docutils literal notranslate"><span class="pre">message_save_app.py</span></code>):
-Reads the MQTT broker connection secrets from environment variables</p></li>
+<li><p><strong>MqttCredential</strong>: MQTT credential read from the environment (from the
+<code class="docutils literal notranslate"><span class="pre">step_lib</span></code> library), see <a class="reference internal" href="#environment-variables">Environment Variables</a></p></li>
 <li><p><strong>StepLogger</strong>: Logging utilities used by the client (from the
 <code class="docutils literal notranslate"><span class="pre">step_cloud_schemas</span></code> library)</p></li>
 <li><p><strong>StepException</strong>: Custom exceptions for error handling</p></li>
@@ -973,9 +981,10 @@ STEP ecosystem.</p>
 <code class="docutils literal notranslate"><span class="pre">mqttClient.sslEnable</span></code> is set) and the underlying MQTT v5 connection settings
 for the lifetime of the <code class="docutils literal notranslate"><span class="pre">async</span> <span class="pre">with</span> <span class="pre">StepBroker(...)</span></code> block. <code class="docutils literal notranslate"><span class="pre">StepBroker</span></code>
 itself has no self-reconnect logic; reconnection after a lost connection is
-handled by the application loop in <code class="docutils literal notranslate"><span class="pre">message_save_app.py</span></code> (see <a class="reference internal" href="#message-pipeline">Message Pipeline</a>
-below), which discards the broker and constructs a new one after waiting
-<code class="docutils literal notranslate"><span class="pre">reconnectInterval</span></code> seconds.</p></li>
+handled by the inherited <code class="docutils literal notranslate"><span class="pre">ReconnectingApp.work()</span></code> of <code class="docutils literal notranslate"><span class="pre">MessageSaveApp</span></code> (see
+<a class="reference internal" href="#message-pipeline">Message Pipeline</a> below), which discards the broker and, after waiting
+<code class="docutils literal notranslate"><span class="pre">reconnectInterval</span></code> seconds, runs <code class="docutils literal notranslate"><span class="pre">MessageSaveApp.cycle()</span></code> again to
+construct a new one.</p></li>
 <li><p><strong>Topic Subscription</strong>: <code class="docutils literal notranslate"><span class="pre">subscribe_execution()</span></code> subscribes to the topics
 configured in <code class="docutils literal notranslate"><span class="pre">mqttProtocol.subscriptionTopics</span></code> with a fixed set of MQTT
 options (configured QoS, <code class="docutils literal notranslate"><span class="pre">noLocal=False</span></code>, <code class="docutils literal notranslate"><span class="pre">retainAsPublished=False</span></code>,
@@ -1001,7 +1010,8 @@ messaging environments in ITS applications.</p>
 <section id="message-pipeline">
 <h3>Message Pipeline<a class="headerlink" href="#message-pipeline" title="Link to this heading"></a></h3>
 <p>The message pipeline is implemented entirely by the <code class="docutils literal notranslate"><span class="pre">MessageSaveApp</span></code> class of
-<code class="docutils literal notranslate"><span class="pre">message_save_app.py</span></code>, the <code class="docutils literal notranslate"><span class="pre">AbstractApp</span></code> workload that <code class="docutils literal notranslate"><span class="pre">main()</span></code> hands to
+<code class="docutils literal notranslate"><span class="pre">message_save_app.py</span></code>, the <code class="docutils literal notranslate"><span class="pre">ReconnectingApp[ExitCode]</span></code> workload (see
+<a class="reference internal" href="#application-runtime-step-cloud-schemas">Application Runtime (step_cloud_schemas)</a>) that <code class="docutils literal notranslate"><span class="pre">main()</span></code> hands to
 <code class="docutils literal notranslate"><span class="pre">AppRunner</span></code>, on top of the <code class="docutils literal notranslate"><span class="pre">StepBroker</span></code> instance and the configuration;
 <code class="docutils literal notranslate"><span class="pre">StepBroker</span></code> itself never touches the queue or the output file. Its constants and
 coroutines are private members of the class. It is composed of:</p>
@@ -1019,13 +1029,13 @@ message stream, rather than each receiving an independent copy of all traffic.</
 <li><p><strong>The queue</strong>: A single <code class="docutils literal notranslate"><span class="pre">asyncio.Queue[str]</span></code>, sized by
 <code class="docutils literal notranslate"><span class="pre">config.maxFileWriterQueueRooms</span></code>, decouples the receiver tasks from the file
 writer task. It is created once by <code class="docutils literal notranslate"><span class="pre">MessageSaveApp.__init__()</span></code> before the
-reconnect loop starts, and that same instance is shared across every reconnect cycle — a
+first <code class="docutils literal notranslate"><span class="pre">cycle()</span></code>, and that same instance is shared across every connection cycle — a
 message already queued when a connection drops is not discarded, it is simply
 drained by the writer task started on the next cycle. A message is only lost if
 a receiver task is cancelled while blocked handing it off to a full queue, or if
 the writer fails to write it to disk.</p></li>
 <li><p><strong>The file writer task</strong>: The output file (<code class="docutils literal notranslate"><span class="pre">config.outputFile</span></code>) path is
-resolved once by <code class="docutils literal notranslate"><span class="pre">MessageSaveApp.__init__()</span></code> before the reconnect loop starts,
+resolved once by <code class="docutils literal notranslate"><span class="pre">MessageSaveApp.__init__()</span></code> before the first <code class="docutils literal notranslate"><span class="pre">cycle()</span></code>,
 but the
 file itself is opened, in append mode, by <code class="docutils literal notranslate"><span class="pre">_step_message_write_run()</span></code> — once
 per connection cycle, since exactly one instance of that task is (re)started
@@ -1037,89 +1047,94 @@ cycle. Because only one writer task is ever active at a time, writes are
 naturally serialized without a lock. Writes are buffered and are not explicitly
 flushed after each message — they reach disk once the buffer fills or the file
 is closed.</p></li>
-<li><p><strong>The reconnect loop</strong>: <code class="docutils literal notranslate"><span class="pre">MessageSaveApp.work()</span></code> creates the directory of the
-output file, then awaits <code class="docutils literal notranslate"><span class="pre">_step_broker_run()</span></code>, which wraps broker creation, subscription, and the
-receiver/writer <code class="docutils literal notranslate"><span class="pre">TaskGroup</span></code> in a <code class="docutils literal notranslate"><span class="pre">while</span> <span class="pre">True</span></code> loop. If an unhandled
-exception propagates out of the broker/task-group block (e.g. a lost MQTT
-connection), it is logged, the broker and all receiver/writer tasks are torn
-down as the <code class="docutils literal notranslate"><span class="pre">async</span> <span class="pre">with</span></code>/<code class="docutils literal notranslate"><span class="pre">TaskGroup</span></code> blocks exit, the loop sleeps
-<code class="docutils literal notranslate"><span class="pre">config.reconnectInterval</span></code> seconds, and then it reconnects by constructing a
-brand-new <code class="docutils literal notranslate"><span class="pre">StepBroker</span></code> and starting a fresh <code class="docutils literal notranslate"><span class="pre">_step_message_write_run()</span></code> task
-— which reopens the <em>same</em> output file in append mode — against the <em>same</em>
-shared queue.</p></li>
+<li><p><strong>The connection cycle</strong>: each <code class="docutils literal notranslate"><span class="pre">MessageSaveApp.cycle()</span></code> creates the directory
+of the output file (a no-op once it exists), constructs a brand-new
+<code class="docutils literal notranslate"><span class="pre">StepBroker</span></code>, awaits <code class="docutils literal notranslate"><span class="pre">StepBroker.subscribe_execution()</span></code> and runs the
+receiver tasks and the writer task in a <code class="docutils literal notranslate"><span class="pre">TaskGroup</span></code> nested in the broker
+context, so the broker only disconnects once the group has unwound.</p></li>
+<li><p><strong>The reconnect loop</strong>: the inherited <code class="docutils literal notranslate"><span class="pre">ReconnectingApp.work()</span></code> runs
+<code class="docutils literal notranslate"><span class="pre">cycle()</span></code> in a loop. If an exception propagates out of <code class="docutils literal notranslate"><span class="pre">cycle()</span></code> (e.g. a
+lost MQTT connection), the broker and all receiver/writer tasks are torn down
+as the <code class="docutils literal notranslate"><span class="pre">async</span> <span class="pre">with</span></code>/<code class="docutils literal notranslate"><span class="pre">TaskGroup</span></code> blocks exit, <code class="docutils literal notranslate"><span class="pre">work()</span></code> logs it with its
+traceback, sleeps <code class="docutils literal notranslate"><span class="pre">config.reconnectInterval</span></code> seconds and runs <code class="docutils literal notranslate"><span class="pre">cycle()</span></code>
+again, whose fresh <code class="docutils literal notranslate"><span class="pre">_step_message_write_run()</span></code> task reopens the <em>same</em>
+output file in append mode against the <em>same</em> shared queue. If the current
+task is being cancelled (shutdown in progress), a <code class="docutils literal notranslate"><span class="pre">CancelledError</span></code> is raised
+instead, without an ERROR traceback, so the shutdown is not turned into a
+reconnect.</p></li>
+<li><p><strong>Permanent errors</strong>: an error that a reconnect cannot fix
+(<code class="docutils literal notranslate"><span class="pre">_FATAL_ERRORS</span></code>: step_lib <code class="docutils literal notranslate"><span class="pre">StepLibMqttFatalError</span></code> - CONNACK refusing the
+MQTT authentication or authorization) ends the run with <code class="docutils literal notranslate"><span class="pre">fatal_result()</span></code>
+(<code class="docutils literal notranslate"><span class="pre">ExitCode.ERROR</span></code>) instead of retrying forever.</p></li>
 <li><p><strong>The graceful shutdown</strong>: <code class="docutils literal notranslate"><span class="pre">AppRunner</span></code> (from <code class="docutils literal notranslate"><span class="pre">step_cloud_schemas</span></code>) runs
 <code class="docutils literal notranslate"><span class="pre">MessageSaveApp.work()</span></code> as a task of its own <code class="docutils literal notranslate"><span class="pre">TaskGroup</span></code> and, on a shutdown
 signal (<code class="docutils literal notranslate"><span class="pre">SIGINT</span></code>/<code class="docutils literal notranslate"><span class="pre">SIGTERM</span></code> on POSIX, <code class="docutils literal notranslate"><span class="pre">SIGINT</span></code>/<code class="docutils literal notranslate"><span class="pre">SIGBREAK</span></code> on Windows),
-cancels it
-wherever <code class="docutils literal notranslate"><span class="pre">_step_broker_run()</span></code> is (connecting, subscribing, running its tasks
-or waiting to reconnect), so <code class="docutils literal notranslate"><span class="pre">StepBroker</span></code> disconnects cleanly even while the
-broker is unreachable. Once the group has unwound, <code class="docutils literal notranslate"><span class="pre">AppRunner</span></code> calls
+cancels it wherever it is (connecting, subscribing, running the tasks of
+<code class="docutils literal notranslate"><span class="pre">cycle()</span></code> or waiting to reconnect), so <code class="docutils literal notranslate"><span class="pre">StepBroker</span></code> disconnects cleanly even
+while the broker is unreachable. Once the group has unwound, <code class="docutils literal notranslate"><span class="pre">AppRunner</span></code> calls
 <code class="docutils literal notranslate"><span class="pre">MessageSaveApp.on_shutdown()</span></code>, whose <code class="docutils literal notranslate"><span class="pre">_drain_queue()</span></code> appends the messages
 still queued to the output file, and the program exits with
-<code class="docutils literal notranslate"><span class="pre">ExitCode.ABORTED</span></code>. See <a class="reference internal" href="#apprunner">AppRunner</a> below.</p></li>
+<code class="docutils literal notranslate"><span class="pre">ExitCode.ABORTED</span></code>. See <a class="reference internal" href="#entry-point-and-apprunner">Entry Point and AppRunner</a> below.</p></li>
 </ol>
 </div></blockquote>
+<p><code class="docutils literal notranslate"><span class="pre">work()</span></code> returns only after a fatal error; otherwise it runs until <code class="docutils literal notranslate"><span class="pre">AppRunner</span></code>
+cancels it.</p>
 </section>
-<section id="apprunner">
-<h3>AppRunner<a class="headerlink" href="#apprunner" title="Link to this heading"></a></h3>
-<p><code class="docutils literal notranslate"><span class="pre">AppRunner</span></code> is provided by the <code class="docutils literal notranslate"><span class="pre">step_cloud_schemas</span></code> library (not implemented within
-step_message_save itself). It owns the process-wide plumbing of the entry point: the
-<code class="docutils literal notranslate"><span class="pre">asyncio.Runner</span></code> and its event loop, the loop exception handler,
-<code class="docutils literal notranslate"><span class="pre">sys.unraisablehook</span></code>, the shutdown signal handlers and the shutdown watcher.
-step_message_save only supplies the workload, as the <code class="docutils literal notranslate"><span class="pre">MessageSaveApp</span></code> subclass of
-<code class="docutils literal notranslate"><span class="pre">AbstractApp[ExitCode]</span></code>:</p>
-<blockquote>
-<div><ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">work()</span></code>: the coroutine run by <code class="docutils literal notranslate"><span class="pre">AppRunner</span></code>; it creates the directory of the
-output file and awaits the reconnect loop, so it never returns on its own.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">on_shutdown(stop_signal)</span></code>: called by <code class="docutils literal notranslate"><span class="pre">AppRunner</span></code> once a shutdown signal has
-stopped <code class="docutils literal notranslate"><span class="pre">work()</span></code>; it drains the queue to the output file and returns
-<code class="docutils literal notranslate"><span class="pre">ExitCode.ABORTED</span></code>.</p></li>
-</ul>
-</div></blockquote>
-<p><code class="docutils literal notranslate"><span class="pre">AppRunner</span></code> is generic in the result type: step_message_save uses
-<code class="docutils literal notranslate"><span class="pre">AppRunner[ExitCode]</span></code>, so <code class="docutils literal notranslate"><span class="pre">AppRunner.run()</span></code> returns the <code class="docutils literal notranslate"><span class="pre">ExitCode</span></code> that <code class="docutils literal notranslate"><span class="pre">main()</span></code>
-turns into the process exit code.</p>
-<p>How <code class="docutils literal notranslate"><span class="pre">main()</span></code> uses it:</p>
+<section id="entry-point-and-apprunner">
+<h3>Entry Point and AppRunner<a class="headerlink" href="#entry-point-and-apprunner" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">step_message_save.__main__.main()</span></code> is the console script entry point. It:</p>
 <blockquote>
 <div><ol class="arabic simple">
-<li><p><strong>Construction first</strong>: <code class="docutils literal notranslate"><span class="pre">main()</span></code> builds the <code class="docutils literal notranslate"><span class="pre">AppRunner</span></code> before parsing the
-command line. The constructor installs the process-wide hooks (the signal
-handlers and <code class="docutils literal notranslate"><span class="pre">sys.unraisablehook</span></code>), so they cover the whole run, including
-the file conversion and the configuration loading. <code class="docutils literal notranslate"><span class="pre">AppRunner</span></code> is a
-singleton: it is constructed once, from the main thread.</p></li>
-<li><p><strong>Loop factory</strong>: on Windows <code class="docutils literal notranslate"><span class="pre">main()</span></code> passes <code class="docutils literal notranslate"><span class="pre">asyncio.SelectorEventLoop</span></code> as
-<code class="docutils literal notranslate"><span class="pre">loop_factory</span></code>; on the other platforms the asyncio default loop is used.</p></li>
-<li><p><strong>Run</strong>: once the configuration is loaded and the <code class="docutils literal notranslate"><span class="pre">MessageSaveApp</span></code> is built,
-<code class="docutils literal notranslate"><span class="pre">main()</span></code> calls <code class="docutils literal notranslate"><span class="pre">app_runner.run(app=app)</span></code>, which runs
-<code class="docutils literal notranslate"><span class="pre">MessageSaveApp.work()</span></code> on a new event loop.</p></li>
-<li><p><strong>Shutdown</strong>: on a shutdown signal (<code class="docutils literal notranslate"><span class="pre">SIGINT</span></code>/<code class="docutils literal notranslate"><span class="pre">SIGTERM</span></code> on POSIX,
-<code class="docutils literal notranslate"><span class="pre">SIGINT</span></code>/<code class="docutils literal notranslate"><span class="pre">SIGBREAK</span></code> on Windows) <code class="docutils literal notranslate"><span class="pre">AppRunner</span></code> cancels <code class="docutils literal notranslate"><span class="pre">work()</span></code> wherever
-it is. Once every task has unwound, hence once the writer task has closed the
-output file and <code class="docutils literal notranslate"><span class="pre">StepBroker</span></code> has disconnected, <code class="docutils literal notranslate"><span class="pre">AppRunner</span></code> calls
-<code class="docutils literal notranslate"><span class="pre">MessageSaveApp.on_shutdown()</span></code> and returns its result.</p></li>
+<li><p>Builds a default <code class="docutils literal notranslate"><span class="pre">StepLogger</span></code> logger (stderr, WARNING) and an
+<code class="docutils literal notranslate"><span class="pre">AppRunner[ExitCode]</span></code>. On Windows the runner uses <code class="docutils literal notranslate"><span class="pre">asyncio.SelectorEventLoop</span></code>,
+because the default <code class="docutils literal notranslate"><span class="pre">ProactorEventLoop</span></code> does not implement
+<code class="docutils literal notranslate"><span class="pre">add_reader</span></code>/<code class="docutils literal notranslate"><span class="pre">add_writer</span></code>, which <code class="docutils literal notranslate"><span class="pre">aiomqtt</span></code>’s socket needs to detect the
+CONNACK response.</p></li>
+<li><p>Prints the help and returns <code class="docutils literal notranslate"><span class="pre">ExitCode.USAGE</span></code> when no argument is given.</p></li>
+<li><p>Writes the configuration JSON schema (<code class="docutils literal notranslate"><span class="pre">-s/--conf_schema</span></code>) and/or the
+configuration template (<code class="docutils literal notranslate"><span class="pre">-t/--conf_template</span></code>) to the given directories.</p></li>
+<li><p>Raises <code class="docutils literal notranslate"><span class="pre">StepCliError</span></code> when only one of <code class="docutils literal notranslate"><span class="pre">-c/--config</span></code> and <code class="docutils literal notranslate"><span class="pre">-i/--instance</span></code>
+is given.</p></li>
+<li><p>Runs the file conversion requested with <code class="docutils literal notranslate"><span class="pre">-f/--file</span></code> (<code class="docutils literal notranslate"><span class="pre">-x/--convert</span></code>,
+<code class="docutils literal notranslate"><span class="pre">-o/--output</span></code>), see <a class="reference internal" href="#file-conversion">File Conversion</a>, before the client is started.</p></li>
+<li><p>With both <code class="docutils literal notranslate"><span class="pre">-c/--config</span></code> and <code class="docutils literal notranslate"><span class="pre">-i/--instance</span></code>, validates the configuration file
+into <code class="docutils literal notranslate"><span class="pre">StepMessageSaveConfig</span></code>, rebuilds the logger from <code class="docutils literal notranslate"><span class="pre">config.log</span></code>,
+force-writes the program and library versions (<code class="docutils literal notranslate"><span class="pre">step_cloud_schemas</span></code>,
+<code class="docutils literal notranslate"><span class="pre">step_lib</span></code>) and runs <code class="docutils literal notranslate"><span class="pre">MessageSaveApp</span></code> with <code class="docutils literal notranslate"><span class="pre">AppRunner.run()</span></code>, returning its
+exit code.</p></li>
 </ol>
 </div></blockquote>
-<p>The outcome of a run maps to the exit codes as follows:</p>
+<p><code class="docutils literal notranslate"><span class="pre">AppRunner</span></code> (from <code class="docutils literal notranslate"><span class="pre">step_cloud_schemas</span></code>) owns the process-wide plumbing: the
+<code class="docutils literal notranslate"><span class="pre">asyncio.Runner</span></code>, the loop exception handler, <code class="docutils literal notranslate"><span class="pre">sys.unraisablehook</span></code> and the shutdown
+signal handlers. It runs <code class="docutils literal notranslate"><span class="pre">MessageSaveApp.work()</span></code> (inherited from <code class="docutils literal notranslate"><span class="pre">ReconnectingApp</span></code>)
+next to a shutdown watcher task in a
+<code class="docutils literal notranslate"><span class="pre">TaskGroup</span></code>: when a shutdown signal arrives the watcher raises an internal
+<code class="docutils literal notranslate"><span class="pre">_ShutdownRequestedError</span></code>, the <code class="docutils literal notranslate"><span class="pre">TaskGroup</span></code> cancels <code class="docutils literal notranslate"><span class="pre">work</span></code> wherever it is and, once
+every task has unwound (the writer task has closed the output file and <code class="docutils literal notranslate"><span class="pre">StepBroker</span></code>
+has disconnected), <code class="docutils literal notranslate"><span class="pre">MessageSaveApp.on_shutdown()</span></code> is called with the signal.</p>
+<p><code class="docutils literal notranslate"><span class="pre">main()</span></code> maps the outcome to an <code class="docutils literal notranslate"><span class="pre">ExitCode</span></code>:</p>
 <blockquote>
 <div><ul class="simple">
-<li><p><strong>Shutdown signal during the run</strong>: <code class="docutils literal notranslate"><span class="pre">on_shutdown()</span></code> returns
-<code class="docutils literal notranslate"><span class="pre">ExitCode.ABORTED</span></code>.</p></li>
-<li><p><strong>Exception raised by</strong> <code class="docutils literal notranslate"><span class="pre">work()</span></code>: it is not caught by <code class="docutils literal notranslate"><span class="pre">AppRunner</span></code>; it leaves
-<code class="docutils literal notranslate"><span class="pre">run()</span></code> wrapped in an <code class="docutils literal notranslate"><span class="pre">ExceptionGroup</span></code>, <code class="docutils literal notranslate"><span class="pre">on_shutdown()</span></code> is not called, and
-the top-level <code class="docutils literal notranslate"><span class="pre">except</span> <span class="pre">Exception</span></code> of <code class="docutils literal notranslate"><span class="pre">main()</span></code> logs it and returns
-<code class="docutils literal notranslate"><span class="pre">ExitCode.ERROR</span></code>. Since the reconnect loop retries after any exception, this
-only happens when the directory of the output file cannot be created.</p></li>
-<li><p><strong>Signal outside the run</strong> (before <code class="docutils literal notranslate"><span class="pre">run()</span></code> has started the event loop, or
-after it has returned): <code class="docutils literal notranslate"><span class="pre">KeyboardInterrupt</span></code> is raised, which <code class="docutils literal notranslate"><span class="pre">main()</span></code> maps
-to <code class="docutils literal notranslate"><span class="pre">ExitCode.ABORTED</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">OK</span></code> (0): success (e.g. only schema/template generation or a file conversion
+was requested), including <code class="docutils literal notranslate"><span class="pre">-h/--help</span></code> and <code class="docutils literal notranslate"><span class="pre">-v/--version</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">USAGE</span></code> (1): no argument, an invalid or unknown option, or <code class="docutils literal notranslate"><span class="pre">StepCliError</span></code>
+(logged as a plain error line)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ERROR</span></code> (2): a file conversion failure (<code class="docutils literal notranslate"><span class="pre">LoaderError</span></code>/<code class="docutils literal notranslate"><span class="pre">WriterError</span></code>, logged
+as a plain error line), or any other unhandled exception, logged with its
+traceback: an invalid configuration file, a missing or invalid environment
+variable (<code class="docutils literal notranslate"><span class="pre">ValueError</span></code> raised by the <code class="docutils literal notranslate"><span class="pre">MessageSaveApp</span></code> constructor, see
+<a class="reference internal" href="#environment-variables">Environment Variables</a>), or an error that a reconnect cannot fix
+(<code class="docutils literal notranslate"><span class="pre">fatal_result()</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ABORTED</span></code> (3): shutdown signal (returned by <code class="docutils literal notranslate"><span class="pre">on_shutdown</span></code>, after the queue has
+been drained to the output file) or <code class="docutils literal notranslate"><span class="pre">KeyboardInterrupt</span></code> (a signal received
+before <code class="docutils literal notranslate"><span class="pre">run()</span></code> has started the event loop, or after it has returned)</p></li>
 </ul>
 </div></blockquote>
 <div class="scrollable-diagram docutils container">
 <figure class="align-center">
 <p class="plantuml">
-<object data="_images/plantuml-b0a647f71fa243eabc91845aface6b97462be044.svg" type="image/svg+xml" style="width:800px;height:654px;background:#FFFFFF;">
-<img src="_images/plantuml-b0a647f71fa243eabc91845aface6b97462be044.png" alt="&#64;startuml
+<object data="_images/plantuml-22aca0c9978f14c89dc0fbbd73a83bec99cde0f0.svg" type="image/svg+xml" style="width:936px;height:757px;background:#FFFFFF;">
+<img src="_images/plantuml-22aca0c9978f14c89dc0fbbd73a83bec99cde0f0.png" alt="&#64;startuml
 
 participant &quot;main()&quot; as Main
 participant &quot;AppRunner[ExitCode]&quot; as Runner
@@ -1131,7 +1146,10 @@ Main -&gt; Main : parse arguments, convert file,\nload configuration
 Main -&gt; App : MessageSaveApp(instance_name, config, logger)
 Main -&gt; Runner : run(app)
 Runner -&gt; App : work()
-App -&gt; App : reconnect loop\n(receiver and writer tasks)
+loop until cancelled or fatal error
+   App -&gt; App : cycle()\n(receiver and writer tasks)
+   App -&gt; App : on failure: log,\nwait reconnectInterval
+end
 Signal -&gt; Runner : SIGINT / SIGTERM / SIGBREAK
 Runner -&gt; App : cancel work()
 App --&gt; Runner : tasks unwound\n(file closed, broker disconnected)
@@ -1145,31 +1163,95 @@ Runner --&gt; Main : ExitCode.ABORTED
 </object></p>
 </figure>
 </div>
-<p>The following class diagram shows the structure of <code class="docutils literal notranslate"><span class="pre">MessageSaveApp</span></code> and how it plugs
-into <code class="docutils literal notranslate"><span class="pre">AppRunner</span></code>. <code class="docutils literal notranslate"><span class="pre">AppRunner</span></code> and <code class="docutils literal notranslate"><span class="pre">AbstractApp</span></code> belong to <code class="docutils literal notranslate"><span class="pre">step_cloud_schemas</span></code>
-and are shown only through the interface used by step_message_save: <code class="docutils literal notranslate"><span class="pre">AppRunner</span></code>
-depends only on <code class="docutils literal notranslate"><span class="pre">AbstractApp</span></code>, never on <code class="docutils literal notranslate"><span class="pre">MessageSaveApp</span></code> itself.</p>
+</section>
+<section id="application-runtime-step-cloud-schemas">
+<h3>Application Runtime (step_cloud_schemas)<a class="headerlink" href="#application-runtime-step-cloud-schemas" title="Link to this heading"></a></h3>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code class="docutils literal notranslate"><span class="pre">AppRunner</span></code>, <code class="docutils literal notranslate"><span class="pre">AbstractApp</span></code> and <code class="docutils literal notranslate"><span class="pre">ReconnectingApp</span></code> are not part of the
+<code class="docutils literal notranslate"><span class="pre">step_message_save</span></code> package: they are imported from the external <code class="docutils literal notranslate"><span class="pre">step_cloud_schemas</span></code>
+dependency, shared by the STEP programs. Only their public interface, the part used by
+STEP Message Save, is described here.</p>
+</div>
+<p>The three classes split a long-running program in two parts: the process-wide plumbing (event
+loop, signal handlers, exception hooks), owned by <code class="docutils literal notranslate"><span class="pre">AppRunner</span></code>, and the workload, supplied by the
+program as an <code class="docutils literal notranslate"><span class="pre">AbstractApp</span></code> subclass. <code class="docutils literal notranslate"><span class="pre">R</span></code> is the program’s result type: for STEP Message
+Save, <code class="docutils literal notranslate"><span class="pre">ExitCode</span></code>.</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 22.0%" />
+<col style="width: 78.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Class</p></th>
+<th class="head"><p>Role</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">AbstractApp[R]</span></code></p></td>
+<td><p>Abstract base class of a workload run by <code class="docutils literal notranslate"><span class="pre">AppRunner</span></code>. It declares the two methods
+<code class="docutils literal notranslate"><span class="pre">AppRunner</span></code> needs and holds no state (empty <code class="docutils literal notranslate"><span class="pre">__slots__</span></code>, so a subclass declares its own).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ReconnectingApp[R]</span></code></p></td>
+<td><p>Abstract <code class="docutils literal notranslate"><span class="pre">AbstractApp</span></code> subclass that implements <code class="docutils literal notranslate"><span class="pre">work</span></code> as a reconnect loop around a
+connection cycle (<code class="docutils literal notranslate"><span class="pre">cycle</span></code>), implemented by the program.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">AppRunner[R]</span></code></p></td>
+<td><p>Singleton that runs an <code class="docutils literal notranslate"><span class="pre">AbstractApp</span></code> on a new event loop until it ends or a shutdown
+signal stops it.</p></td>
+</tr>
+</tbody>
+</table>
+<p>The class diagram below shows the public interface of the three classes and how
+<code class="docutils literal notranslate"><span class="pre">MessageSaveApp</span></code> plugs into them:</p>
 <div class="scrollable-diagram docutils container">
 <figure class="align-center">
 <p class="plantuml">
-<object data="_images/plantuml-2ccd715b2f2e756ff7aed956dfeeb9a1da49a4ca.svg" type="image/svg+xml" style="width:713px;height:946px;background:#FFFFFF;">
-<img src="_images/plantuml-2ccd715b2f2e756ff7aed956dfeeb9a1da49a4ca.png" alt="&#64;startuml
+<object data="_images/plantuml-655adcbb2f68d880f797e6f9becd31e79529f285.svg" type="image/svg+xml" style="width:2227px;height:741px;background:#FFFFFF;">
+<img src="_images/plantuml-655adcbb2f68d880f797e6f9becd31e79529f285.png" alt="&#64;startuml
 
 !theme plain
 skinparam classAttributeIconSize 0
 
-package &quot;step_cloud_schemas&quot; {
-   class &quot;AppRunner&lt;R&gt;&quot; as AppRunner {
-      +run(app: AbstractApp&lt;R&gt;): R
+package &quot;step_cloud_schemas&quot; #LightGray {
+   abstract class &quot;AbstractApp[R]&quot; as AbstractApp {
+      +{abstract} async work() : R
+      +{abstract} on_shutdown(stop_signal : Signals) : R
    }
 
-   abstract class &quot;AbstractApp&lt;R&gt;&quot; as AbstractApp {
-      +{abstract} async work(): R
-      +{abstract} on_shutdown(stop_signal: Signals): R
+   abstract class &quot;ReconnectingApp[R]&quot; as ReconnectingApp {
+      #_FATAL_ERRORS : tuple[type[Exception], ...] = () {static}
+      +__init__(logger : Logger, reconnect_interval : int)
+      +{abstract} async cycle() : None
+      +{abstract} fatal_result() : R
+      +async work() : R
+   }
+
+   class &quot;AppRunner[R]&quot; as AppRunner &lt;&lt;singleton&gt;&gt; {
+      +__init__(logger_param : Logger, loop_factory = None, exception_handler = None, unraisable_handler = None)
+      +logger : Logger &lt;&lt;property&gt;&gt;
+      +run(app : AbstractApp[R]) : R
    }
 }
 
 package &quot;step_message_save&quot; {
+   class MessageSaveApp {
+      #_FATAL_ERRORS = (StepLibMqttFatalError,) {static}
+      -_instance_name : str
+      -_config : StepMessageSaveConfig
+      -_mqtt_credential : MqttCredential
+      -_output_file : Path
+      -_queue : Queue[str]
+      +__init__(instance_name : str, config : StepMessageSaveConfig, logger : Logger)
+      +async cycle() : None
+      +fatal_result() : ExitCode
+      +on_shutdown(stop_signal : Signals) : ExitCode
+      -_log_received_message(message, level) : None
+      -async _step_receive_run(instance_name, step_broker) : None
+      -async _step_message_write_run() : None
+      -_drain_queue() : int
+   }
+
    enum ExitCode {
       OK = 0
       USAGE = 1
@@ -1177,45 +1259,114 @@ package &quot;step_message_save&quot; {
       ABORTED = 3
    }
 
-   class MessageSaveApp {
-      -{static} _MQTT_URL_VAR_NAME: str
-      -{static} _MQTT_PORT_VAR_NAME: str
-      -{static} _MQTT_USERNAME_VAR_NAME: str
-      -{static} _MQTT_PASSWORD_VAR_NAME: str
-      -_instance_name: str
-      -_config: StepMessageSaveConfig
-      -_logger: Logger
-      -_mqtt_credential: MqttCredential
-      -_output_file: Path
-      -_queue: Queue[str]
-      +__init__(instance_name, config, logger)
-      +async work(): ExitCode
-      +on_shutdown(stop_signal: Signals): ExitCode
-      -_get_mqtt_credential(): MqttCredential
-      -_log_received_message(message, level): None
-      -async _step_receive_run(instance_name, step_broker): None
-      -async _step_message_write_run(): None
-      -async _step_broker_run(): None
-      -_drain_queue(): int
-   }
-
    class StepBroker
    class StepMessageSaveConfig
    class MqttCredential
 }
 
-AppRunner ..&gt; AbstractApp : calls work / on_shutdown
-AbstractApp &lt;|-- MessageSaveApp : R = ExitCode
+ReconnectingApp --|&gt; AbstractApp
+MessageSaveApp --|&gt; ReconnectingApp : R = ExitCode
+AppRunner ..&gt; AbstractApp : run(app)
 MessageSaveApp ..&gt; ExitCode : returns
 MessageSaveApp --&gt; StepMessageSaveConfig : uses
 MessageSaveApp *-- MqttCredential
 MessageSaveApp ..&gt; StepBroker : creates per\nconnection cycle
+
+note bottom of AppRunner
+   main() builds AppRunner[ExitCode]
+   (SelectorEventLoop on Windows)
+   and calls run(MessageSaveApp(...))
+end note
 
 &#64;enduml"/>
 
 </object></p>
 </figure>
 </div>
+<p><strong>AbstractApp: public interface</strong></p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">async</span> <span class="pre">work()</span> <span class="pre">-&gt;</span> <span class="pre">R</span></code> (abstract): The workload, called once per run as a task of the
+<code class="docutils literal notranslate"><span class="pre">AppRunner</span></code> <code class="docutils literal notranslate"><span class="pre">TaskGroup</span></code>; it returns the result when it ends on its own. On a shutdown
+signal it is cancelled at the <code class="docutils literal notranslate"><span class="pre">await</span></code> it is suspended on, so it has to be
+cancellation-safe.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">on_shutdown(stop_signal:</span> <span class="pre">Signals)</span> <span class="pre">-&gt;</span> <span class="pre">R</span></code> (abstract): Called by <code class="docutils literal notranslate"><span class="pre">AppRunner</span></code> after a
+shutdown signal stopped <code class="docutils literal notranslate"><span class="pre">work</span></code>, once every task has unwound (the resources held by <code class="docutils literal notranslate"><span class="pre">work</span></code>
+are already released); it runs on the event loop thread and cannot <code class="docutils literal notranslate"><span class="pre">await</span></code>. Its value is
+the result of the run. <code class="docutils literal notranslate"><span class="pre">MessageSaveApp</span></code> appends the messages still queued to the output
+file (<code class="docutils literal notranslate"><span class="pre">_drain_queue()</span></code>), logs the signal name and the number of messages saved, and
+returns <code class="docutils literal notranslate"><span class="pre">ExitCode.ABORTED</span></code>.</p></li>
+</ul>
+</div></blockquote>
+<p><strong>ReconnectingApp: public interface</strong></p>
+<blockquote>
+<div><ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">ReconnectingApp(logger,</span> <span class="pre">reconnect_interval)</span></code>: <code class="docutils literal notranslate"><span class="pre">logger</span></code> is used for the start, error and
+retry messages, <code class="docutils literal notranslate"><span class="pre">reconnect_interval</span></code> is the number of seconds to wait before the next cycle.
+<code class="docutils literal notranslate"><span class="pre">MessageSaveApp</span></code> passes its own logger and <code class="docutils literal notranslate"><span class="pre">config.reconnectInterval</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">async</span> <span class="pre">cycle()</span> <span class="pre">-&gt;</span> <span class="pre">None</span></code> (abstract): Opens the connections and runs the tasks until one of
+them fails; returns only if every task ends normally, and then the next cycle starts at once.
+Like <code class="docutils literal notranslate"><span class="pre">work</span></code>, it has to be cancellation-safe. <code class="docutils literal notranslate"><span class="pre">MessageSaveApp.cycle()</span></code> creates the
+directory of the output file, opens the <code class="docutils literal notranslate"><span class="pre">StepBroker</span></code> and runs the receiver and writer
+tasks.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fatal_result()</span> <span class="pre">-&gt;</span> <span class="pre">R</span></code> (abstract): The result returned by <code class="docutils literal notranslate"><span class="pre">work</span></code> after an error that a
+reconnect cannot fix (<code class="docutils literal notranslate"><span class="pre">MessageSaveApp</span></code>: <code class="docutils literal notranslate"><span class="pre">ExitCode.ERROR</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">async</span> <span class="pre">work()</span> <span class="pre">-&gt;</span> <span class="pre">R</span></code>: Logs <code class="docutils literal notranslate"><span class="pre">Program</span> <span class="pre">started</span></code>, then runs <code class="docutils literal notranslate"><span class="pre">cycle</span></code> in a loop. When <code class="docutils literal notranslate"><span class="pre">cycle</span></code>
+raises:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>while a shutdown cancellation is in progress, the error is logged at INFO level and
+<code class="docutils literal notranslate"><span class="pre">CancelledError</span></code> is restored, so the shutdown goes on without an ERROR traceback;</p></li>
+<li><p>otherwise the error is logged with its traceback, and if it, or any error nested in an
+<code class="docutils literal notranslate"><span class="pre">ExceptionGroup</span></code> (as raised by a <code class="docutils literal notranslate"><span class="pre">TaskGroup</span></code>), is one of the subclass’s fatal error
+types, <code class="docutils literal notranslate"><span class="pre">work</span></code> logs a CRITICAL line and returns <code class="docutils literal notranslate"><span class="pre">fatal_result()</span></code>;</p></li>
+<li><p>otherwise <code class="docutils literal notranslate"><span class="pre">work</span></code> waits <code class="docutils literal notranslate"><span class="pre">reconnect_interval</span></code> seconds and runs <code class="docutils literal notranslate"><span class="pre">cycle</span></code> again.</p></li>
+</ul>
+</div></blockquote>
+<p>It never returns otherwise: the loop ends only when <code class="docutils literal notranslate"><span class="pre">AppRunner</span></code> cancels it.</p>
+</li>
+</ul>
+<p>The fatal error types are the <code class="docutils literal notranslate"><span class="pre">_FATAL_ERRORS</span></code> class attribute that each subclass sets
+(<code class="docutils literal notranslate"><span class="pre">MessageSaveApp</span></code>: step_lib <code class="docutils literal notranslate"><span class="pre">StepLibMqttFatalError</span></code>); with none set, every error is
+retried. Any other error, including an output file or directory that cannot be written, is
+retried every <code class="docutils literal notranslate"><span class="pre">reconnectInterval</span></code> seconds.</p>
+</div></blockquote>
+<p><strong>AppRunner: public interface</strong></p>
+<blockquote>
+<div><ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">AppRunner[R](logger_param,</span> <span class="pre">loop_factory=None,</span> <span class="pre">exception_handler=None,</span> <span class="pre">unraisable_handler=None)</span></code>:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">logger_param</span></code>: Logger used by the default exception and unraisable handlers.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">loop_factory</span></code>: Factory of the event loop created by every <code class="docutils literal notranslate"><span class="pre">run</span></code>, forwarded to
+<code class="docutils literal notranslate"><span class="pre">asyncio.Runner</span></code>; <code class="docutils literal notranslate"><span class="pre">None</span></code> uses the asyncio default loop. STEP Message Save passes
+<code class="docutils literal notranslate"><span class="pre">asyncio.SelectorEventLoop</span></code> on Windows (<code class="docutils literal notranslate"><span class="pre">IS_WINDOWS</span></code>), because the default
+<code class="docutils literal notranslate"><span class="pre">ProactorEventLoop</span></code> lacks the <code class="docutils literal notranslate"><span class="pre">add_reader</span></code>/<code class="docutils literal notranslate"><span class="pre">add_writer</span></code> that <code class="docutils literal notranslate"><span class="pre">aiomqtt</span></code> needs.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">exception_handler</span></code>: Event loop exception handler; <code class="docutils literal notranslate"><span class="pre">None</span></code> logs the exception on
+the logger.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">unraisable_handler</span></code>: Installed as <code class="docutils literal notranslate"><span class="pre">sys.unraisablehook</span></code>; <code class="docutils literal notranslate"><span class="pre">None</span></code> logs the exception
+on the logger.</p></li>
+</ul>
+</div></blockquote>
+<p>The constructor installs the process-wide hooks (signal handlers, <code class="docutils literal notranslate"><span class="pre">sys.unraisablehook</span></code>): it
+is called from the main thread as early as possible, which is why <code class="docutils literal notranslate"><span class="pre">main()</span></code> builds it before
+parsing the arguments, so that a signal received before <code class="docutils literal notranslate"><span class="pre">run</span></code> (e.g. during the file
+conversion or the configuration loading) is still handled. Being a singleton, only the
+first construction takes effect; the arguments of later calls are ignored.</p>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">logger</span></code> (property): The logger given to the constructor.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">run(app:</span> <span class="pre">AbstractApp[R])</span> <span class="pre">-&gt;</span> <span class="pre">R</span></code>: Opens an <code class="docutils literal notranslate"><span class="pre">asyncio.Runner</span></code>, installs the exception handler
+and the shutdown handlers (<code class="docutils literal notranslate"><span class="pre">SIGINT</span></code>/<code class="docutils literal notranslate"><span class="pre">SIGTERM</span></code> on POSIX, <code class="docutils literal notranslate"><span class="pre">SIGINT</span></code>/<code class="docutils literal notranslate"><span class="pre">SIGBREAK</span></code> on
+Windows), then runs <code class="docutils literal notranslate"><span class="pre">app.work()</span></code> next to a shutdown watcher in a <code class="docutils literal notranslate"><span class="pre">TaskGroup</span></code>. It returns
+the value of <code class="docutils literal notranslate"><span class="pre">app.work()</span></code> when the workload ends on its own, or the value of
+<code class="docutils literal notranslate"><span class="pre">app.on_shutdown(stop_signal)</span></code> when a shutdown signal stops it. Any other exception raised
+by <code class="docutils literal notranslate"><span class="pre">work</span></code> propagates wrapped in an <code class="docutils literal notranslate"><span class="pre">ExceptionGroup</span></code>, which <code class="docutils literal notranslate"><span class="pre">main()</span></code> logs and maps to
+<code class="docutils literal notranslate"><span class="pre">ExitCode.ERROR</span></code>.</p></li>
+</ul>
+<p>A shutdown signal never interrupts the workload at an arbitrary point: the signal handler only
+sets an event, the watcher task turns it into an exception, and the <code class="docutils literal notranslate"><span class="pre">TaskGroup</span></code> cancels
+<code class="docutils literal notranslate"><span class="pre">work</span></code> at the <code class="docutils literal notranslate"><span class="pre">await</span></code> it is suspended on.</p>
+</div></blockquote>
 </section>
 <section id="stepmessagesaveconfig">
 <h3>StepMessageSaveConfig<a class="headerlink" href="#stepmessagesaveconfig" title="Link to this heading"></a></h3>
@@ -1256,38 +1407,81 @@ validation through the <code class="docutils literal notranslate"><span class="p
 prevent configuration-related issues during runtime while providing a clear, structured
 approach to configuration management.</p>
 </section>
-<section id="mqtt-credential-loading">
-<h3>MQTT Credential Loading<a class="headerlink" href="#mqtt-credential-loading" title="Link to this heading"></a></h3>
-<p>MQTT broker connection secrets are kept out of the (persisted) JSON configuration
-file and are instead read from the process environment by
-<code class="docutils literal notranslate"><span class="pre">MessageSaveApp._get_mqtt_credential()</span></code> in <code class="docutils literal notranslate"><span class="pre">message_save_app.py</span></code>, which is called
-once by <code class="docutils literal notranslate"><span class="pre">MessageSaveApp.__init__()</span></code>, when <code class="docutils literal notranslate"><span class="pre">main()</span></code> builds the application right
-after the logger is set up and before <code class="docutils literal notranslate"><span class="pre">AppRunner.run()</span></code> is started.</p>
-<p>Key aspects of this component:</p>
+<section id="environment-variables">
+<h3>Environment Variables<a class="headerlink" href="#environment-variables" title="Link to this heading"></a></h3>
+<p>The MQTT broker address and credentials are the only settings not taken from the JSON
+configuration file: they are read from the environment, so that secrets are never written to
+a configuration document. The TLS settings of the MQTT client stay in the configuration file,
+in the <code class="docutils literal notranslate"><span class="pre">stepBroker.mqttClient</span></code> section.</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 22.0%" />
+<col style="width: 12.0%" />
+<col style="width: 22.0%" />
+<col style="width: 44.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Variable</p></th>
+<th class="head"><p>Required</p></th>
+<th class="head"><p>Read by</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">MQTT_URL</span></code></p></td>
+<td><p>yes</p></td>
+<td><p>step_lib <code class="docutils literal notranslate"><span class="pre">MqttCredential</span></code></p></td>
+<td><p>MQTT broker host name or IP address</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">MQTT_PORT</span></code></p></td>
+<td><p>yes</p></td>
+<td><p>step_lib <code class="docutils literal notranslate"><span class="pre">MqttCredential</span></code></p></td>
+<td><p>MQTT broker port (1-65535); usually 8883 with TLS
+(<code class="docutils literal notranslate"><span class="pre">stepBroker.mqttClient.sslEnable</span></code> true), 1883 without</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">MQTT_USERNAME</span></code></p></td>
+<td><p>no</p></td>
+<td><p>step_lib <code class="docutils literal notranslate"><span class="pre">MqttCredential</span></code></p></td>
+<td><p>Broker username; unset or empty connects anonymously</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">MQTT_PASSWORD</span></code></p></td>
+<td><p>no</p></td>
+<td><p>step_lib <code class="docutils literal notranslate"><span class="pre">MqttCredential</span></code></p></td>
+<td><p>Broker password; ignored, with a WARNING, when <code class="docutils literal notranslate"><span class="pre">MQTT_USERNAME</span></code> is not set</p></td>
+</tr>
+</tbody>
+</table>
+<p>How they are read:</p>
 <blockquote>
 <div><ol class="arabic simple">
-<li><p><strong>``.env`` File Support</strong>: Calls <code class="docutils literal notranslate"><span class="pre">load_dotenv(find_dotenv(usecwd=True))</span></code> (from <code class="docutils literal notranslate"><span class="pre">python-dotenv</span></code>)
-before reading any variable, so the values may come from a <code class="docutils literal notranslate"><span class="pre">.env</span></code> file in
-the working directory or from variables already present in the process
-environment.</p></li>
-<li><p><strong>Required Variables</strong>: Reads <code class="docutils literal notranslate"><span class="pre">MQTT_URL</span></code> and <code class="docutils literal notranslate"><span class="pre">MQTT_PORT</span></code> (the
-<code class="docutils literal notranslate"><span class="pre">_MQTT_URL_VAR_NAME</span></code>/<code class="docutils literal notranslate"><span class="pre">_MQTT_PORT_VAR_NAME</span></code> class constants); if either is
-unset,
-<code class="docutils literal notranslate"><span class="pre">_get_mqtt_credential()</span></code> raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>, which propagates up and is
-caught by the top-level exception handling in <code class="docutils literal notranslate"><span class="pre">main()</span></code>.</p></li>
-<li><p><strong>Optional Variables</strong>: Reads <code class="docutils literal notranslate"><span class="pre">MQTT_USERNAME</span></code> and <code class="docutils literal notranslate"><span class="pre">MQTT_PASSWORD</span></code>
-(<code class="docutils literal notranslate"><span class="pre">_MQTT_USERNAME_VAR_NAME</span></code>/<code class="docutils literal notranslate"><span class="pre">_MQTT_PASSWORD_VAR_NAME</span></code>); both may be absent,
-in which case the broker connection is attempted without authentication.</p></li>
-<li><p><strong>MqttCredential</strong>: The four values are assembled into an
-<code class="docutils literal notranslate"><span class="pre">MqttCredential</span></code> <code class="docutils literal notranslate"><span class="pre">NamedTuple</span></code> (defined in <code class="docutils literal notranslate"><span class="pre">step_message_save_config.py</span></code>),
-kept separate from <code class="docutils literal notranslate"><span class="pre">StepMessageSaveConfig</span></code> specifically so secrets never end
-up embedded in the configuration document. The resulting instance is kept
-by <code class="docutils literal notranslate"><span class="pre">MessageSaveApp</span></code> and handed to every <code class="docutils literal notranslate"><span class="pre">StepBroker</span></code> it builds, which uses
-it to authenticate the MQTT connection.</p></li>
-<li><p><strong>Startup Logging</strong>: Once loaded, the resolved host, port, and username (but
-never the password) are logged at INFO level for diagnostic purposes.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MessageSaveApp.__init__()</span></code> calls <code class="docutils literal notranslate"><span class="pre">MqttCredential.from_env()</span></code> once, before
+<code class="docutils literal notranslate"><span class="pre">AppRunner.run()</span></code>. The credential is read once at construction rather than in
+<code class="docutils literal notranslate"><span class="pre">cycle()</span></code>, because <code class="docutils literal notranslate"><span class="pre">work()</span></code> retries on every non-fatal exception and a missing
+variable would never end the program. The resulting <code class="docutils literal notranslate"><span class="pre">MqttCredential</span></code> (a frozen
+dataclass, kept separate from <code class="docutils literal notranslate"><span class="pre">StepMessageSaveConfig</span></code>) is handed to every
+<code class="docutils literal notranslate"><span class="pre">StepBroker</span></code> built by <code class="docutils literal notranslate"><span class="pre">cycle()</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">from_env()</span></code> first loads the <code class="docutils literal notranslate"><span class="pre">.env</span></code> file found in the <strong>current working
+directory</strong> or its nearest parent (<code class="docutils literal notranslate"><span class="pre">load_dotenv(find_dotenv(usecwd=True))</span></code>): what
+counts is the directory <code class="docutils literal notranslate"><span class="pre">step_message_save</span></code> is launched from, not the directory of
+the installed package. Without a <code class="docutils literal notranslate"><span class="pre">.env</span></code> file only the environment is read.</p></li>
+<li><p>A variable already set in the environment (shell, container) wins over the <code class="docutils literal notranslate"><span class="pre">.env</span></code>
+file: <code class="docutils literal notranslate"><span class="pre">load_dotenv</span></code> only adds missing variables.</p></li>
+<li><p>An empty username or password counts as unset.</p></li>
+<li><p>The host, the port and whether a username is set are logged at INFO level; the
+username and the password never are.</p></li>
+<li><p>A missing <code class="docutils literal notranslate"><span class="pre">MQTT_URL</span></code>/<code class="docutils literal notranslate"><span class="pre">MQTT_PORT</span></code>, a non-integer or out-of-range port, or an empty
+host raise <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>; <code class="docutils literal notranslate"><span class="pre">main()</span></code> logs it with its traceback and returns
+<code class="docutils literal notranslate"><span class="pre">ExitCode.ERROR</span></code>.</p></li>
 </ol>
 </div></blockquote>
+<p>Credentials that the broker rejects are not detected here but on connection, as a fatal
+error (<code class="docutils literal notranslate"><span class="pre">StepLibMqttFatalError</span></code>) that ends the run with <code class="docutils literal notranslate"><span class="pre">ExitCode.ERROR</span></code> instead of being
+retried.</p>
+<p>The repository ships a commented template,
+<a class="reference download internal" download="" href="_downloads/6869e9c8453b614e64ec00f9d19b629e/.env.example"><code class="xref download docutils literal notranslate"><span class="pre">env/.env.example</span></code></a>: download it, save it as <code class="docutils literal notranslate"><span class="pre">.env</span></code> in the
+directory <code class="docutils literal notranslate"><span class="pre">step_message_save</span></code> is launched from and fill in the values. <code class="docutils literal notranslate"><span class="pre">.env</span></code> is listed
+in <code class="docutils literal notranslate"><span class="pre">.gitignore</span></code>; only the template is versioned. See <a class="reference internal" href="usage.html#step-message-save-credentials"><span class="std std-ref">Environment Variables</span></a>
+for the file format and the alternatives to the file.</p>
 </section>
 <section id="steplogger">
 <h3>StepLogger<a class="headerlink" href="#steplogger" title="Link to this heading"></a></h3>
@@ -1370,8 +1564,8 @@ the message, without a traceback.</p>
 error-type classification, or recovery-hint mechanism beyond what the raised message
 string conveys. Callers catch and log these via the standard Python exception handling
 already used throughout the application (e.g. the top-level <code class="docutils literal notranslate"><span class="pre">except</span></code> clauses in
-<code class="docutils literal notranslate"><span class="pre">main()</span></code> and the <code class="docutils literal notranslate"><span class="pre">except*</span></code> clause of the reconnect loop in
-<code class="docutils literal notranslate"><span class="pre">MessageSaveApp._step_broker_run()</span></code>).</p>
+<code class="docutils literal notranslate"><span class="pre">main()</span></code> and the <code class="docutils literal notranslate"><span class="pre">except</span></code> clause of the reconnect loop in the inherited
+<code class="docutils literal notranslate"><span class="pre">ReconnectingApp.work()</span></code> of <code class="docutils literal notranslate"><span class="pre">MessageSaveApp</span></code>).</p>
 </section>
 <section id="file-conversion">
 <h3>File Conversion<a class="headerlink" href="#file-conversion" title="Link to this heading"></a></h3>
@@ -1698,11 +1892,14 @@ end
 </div>
 <p>On an unmanaged exception (e.g. a lost MQTT connection), the exception propagates out of
 the <code class="docutils literal notranslate"><span class="pre">async</span> <span class="pre">with</span> <span class="pre">StepBroker(...)</span></code>/<code class="docutils literal notranslate"><span class="pre">TaskGroup</span></code> block in
-<code class="docutils literal notranslate"><span class="pre">MessageSaveApp._step_broker_run()</span></code>, tearing down the current broker and all receiver/writer tasks. The reconnect loop then waits
-<code class="docutils literal notranslate"><span class="pre">reconnectInterval</span></code> seconds and retries the whole connect-subscribe-receive cycle with a
+<code class="docutils literal notranslate"><span class="pre">MessageSaveApp.cycle()</span></code>, tearing down the current broker and all receiver/writer
+tasks. The inherited <code class="docutils literal notranslate"><span class="pre">ReconnectingApp.work()</span></code> then waits <code class="docutils literal notranslate"><span class="pre">reconnectInterval</span></code> seconds
+and runs <code class="docutils literal notranslate"><span class="pre">cycle()</span></code> again, retrying the whole connect-subscribe-receive cycle with a
 brand-new <code class="docutils literal notranslate"><span class="pre">StepBroker</span></code> instance. The new writer task reopens the output file in append
 mode, so messages persisted before the drop are not lost, and drains the shared queue,
-so messages queued before the drop are not lost either.</p>
+so messages queued before the drop are not lost either. A <code class="docutils literal notranslate"><span class="pre">StepLibMqttFatalError</span></code> (the
+broker refused the client’s authentication or authorization) is not retried: <code class="docutils literal notranslate"><span class="pre">work()</span></code>
+returns <code class="docutils literal notranslate"><span class="pre">ExitCode.ERROR</span></code>.</p>
 </section>
 </section>
 

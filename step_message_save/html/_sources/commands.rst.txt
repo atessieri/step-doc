@@ -169,13 +169,19 @@ Configuration File Structure
 
 The configuration file is a JSON document that defines the behavior of step_message_save. It includes settings for:
 
-* MQTT client connection
+* MQTT client TLS settings
 * MQTT protocol options and subscription topics
 * Output file path
 * Number of concurrent STEP receiver tasks
 * File writer queue size
 * Reconnection interval
 * Logging configuration
+
+The instance name is not part of the file; it is given with ``-i/--instance``. The MQTT
+broker address and credentials are read from environment variables (``MQTT_URL``,
+``MQTT_PORT``, and the optional ``MQTT_USERNAME``/``MQTT_PASSWORD``), not from the file:
+see :ref:`step_message_save_credentials` and the :download:`.env.example <env/.env.example>`
+template.
 
 Here's an example of the configuration structure:
 
@@ -192,7 +198,9 @@ The program uses the following exit codes:
 * ``0`` (OK): Successful termination
 * ``1`` (USAGE): Command line usage error
 * ``2`` (ERROR): General error during execution, including a file conversion failure
-  (input file missing or not accepted by any loader, output file not writable)
+  (input file missing or not accepted by any loader, output file not writable), a
+  missing or invalid MQTT environment variable, or the MQTT broker refusing the
+  client's authentication or authorization (not retried)
 * ``3`` (ABORTED): Operation aborted by user or system (e.g. a graceful shutdown signal)
 
 Examples
@@ -251,7 +259,9 @@ When running with a configuration file, step_message_save performs the following
    #. Automatically handles reconnection if the MQTT connection is lost (using the specified
       reconnect interval); the new writer task reopens the output file in append mode,
       never truncating it, so previously saved messages are preserved across reconnects,
-      and the messages still queued are written by the writer task of the next cycle
+      and the messages still queued are written by the writer task of the next cycle.
+      A broker refusing the client's authentication or authorization is not retried:
+      the program exits with code ``2`` (ERROR)
    #. Manages graceful shutdown when interrupted: the broker is disconnected and the
       messages still queued are appended to the output file before exiting
 

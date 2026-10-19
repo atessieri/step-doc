@@ -34,7 +34,14 @@ step_message_save's own source):
     #. **step_cloud_schemas**: Provides standardized data schemas for ITS
        messages including CAM (Cooperative Awareness Messages), CPM (Cooperative
        Perception Messages) and DENM (Decentralized Environmental Notification
-       Messages) identifiers, and the ``StepLogger`` logging utility.
+       Messages) identifiers. It also provides the runtime used by STEP Message Save:
+
+        * ``AppRunner``/``AbstractApp``: asyncio application runner with a cooperative
+          shutdown on ``SIGINT``/``SIGTERM`` (``SIGINT``/``SIGBREAK`` on Windows)
+        * ``ReconnectingApp``: the ``AbstractApp`` running ``cycle()`` forever, with
+          the reconnect loop and the fatal error handling
+        * ``StepLogger``: logger factory
+        * ``IS_WINDOWS``: platform flag selecting the event loop
 
     #. **step_lib**: Core library providing fundamental components including:
 
@@ -42,14 +49,18 @@ step_message_save's own source):
         * ``FacilityMessage``: ITS message handling and encoding/decoding functionality
         * MQTT utilities including ``MqttQoS`` enumerations
         * TLS/SSL security parameter management
+        * ``MqttCredential``: the MQTT broker host, port and authentication, read
+          from the environment by ``from_env()``
+        * ``StepLibMqttFatalError``: the MQTT connection refusals a reconnect cannot fix
 
     #. **paho-mqtt**: Imported directly in ``StepBroker`` (``ReasonCode``,
        ``SubscribeOptions``) to build MQTT subscription options and interpret SUBACK reason
        codes.
 
-    #. **python-dotenv**: Used by ``MessageSaveApp._get_mqtt_credential()`` in
-       ``message_save_app.py`` to load
-       the MQTT connection secrets from a ``.env`` file.
+    #. **python-dotenv** (through step_lib): ``MqttCredential.from_env()``, called by
+       ``MessageSaveApp.__init__()``, loads the ``.env`` file found in the current
+       working directory (or an ancestor of it) into the environment before the
+       credential is read.
 
     #. **gpx**: Used by ``GpxWriter`` to build and write GPX documents (tracks,
        segments, track points and their extensions).
@@ -73,18 +84,19 @@ and maintainability in the system design.
 
 Main Components:
 
+    #. **main / AppRunner**: CLI entry point and process runner (``AppRunner`` from the
+       ``step_cloud_schemas`` library)
+    #. **AbstractApp / ReconnectingApp**: Abstract workload classes (from the
+       ``step_cloud_schemas`` library) that ``MessageSaveApp`` derives from
     #. **StepBroker**: Gateway class for MQTT communication with the STEP broker
     #. **Message Pipeline** (``MessageSaveApp`` in ``message_save_app.py``): The
        receiver/writer tasks and the
-       ``asyncio.Queue`` connecting them; this is the part of the application that
-       actually reads from ``StepBroker`` and appends to the output file
-    #. **AppRunner**: Entry-point helper (from the ``step_cloud_schemas`` library)
-       that owns the event loop and stops the message pipeline cooperatively on a
-       shutdown signal
+       ``asyncio.Queue`` connecting them, with reconnect handling; this is the part of
+       the application that actually reads from ``StepBroker`` and appends to the
+       output file
     #. **StepMessageSaveConfig**: Configuration management for the client
-    #. **MQTT Credential Loading** (``MessageSaveApp._get_mqtt_credential()`` in
-       ``message_save_app.py``):
-       Reads the MQTT broker connection secrets from environment variables
+    #. **MqttCredential**: MQTT credential read from the environment (from the
+       ``step_lib`` library), see `Environment Variables`_
     #. **StepLogger**: Logging utilities used by the client (from the
        ``step_cloud_schemas`` library)
     #. **StepException**: Custom exceptions for error handling
@@ -105,9 +117,10 @@ Key responsibilities of ``StepBroker`` include:
        ``mqttClient.sslEnable`` is set) and the underlying MQTT v5 connection settings
        for the lifetime of the ``async with StepBroker(...)`` block. ``StepBroker``
        itself has no self-reconnect logic; reconnection after a lost connection is
-       handled by the application loop in ``message_save_app.py`` (see `Message Pipeline`_
-       below), which discards the broker and constructs a new one after waiting
-       ``reconnectInterval`` seconds.
+       handled by the inherited ``ReconnectingApp.work()`` of ``MessageSaveApp`` (see
+       `Message Pipeline`_ below), which discards the broker and, after waiting
+       ``reconnectInterval`` seconds, runs ``MessageSaveApp.cycle()`` again to
+       construct a new one.
     #. **Topic Subscription**: ``subscribe_execution()`` subscribes to the topics
        configured in ``mqttProtocol.subscriptionTopics`` with a fixed set of MQTT
        options (configured QoS, ``noLocal=False``, ``retainAsPublished=False``,
@@ -133,7 +146,8 @@ Message Pipeline
 ^^^^^^^^^^^^^^^^
 
 The message pipeline is implemented entirely by the ``MessageSaveApp`` class of
-``message_save_app.py``, the ``AbstractApp`` workload that ``main()`` hands to
+``message_save_app.py``, the ``ReconnectingApp[ExitCode]`` workload (see
+`Application Runtime (step_cloud_schemas)`_) that ``main()`` hands to
 ``AppRunner``, on top of the ``StepBroker`` instance and the configuration;
 ``StepBroker`` itself never touches the queue or the output file. Its constants and
 coroutines are private members of the class. It is composed of:
@@ -150,13 +164,13 @@ coroutines are private members of the class. It is composed of:
     #. **The queue**: A single ``asyncio.Queue[str]``, sized by
        ``config.maxFileWriterQueueRooms``, decouples the receiver tasks from the file
        writer task. It is created once by ``MessageSaveApp.__init__()`` before the
-       reconnect loop starts, and that same instance is shared across every reconnect cycle — a
+       first ``cycle()``, and that same instance is shared across every connection cycle — a
        message already queued when a connection drops is not discarded, it is simply
        drained by the writer task started on the next cycle. A message is only lost if
        a receiver task is cancelled while blocked handing it off to a full queue, or if
        the writer fails to write it to disk.
     #. **The file writer task**: The output file (``config.outputFile``) path is
-       resolved once by ``MessageSaveApp.__init__()`` before the reconnect loop starts,
+       resolved once by ``MessageSaveApp.__init__()`` before the first ``cycle()``,
        but the
        file itself is opened, in append mode, by ``_step_message_write_run()`` — once
        per connection cycle, since exactly one instance of that task is (re)started
@@ -168,77 +182,85 @@ coroutines are private members of the class. It is composed of:
        naturally serialized without a lock. Writes are buffered and are not explicitly
        flushed after each message — they reach disk once the buffer fills or the file
        is closed.
-    #. **The reconnect loop**: ``MessageSaveApp.work()`` creates the directory of the
-       output file, then awaits ``_step_broker_run()``, which wraps broker creation, subscription, and the
-       receiver/writer ``TaskGroup`` in a ``while True`` loop. If an unhandled
-       exception propagates out of the broker/task-group block (e.g. a lost MQTT
-       connection), it is logged, the broker and all receiver/writer tasks are torn
-       down as the ``async with``/``TaskGroup`` blocks exit, the loop sleeps
-       ``config.reconnectInterval`` seconds, and then it reconnects by constructing a
-       brand-new ``StepBroker`` and starting a fresh ``_step_message_write_run()`` task
-       — which reopens the *same* output file in append mode — against the *same*
-       shared queue.
+    #. **The connection cycle**: each ``MessageSaveApp.cycle()`` creates the directory
+       of the output file (a no-op once it exists), constructs a brand-new
+       ``StepBroker``, awaits ``StepBroker.subscribe_execution()`` and runs the
+       receiver tasks and the writer task in a ``TaskGroup`` nested in the broker
+       context, so the broker only disconnects once the group has unwound.
+    #. **The reconnect loop**: the inherited ``ReconnectingApp.work()`` runs
+       ``cycle()`` in a loop. If an exception propagates out of ``cycle()`` (e.g. a
+       lost MQTT connection), the broker and all receiver/writer tasks are torn down
+       as the ``async with``/``TaskGroup`` blocks exit, ``work()`` logs it with its
+       traceback, sleeps ``config.reconnectInterval`` seconds and runs ``cycle()``
+       again, whose fresh ``_step_message_write_run()`` task reopens the *same*
+       output file in append mode against the *same* shared queue. If the current
+       task is being cancelled (shutdown in progress), a ``CancelledError`` is raised
+       instead, without an ERROR traceback, so the shutdown is not turned into a
+       reconnect.
+    #. **Permanent errors**: an error that a reconnect cannot fix
+       (``_FATAL_ERRORS``: step_lib ``StepLibMqttFatalError`` - CONNACK refusing the
+       MQTT authentication or authorization) ends the run with ``fatal_result()``
+       (``ExitCode.ERROR``) instead of retrying forever.
     #. **The graceful shutdown**: ``AppRunner`` (from ``step_cloud_schemas``) runs
        ``MessageSaveApp.work()`` as a task of its own ``TaskGroup`` and, on a shutdown
        signal (``SIGINT``/``SIGTERM`` on POSIX, ``SIGINT``/``SIGBREAK`` on Windows),
-       cancels it
-       wherever ``_step_broker_run()`` is (connecting, subscribing, running its tasks
-       or waiting to reconnect), so ``StepBroker`` disconnects cleanly even while the
-       broker is unreachable. Once the group has unwound, ``AppRunner`` calls
+       cancels it wherever it is (connecting, subscribing, running the tasks of
+       ``cycle()`` or waiting to reconnect), so ``StepBroker`` disconnects cleanly even
+       while the broker is unreachable. Once the group has unwound, ``AppRunner`` calls
        ``MessageSaveApp.on_shutdown()``, whose ``_drain_queue()`` appends the messages
        still queued to the output file, and the program exits with
-       ``ExitCode.ABORTED``. See `AppRunner`_ below.
+       ``ExitCode.ABORTED``. See `Entry Point and AppRunner`_ below.
 
-AppRunner
-^^^^^^^^^
+``work()`` returns only after a fatal error; otherwise it runs until ``AppRunner``
+cancels it.
 
-``AppRunner`` is provided by the ``step_cloud_schemas`` library (not implemented within
-step_message_save itself). It owns the process-wide plumbing of the entry point: the
-``asyncio.Runner`` and its event loop, the loop exception handler,
-``sys.unraisablehook``, the shutdown signal handlers and the shutdown watcher.
-step_message_save only supplies the workload, as the ``MessageSaveApp`` subclass of
-``AbstractApp[ExitCode]``:
+Entry Point and AppRunner
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
-    * ``work()``: the coroutine run by ``AppRunner``; it creates the directory of the
-      output file and awaits the reconnect loop, so it never returns on its own.
-    * ``on_shutdown(stop_signal)``: called by ``AppRunner`` once a shutdown signal has
-      stopped ``work()``; it drains the queue to the output file and returns
-      ``ExitCode.ABORTED``.
+``step_message_save.__main__.main()`` is the console script entry point. It:
 
-``AppRunner`` is generic in the result type: step_message_save uses
-``AppRunner[ExitCode]``, so ``AppRunner.run()`` returns the ``ExitCode`` that ``main()``
-turns into the process exit code.
+    #. Builds a default ``StepLogger`` logger (stderr, WARNING) and an
+       ``AppRunner[ExitCode]``. On Windows the runner uses ``asyncio.SelectorEventLoop``,
+       because the default ``ProactorEventLoop`` does not implement
+       ``add_reader``/``add_writer``, which ``aiomqtt``'s socket needs to detect the
+       CONNACK response.
+    #. Prints the help and returns ``ExitCode.USAGE`` when no argument is given.
+    #. Writes the configuration JSON schema (``-s/--conf_schema``) and/or the
+       configuration template (``-t/--conf_template``) to the given directories.
+    #. Raises ``StepCliError`` when only one of ``-c/--config`` and ``-i/--instance``
+       is given.
+    #. Runs the file conversion requested with ``-f/--file`` (``-x/--convert``,
+       ``-o/--output``), see `File Conversion`_, before the client is started.
+    #. With both ``-c/--config`` and ``-i/--instance``, validates the configuration file
+       into ``StepMessageSaveConfig``, rebuilds the logger from ``config.log``,
+       force-writes the program and library versions (``step_cloud_schemas``,
+       ``step_lib``) and runs ``MessageSaveApp`` with ``AppRunner.run()``, returning its
+       exit code.
 
-How ``main()`` uses it:
+``AppRunner`` (from ``step_cloud_schemas``) owns the process-wide plumbing: the
+``asyncio.Runner``, the loop exception handler, ``sys.unraisablehook`` and the shutdown
+signal handlers. It runs ``MessageSaveApp.work()`` (inherited from ``ReconnectingApp``)
+next to a shutdown watcher task in a
+``TaskGroup``: when a shutdown signal arrives the watcher raises an internal
+``_ShutdownRequestedError``, the ``TaskGroup`` cancels ``work`` wherever it is and, once
+every task has unwound (the writer task has closed the output file and ``StepBroker``
+has disconnected), ``MessageSaveApp.on_shutdown()`` is called with the signal.
 
-    #. **Construction first**: ``main()`` builds the ``AppRunner`` before parsing the
-       command line. The constructor installs the process-wide hooks (the signal
-       handlers and ``sys.unraisablehook``), so they cover the whole run, including
-       the file conversion and the configuration loading. ``AppRunner`` is a
-       singleton: it is constructed once, from the main thread.
-    #. **Loop factory**: on Windows ``main()`` passes ``asyncio.SelectorEventLoop`` as
-       ``loop_factory``; on the other platforms the asyncio default loop is used.
-    #. **Run**: once the configuration is loaded and the ``MessageSaveApp`` is built,
-       ``main()`` calls ``app_runner.run(app=app)``, which runs
-       ``MessageSaveApp.work()`` on a new event loop.
-    #. **Shutdown**: on a shutdown signal (``SIGINT``/``SIGTERM`` on POSIX,
-       ``SIGINT``/``SIGBREAK`` on Windows) ``AppRunner`` cancels ``work()`` wherever
-       it is. Once every task has unwound, hence once the writer task has closed the
-       output file and ``StepBroker`` has disconnected, ``AppRunner`` calls
-       ``MessageSaveApp.on_shutdown()`` and returns its result.
+``main()`` maps the outcome to an ``ExitCode``:
 
-The outcome of a run maps to the exit codes as follows:
-
-    * **Shutdown signal during the run**: ``on_shutdown()`` returns
-      ``ExitCode.ABORTED``.
-    * **Exception raised by** ``work()``: it is not caught by ``AppRunner``; it leaves
-      ``run()`` wrapped in an ``ExceptionGroup``, ``on_shutdown()`` is not called, and
-      the top-level ``except Exception`` of ``main()`` logs it and returns
-      ``ExitCode.ERROR``. Since the reconnect loop retries after any exception, this
-      only happens when the directory of the output file cannot be created.
-    * **Signal outside the run** (before ``run()`` has started the event loop, or
-      after it has returned): ``KeyboardInterrupt`` is raised, which ``main()`` maps
-      to ``ExitCode.ABORTED``.
+    * ``OK`` (0): success (e.g. only schema/template generation or a file conversion
+      was requested), including ``-h/--help`` and ``-v/--version``
+    * ``USAGE`` (1): no argument, an invalid or unknown option, or ``StepCliError``
+      (logged as a plain error line)
+    * ``ERROR`` (2): a file conversion failure (``LoaderError``/``WriterError``, logged
+      as a plain error line), or any other unhandled exception, logged with its
+      traceback: an invalid configuration file, a missing or invalid environment
+      variable (``ValueError`` raised by the ``MessageSaveApp`` constructor, see
+      `Environment Variables`_), or an error that a reconnect cannot fix
+      (``fatal_result()``)
+    * ``ABORTED`` (3): shutdown signal (returned by ``on_shutdown``, after the queue has
+      been drained to the output file) or ``KeyboardInterrupt`` (a signal received
+      before ``run()`` has started the event loop, or after it has returned)
 
 .. container:: scrollable-diagram
 
@@ -257,7 +279,10 @@ The outcome of a run maps to the exit codes as follows:
       Main -> App : MessageSaveApp(instance_name, config, logger)
       Main -> Runner : run(app)
       Runner -> App : work()
-      App -> App : reconnect loop\n(receiver and writer tasks)
+      loop until cancelled or fatal error
+         App -> App : cycle()\n(receiver and writer tasks)
+         App -> App : on failure: log,\nwait reconnectInterval
+      end
       Signal -> Runner : SIGINT / SIGTERM / SIGBREAK
       Runner -> App : cancel work()
       App --> Runner : tasks unwound\n(file closed, broker disconnected)
@@ -268,10 +293,38 @@ The outcome of a run maps to the exit codes as follows:
 
       @enduml
 
-The following class diagram shows the structure of ``MessageSaveApp`` and how it plugs
-into ``AppRunner``. ``AppRunner`` and ``AbstractApp`` belong to ``step_cloud_schemas``
-and are shown only through the interface used by step_message_save: ``AppRunner``
-depends only on ``AbstractApp``, never on ``MessageSaveApp`` itself.
+Application Runtime (step_cloud_schemas)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. note::
+   ``AppRunner``, ``AbstractApp`` and ``ReconnectingApp`` are not part of the
+   ``step_message_save`` package: they are imported from the external ``step_cloud_schemas``
+   dependency, shared by the STEP programs. Only their public interface, the part used by
+   STEP Message Save, is described here.
+
+The three classes split a long-running program in two parts: the process-wide plumbing (event
+loop, signal handlers, exception hooks), owned by ``AppRunner``, and the workload, supplied by the
+program as an ``AbstractApp`` subclass. ``R`` is the program's result type: for STEP Message
+Save, ``ExitCode``.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 78
+
+   * - Class
+     - Role
+   * - ``AbstractApp[R]``
+     - Abstract base class of a workload run by ``AppRunner``. It declares the two methods
+       ``AppRunner`` needs and holds no state (empty ``__slots__``, so a subclass declares its own).
+   * - ``ReconnectingApp[R]``
+     - Abstract ``AbstractApp`` subclass that implements ``work`` as a reconnect loop around a
+       connection cycle (``cycle``), implemented by the program.
+   * - ``AppRunner[R]``
+     - Singleton that runs an ``AbstractApp`` on a new event loop until it ends or a shutdown
+       signal stops it.
+
+The class diagram below shows the public interface of the three classes and how
+``MessageSaveApp`` plugs into them:
 
 .. container:: scrollable-diagram
 
@@ -283,18 +336,45 @@ depends only on ``AbstractApp``, never on ``MessageSaveApp`` itself.
       !theme plain
       skinparam classAttributeIconSize 0
 
-      package "step_cloud_schemas" {
-         class "AppRunner<R>" as AppRunner {
-            +run(app: AbstractApp<R>): R
+      package "step_cloud_schemas" #LightGray {
+         abstract class "AbstractApp[R]" as AbstractApp {
+            +{abstract} async work() : R
+            +{abstract} on_shutdown(stop_signal : Signals) : R
          }
 
-         abstract class "AbstractApp<R>" as AbstractApp {
-            +{abstract} async work(): R
-            +{abstract} on_shutdown(stop_signal: Signals): R
+         abstract class "ReconnectingApp[R]" as ReconnectingApp {
+            #_FATAL_ERRORS : tuple[type[Exception], ...] = () {static}
+            +__init__(logger : Logger, reconnect_interval : int)
+            +{abstract} async cycle() : None
+            +{abstract} fatal_result() : R
+            +async work() : R
+         }
+
+         class "AppRunner[R]" as AppRunner <<singleton>> {
+            +__init__(logger_param : Logger, loop_factory = None, exception_handler = None, unraisable_handler = None)
+            +logger : Logger <<property>>
+            +run(app : AbstractApp[R]) : R
          }
       }
 
       package "step_message_save" {
+         class MessageSaveApp {
+            #_FATAL_ERRORS = (StepLibMqttFatalError,) {static}
+            -_instance_name : str
+            -_config : StepMessageSaveConfig
+            -_mqtt_credential : MqttCredential
+            -_output_file : Path
+            -_queue : Queue[str]
+            +__init__(instance_name : str, config : StepMessageSaveConfig, logger : Logger)
+            +async cycle() : None
+            +fatal_result() : ExitCode
+            +on_shutdown(stop_signal : Signals) : ExitCode
+            -_log_received_message(message, level) : None
+            -async _step_receive_run(instance_name, step_broker) : None
+            -async _step_message_write_run() : None
+            -_drain_queue() : int
+         }
+
          enum ExitCode {
             OK = 0
             USAGE = 1
@@ -302,41 +382,100 @@ depends only on ``AbstractApp``, never on ``MessageSaveApp`` itself.
             ABORTED = 3
          }
 
-         class MessageSaveApp {
-            -{static} _MQTT_URL_VAR_NAME: str
-            -{static} _MQTT_PORT_VAR_NAME: str
-            -{static} _MQTT_USERNAME_VAR_NAME: str
-            -{static} _MQTT_PASSWORD_VAR_NAME: str
-            -_instance_name: str
-            -_config: StepMessageSaveConfig
-            -_logger: Logger
-            -_mqtt_credential: MqttCredential
-            -_output_file: Path
-            -_queue: Queue[str]
-            +__init__(instance_name, config, logger)
-            +async work(): ExitCode
-            +on_shutdown(stop_signal: Signals): ExitCode
-            -_get_mqtt_credential(): MqttCredential
-            -_log_received_message(message, level): None
-            -async _step_receive_run(instance_name, step_broker): None
-            -async _step_message_write_run(): None
-            -async _step_broker_run(): None
-            -_drain_queue(): int
-         }
-
          class StepBroker
          class StepMessageSaveConfig
          class MqttCredential
       }
 
-      AppRunner ..> AbstractApp : calls work / on_shutdown
-      AbstractApp <|-- MessageSaveApp : R = ExitCode
+      ReconnectingApp --|> AbstractApp
+      MessageSaveApp --|> ReconnectingApp : R = ExitCode
+      AppRunner ..> AbstractApp : run(app)
       MessageSaveApp ..> ExitCode : returns
       MessageSaveApp --> StepMessageSaveConfig : uses
       MessageSaveApp *-- MqttCredential
       MessageSaveApp ..> StepBroker : creates per\nconnection cycle
 
+      note bottom of AppRunner
+         main() builds AppRunner[ExitCode]
+         (SelectorEventLoop on Windows)
+         and calls run(MessageSaveApp(...))
+      end note
+
       @enduml
+
+**AbstractApp: public interface**
+
+   * ``async work() -> R`` (abstract): The workload, called once per run as a task of the
+     ``AppRunner`` ``TaskGroup``; it returns the result when it ends on its own. On a shutdown
+     signal it is cancelled at the ``await`` it is suspended on, so it has to be
+     cancellation-safe.
+   * ``on_shutdown(stop_signal: Signals) -> R`` (abstract): Called by ``AppRunner`` after a
+     shutdown signal stopped ``work``, once every task has unwound (the resources held by ``work``
+     are already released); it runs on the event loop thread and cannot ``await``. Its value is
+     the result of the run. ``MessageSaveApp`` appends the messages still queued to the output
+     file (``_drain_queue()``), logs the signal name and the number of messages saved, and
+     returns ``ExitCode.ABORTED``.
+
+**ReconnectingApp: public interface**
+
+   * ``ReconnectingApp(logger, reconnect_interval)``: ``logger`` is used for the start, error and
+     retry messages, ``reconnect_interval`` is the number of seconds to wait before the next cycle.
+     ``MessageSaveApp`` passes its own logger and ``config.reconnectInterval``.
+   * ``async cycle() -> None`` (abstract): Opens the connections and runs the tasks until one of
+     them fails; returns only if every task ends normally, and then the next cycle starts at once.
+     Like ``work``, it has to be cancellation-safe. ``MessageSaveApp.cycle()`` creates the
+     directory of the output file, opens the ``StepBroker`` and runs the receiver and writer
+     tasks.
+   * ``fatal_result() -> R`` (abstract): The result returned by ``work`` after an error that a
+     reconnect cannot fix (``MessageSaveApp``: ``ExitCode.ERROR``).
+   * ``async work() -> R``: Logs ``Program started``, then runs ``cycle`` in a loop. When ``cycle``
+     raises:
+
+        - while a shutdown cancellation is in progress, the error is logged at INFO level and
+          ``CancelledError`` is restored, so the shutdown goes on without an ERROR traceback;
+        - otherwise the error is logged with its traceback, and if it, or any error nested in an
+          ``ExceptionGroup`` (as raised by a ``TaskGroup``), is one of the subclass's fatal error
+          types, ``work`` logs a CRITICAL line and returns ``fatal_result()``;
+        - otherwise ``work`` waits ``reconnect_interval`` seconds and runs ``cycle`` again.
+
+     It never returns otherwise: the loop ends only when ``AppRunner`` cancels it.
+
+   The fatal error types are the ``_FATAL_ERRORS`` class attribute that each subclass sets
+   (``MessageSaveApp``: step_lib ``StepLibMqttFatalError``); with none set, every error is
+   retried. Any other error, including an output file or directory that cannot be written, is
+   retried every ``reconnectInterval`` seconds.
+
+**AppRunner: public interface**
+
+   * ``AppRunner[R](logger_param, loop_factory=None, exception_handler=None, unraisable_handler=None)``:
+
+        - ``logger_param``: Logger used by the default exception and unraisable handlers.
+        - ``loop_factory``: Factory of the event loop created by every ``run``, forwarded to
+          ``asyncio.Runner``; ``None`` uses the asyncio default loop. STEP Message Save passes
+          ``asyncio.SelectorEventLoop`` on Windows (``IS_WINDOWS``), because the default
+          ``ProactorEventLoop`` lacks the ``add_reader``/``add_writer`` that ``aiomqtt`` needs.
+        - ``exception_handler``: Event loop exception handler; ``None`` logs the exception on
+          the logger.
+        - ``unraisable_handler``: Installed as ``sys.unraisablehook``; ``None`` logs the exception
+          on the logger.
+
+     The constructor installs the process-wide hooks (signal handlers, ``sys.unraisablehook``): it
+     is called from the main thread as early as possible, which is why ``main()`` builds it before
+     parsing the arguments, so that a signal received before ``run`` (e.g. during the file
+     conversion or the configuration loading) is still handled. Being a singleton, only the
+     first construction takes effect; the arguments of later calls are ignored.
+   * ``logger`` (property): The logger given to the constructor.
+   * ``run(app: AbstractApp[R]) -> R``: Opens an ``asyncio.Runner``, installs the exception handler
+     and the shutdown handlers (``SIGINT``/``SIGTERM`` on POSIX, ``SIGINT``/``SIGBREAK`` on
+     Windows), then runs ``app.work()`` next to a shutdown watcher in a ``TaskGroup``. It returns
+     the value of ``app.work()`` when the workload ends on its own, or the value of
+     ``app.on_shutdown(stop_signal)`` when a shutdown signal stops it. Any other exception raised
+     by ``work`` propagates wrapped in an ``ExceptionGroup``, which ``main()`` logs and maps to
+     ``ExitCode.ERROR``.
+
+   A shutdown signal never interrupts the workload at an arbitrary point: the signal handler only
+   sets an event, the watcher task turns it into an exception, and the ``TaskGroup`` cancels
+   ``work`` at the ``await`` it is suspended on.
 
 StepMessageSaveConfig
 ^^^^^^^^^^^^^^^^^^^^^
@@ -374,37 +513,70 @@ The design of ``StepMessageSaveConfig`` emphasizes immutability and strong valid
 prevent configuration-related issues during runtime while providing a clear, structured
 approach to configuration management.
 
-MQTT Credential Loading
-^^^^^^^^^^^^^^^^^^^^^^^
+Environment Variables
+^^^^^^^^^^^^^^^^^^^^^
 
-MQTT broker connection secrets are kept out of the (persisted) JSON configuration
-file and are instead read from the process environment by
-``MessageSaveApp._get_mqtt_credential()`` in ``message_save_app.py``, which is called
-once by ``MessageSaveApp.__init__()``, when ``main()`` builds the application right
-after the logger is set up and before ``AppRunner.run()`` is started.
+The MQTT broker address and credentials are the only settings not taken from the JSON
+configuration file: they are read from the environment, so that secrets are never written to
+a configuration document. The TLS settings of the MQTT client stay in the configuration file,
+in the ``stepBroker.mqttClient`` section.
 
-Key aspects of this component:
+.. list-table::
+   :header-rows: 1
+   :widths: 22 12 22 44
 
-    #. **``.env`` File Support**: Calls ``load_dotenv(find_dotenv(usecwd=True))`` (from ``python-dotenv``)
-       before reading any variable, so the values may come from a ``.env`` file in
-       the working directory or from variables already present in the process
-       environment.
-    #. **Required Variables**: Reads ``MQTT_URL`` and ``MQTT_PORT`` (the
-       ``_MQTT_URL_VAR_NAME``/``_MQTT_PORT_VAR_NAME`` class constants); if either is
-       unset,
-       ``_get_mqtt_credential()`` raises ``ValueError``, which propagates up and is
-       caught by the top-level exception handling in ``main()``.
-    #. **Optional Variables**: Reads ``MQTT_USERNAME`` and ``MQTT_PASSWORD``
-       (``_MQTT_USERNAME_VAR_NAME``/``_MQTT_PASSWORD_VAR_NAME``); both may be absent,
-       in which case the broker connection is attempted without authentication.
-    #. **MqttCredential**: The four values are assembled into an
-       ``MqttCredential`` ``NamedTuple`` (defined in ``step_message_save_config.py``),
-       kept separate from ``StepMessageSaveConfig`` specifically so secrets never end
-       up embedded in the configuration document. The resulting instance is kept
-       by ``MessageSaveApp`` and handed to every ``StepBroker`` it builds, which uses
-       it to authenticate the MQTT connection.
-    #. **Startup Logging**: Once loaded, the resolved host, port, and username (but
-       never the password) are logged at INFO level for diagnostic purposes.
+   * - Variable
+     - Required
+     - Read by
+     - Description
+   * - ``MQTT_URL``
+     - yes
+     - step_lib ``MqttCredential``
+     - MQTT broker host name or IP address
+   * - ``MQTT_PORT``
+     - yes
+     - step_lib ``MqttCredential``
+     - MQTT broker port (1-65535); usually 8883 with TLS
+       (``stepBroker.mqttClient.sslEnable`` true), 1883 without
+   * - ``MQTT_USERNAME``
+     - no
+     - step_lib ``MqttCredential``
+     - Broker username; unset or empty connects anonymously
+   * - ``MQTT_PASSWORD``
+     - no
+     - step_lib ``MqttCredential``
+     - Broker password; ignored, with a WARNING, when ``MQTT_USERNAME`` is not set
+
+How they are read:
+
+    #. ``MessageSaveApp.__init__()`` calls ``MqttCredential.from_env()`` once, before
+       ``AppRunner.run()``. The credential is read once at construction rather than in
+       ``cycle()``, because ``work()`` retries on every non-fatal exception and a missing
+       variable would never end the program. The resulting ``MqttCredential`` (a frozen
+       dataclass, kept separate from ``StepMessageSaveConfig``) is handed to every
+       ``StepBroker`` built by ``cycle()``.
+    #. ``from_env()`` first loads the ``.env`` file found in the **current working
+       directory** or its nearest parent (``load_dotenv(find_dotenv(usecwd=True))``): what
+       counts is the directory ``step_message_save`` is launched from, not the directory of
+       the installed package. Without a ``.env`` file only the environment is read.
+    #. A variable already set in the environment (shell, container) wins over the ``.env``
+       file: ``load_dotenv`` only adds missing variables.
+    #. An empty username or password counts as unset.
+    #. The host, the port and whether a username is set are logged at INFO level; the
+       username and the password never are.
+    #. A missing ``MQTT_URL``/``MQTT_PORT``, a non-integer or out-of-range port, or an empty
+       host raise ``ValueError``; ``main()`` logs it with its traceback and returns
+       ``ExitCode.ERROR``.
+
+Credentials that the broker rejects are not detected here but on connection, as a fatal
+error (``StepLibMqttFatalError``) that ends the run with ``ExitCode.ERROR`` instead of being
+retried.
+
+The repository ships a commented template,
+:download:`env/.env.example <env/.env.example>`: download it, save it as ``.env`` in the
+directory ``step_message_save`` is launched from and fill in the values. ``.env`` is listed
+in ``.gitignore``; only the template is versioned. See :ref:`step_message_save_credentials`
+for the file format and the alternatives to the file.
 
 StepLogger
 ^^^^^^^^^^
@@ -480,8 +652,8 @@ All classes are message-only exceptions (the message is carried via the standard
 error-type classification, or recovery-hint mechanism beyond what the raised message
 string conveys. Callers catch and log these via the standard Python exception handling
 already used throughout the application (e.g. the top-level ``except`` clauses in
-``main()`` and the ``except*`` clause of the reconnect loop in
-``MessageSaveApp._step_broker_run()``).
+``main()`` and the ``except`` clause of the reconnect loop in the inherited
+``ReconnectingApp.work()`` of ``MessageSaveApp``).
 
 File Conversion
 ^^^^^^^^^^^^^^^
@@ -796,8 +968,11 @@ connection, feeding a bounded ``asyncio.Queue`` that a single
 
 On an unmanaged exception (e.g. a lost MQTT connection), the exception propagates out of
 the ``async with StepBroker(...)``/``TaskGroup`` block in
-``MessageSaveApp._step_broker_run()``, tearing down the current broker and all receiver/writer tasks. The reconnect loop then waits
-``reconnectInterval`` seconds and retries the whole connect-subscribe-receive cycle with a
+``MessageSaveApp.cycle()``, tearing down the current broker and all receiver/writer
+tasks. The inherited ``ReconnectingApp.work()`` then waits ``reconnectInterval`` seconds
+and runs ``cycle()`` again, retrying the whole connect-subscribe-receive cycle with a
 brand-new ``StepBroker`` instance. The new writer task reopens the output file in append
 mode, so messages persisted before the drop are not lost, and drains the shared queue,
-so messages queued before the drop are not lost either.
+so messages queued before the drop are not lost either. A ``StepLibMqttFatalError`` (the
+broker refused the client's authentication or authorization) is not retried: ``work()``
+returns ``ExitCode.ERROR``.
