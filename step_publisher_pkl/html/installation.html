@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Installation with uv &mdash; STEP Publisher Pickle 1.4.3 documentation</title>
+  <title>Installation with uv &mdash; STEP Publisher Pickle 1.4.4 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="_static/tabs.css?v=4c969af8" />
@@ -16,7 +16,7 @@
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=a68a9277"></script>
+      <script src="_static/documentation_options.js?v=6d0302ba"></script>
       <script src="_static/doctools.js?v=fd6eb6e6"></script>
       <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="_static/tabs.js?v=3ee01567"></script>
@@ -91,7 +91,7 @@
 <li class="toctree-l3"><a class="reference internal" href="usage.html#example-configuration">Example Configuration</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="usage.html#running-step-publisher-pickle-as-a-service">Running STEP Publisher Pickle as a Service</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#running-step-publisher-pickle">Running STEP Publisher Pickle</a></li>
 <li class="toctree-l2"><a class="reference internal" href="usage.html#command-line-options">Command-Line Options</a></li>
 </ul>
 </li>
@@ -123,17 +123,21 @@
 <li class="toctree-l2"><a class="reference internal" href="architecture.html#overview">Overview</a></li>
 <li class="toctree-l2"><a class="reference internal" href="architecture.html#library">Library</a></li>
 <li class="toctree-l2"><a class="reference internal" href="architecture.html#components">Components</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="architecture.html#entry-point-and-apprunner">Entry Point and AppRunner</a></li>
+<li class="toctree-l3"><a class="reference internal" href="architecture.html#application-runtime-step-cloud-schemas">Application Runtime (step_cloud_schemas)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="architecture.html#steppublisherapp">StepPublisherApp</a></li>
 <li class="toctree-l3"><a class="reference internal" href="architecture.html#stepbroker">StepBroker</a></li>
 <li class="toctree-l3"><a class="reference internal" href="architecture.html#scenario-and-file-loaders">Scenario and File Loaders</a></li>
 <li class="toctree-l3"><a class="reference internal" href="architecture.html#steppublisherpklconfig">StepPublisherPklConfig</a></li>
+<li class="toctree-l3"><a class="reference internal" href="architecture.html#environment-variables">Environment Variables</a></li>
 <li class="toctree-l3"><a class="reference internal" href="architecture.html#steplogger">StepLogger</a></li>
-<li class="toctree-l3"><a class="reference internal" href="architecture.html#exceptions">Exceptions</a></li>
-<li class="toctree-l3"><a class="reference internal" href="architecture.html#main-application-main">Main Application (__main__)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="architecture.html#stepexception">StepException</a></li>
 <li class="toctree-l3"><a class="reference internal" href="architecture.html#component-diagram">Component Diagram</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="architecture.html#class-diagram">Class Diagram</a></li>
 <li class="toctree-l2"><a class="reference internal" href="architecture.html#sequence-diagrams">Sequence Diagrams</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="architecture.html#sequence-diagram-lifecycle">Sequence Diagram - Lifecycle</a></li>
 <li class="toctree-l3"><a class="reference internal" href="architecture.html#sequence-diagram-its-message-publishing-from-scenario-files">Sequence Diagram - ITS Message Publishing from Scenario Files</a></li>
 </ul>
 </li>
@@ -253,6 +257,10 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="step_publisher_pkl_rst/step_publisher_pkl.html#submodules">Submodules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="step_publisher_pkl_rst/step_publisher_pkl.__main__.html">step_publisher_pkl.__main__ module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="step_publisher_pkl_rst/step_publisher_pkl.__main__.html#step_publisher_pkl.__main__.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="step_publisher_pkl_rst/step_publisher_pkl.scenario.html">step_publisher_pkl.scenario module</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="step_publisher_pkl_rst/step_publisher_pkl.scenario.html#step_publisher_pkl.scenario.Scenario"><code class="docutils literal notranslate"><span class="pre">Scenario</span></code></a><ul>
 <li class="toctree-l5"><a class="reference internal" href="step_publisher_pkl_rst/step_publisher_pkl.scenario.html#step_publisher_pkl.scenario.Scenario.stations_blacklist"><code class="docutils literal notranslate"><span class="pre">Scenario.stations_blacklist</span></code></a></li>
@@ -289,6 +297,24 @@
 <li class="toctree-l4"><a class="reference internal" href="step_publisher_pkl_rst/step_publisher_pkl.step_exception.html#step_publisher_pkl.step_exception.StepPublisherPklError"><code class="docutils literal notranslate"><span class="pre">StepPublisherPklError</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="step_publisher_pkl_rst/step_publisher_pkl.step_publisher_app.html">step_publisher_pkl.step_publisher_app module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="step_publisher_pkl_rst/step_publisher_pkl.step_publisher_app.html#step_publisher_pkl.step_publisher_app.ExitCode"><code class="docutils literal notranslate"><span class="pre">ExitCode</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="step_publisher_pkl_rst/step_publisher_pkl.step_publisher_app.html#step_publisher_pkl.step_publisher_app.ExitCode.OK"><code class="docutils literal notranslate"><span class="pre">ExitCode.OK</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_publisher_pkl_rst/step_publisher_pkl.step_publisher_app.html#step_publisher_pkl.step_publisher_app.ExitCode.USAGE"><code class="docutils literal notranslate"><span class="pre">ExitCode.USAGE</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_publisher_pkl_rst/step_publisher_pkl.step_publisher_app.html#step_publisher_pkl.step_publisher_app.ExitCode.ERROR"><code class="docutils literal notranslate"><span class="pre">ExitCode.ERROR</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_publisher_pkl_rst/step_publisher_pkl.step_publisher_app.html#step_publisher_pkl.step_publisher_app.ExitCode.ABORTED"><code class="docutils literal notranslate"><span class="pre">ExitCode.ABORTED</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="step_publisher_pkl_rst/step_publisher_pkl.step_publisher_app.html#step_publisher_pkl.step_publisher_app.StepPublisherApp"><code class="docutils literal notranslate"><span class="pre">StepPublisherApp</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="step_publisher_pkl_rst/step_publisher_pkl.step_publisher_app.html#step_publisher_pkl.step_publisher_app.StepPublisherApp.instance_name"><code class="docutils literal notranslate"><span class="pre">StepPublisherApp.instance_name</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_publisher_pkl_rst/step_publisher_pkl.step_publisher_app.html#step_publisher_pkl.step_publisher_app.StepPublisherApp.config"><code class="docutils literal notranslate"><span class="pre">StepPublisherApp.config</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_publisher_pkl_rst/step_publisher_pkl.step_publisher_app.html#step_publisher_pkl.step_publisher_app.StepPublisherApp.logger"><code class="docutils literal notranslate"><span class="pre">StepPublisherApp.logger</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_publisher_pkl_rst/step_publisher_pkl.step_publisher_app.html#step_publisher_pkl.step_publisher_app.StepPublisherApp.on_shutdown"><code class="docutils literal notranslate"><span class="pre">StepPublisherApp.on_shutdown()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_publisher_pkl_rst/step_publisher_pkl.step_publisher_app.html#step_publisher_pkl.step_publisher_app.StepPublisherApp.work"><code class="docutils literal notranslate"><span class="pre">StepPublisherApp.work()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="step_publisher_pkl_rst/step_publisher_pkl.step_publisher_pkl_config.html">step_publisher_pkl.step_publisher_pkl_config module</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="step_publisher_pkl_rst/step_publisher_pkl.step_publisher_pkl_config.html#step_publisher_pkl.step_publisher_pkl_config.MessageType"><code class="docutils literal notranslate"><span class="pre">MessageType</span></code></a><ul>
 <li class="toctree-l5"><a class="reference internal" href="step_publisher_pkl_rst/step_publisher_pkl.step_publisher_pkl_config.html#step_publisher_pkl.step_publisher_pkl_config.MessageType.CAM"><code class="docutils literal notranslate"><span class="pre">MessageType.CAM</span></code></a></li>
@@ -308,14 +334,6 @@
 <li class="toctree-l5"><a class="reference internal" href="step_publisher_pkl_rst/step_publisher_pkl.step_publisher_pkl_config.html#step_publisher_pkl.step_publisher_pkl_config.MqttClientConfig.sslCaCertsFile"><code class="docutils literal notranslate"><span class="pre">MqttClientConfig.sslCaCertsFile</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="step_publisher_pkl_rst/step_publisher_pkl.step_publisher_pkl_config.html#step_publisher_pkl.step_publisher_pkl_config.MqttClientConfig.get_default"><code class="docutils literal notranslate"><span class="pre">MqttClientConfig.get_default()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="step_publisher_pkl_rst/step_publisher_pkl.step_publisher_pkl_config.html#step_publisher_pkl.step_publisher_pkl_config.MqttClientConfig.model_config"><code class="docutils literal notranslate"><span class="pre">MqttClientConfig.model_config</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l4"><a class="reference internal" href="step_publisher_pkl_rst/step_publisher_pkl.step_publisher_pkl_config.html#step_publisher_pkl.step_publisher_pkl_config.MqttCredential"><code class="docutils literal notranslate"><span class="pre">MqttCredential</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="step_publisher_pkl_rst/step_publisher_pkl.step_publisher_pkl_config.html#step_publisher_pkl.step_publisher_pkl_config.MqttCredential.mqtt_url"><code class="docutils literal notranslate"><span class="pre">MqttCredential.mqtt_url</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="step_publisher_pkl_rst/step_publisher_pkl.step_publisher_pkl_config.html#step_publisher_pkl.step_publisher_pkl_config.MqttCredential.mqtt_port"><code class="docutils literal notranslate"><span class="pre">MqttCredential.mqtt_port</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="step_publisher_pkl_rst/step_publisher_pkl.step_publisher_pkl_config.html#step_publisher_pkl.step_publisher_pkl_config.MqttCredential.mqtt_username"><code class="docutils literal notranslate"><span class="pre">MqttCredential.mqtt_username</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="step_publisher_pkl_rst/step_publisher_pkl.step_publisher_pkl_config.html#step_publisher_pkl.step_publisher_pkl_config.MqttCredential.mqtt_password"><code class="docutils literal notranslate"><span class="pre">MqttCredential.mqtt_password</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="step_publisher_pkl_rst/step_publisher_pkl.step_publisher_pkl_config.html#step_publisher_pkl.step_publisher_pkl_config.MqttCredential.__post_init__"><code class="docutils literal notranslate"><span class="pre">MqttCredential.__post_init__()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l4"><a class="reference internal" href="step_publisher_pkl_rst/step_publisher_pkl.step_publisher_pkl_config.html#step_publisher_pkl.step_publisher_pkl_config.MqttProtocolConfig"><code class="docutils literal notranslate"><span class="pre">MqttProtocolConfig</span></code></a><ul>
@@ -557,6 +575,22 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="test_rst/test.test_step_publisher_app.html">test.test_step_publisher_app module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_publisher_app.html#test.test_step_publisher_app.TestExitCode"><code class="docutils literal notranslate"><span class="pre">TestExitCode</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_publisher_app.html#test.test_step_publisher_app.TestExitCode.test_value"><code class="docutils literal notranslate"><span class="pre">TestExitCode.test_value()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_publisher_app.html#test.test_step_publisher_app.TestStepPublisherApp"><code class="docutils literal notranslate"><span class="pre">TestStepPublisherApp</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_publisher_app.html#test.test_step_publisher_app.TestStepPublisherApp.test___init__"><code class="docutils literal notranslate"><span class="pre">TestStepPublisherApp.test___init__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_publisher_app.html#test.test_step_publisher_app.TestStepPublisherApp.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestStepPublisherApp.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_publisher_app.html#test.test_step_publisher_app.TestStepPublisherApp.test__publisher_run"><code class="docutils literal notranslate"><span class="pre">TestStepPublisherApp.test__publisher_run()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_publisher_app.html#test.test_step_publisher_app.TestStepPublisherApp.test_on_shutdown"><code class="docutils literal notranslate"><span class="pre">TestStepPublisherApp.test_on_shutdown()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_publisher_app.html#test.test_step_publisher_app.TestStepPublisherApp.test_work"><code class="docutils literal notranslate"><span class="pre">TestStepPublisherApp.test_work()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_publisher_app.html#test.test_step_publisher_app.TestStepPublisherApp.test_work_task_failure"><code class="docutils literal notranslate"><span class="pre">TestStepPublisherApp.test_work_task_failure()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="test_rst/test.test_step_publisher_pkl_config.html">test.test_step_publisher_pkl_config module</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_publisher_pkl_config.html#test.test_step_publisher_pkl_config.TestConfigGenerateJsonSchema"><code class="docutils literal notranslate"><span class="pre">TestConfigGenerateJsonSchema</span></code></a><ul>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_publisher_pkl_config.html#test.test_step_publisher_pkl_config.TestConfigGenerateJsonSchema.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestConfigGenerateJsonSchema.test___slots__()</span></code></a></li>
@@ -575,15 +609,6 @@
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_publisher_pkl_config.html#test.test_step_publisher_pkl_config.TestMqttClientConfig"><code class="docutils literal notranslate"><span class="pre">TestMqttClientConfig</span></code></a><ul>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_publisher_pkl_config.html#test.test_step_publisher_pkl_config.TestMqttClientConfig.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestMqttClientConfig.test___slots__()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_publisher_pkl_config.html#test.test_step_publisher_pkl_config.TestMqttClientConfig.test_get_default"><code class="docutils literal notranslate"><span class="pre">TestMqttClientConfig.test_get_default()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_publisher_pkl_config.html#test.test_step_publisher_pkl_config.TestMqttCredential"><code class="docutils literal notranslate"><span class="pre">TestMqttCredential</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_publisher_pkl_config.html#test.test_step_publisher_pkl_config.TestMqttCredential.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestMqttCredential.test___slots__()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_publisher_pkl_config.html#test.test_step_publisher_pkl_config.TestMqttCredential.test_empty_url_raises"><code class="docutils literal notranslate"><span class="pre">TestMqttCredential.test_empty_url_raises()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_publisher_pkl_config.html#test.test_step_publisher_pkl_config.TestMqttCredential.test_fields"><code class="docutils literal notranslate"><span class="pre">TestMqttCredential.test_fields()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_publisher_pkl_config.html#test.test_step_publisher_pkl_config.TestMqttCredential.test_immutable"><code class="docutils literal notranslate"><span class="pre">TestMqttCredential.test_immutable()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_publisher_pkl_config.html#test.test_step_publisher_pkl_config.TestMqttCredential.test_port_boundary_valid"><code class="docutils literal notranslate"><span class="pre">TestMqttCredential.test_port_boundary_valid()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_step_publisher_pkl_config.html#test.test_step_publisher_pkl_config.TestMqttCredential.test_port_out_of_range_raises"><code class="docutils literal notranslate"><span class="pre">TestMqttCredential.test_port_out_of_range_raises()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_step_publisher_pkl_config.html#test.test_step_publisher_pkl_config.TestMqttProtocolConfig"><code class="docutils literal notranslate"><span class="pre">TestMqttProtocolConfig</span></code></a><ul>
@@ -661,7 +686,7 @@ to build and run an example in your specific environment.</p>
 <p>Before installing the library, you need to configure authentication to access the
 private git repository using a personal access token (PAT).
 You can use the following command to set up authentication:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">$uv</span><span class="w"> </span>auth<span class="w"> </span>login<span class="w"> </span>gitlab.automotive.vodafone.com<span class="w"> </span>--token<span class="w"> </span>&lt;your-personal-access-token&gt;
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">$uv</span><span class="w"> </span>auth<span class="w"> </span>login<span class="w"> </span>gitlab.automotive.vodafone.com<span class="w"> </span>-u<span class="w"> </span>&lt;your-username&gt;<span class="w"> </span>--password<span class="w"> </span>&lt;your-personal-access-token&gt;
 </pre></div>
 </div>
 <p>To check the token is correctly configured, you can use the following command:</p>

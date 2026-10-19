@@ -5,7 +5,7 @@ Command Line Interface
 Overview
 ========
 
-The step_publisher_pkl command line interface (CLI) provides a way to interact 
+The step_publisher_pkl command line interface (CLI) provides a way to interact
 with the STEP Publisher Pickle application.
 
 The CLI allows users to:
@@ -13,7 +13,8 @@ The CLI allows users to:
 * View the program version
 * Generate JSON schema documentation for configuration
 * Create configuration templates
-* Load and run the module with a specific configuration to publish vehicle position data from PKL scenario files
+* Load and run the module with a specific configuration to publish the vehicle
+  trajectory/ITS message data of JSONL, pickle, or GPX scenario files
 
 Basic Usage
 ===========
@@ -22,7 +23,8 @@ Basic Usage
 
     step_publisher_pkl [options]
 
-If no options are provided, the program will display the help message.
+If no options are provided, the program displays the help message and exits with code ``1``
+(USAGE).
 
 Options
 =======
@@ -35,11 +37,11 @@ The following command line options are available:
 ``-v, --version``
     Show the program version and exit.
 
-``-s, --conf_schema <schema file>``
-    Write the configuration JSON schema to the specified file.
+``-s, --conf_schema <schema directory>``
+    Write the configuration JSON schema file into the specified directory (created if missing).
 
-``-t, --conf_template <template file>``
-    Write a configuration template to the specified file.
+``-t, --conf_template <template directory>``
+    Write a configuration template file into the specified directory (created if missing).
 
 ``-c, --config <config file>``
     Load the configuration from the specified file and run the module.
@@ -48,8 +50,9 @@ The following command line options are available:
     Specify the instance name.
 
 .. note::
-    When the module uses the `-c` or `--config` option, also the -i or --instance option 
-    must be specified to set the instance name
+    When the module uses the ``-c`` or ``--config`` option, also the ``-i`` or ``--instance``
+    option must be specified to set the instance name, and vice versa: giving only one of
+    the two logs an error line and exits with code ``1`` (USAGE).
 
 Detailed Command Description
 ============================
@@ -74,8 +77,9 @@ To display the program version:
 
     step_publisher_pkl --version
 
-This will output the current version of the step_publisher_pkl and its dependent libraries 
-(step_cloud_schemas and step_lib).
+This will output the current version of the step_publisher_pkl. The versions of the
+dependent libraries (step_cloud_schemas and step_lib) are written to the log when the
+program runs with a configuration.
 
 Configuration Schema Generation
 -------------------------------
@@ -84,11 +88,12 @@ To generate a JSON schema file documenting all configuration options:
 
 .. code-block:: bash
 
-    step_publisher_pkl --conf_schema /path/to/schema_file.json
+    step_publisher_pkl --conf_schema /path/to/schema_dir
 
-This command creates a JSON schema file at the specified path. The file describes
-all available configuration options, their types, defaults, and constraints. 
-The schema can be used for validation or as a reference for creating custom configurations.
+This command creates ``step_publisher_pkl_config_v1_schema.json`` in the specified
+directory (created if missing). The file describes all available configuration options,
+their types, defaults, and constraints. The schema can be used for validation or as a
+reference for creating custom configurations.
 
 Configuration Template Generation
 ---------------------------------
@@ -97,9 +102,10 @@ To generate a configuration template file with default values:
 
 .. code-block:: bash
 
-    step_publisher_pkl --conf_template /path/to/template_file.json
+    step_publisher_pkl --conf_template /path/to/template_dir
 
-This command creates a JSON configuration file with default values 
+This command creates ``step_publisher_pkl_config_v1_schema_template.json`` in the
+specified directory (created if missing), a JSON configuration file with default values
 for all settings. Users can modify this file as needed to customize their configuration.
 
 Running with Configuration
@@ -112,18 +118,20 @@ To run the module with a specific configuration:
     step_publisher_pkl --instance test --config /path/to/config_file.json
 
 This loads the configuration from the specified file and starts the step_publisher_pkl.
-The module will connect to the STEP broker as specified in the configuration and publish
-CAM (Cooperative Awareness Messages) from the PKL scenario files.
+The module reads the MQTT broker host, port and credentials from the environment (see
+:ref:`step_publisher_pkl_credentials`), connects to the STEP broker and publishes the
+CAM, CPM, and DENM messages of the configured input files.
 
 Configuration File Structure
 ============================
 
-The configuration file is a JSON document that defines the behavior of the step_publisher_pkl. 
+The configuration file is a JSON document that defines the behavior of the step_publisher_pkl.
 It includes settings for:
 
 * Template version
-* PKL folder path (location of pickle scenario files)
-* STEP broker configuration (MQTT client and protocol settings)
+* Input files (JSONL, pickle, or GPX scenario files, see :doc:`input_files`)
+* Station blacklist and delay before the scenario starts
+* STEP broker configuration (MQTT client TLS/SSL and protocol settings)
 * Logging configuration
 
 Here's an example of the configuration structure:
@@ -131,7 +139,7 @@ Here's an example of the configuration structure:
 .. literalinclude:: schemas_examples/step_publisher_pkl_config_v1_schema_template.json
   :language: JSON
 
-For the :ref:`STEP Publisher Pickle Configuration Schema<step_publisher_pkl_config_schema>` with all configuration 
+For the :ref:`STEP Publisher Pickle Configuration Schema<step_publisher_pkl_config_schema>` with all configuration
 options, generate a schema file using the ``--conf_schema`` option.
 
 Exit Codes
@@ -139,10 +147,12 @@ Exit Codes
 
 The program uses the following exit codes:
 
-* ``0`` (OK): Successful termination
-* ``1`` (USAGE): Command line usage error
-* ``2`` (ERROR): General error during execution
-* ``3`` (ABORTED): Operation aborted by user or system
+* ``0`` (OK): Successful termination, ``--help``/``--version``, or every message published
+* ``1`` (USAGE): Command line usage error (no option, invalid option, ``-c`` without ``-i``
+  or vice versa)
+* ``2`` (ERROR): General error during execution (e.g. invalid configuration file, missing
+  ``MQTT_URL``/``MQTT_PORT`` variable, broker connection error)
+* ``3`` (ABORTED): Operation aborted by user or system (shutdown signal)
 
 Examples
 ========
@@ -151,13 +161,13 @@ Generate a configuration schema:
 
 .. code-block:: bash
 
-    step_publisher_pkl --conf_schema ./schema.json
+    step_publisher_pkl --conf_schema ./schemas
 
 Create a configuration template:
 
 .. code-block:: bash
 
-    step_publisher_pkl --conf_template ./template.json
+    step_publisher_pkl --conf_template ./templates
 
 Run with specific configuration:
 
@@ -169,7 +179,7 @@ Generate both schema and template:
 
 .. code-block:: bash
 
-    step_publisher_pkl --conf_schema ./schema.json --conf_template ./template.json
+    step_publisher_pkl --conf_schema ./schemas --conf_template ./templates
 
 Program Operation
 =================
@@ -177,22 +187,30 @@ Program Operation
 When running with a configuration file, the step_publisher_pkl
 performs the following operations:
 
+   #. Reads the MQTT broker host, port and credentials from the environment (``MQTT_*``
+      variables, optionally loaded from a ``.env`` file)
+   #. Hands the workload, ``StepPublisherApp``, to the step_cloud_schemas ``AppRunner``,
+      which owns the event loop and the signal handling
    #. Connects to the STEP broker (MQTT) using the provided connection settings
-   #. Loads vehicle scenario data from the specified PKL (pickle) folder path
-   #. Creates multiple asynchronous publisher tasks using TaskGroup, one for each vehicle in the scenario
+   #. Loads the vehicle trajectory/ITS message data from the configured input files and
+      rewrites the message times from scenario time to real time
+   #. Creates one asynchronous publisher task per vehicle in a ``TaskGroup``
    #. For each vehicle, the publisher:
 
-      - **Retrieves Position Data**: Iterates through vehicle positions from the scenario using pop_message()
-      - **Publishes CAM Messages**: Wraps position data in CamMessageV1 and publishes to STEP broker via MQTT
-      - **Maintains Timing**: Calculates time differences using ItsTime to match the scenario timeline
-      - **Sleeps Between Updates**: Waits between position updates to simulate realistic message timing
-   
-   #. Handles graceful shutdown when interrupted with proper resource cleanup via async context managers
+      - **Retrieves Messages**: Consumes the vehicle's messages in time order using ``pop_message()``
+      - **Maintains Timing**: Calculates the time difference between the message time and
+        the current time using ``ItsTime``
+      - **Sleeps Before Publishing**: Waits for that difference, when positive, to keep the
+        scenario timeline
+      - **Publishes Messages**: Publishes the CAM, CPM, or DENM message to the STEP broker via MQTT
 
-The module operates as a vehicle position publisher that simulates real-world Connected and Autonomous 
-Vehicle (CAV) messaging by publishing Cooperative Awareness Messages (CAM) from pre-recorded scenario 
-data. It will continue running until manually interrupted (e.g., with Ctrl+C) or until a system signal 
-is received.
+   #. Disconnects from the broker and exits with code ``0`` once every vehicle has
+      published all its messages
+
+The module operates as a vehicle position publisher that simulates real-world Connected and
+Autonomous Vehicle (CAV) messaging from pre-recorded scenario data. It runs until every
+message has been published, or until it is interrupted (e.g., with Ctrl+C) or a system
+signal is received.
 
 Advanced Usage
 ==============
@@ -200,18 +218,19 @@ Advanced Usage
 Signal Handling
 ---------------
 
-The step_publisher_pkl properly handles system signals for graceful shutdown. When a signal is received 
-(SIGBREAK on Windows, SIGINT on Unix/Linux), it cleans up resources and terminates with the appropriate 
-exit code.
+The step_publisher_pkl handles system signals for graceful shutdown through the
+step_cloud_schemas ``AppRunner``. When a shutdown signal is received (``SIGINT``/``SIGTERM``
+on POSIX, ``SIGINT``/``SIGBREAK`` - Ctrl+C/Ctrl+Break - on Windows), the publisher tasks are
+cancelled, the broker
+is disconnected, the messages not yet published are dropped, and the program exits with code
+``3`` (ABORTED).
 
 Logging
 -------
 
-The step_publisher_pkl includes detailed logging capabilities. Log settings can be configured 
+The step_publisher_pkl includes detailed logging capabilities. Log settings can be configured
 in the configuration file, including:
 
 * Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
 * Console logging
 * File logging with rotation options
-
-You can enable debug logging to troubleshoot connection or message publishing issues.

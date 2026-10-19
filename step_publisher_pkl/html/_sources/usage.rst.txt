@@ -4,44 +4,39 @@ STEP Publisher Pickle Usage Guide
 Introduction
 ------------
 
-The **STEP Publisher Pickle** is a application for the Smart Transportation Ecosystem Platform (STEP) 
-that publishes vehicle position data from pickle (PKL) files to the STEP broker using ITS ETSI messages. 
-This MQTT-based tool simulates real-world Connected and Autonomous Vehicle (CAV) messaging by 
-reading trajectory data from pickle files and publishing them as Cooperative Awareness Messages (CAM).
+The **STEP Publisher Pickle** is an application for the STEP (Safer Transport for Europe
+Platform) that publishes vehicle position data from JSONL, pickle (PKL), or GPX scenario files
+to the STEP broker using ITS ETSI messages. This MQTT-based tool simulates real-world Connected
+and Autonomous Vehicle (CAV) messaging by publishing Cooperative Awareness (CAM), Collective
+Perception (CPM), and Decentralized Environmental Notification (DENM) messages.
 
 **Core Functionality:**
 
 The publisher operates as a scenario-based vehicle simulator that:
 
-  * **Scenario Loading**: Reads vehicle trajectory data from pickle files containing GNSS positions, 
-    speed, and heading information
-  * **CAM Message Publishing**: Converts trajectory data into Cooperative Awareness Messages (CAM) 
-    following ETSI TS 103 900 standards
-  * **Multi-Vehicle Simulation**: Supports concurrent publishing of multiple vehicle trajectories 
-    using asynchronous task groups
-  * **Real-time Timing**: Maintains realistic timing between position updates based on ItsTime 
-    calculations from scenario data
-  * **MQTT Integration**: Publishes messages to STEP broker with configurable QoS levels and 
-    SSL/TLS security
-
-**Performance Characteristics:**
-
-The STEP Publisher Pickle is designed for realistic vehicle simulation:
-
-  * **Concurrent Vehicles**: Handles multiple vehicles simultaneously with independent timing
-  * **Time Synchronization**: Converts scenario timestamps to real-time for synchronized playback
-  * **Message Timing**: Maintains precise timing intervals between position updates
-  * **Asynchronous Operation**: Non-blocking async/await patterns for efficient resource usage
-  * **Graceful Shutdown**: Proper cleanup on interruption with signal handling
+  * **Scenario Loading**: Reads vehicle trajectory/ITS message data from the configured
+    input files, auto-detected per file as JSONL ITS messages, pickle actor/vehicle
+    trajectories, pickle camera (CPM) data, or GPX tracks (see :doc:`input_files`)
+  * **ITS Message Publishing**: Publishes the loaded CAM, CPM, and DENM messages; pickle
+    actor and GPX trajectory points are converted into CAM messages
+  * **Multi-Vehicle Simulation**: Publishes the messages of every vehicle concurrently, one
+    asynchronous task per vehicle
+  * **Real-time Timing**: Rewrites the message times from scenario time to real time and
+    sleeps between messages to keep the original timing
+  * **MQTT Integration**: Publishes messages to the STEP broker with configurable topics,
+    QoS levels and SSL/TLS security
 
 **Key Components:**
 
-  * **Scenario Management**: Loads and manages vehicle trajectory data from pickle files
-  * **STEP Broker Client**: MQTT-based communication with the STEP broker
-  * **Time Reference System**: Maps scenario time to real-time for synchronized playback
-  * **Configuration System**: Hierarchical Pydantic-based configuration models with comprehensive validation
-  * **Async Task Management**: Concurrent publisher tasks using asyncio.TaskGroup
-  * **Signal Handling**: Cross-platform support (Windows SIGBREAK, Unix SIGINT)
+  * **StepPublisherApp**: Workload of the program, run by the step_cloud_schemas
+    ``AppRunner``: broker connection, scenario and one publisher task per vehicle
+  * **Scenario**: Loads the input files through pluggable file loaders and serves each
+    vehicle's messages in time order
+  * **StepBroker**: MQTT-based communication with the STEP broker
+  * **Configuration System**: Hierarchical Pydantic-based configuration models with
+    comprehensive validation
+  * **Signal Handling**: Graceful shutdown on ``SIGINT``/``SIGTERM`` (POSIX) or
+    ``SIGINT``/``SIGBREAK`` - Ctrl+C/Ctrl+Break - (Windows), delegated to ``AppRunner``
 
 Prerequisites
 -------------
@@ -50,7 +45,8 @@ Before using the STEP Publisher Pickle, make sure you have:
 
     #. Python 3.13 or higher installed
     #. Access to a STEP MQTT broker with valid credentials
-    #. Vehicle trajectory data in pickle (PKL) format
+    #. Vehicle trajectory/ITS message data in one of the accepted formats (see
+       :doc:`input_files`)
     #. The step_publisher_pkl package installed in your environment
 
 Installation
@@ -71,61 +67,125 @@ Or if you're using a development version:
 Basic Concepts
 --------------
 
-STEP Publisher Pickle operates as a vehicle trajectory simulator,
-reading vehicle position data from pickle files and publishing them as CAM messages 
-to the STEP MQTT broker. Key concepts include:
-
   * **Input Files**: Vehicle trajectory and ITS message data provided via the ``inputFiles``
     configuration entry, auto-detected as JSONL ITS messages, pickle actor/vehicle
-    trajectories, or pickle camera (CPM) data - see :doc:`input_files` for the accepted
-    formats
-  * **CAM Message Publishing**: Converts trajectory data into Cooperative Awareness Messages 
-    (CAM) following ETSI standards for V2X communication
-  * **MQTT Broker Connection**: Establishes secure connection to STEP broker with SSL/TLS 
-    support and certificate authentication
-  * **Time Reference System**: Maps scenario timestamps to real-time for synchronized 
-    playback of recorded vehicle movements
-  * **Multi-Vehicle Simulation**: Concurrent publishing of multiple vehicle trajectories 
-    using asyncio task groups
-  * **Station Position Management**: Sequential consumption of vehicle positions with 
-    automatic queue management
-  * **Event-Driven Architecture**: Asynchronous task execution for non-blocking 
-    concurrent vehicle simulation
-  * **Signal Handling**: Graceful shutdown capabilities with proper resource 
-    cleanup when interrupted by system signals (SIGINT, SIGBREAK)
-  * **Configurable QoS**: Quality of Service levels (0, 1, 2) for reliable message delivery
-  * **Topic Management**: Flexible topic configuration for publishing CAM messages 
-    with geohash precision support
+    trajectories, pickle camera (CPM) data, or GPX tracks - see :doc:`input_files` for the
+    accepted formats
+  * **Station Blacklist**: Messages of the station IDs listed in ``stationsBlacklist`` are
+    not published
+  * **Time Reference System**: The earliest message time across all loaded files is mapped
+    to the current time plus ``waitTimeBeforeStarting`` milliseconds, and every message time
+    is shifted accordingly, keeping the relative timing between messages
+  * **Multi-Vehicle Simulation**: Concurrent publishing of the messages of every vehicle,
+    one asyncio task per vehicle, each consuming its messages in time order
+  * **MQTT Broker Connection**: Connection to the STEP broker with SSL/TLS support and
+    client certificate authentication; the broker host, port and credentials come from the
+    environment (see `Environment Variables`_)
+  * **Topic Management**: One publish topic per configured message type (CAM, CPM, DENM),
+    composed of a header topic and a geohash with configurable precision and QoS level
+  * **End of Run**: The program ends on its own, with exit code ``0``, once every vehicle has
+    published all its messages, or earlier on a shutdown signal (exit code ``3``)
+
+.. _step_publisher_pkl_credentials:
 
 Environment Variables
-----------------------
+---------------------
 
-MQTT broker connection secrets are kept out of the (persisted) JSON configuration file
-and are instead read from the process environment. On startup, the publisher calls
-``python-dotenv``'s ``load_dotenv(find_dotenv(usecwd=True))``, which loads a ``.env`` file from the
-current working directory (or an ancestor of it) into the environment before the following
-variables are read:
+The MQTT connection settings (TLS/SSL files, protocol parameters, publish topics) are kept in
+the JSON configuration file, in the ``stepBroker`` section, while the MQTT broker host, port
+and credentials are read from the environment, so that secrets are never written to the
+configuration file:
 
-  * ``MQTT_URL`` (required): MQTT broker host address, without protocol or port
-  * ``MQTT_PORT`` (required): MQTT broker port number
-  * ``MQTT_USERNAME`` (optional): Username for broker authentication
-  * ``MQTT_PASSWORD`` (optional): Password for broker authentication
+.. list-table::
+   :header-rows: 1
+   :widths: 25 15 60
 
-``MQTT_URL`` and ``MQTT_PORT`` raise an error if left unset; ``MQTT_USERNAME`` and
-``MQTT_PASSWORD`` default to unset, allowing anonymous broker connections.
+   * - Variable
+     - Required
+     - Description
+   * - ``MQTT_URL``
+     - yes
+     - MQTT broker host name or IP address, without protocol or port
+   * - ``MQTT_PORT``
+     - yes
+     - MQTT broker port (1-65535); usually 8883 with TLS
+       (``stepBroker.mqttClient.sslEnable`` true), 1883 without
+   * - ``MQTT_USERNAME``
+     - no
+     - Broker username; unset or empty connects anonymously
+   * - ``MQTT_PASSWORD``
+     - no
+     - Broker password; ignored, with a warning, when ``MQTT_USERNAME`` is not set
 
-An example ``.env`` file is provided below and can be copied to ``.env`` in the directory
-you run ``step_publisher_pkl`` from, then filled in with your broker's connection details:
+The ``StepPublisherApp`` constructor reads them once, through step_lib
+``MqttCredential.from_env``, before the event loop is started. A missing ``MQTT_URL`` or
+``MQTT_PORT``, a non-integer or out-of-range port, or an empty host raise ``ValueError`` and
+stop the program with exit code ``2`` (``ERROR``).
+
+**How MqttCredential.from_env reads them.**
+
+* It first loads the ``.env`` file found in the **current working directory** or
+  in its nearest parent directory (``find_dotenv(usecwd=True)``): what counts is
+  the directory ``step_publisher_pkl`` is launched from, not the directory of the
+  installed package. Without a ``.env`` file only the environment is read.
+* A variable already set in the environment **wins** over the ``.env`` file:
+  ``load_dotenv`` adds the missing variables and never overrides an existing one.
+* An empty ``MQTT_USERNAME`` or ``MQTT_PASSWORD`` counts as unset: without a username
+  the connection is anonymous, and a password set without a username is ignored with a
+  warning.
+* The host and port are logged at INFO level, together with whether a username
+  is set; the username and the password never are.
+
+**Format of the .env file.**
+
+* One ``KEY=VALUE`` line per variable, no ``export`` needed;
+* ``#`` starts a comment;
+* quote a value only if it contains spaces or ``#`` (``MQTT_PASSWORD="a #b"``);
+* keep the file out of version control: ``.env`` is listed in ``.gitignore``, only
+  the ``.env.example`` template is versioned.
+
+**Template.** ``doc/source/env/.env.example`` is a commented template:
 
 .. literalinclude:: env/.env.example
-  :language: bash
+   :language: bash
+
+Download the template: :download:`.env.example <env/.env.example>`
+(save it as ``.env``) and copy it to the directory ``step_publisher_pkl`` is launched from:
+
+.. tab:: bash
+
+   .. code-block:: bash
+
+       cp doc/source/env/.env.example .env
+
+.. tab:: PowerShell
+
+   .. code-block:: powershell
+
+       Copy-Item doc/source/env/.env.example .env
+
+**Alternatives to the file.** Variables set in the shell or by a container runtime
+take precedence over ``.env``:
+
+.. tab:: bash
+
+   .. code-block:: bash
+
+       export MQTT_URL=broker.example.com
+       export MQTT_PORT=8883
+
+.. tab:: PowerShell
+
+   .. code-block:: powershell
+
+       $env:MQTT_URL = "broker.example.com"
+       $env:MQTT_PORT = "8883"
 
 Configuration
 -------------
 
-STEP Publisher Pickle requires configuration for MQTT broker connections,
-pickle folder path, and logging settings.
-The configuration is managed through a JSON file.
+STEP Publisher Pickle requires a JSON configuration file with the input files, the MQTT
+broker connection settings and the logging settings.
 
 Creating a Configuration File
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -134,52 +194,61 @@ To create a default configuration template:
 
 .. code-block:: bash
 
-    step_publisher_pkl --conf_template my_config_template.json
+    step_publisher_pkl --conf_template ./config_dir
 
-This generates a template that you can customize for your specific needs.
+This writes ``step_publisher_pkl_config_v1_schema_template.json`` into ``./config_dir``
+(created if missing), a template that you can customize for your specific needs.
 
 Key Configuration Parameters
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  
+
 * **Base Configuration**:
 
-  * templateVersion: Configuration template version (currently "1")
-  * pklFolderPath: Path to the folder containing pickle files with vehicle trajectory data
+  * templateVersion: Configuration data version (currently "1")
+  * inputFiles: List of paths to the JSONL, pickle, or GPX files to read and publish (at
+    least one)
+  * stationsBlacklist: Optional list of station IDs to be ignored in the scenario
+  * waitTimeBeforeStarting: Time to wait before starting the scenario, in milliseconds
+    (0-5000)
 
-* **STEP Broker Configuration**:
+* **STEP Broker Configuration** (``stepBroker``):
 
-  * mqttClient: MQTT broker connection details (host, port, credentials, SSL settings)
-  * mqttProtocol: MQTT protocol parameters (QoS, topics, session settings)
-  * cacheDir: Directory for caching broker-related data
-  
-* **MQTT Client Configuration**:
+  * mqttClient: MQTT client TLS/SSL settings
+  * mqttProtocol: MQTT protocol parameters (session, timeouts, queues, publish topics)
+  * cacheDir: Cache directory passed to the async communication manager
 
-  * host: MQTT broker host address
-  * port: MQTT broker port (typically 8883 for SSL/TLS)
-  * username: Authentication username
-  * password: Authentication password
+* **MQTT Client Configuration** (``stepBroker.mqttClient``; host, port and credentials
+  come from the environment):
+
   * sslEnable: Enable/disable SSL/TLS encryption
-  * sslClientKeyFile: Path to client private key file
-  * sslClientCertFile: Path to client certificate file
-  * sslCaCertsFile: Path to CA certificates file
-  
-* **MQTT Protocol Configuration**:
+  * sslClientKeyFile: Path to the client private key file
+  * sslClientKeyFilePassword: Password of the client private key file, if encrypted
+  * sslClientCertFile: Path to the client certificate file
+  * sslVerifyServerCert: Whether to verify the server's TLS certificate (hostname and CA
+    chain); when disabled a warning is logged
+  * sslCaCertsFile: Path to the CA certificates file (PEM)
 
-  * sessionExpiry: Session expiry interval (seconds)
-  * timeout: Connection timeout (seconds)
-  * keepalive: Keepalive interval (seconds)
-  * maxQueuedIncomingMessages: Maximum incoming message queue size
-  * maxQueuedOutgoingMessages: Maximum outgoing message queue size
+* **MQTT Protocol Configuration** (``stepBroker.mqttProtocol``):
+
+  * sessionExpiry: Session expiry interval in seconds (0 ends the session on disconnection)
+  * timeout: Timeout in seconds of any command execution (at least 1)
+  * keepalive: Keepalive interval in seconds (0 disables it)
+  * receiveMaximum: Maximum number of QoS 1 and 2 messages received concurrently
+  * maximumPacketSize: Maximum packet size in bytes
+  * maxQueuedIncomingMessages: Maximum incoming message queue size (0 = unlimited)
+  * maxQueuedOutgoingMessages: Maximum outgoing message queue size (0 = unlimited)
+  * maxInflightMessages: Maximum number of QoS > 0 messages in transit simultaneously
+  * maxConcurrentOutgoingCalls: Maximum number of concurrent outgoing calls
   * cleanStart: Clean session start flag
   * maxSubscriptionQos: Maximum QoS level for subscriptions
-  * publishTopics: List of topics for publishing CAM messages with QoS and geohash settings
-  
-* **Log Configuration**:
+  * publishTopics: List of publish topics, each with ``messageType`` (CAM, CPM, DENM, or
+    POSITION_DATA), ``headerTopic``, ``geohashPrecision`` (4-8) and ``qos`` (0, 1, 2)
 
-  * handler: Log handler configuration (type, path, filename)
-  * level: Logging level (DEBUG, INFO, WARNING, ERROR)
-  * format: Log message format
-  * dateFormat: Date format for log timestamps
+* **Log Configuration** (``log``):
+
+  * handlersConfig: Log handlers, each with its handler (type, path, filename trailer),
+    level, format and date format
+  * globalLevel: Global logging level
 
 Example Configuration
 ^^^^^^^^^^^^^^^^^^^^^
@@ -189,10 +258,11 @@ The schema of the example below is: :ref:`STEP Publisher Pickle Configuration Sc
 .. literalinclude:: schemas_examples/step_publisher_pkl_config_v1_schema_template.json
   :language: JSON
 
-Running STEP Publisher Pickle as a Service
-------------------------------------------
+Running STEP Publisher Pickle
+-----------------------------
 
-To run the STEP Publisher Pickle as a standalone application:
+To run the STEP Publisher Pickle as a standalone application, from the directory holding the
+``.env`` file (or with the ``MQTT_*`` variables set in the environment):
 
 .. code-block:: bash
 
@@ -200,18 +270,20 @@ To run the STEP Publisher Pickle as a standalone application:
 
 This will start the publisher, which will:
 
+    #. Read the MQTT broker host, port and credentials from the environment
     #. Connect to the STEP MQTT broker
-    #. Load vehicle trajectories from pickle files
-    #. Publish CAM messages for each vehicle with realistic timing
+    #. Load the vehicle trajectories/ITS messages from the configured input files
+    #. Publish the messages of every vehicle with realistic timing
+    #. Exit with code ``0`` once every message has been published
 
 Command-Line Options
 --------------------
 
-The STEP Publisher Pickle supports several command-line options:
+The STEP Publisher Pickle supports several command-line options (see :doc:`commands`):
 
   * ``--version``, ``-v``: Show version information
   * ``--help``, ``-h``: Show help information
-  * ``--conf_schema``, ``-s``: Generate a JSON schema for the configuration
-  * ``--conf_template``, ``-t``: Generate a configuration template
+  * ``--conf_schema``, ``-s``: Write the JSON schema of the configuration into a directory
+  * ``--conf_template``, ``-t``: Write a configuration template into a directory
   * ``--config``, ``-c``: Path to configuration file (requires -i)
   * ``--instance``, ``-i``: Specify the instance name (requires -c)

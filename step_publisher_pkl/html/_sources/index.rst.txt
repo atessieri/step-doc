@@ -99,13 +99,36 @@ and timestamp information, then publishes them as CAM, CPM, or DENM messages to 
 broker with realistic timing and multi-vehicle support.
 
 Environment Variables
-----------------------
+---------------------
 
-MQTT broker connection secrets are kept out of the (persisted) JSON configuration file and
-are instead read from the process environment at startup, optionally loaded from a ``.env``
-file, via the ``MQTT_URL``, ``MQTT_PORT``, ``MQTT_USERNAME``, and ``MQTT_PASSWORD``
-variables; the URL and port are required, while the username and password are optional. See
-the :doc:`usage<usage>` section for the full variable reference and an example ``.env`` file.
+The MQTT connection settings (TLS/SSL files, protocol parameters, publish topics) are kept in
+the JSON configuration file, while the MQTT broker host, port and credentials are read from
+the environment, so that secrets are never written to the configuration file:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 15 60
+
+   * - Variable
+     - Required
+     - Description
+   * - ``MQTT_URL``
+     - yes
+     - MQTT broker host name or IP address, without protocol or port
+   * - ``MQTT_PORT``
+     - yes
+     - MQTT broker port (1-65535); usually 8883 with TLS, 1883 without
+   * - ``MQTT_USERNAME``
+     - no
+     - Broker username; unset or empty connects anonymously
+   * - ``MQTT_PASSWORD``
+     - no
+     - Broker password; ignored, with a warning, without ``MQTT_USERNAME``
+
+They are read once at start-up by step_lib ``MqttCredential.from_env()``, which first loads
+the ``.env`` file of the current working directory (or its nearest parent); a variable
+already set in the environment wins over the file. See :ref:`step_publisher_pkl_credentials`
+for the full reference and the commented ``.env`` template.
 
 Goal
 ----
@@ -123,46 +146,50 @@ Key Features
 ------------
 
 Scenario Data Loading
-~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
 
 - **Pluggable File Loaders**: Auto-detects and loads scenario data from JSONL ITS messages,
   pickle actor/vehicle trajectories, pickle camera/CPM data, or GPX track files (see
   :doc:`input_files`)
-- **Time Reference Mapping**: Establishes mapping between scenario timestamps and real-world
-  time for synchronized playback of recorded vehicle movements
+- **Time Reference Mapping**: Maps scenario timestamps to real-world time (current time plus
+  ``waitTimeBeforeStarting``) for synchronized playback of recorded vehicle movements
 - **Multi-Vehicle Support**: Processes multiple vehicle trajectories/messages concurrently
 - **Station Message Management**: Manages vehicle message data as time-ordered sorted queues
-  for efficient sequential access and consumption
+  for sequential access and consumption; stations in ``stationsBlacklist`` are skipped
 
 ITS Message Publishing
 ~~~~~~~~~~~~~~~~~~~~~~
 
 - **ETSI Compliance**: Publishes Cooperative Awareness (CAM), Collective Perception (CPM), and
   Decentralized Environmental Notification (DENM) messages following ITS standards
-- **Message Encoding**: Converts scenario data into structured CAM/CPM/DENM format with proper
-  ITS message components (Identification, ItsTime, ReferencePosition, Speed, Heading)
-- **GeoNetwork Addressing**: Configures proper addressing with traffic participant type and MAC ID
+- **Message Conversion**: Converts pickle actor and GPX trajectory points into CAM messages
+  (Identification, ReferencePosition, Speed, Heading); JSONL and pickle camera data are
+  published as-is
+- **GeoNetwork Addressing**: Uses a fixed address with traffic participant type and MAC ID
   for ITS message routing
-- **Realistic Timing**: Maintains precise timing intervals between message updates using ItsTime
+- **Realistic Timing**: Sleeps before each message to keep the original timing, using ItsTime
   calculations
 
 MQTT Communication
 ~~~~~~~~~~~~~~~~~~
 
 - **Secure Connection**: TLS/SSL connections to STEP MQTT broker with certificate authentication
+- **Secrets out of the configuration**: MQTT broker host, port and credentials read from the
+  environment or a ``.env`` file
 - **Configurable QoS**: Supports Quality of Service levels (0, 1, 2) for reliable message delivery
-- **Asynchronous Publishing**: Non-blocking async/await patterns for high-throughput message publishing
+- **Asynchronous Publishing**: Non-blocking async/await patterns for message publishing
 - **Topic Management**: Flexible topic configuration with geohash precision support
 
 Configuration and Monitoring
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- **Hierarchical Configuration**: Pydantic-based configuration models with MQTT client, protocol, 
-  broker, logging, and pickle folder path settings
+- **Hierarchical Configuration**: Pydantic-based configuration models with input files,
+  station blacklist, start delay, MQTT client, MQTT protocol, and logging settings
 - **JSON Schema Support**: Configuration validation and template generation via command-line options
-- **Comprehensive Logging**: UTC-based timestamps with multiple handlers (stream, file, rotating) 
-  and automatic ZIP compression for rotated logs
-- **Signal Handling**: Cross-platform graceful shutdown (Windows SIGBREAK, Unix SIGINT)
+- **Comprehensive Logging**: UTC-based timestamps with multiple handlers (stream, file, rotating)
+  and automatic compression for rotated logs
+- **Signal Handling**: Graceful shutdown through the step_cloud_schemas ``AppRunner``
+  (``SIGINT``/``SIGTERM`` on POSIX, ``SIGINT``/``SIGBREAK`` - Ctrl+C/Ctrl+Break - on Windows)
 
 Core Components
 ---------------
@@ -170,75 +197,75 @@ Core Components
 Scenario Management
 ~~~~~~~~~~~~~~~~~~~
 
-The ``Scenario`` class provides comprehensive management of vehicle trajectory/ITS message
-data for publishing to the STEP broker. It serves as the main data loader and orchestrator
-for multi-vehicle playback and handles:
+The ``Scenario`` class provides the management of vehicle trajectory/ITS message data for
+publishing to the STEP broker and handles:
 
   - Loading vehicle trajectory/ITS message data through a pluggable set of ``FileLoader``
     implementations (JSONL ITS messages, pickle actor/vehicle trajectories, pickle
     camera/CPM data, and GPX track files), auto-detected per input file
-  - Establishing time reference mapping between scenario time and real-world time
-  - Managing vehicle message data as sorted queues (using ``SortedList``) for efficient
-    time-ordered sequential access
-  - Converting raw trajectory/message data to structured CAM, CPM, or DENM messages with
-    proper ITS components, depending on the loader and source data
-  - Providing vehicle IDs and messages through generator methods
-  - Maintaining separate message queues for each vehicle enabling concurrent publishing
-
-Key responsibilities:
-  - Managing vehicle data lifecycle from loading to consumption
-  - Coordinating time reference for realistic playback timing
-  - Providing ``pop_message()`` generator for sequential, time-ordered message consumption
-  - Calculating next message times for maintaining realistic timing intervals
+  - Establishing the time reference mapping between scenario time and real-world time and
+    rewriting every message time accordingly
+  - Managing vehicle message data as sorted queues (using ``SortedList``) for time-ordered
+    sequential access
+  - Providing vehicle IDs and messages through generator methods (``get_vehicle_ids()``,
+    ``pop_message()``)
+  - Maintaining a separate message queue for each vehicle, enabling concurrent publishing
 
 STEP Broker Client
-~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~
 
 The ``StepBroker`` class provides MQTT communication with the STEP broker for publishing
 CAM, CPM, and DENM messages. Extending ``AsyncComManager``, it implements:
 
   - **Secure MQTT Connection**: TLS/SSL connections with certificate authentication
-  - **Message Publication**: Publishing facility messages (CAM/CPM/DENM) via ``client_publish_its_message()`` method
-  - **Message Encoding**: Converting ``CamMessageV1`` objects to ITS message format
+  - **Message Publication**: Publishing facility messages (CAM/CPM/DENM) via
+    ``client_publish_its_message()``, using the message's reference position
+  - **Publish Topics**: One topic per configured message type, with geohash precision and QoS
   - **GeoNetwork Configuration**: Setting up addressing with traffic participant type and MAC ID
-  - **Context Management**: Asynchronous resource handling through ``__aenter__`` and ``__aexit__``
+  - **Context Management**: Asynchronous resource handling through ``async with``
 
-Main Application
-~~~~~~~~~~~~~~~~
+Main Application and Workload
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The main application (``__main__``) orchestrates the asynchronous publishing workflow:
+The main application (``__main__``) is the command-line entry point; the workload lives in
+``StepPublisherApp`` (``step_publisher_app``):
 
-- **Command-Line Interface**: Provides CLI for version display, configuration schema/template 
+- **Command-Line Interface**: Provides CLI for version display, configuration schema/template
   generation, and publisher execution
-- **Task Orchestration**: Uses ``asyncio.TaskGroup`` for concurrent publisher tasks per vehicle
-- **Exit Code Management**: Defines standard exit codes (OK, USAGE, ERROR, ABORTED) via ``ExitCode`` enum
-- **Signal Handling**: Cross-platform signal handling (Windows SIGBREAK, Unix SIGINT)
-- **Publisher Coordination**: The ``_publisher_run()`` coroutine manages individual vehicle 
+- **Application Runtime**: ``main()`` runs ``StepPublisherApp``, an ``AbstractApp``, through the
+  step_cloud_schemas ``AppRunner``, which owns the event loop (``SelectorEventLoop`` on
+  Windows), the signal handlers and the graceful shutdown
+- **Environment-Based Credentials**: The ``StepPublisherApp`` constructor reads the
+  ``MQTT_*`` variables before the event loop is started
+- **Task Orchestration**: ``StepPublisherApp.work()`` uses ``asyncio.TaskGroup`` for one
+  concurrent publisher task per vehicle, nested in the broker context, and returns once every
+  task has finished
+- **Publisher Coordination**: The ``_publisher_run()`` coroutine manages individual vehicle
   publishing with timing calculations and sleep intervals
-- **Event Loop Management**: Windows uses ``SelectorEventLoop`` for compatibility
+- **Exit Code Management**: Defines standard exit codes (OK, USAGE, ERROR, ABORTED) via ``ExitCode`` enum
 
 Configuration System
 ~~~~~~~~~~~~~~~~~~~~
 
 The configuration system (``StepPublisherPklConfig``) offers:
 
-  - **Hierarchical Configuration**: Multi-level settings including MQTT client, protocol, 
-    broker, logging, and pickle folder path
+  - **Hierarchical Configuration**: Input files, station blacklist, start delay, STEP broker
+    (MQTT client and protocol) and logging settings
   - **Type Safety**: Strong typing and validation via Pydantic models
   - **JSON Schema Generation**: Schema validation and template creation through CLI options
-  - **Immutable Design**: Frozen configuration ensuring consistency throughout execution
+  - **Immutable Design**: Frozen, strict configuration ensuring consistency throughout execution
   - **Default Configurations**: Pre-configured defaults via ``get_default()`` methods
 
 Logging Infrastructure
 ~~~~~~~~~~~~~~~~~~~~~~
 
-The logging system (``StepLogger``) provides:
+The logging system (``StepLogger``, from ``step_cloud_schemas``) provides:
 
-  - **UTC Formatting**: ``UtcFormatter`` class using ``gmtime`` for consistent timestamps
+  - **UTC Formatting**: Consistent UTC timestamps
   - **Multiple Handlers**: Stream, file, rotating file (size/time-based), and null handlers
-  - **Log Compression**: Automatic ZIP compression via ``_rotator()`` function for rotated logs
+  - **Log Compression**: Automatic compression of rotated logs
   - **Configurable Levels**: Adjustable logging verbosity (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-  - **Structured Logging**: Comprehensive operation logging with vehicle ID, timing, and position data
+  - **Structured Logging**: Operation logging with vehicle ID, message type and timing
 
 Exception Handling
 ~~~~~~~~~~~~~~~~~~
@@ -246,28 +273,11 @@ Exception Handling
 The exception system provides:
 
   - **Base Exception**: ``StepPublisherPklError`` for all publisher-related errors
-  - **CLI Exception**: ``StepCliError`` for command-line specific errors (argument parsing,
-    configuration loading)
+  - **CLI Exception**: ``StepCliError`` for command-line misuse (``-c`` without ``-i`` or vice
+    versa), logged as a single error line with exit code ``USAGE``
   - **Loader Exception**: ``LoaderError`` raised by a ``FileLoader`` when a file does not
     match, or cannot be parsed as, the format it handles; ``Scenario.load_data()`` catches
     it to try the next candidate loader
-  - **Shutdown Exception**: ``ShutdownRequestedError`` used internally to unwind the
-    publisher's ``TaskGroup`` once a graceful shutdown has been requested via a signal
-  - **Logging Integration**: Proper exception logging with appropriate severity levels
-  - **Default Configurations**: Pre-configured default instances for quick setup and development
-  - **Actor Dataset Configuration**: Specialized configuration for timing parameters and 
-    trajectory management
-
-Logging Infrastructure
-~~~~~~~~~~~~~~~~~~~~~~
-
-The logging system (``StepLogger``) provides:
-
-  - **Multiple Handlers**: Stream, file, rotating file, and null handlers for flexible output options
-  - **UTC Formatting**: Standardized UTC timestamp formatting for consistent log entries
-  - **Configurable Levels**: Adjustable logging levels for different environments (development, production)
-  - **Structured Logging**: Comprehensive operation logging throughout the service lifecycle 
-    with detailed processing metrics
 
 Architecture
 ------------
@@ -278,14 +288,16 @@ Event-Driven Processing
 The publisher follows an event-driven architecture pattern:
 
   #. **Configuration Loading**: Loads configuration from JSON file via command-line arguments
+  #. **Credential Loading**: Reads the MQTT broker host, port and credentials from the
+     environment (``.env`` file optional)
+  #. **Broker Connection**: Establishes secure MQTT connection to STEP broker with TLS/SSL
   #. **Scenario Loading**: Reads vehicle trajectory/ITS message data from the configured
      input files (JSONL, pickle actor, pickle camera, or GPX), auto-detected per file
-  #. **Broker Connection**: Establishes secure MQTT connection to STEP broker with TLS/SSL
   #. **Task Creation**: Creates concurrent publisher tasks using ``asyncio.TaskGroup`` for
      each vehicle in the scenario
   #. **Message Publishing**: Publishes CAM, CPM, or DENM messages with timing based on ItsTime calculations
-  #. **Timing Management**: Sleeps between position updates to maintain realistic intervals
-  #. **Graceful Shutdown**: Handles interruption signals and performs proper resource cleanup
+  #. **End of Run**: Disconnects from the broker and exits once every message is published,
+     or earlier on a shutdown signal
 
 Asynchronous Operations
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -295,7 +307,8 @@ The architecture utilizes:
   - **Async/await**: Non-blocking operations for concurrent multi-vehicle publishing
   - **TaskGroup**: Concurrent execution of publisher tasks with automatic cancellation on error
   - **Context Managers**: Asynchronous context management for MQTT connection lifecycle
-  - **Event Loop**: Windows uses ``SelectorEventLoop`` for optimal compatibility
+  - **AppRunner**: Event loop, signal handlers and cooperative shutdown owned by the
+    step_cloud_schemas application runtime
 
 Message Flow
 ~~~~~~~~~~~~
@@ -306,10 +319,9 @@ Message Flow
 #. **Time Reference Establishment**: Scenario time mapped to real-world time for synchronized playback
 #. **Vehicle Iteration**: For each vehicle, separate concurrent publisher task created
 #. **Message Consumption**: Messages consumed in time order via the ``pop_message()`` generator
-#. **Message Conversion**: Data wrapped in ``CamMessageV1``, ``CpmMessageV1``, or ``DenmMessageV1`` format
-#. **MQTT Publishing**: Messages published to STEP broker via ``client_publish_its_message()``
 #. **Timing Calculation**: Time differences calculated using ``ItsTime.time_difference()``
-#. **Realistic Delays**: Sleep intervals maintain original CARLA scenario timing
+#. **Realistic Delays**: Sleep intervals maintain the original scenario timing
+#. **MQTT Publishing**: Messages published to STEP broker via ``client_publish_its_message()``
 
 Standards Compliance
 --------------------
@@ -317,6 +329,9 @@ Standards Compliance
 The STEP Publisher Pickle adheres to key ITS standards:
 
 - **ETSI TS 103 900**: Cooperative Awareness Messages (CAM) format and encoding
+- **ETSI TS 103 324**: Collective Perception Messages (CPM)
+- **ETSI TS 103 831**: Decentralized Environmental Notification Messages (DENM)
+- **MQTT 5.0**: Message Queuing Telemetry Transport protocol
 
 Dependencies
 ------------
@@ -324,14 +339,17 @@ Dependencies
 Core Dependencies
 ~~~~~~~~~~~~~~~~~
 
-- **step_cloud_schemas**: ITS message schemas including CAM format, ItsTime for timing calculations, 
-  and CloudEvents structures
-- **step_lib**: Core library providing AsyncComManager, CamMessageV1, MQTT utilities (MqttQoS, 
-  PublishTopicParams), GPS location, and GeoNetwork addressing
+- **step_cloud_schemas**: ITS message schemas (CAM, CPM, DENM), ItsTime for timing
+  calculations, StepLogger, and the application runtime (AppRunner, AbstractApp)
+- **step_lib**: Core library providing AsyncComManager, CamMessageV1/CpmMessageV1/DenmMessageV1,
+  MQTT utilities (MqttQoS, PublishTopicParams, MqttCredential), GPS location, and GeoNetwork
+  addressing
 - **aiomqtt**: Asynchronous MQTT client library with TLS support for non-blocking publishing
 - **paho-mqtt**: MQTT protocol implementation with subscription options and QoS controls
 - **pydantic**: Configuration validation and schema generation with type safety
-- **asyncio**: Asynchronous processing capabilities for concurrent vehicle publishing
+- **sortedcontainers**: Time-ordered per-vehicle message queues
+- **gpx**: GPX track file parsing
+- **python-dotenv** (through step_lib): ``.env`` file loading for the MQTT credentials
 
 Development Dependencies
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -346,15 +364,16 @@ Deployment
 
 The STEP Publisher Pickle can be deployed as:
 
-- **Command-Line Tool**: Direct execution via ``python -m step_publisher_pkl`` with configuration file
-- **Standalone Application**: Independent process for publishing CARLA simulation data
-- **Integration Component**: Part of larger CARLA-to-STEP testing infrastructure
+- **Command-Line Tool**: Direct execution via ``step_publisher_pkl`` or
+  ``python -m step_publisher_pkl`` with configuration file
+- **Standalone Application**: Independent process replaying recorded scenario data
+- **Integration Component**: Part of a larger STEP testing infrastructure
 
 Configuration options support various deployment scenarios:
 
 - **Development**: Local testing with debug logging and simplified configuration
-- **Testing**: CARLA simulation replay with realistic timing for ITS infrastructure validation
-- **CI/CD Integration**: Automated testing scenarios with CARLA-generated test data
+- **Testing**: Scenario replay with realistic timing for ITS infrastructure validation
+- **CI/CD Integration**: Automated testing scenarios with recorded test data
 
 Usage Patterns
 --------------
@@ -364,7 +383,8 @@ The publisher supports multiple usage patterns:
 Publishing Mode
 ~~~~~~~~~~~~~~~
 
-Run as a publisher for CARLA simulation data:
+Run as a publisher of the configured scenario files (MQTT credentials from the environment or
+``.env``):
 
 .. code-block:: bash
 
@@ -373,17 +393,17 @@ Run as a publisher for CARLA simulation data:
 Configuration Generation
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-Generate configuration templates and schemas:
+Generate configuration templates and schemas into a directory (created if missing):
 
 .. code-block:: bash
 
-   step_publisher_pkl --conf_template config_template.json
-   step_publisher_pkl --conf_schema config_schema.json
+   step_publisher_pkl --conf_template ./templates
+   step_publisher_pkl --conf_schema ./schemas
 
 Version Information
 ~~~~~~~~~~~~~~~~~~~
 
-Display version information for the package and dependencies:
+Display the version of the package:
 
 .. code-block:: bash
 
@@ -394,10 +414,10 @@ Testing
 
 The project includes comprehensive tests covering:
 
-- **Unit Tests**: Individual component functionality including scenario loading and time reference
+- **Unit Tests**: Individual component functionality including file loaders, scenario
+  loading and time reference
 - **Configuration Tests**: Validation of configuration schemas and default values
-- **Integration Tests**: MQTT publishing and CAM message encoding workflows
-- **Timing Tests**: Verification of realistic timing interval calculations
+- **Application Tests**: Command-line handling, workload and broker client with mocked MQTT
 
 Getting Started
 ---------------

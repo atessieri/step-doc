@@ -14,10 +14,23 @@ The STEP Publisher Pickle serves as an example implementation for testing and de
 within the STEP ecosystem, showcasing how to integrate vehicle trajectory data with the STEP
 cloud infrastructure. It loads vehicle trajectory/ITS message data from JSONL, pickle, or GPX
 scenario files (auto-detected per file, see :doc:`input_files`) and publishes CAM, CPM, and
-DENM messages to the STEP MQTT broker with realistic timing and multi-vehicle support. It
-follows an event-driven architecture built on Python's ``asyncio`` framework, creating a
-separate publisher task per vehicle in the scenario so that message publishing proceeds
-concurrently while preserving each vehicle's original trajectory timing.
+DENM messages to the STEP MQTT broker with realistic timing and multi-vehicle support. The run
+ends on its own once every vehicle has published all its messages.
+
+The package is split into a small number of modules:
+
+    * ``__main__``: command-line entry point. It parses the arguments, writes the
+      configuration JSON schema/template on request, loads the configuration and the
+      logger, and runs ``StepPublisherApp`` through ``AppRunner``.
+    * ``step_publisher_app``: the ``StepPublisherApp`` workload (the STEP broker connection,
+      the scenario and one publisher task per vehicle) and the ``ExitCode`` enumeration.
+    * ``step_broker``: the ``StepBroker`` MQTT gateway (publish only).
+    * ``scenario``: the ``Scenario`` loader and per-vehicle message queue, and the
+      ``TimeReference`` named tuple.
+    * ``loaders``: the pluggable ``FileLoader`` implementations (``JsonlLoader``,
+      ``PickleActorLoader``, ``PickleCameraLoader``, ``GpxLoader``).
+    * ``step_publisher_pkl_config``: the Pydantic configuration models.
+    * ``step_exception``: the ``StepPublisherPklError`` exception hierarchy.
 
 Library
 -------
@@ -32,31 +45,43 @@ message communication capabilities:
        configuration models rely on Pydantic's ``BaseModel`` for type-safe configuration
        loading, validation, and JSON schema generation.
 
-    #. **step_cloud_schemas**: Provides standardized data schemas for ITS
-       messages (CAM, CPM, and DENM), including ``ItsMessageRoot``/``CamDataV1``/``CpmDataV1``/
-       ``DenmDataV1`` and ``ItsTime`` for precise timing calculations used for realistic
-       message publishing intervals.
+    #. **step_cloud_schemas**: Provides standardized data schemas for ITS messages (CAM,
+       CPM, and DENM), including ``ItsMessageRoot``/``CamDataV1``/``CpmDataV1``/
+       ``DenmDataV1``. It also provides the runtime used by the STEP Publisher Pickle:
+
+        * ``AppRunner``/``AbstractApp``: asyncio application runner with a cooperative
+          shutdown on ``SIGINT``/``SIGTERM`` (``SIGINT``/``SIGBREAK`` on Windows)
+        * ``StepLogger``/``LogConfig``: logger factory and logging configuration
+        * ``ItsTime``: ITS timestamps and time differences, used to rewrite the message
+          times and to compute the publishing intervals
+        * ``MessageId``, ``GenericMessageType``, ``TrafficParticipantType`` and
+          ``IS_WINDOWS``
 
     #. **step_lib**: Core library providing fundamental components including:
 
-        * ``AsyncComManager``: Base class for asynchronous communication management
-        * ``CamMessageV1``/``CpmMessageV1``/``DenmMessageV1``/``FacilityMessage``: ITS
-          facility message handling and encoding functionality
+        * ``AsyncComManager``/``AsyncComManagerParams``: base class for asynchronous
+          MQTT communication management and its parameters
+        * ``FacilityMessage``, ``CamMessageV1``, ``CpmMessageV1``, ``DenmMessageV1``:
+          ITS message handling and encoding functionality
         * MQTT utilities including ``MqttQoS`` enumerations and ``PublishTopicParams``
-        * GPS location and GeoNetwork addressing components
-        * TLS/SSL security parameter management
+        * ``GpsLocation`` and ``GeoNetworkAddress`` components
+        * ``TLSParameters``: picklable TLS/SSL security parameters
+        * ``MqttCredential``: the MQTT broker host, port and authentication, read
+          from the environment by ``from_env()``
 
     #. **aiomqtt**: Asynchronous MQTT client library with TLS support for
        non-blocking message publishing
 
-    #. **paho-mqtt**: MQTT protocol implementation providing subscription options
-       and QoS controls
+    #. **paho-mqtt**: MQTT protocol implementation providing QoS controls
 
-    #. **python-dotenv**: Loads MQTT broker credentials from a ``.env`` file into the
-       process environment at startup (see :doc:`usage`).
+    #. **python-dotenv** (through step_lib): ``MqttCredential.from_env()`` loads the
+       ``.env`` file found in the current working directory (or an ancestor of it) into the
+       environment before the credential is read
 
     #. **sortedcontainers**: Backs each vehicle's per-station message queue
        (``SortedList``, ordered by ``its_time``) inside ``Scenario``.
+
+    #. **gpx**: Parses GPX track files for ``GpxLoader``.
 
 This library ecosystem enables the STEP Publisher Pickle to provide a type-safe,
 highly configurable solution for simulating vehicle trajectory data within the STEP platform.
@@ -64,84 +89,321 @@ highly configurable solution for simulating vehicle trajectory data within the S
 Components
 ----------
 
-The architecture follows a modular design pattern that separates concerns between MQTT
-communication, scenario/loader data management, and configuration. This enables flexibility
-and maintainability in the system design.
+The architecture follows a modular design pattern that separates concerns between process
+lifecycle, MQTT communication, scenario/loader data management, and configuration. This
+enables flexibility and maintainability in the system design.
 
 Main Components:
 
+    #. **main / AppRunner**: CLI entry point and process runner (``AppRunner`` from the
+       ``step_cloud_schemas`` library)
+    #. **AbstractApp**: Abstract workload class (from the ``step_cloud_schemas`` library)
+       that ``StepPublisherApp`` derives from
+    #. **StepPublisherApp**: Workload of the program: scenario loading and one concurrent
+       publisher task per vehicle
     #. **StepBroker**: Gateway class for MQTT communication with the STEP broker
     #. **Scenario**: Vehicle trajectory/ITS message loader and per-vehicle message queue
     #. **FileLoader implementations**: Pluggable parsers (JSONL, pickle actor, pickle
        camera, GPX) used by ``Scenario.load_data()``
     #. **StepPublisherPklConfig**: Configuration management for the publisher
-    #. **StepLogger**: Logging utilities specific to the STEP publisher
-    #. **StepPublisherPklError/StepCliError/LoaderError/ShutdownRequestedError**: Custom
-       exceptions for error handling
-    #. **Main Application** (__main__): Asynchronous publisher orchestrator with CLI
+    #. **MqttCredential**: MQTT broker host, port and credentials read from the environment
+       (from the ``step_lib`` library)
+    #. **StepLogger**: Logging utilities used by the publisher (from the
+       ``step_cloud_schemas`` library)
+    #. **StepException**: Custom exceptions for error handling
+
+Entry Point and AppRunner
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+``step_publisher_pkl.__main__.main()`` is the console script entry point. It:
+
+    #. Builds a default ``StepLogger`` logger (stderr, WARNING) and an
+       ``AppRunner[ExitCode]``, before parsing the arguments. On Windows the runner uses
+       ``asyncio.SelectorEventLoop``, because the default ``ProactorEventLoop`` does not
+       implement ``add_reader``/``add_writer``, which ``aiomqtt`` relies on.
+    #. Prints the help and returns ``ExitCode.USAGE`` when no argument is given.
+    #. Writes the configuration JSON schema (``-s/--conf_schema``) and/or the
+       configuration template (``-t/--conf_template``) to the given directories (created
+       if missing).
+    #. Raises ``StepCliError`` when only one of ``-c/--config`` and ``-i/--instance``
+       is given.
+    #. With both, validates the configuration file into ``StepPublisherPklConfig``, rebuilds
+       the logger from ``config.log`` with the instance name, force-writes the program and
+       library versions (``step_cloud_schemas``, ``step_lib``), builds ``StepPublisherApp``
+       (which reads the MQTT credential from the environment, see
+       `Environment Variables`_) and runs it with ``AppRunner.run()``, returning its exit
+       code.
+
+``AppRunner`` (from ``step_cloud_schemas``) owns the process-wide plumbing: the
+``asyncio.Runner``, the loop exception handler, ``sys.unraisablehook`` and the shutdown
+signal handlers. It runs ``StepPublisherApp.work()`` next to a shutdown watcher task in a
+``TaskGroup``: when a shutdown signal arrives the watcher raises an internal
+``_ShutdownRequestedError``, the ``TaskGroup`` cancels ``work`` wherever it is and, once
+every task has unwound, ``StepPublisherApp.on_shutdown()`` is called with the signal.
+
+``main()`` maps the outcome to an ``ExitCode``:
+
+    * ``OK`` (0): success: every message published, or only schema/template generation
+      requested, including ``-h/--help`` and ``-v/--version``
+    * ``USAGE`` (1): no argument, an invalid or unknown option, or ``StepCliError``
+      (logged as a plain error line)
+    * ``ERROR`` (2): any other unhandled exception, logged with its traceback: an invalid
+      configuration file, a missing or invalid environment variable (``ValueError`` raised
+      by the ``StepPublisherApp`` constructor, see `Environment Variables`_), or an error
+      raised by ``work`` (e.g. a broker connection error), wrapped in an ``ExceptionGroup``
+    * ``ABORTED`` (3): shutdown signal (returned by ``on_shutdown``) or
+      ``KeyboardInterrupt``
+
+Application Runtime (step_cloud_schemas)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. note::
+   ``AppRunner`` and ``AbstractApp`` are not part of the ``step_publisher_pkl`` package: they
+   are imported from the external ``step_cloud_schemas`` dependency, shared by the STEP
+   programs. Only their public interface, the part used by the STEP Publisher Pickle, is
+   described here.
+
+The two classes split a long-running program in two parts: the process-wide plumbing (event
+loop, signal handlers, exception hooks), owned by ``AppRunner``, and the workload, supplied by
+the program as an ``AbstractApp`` subclass. ``R`` is the program's result type: for the STEP
+Publisher Pickle, ``ExitCode``.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 78
+
+   * - Class
+     - Role
+   * - ``AbstractApp[R]``
+     - Abstract base class of a workload run by ``AppRunner``. It declares the two methods
+       ``AppRunner`` needs and holds no state (empty ``__slots__``, so a subclass declares its own).
+   * - ``AppRunner[R]``
+     - Singleton that runs an ``AbstractApp`` on a new event loop until it ends or a shutdown
+       signal stops it.
+
+The STEP Publisher Pickle does not use ``ReconnectingApp`` (the reconnecting ``AbstractApp``
+subclass of ``step_cloud_schemas``): its workload publishes a finite scenario, and a broker
+error ends the run instead of being retried.
+
+The class diagram below shows the public interface of the two classes and how
+``StepPublisherApp`` plugs into them:
+
+.. container:: scrollable-diagram
+
+   .. plantuml::
+      :align: center
+
+      @startuml
+
+      !theme plain
+      skinparam classAttributeIconSize 0
+
+      package "step_cloud_schemas" #LightGray {
+         abstract class "AbstractApp[R]" as AbstractApp {
+            +{abstract} async work() : R
+            +{abstract} on_shutdown(stop_signal : Signals) : R
+         }
+
+         class "AppRunner[R]" as AppRunner <<singleton>> {
+            +__init__(logger_param : Logger, loop_factory = None, exception_handler = None, unraisable_handler = None)
+            +logger : Logger <<property>>
+            +run(app : AbstractApp[R]) : R
+         }
+      }
+
+      package "step_publisher_pkl" {
+         class StepPublisherApp {
+            +__init__(instance_name : str, config : StepPublisherPklConfig, logger : Logger)
+            +async work() : ExitCode
+            +on_shutdown(stop_signal : Signals) : ExitCode
+         }
+
+         enum ExitCode {
+            OK = 0
+            USAGE = 1
+            ERROR = 2
+            ABORTED = 3
+         }
+      }
+
+      StepPublisherApp --|> AbstractApp : R = ExitCode
+      AppRunner ..> AbstractApp : run(app)
+      StepPublisherApp ..> ExitCode : returns
+
+      note bottom of AppRunner
+         main() builds AppRunner[ExitCode]
+         (SelectorEventLoop on Windows)
+         and calls run(StepPublisherApp(...))
+      end note
+
+      @enduml
+
+**AbstractApp: public interface**
+
+   * ``async work() -> R`` (abstract): The workload, called once per run as a task of the
+     ``AppRunner`` ``TaskGroup``; it returns the result when it ends on its own. On a shutdown
+     signal it is cancelled at the ``await`` it is suspended on, so it has to be
+     cancellation-safe. ``StepPublisherApp.work()`` returns ``ExitCode.OK`` once every
+     publisher task has finished.
+   * ``on_shutdown(stop_signal: Signals) -> R`` (abstract): Called by ``AppRunner`` after a
+     shutdown signal stopped ``work``, once every task has unwound (the resources held by ``work``
+     are already released); it runs on the event loop thread and cannot ``await``. Its value is
+     the result of the run. ``StepPublisherApp`` logs the signal name and returns
+     ``ExitCode.ABORTED``.
+
+**AppRunner: public interface**
+
+   * ``AppRunner[R](logger_param, loop_factory=None, exception_handler=None, unraisable_handler=None)``:
+
+        - ``logger_param``: Logger used by the default exception and unraisable handlers.
+        - ``loop_factory``: Factory of the event loop created by every ``run``, forwarded to
+          ``asyncio.Runner``; ``None`` uses the asyncio default loop. The STEP Publisher Pickle
+          passes ``asyncio.SelectorEventLoop`` on Windows (``IS_WINDOWS``), because the default
+          ``ProactorEventLoop`` lacks the ``add_reader``/``add_writer`` that ``aiomqtt`` needs.
+        - ``exception_handler``: Event loop exception handler; ``None`` logs the exception on
+          the logger.
+        - ``unraisable_handler``: Installed as ``sys.unraisablehook``; ``None`` logs the exception
+          on the logger.
+
+     The constructor installs the process-wide hooks (signal handlers, ``sys.unraisablehook``): it
+     is called from the main thread as early as possible, which is why ``main()`` builds it before
+     parsing the arguments, so that a signal received before ``run`` is still handled. Being a
+     singleton, only the first construction takes effect; the arguments of later calls are ignored.
+   * ``logger`` (property): The logger given to the constructor.
+   * ``run(app: AbstractApp[R]) -> R``: Opens an ``asyncio.Runner``, installs the exception handler
+     and the shutdown handlers (``SIGINT``/``SIGTERM`` on POSIX, ``SIGINT``/``SIGBREAK`` on
+     Windows), then runs ``app.work()`` next to a shutdown watcher in a ``TaskGroup``. It returns
+     the value of ``app.work()`` when the workload ends on its own, or the value of
+     ``app.on_shutdown(stop_signal)`` when a shutdown signal stops it. Any other exception raised
+     by ``work`` propagates wrapped in an ``ExceptionGroup``, which ``main()`` logs and maps to
+     ``ExitCode.ERROR``.
+
+   A shutdown signal never interrupts the workload at an arbitrary point: the signal handler only
+   sets an event, the watcher task turns it into an exception, and the ``TaskGroup`` cancels
+   ``work`` at the ``await`` it is suspended on.
+
+StepPublisherApp
+^^^^^^^^^^^^^^^^
+
+``StepPublisherApp`` (``step_publisher_app.py``) is the ``AbstractApp[ExitCode]`` subclass
+(step_cloud_schemas, see `Application Runtime (step_cloud_schemas)`_) run by ``AppRunner``.
+It holds the state shared by ``work`` and ``on_shutdown``: the instance name (also used as the
+MQTT client instance name), the ``StepPublisherPklConfig``, the logger and the
+``MqttCredential``. The module also defines the ``ExitCode`` enumeration.
+
+Key responsibilities of ``StepPublisherApp`` include:
+
+    #. **Credential Loading**: The constructor calls step_lib ``MqttCredential.from_env()``
+       once (``MQTT_URL``, ``MQTT_PORT``, ``MQTT_USERNAME``, ``MQTT_PASSWORD``), see
+       `Environment Variables`_. The URL and port are required (``ValueError`` otherwise);
+       the username and password are optional, an empty value counting as unset. Reading
+       them at construction rather than in ``work()`` makes a missing variable end the
+       program before the event loop is started: raised before ``AppRunner.run()``, the
+       ``ValueError`` ends it with ``ExitCode.ERROR``.
+    #. **Asynchronous Task Orchestration**: ``work()`` opens a ``StepBroker`` and, nested in
+       its context, a ``TaskGroup``; it builds a ``Scenario`` with the four loaders
+       (``JsonlLoader``, ``PickleActorLoader``, ``PickleCameraLoader``, ``GpxLoader``), the
+       ``stationsBlacklist`` and the ``waitTimeBeforeStarting`` of the configuration, loads
+       the ``inputFiles`` and creates one ``_publisher_run()`` task per vehicle. The broker
+       only disconnects once the group has unwound.
+    #. **Publisher Task**: ``_publisher_run()`` consumes the vehicle's messages with
+       ``scenario.pop_message(vehicle_id)``; for each one it computes the delta between the
+       message time and the current ``ItsTime``, sleeps for it when positive (converted from
+       milliseconds to seconds) and publishes the message with
+       ``client_publish_its_message()``.
+    #. **End of Run**: ``work()`` returns ``ExitCode.OK`` once every publisher task has
+       published all its messages. An exception raised by a publisher task cancels the other
+       tasks and propagates wrapped in an ``ExceptionGroup``: there is no reconnection.
+    #. **Shutdown**: ``on_shutdown()`` only logs the signal and returns
+       ``ExitCode.ABORTED``; the publisher tasks are cancelled and the broker disconnected by
+       the ``async with`` blocks of ``work()``. The messages not yet published are dropped.
+    #. **Exit Code Management**: Defines standard exit codes through the ``ExitCode`` enum:
+
+        * OK (0): Successful execution
+        * USAGE (1): Invalid command-line usage
+        * ERROR (2): General execution error
+        * ABORTED (3): Process interrupted by signal
+
+``work()`` is time O(s log s) and space O(s), where s is the total number of messages loaded
+and published across all vehicles (excluding the wall-clock time spent sleeping and on the
+network): every message is held in memory until it is published.
 
 StepBroker
 ^^^^^^^^^^
 
-The ``StepBroker`` is a core component of the STEP Publisher Pickle architecture
-that manages MQTT communication with the STEP broker. Extending the ``AsyncComManager`` class,
-it provides an asynchronous interface for secure message publishing to the STEP ecosystem.
+The ``StepBroker`` (module ``step_broker``) is the STEP broker client: it extends the
+step_lib ``AsyncComManager`` class and provides an asynchronous interface for secure
+message publishing to the STEP ecosystem.
 
 Key responsibilities of ``StepBroker`` include:
 
-    #. **MQTT Connection Management**: Establishes and maintains secure TLS/SSL connections
-       to the MQTT broker, handling reconnection and error scenarios.
-    #. **Message Publication**: Publishes CAM, CPM, and DENM messages to the STEP broker with
-       appropriate topic selection and message encoding through the
-       ``client_publish_its_message()`` method.
-    #. **Message Encoding**: Handles conversion of ``CamMessageV1``/``CpmMessageV1``/
-       ``DenmMessageV1`` objects to the appropriate ITS facility message format for MQTT
-       transmission.
-    #. **GeoNetwork Addressing**: Configures GeoNetwork addressing with traffic
-       participant type (PASSENGER_CAR) and a fixed MAC ID (``StepBroker.MAC_ID``) for proper
-       ITS message routing.
-    #. **Context Management**: Implements asynchronous context management through
-       ``__aenter__`` and ``__aexit__`` methods for clean resource handling.
+    #. **MQTT Connection Parameters**: Builds the ``AsyncComManagerParams`` from the
+       ``StepBrokerConfig`` (``mqttProtocol`` timeouts, keepalive, session and queue
+       limits, ``cacheDir``) and from the ``MqttCredential`` (host, port, username,
+       password); the station ID is not set, so every station of the scenario can be
+       published through the same client.
+    #. **TLS/SSL**: When ``mqttClient.sslEnable`` is true, builds the picklable
+       ``TLSParameters`` (CA certificates, client certificate and key, key password); with
+       ``sslVerifyServerCert`` false the server certificate is not verified
+       (``ssl.CERT_NONE``) and a warning is logged.
+    #. **Publish Topics**: Builds one step_lib ``PublishTopicParams`` per configured
+       ``mqttProtocol.publishTopics`` entry, mapping its ``messageType`` through
+       ``MessageType.orm_to_enum()`` and its ``qos`` to ``MqttQoS``.
+    #. **Message Publication**: ``client_publish_its_message()`` publishes a CAM, CPM, or
+       DENM ``FacilityMessage`` with ``publish_its_message()``, using the message's own
+       reference latitude/longitude, stamped with the current ``ItsTime``, as the current
+       position.
+    #. **GeoNetwork Addressing**: Uses a fixed GeoNetwork address with traffic participant
+       type ``PASSENGER_CAR`` and a fixed MAC ID (``StepBroker.MAC_ID``).
+    #. **Context Management**: Overrides ``__aenter__`` only to return the broker instance
+       after the parent ``AsyncComManager`` has connected; ``__aexit__`` is inherited
+       unchanged for clean resource handling.
 
 Its ``__init__`` builds one ``PublishTopicParams`` entry per configured publish topic
 (time and space complexity O(p), where p is the number of configured publish topics); SSL/TLS
-setup is O(1). The ``StepBroker`` class uses asynchronous patterns throughout to ensure
-non-blocking operations, making it suitable for concurrent multi-vehicle publishing scenarios
-in ITS applications.
+setup is O(1).
 
 Scenario and File Loaders
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The ``Scenario`` component is responsible for loading vehicle trajectory/ITS message data
-and serving it per vehicle in time order. It delegates the actual file parsing to a sequence
-of pluggable ``FileLoader`` implementations, has no dependency on any concrete loader, and
-serves as the data source for the publisher, providing per-vehicle messages with realistic
-timing for CAM/CPM/DENM publishing.
+The ``Scenario`` component (module ``scenario``) is responsible for loading vehicle
+trajectory/ITS message data and serving it per vehicle in time order. It delegates the
+actual file parsing to a sequence of pluggable ``FileLoader`` implementations, received in
+its constructor, and has no dependency on any concrete loader.
 
 Key features of ``Scenario`` include:
 
     #. **Pluggable File Loading**: ``load_data()`` tries, for each input file, the loader(s)
-       owning that file's extension first, then every other configured loader as a fallback,
-       until one successfully parses the file into ``FacilityMessage`` instances; a file that
-       fails validation against every loader is skipped with a warning.
-    #. **Time Reference Management**: Establishes a mapping between scenario timestamps and
-       real-world time through the ``TimeReference`` named tuple, enabling synchronized
-       playback of recorded vehicle movements.
+       owning that file's extension first, then every other configured loader as a fallback
+       (every loader, in the given order, for an extension no loader owns), until one
+       successfully parses the file into ``FacilityMessage`` instances. A file that no
+       loader accepts, or that contains no messages, is skipped with a warning.
+    #. **Time Reference Management**: Once every file is loaded, maps scenario time to real
+       time through the ``TimeReference`` named tuple: the earliest message time across all
+       stations becomes the scenario time origin, and the current time plus
+       ``wait_time_before_starting_ms`` the real time origin. Every message is then
+       rebuilt with its time fields (CAM ``creationTime``; CPM ``referenceTime`` and
+       perceived objects' ``measurementTime``/predicted path points; DENM management
+       container ``detectionTime``/``referenceTime`` and pre-crash container perceived
+       object) rewritten to real time. Messages of an unsupported type are skipped with a
+       warning, and a station left with no messages is dropped.
     #. **Per-Station Message Queue**: Manages each station's messages in a ``SortedList``
-       (ordered by ``its_time``) for efficient sequential access and consumption via the
-       ``pop_message()`` generator method; station IDs present in ``stations_blacklist`` are
-       skipped.
-    #. **Multi-Vehicle Support**: Maintains a separate message queue per station/vehicle ID,
-       allowing concurrent publishing of multiple vehicle trajectories.
-    #. **Vehicle Enumeration**: Provides ``get_vehicle_ids()`` to enumerate the stations
-       loaded from the input files.
+       (ordered by ``its_time``); messages of station IDs present in ``stations_blacklist``
+       are skipped. Every loaded message is held in memory until it is popped.
+    #. **Vehicle Enumeration**: ``get_vehicle_ids()`` yields the stations loaded from the
+       input files.
+    #. **Message Consumption**: ``pop_message(vehicle_id)`` is a generator that removes and
+       yields the vehicle's earliest message until its queue is empty.
 
-Four ``FileLoader`` implementations ship with the package (module ``step_publisher_pkl.loaders``),
-each a self-contained parser for one file format that either returns the ``FacilityMessage``
-instances a file contains or raises ``LoaderError`` if the file does not match its format:
+Four ``FileLoader`` implementations ship with the package (subpackage
+``step_publisher_pkl.loaders``), each a self-contained parser for one file format that either
+returns the ``FacilityMessage`` instances a file contains or raises ``LoaderError`` if the
+file does not match its format. Every concrete loader declares the extension it handles in
+the ``EXTENSION`` class attribute, checked by ``FileLoader.__init_subclass__``:
 
     * ``JsonlLoader`` (``.jsonl``): Parses one JSON-encoded ITS message per line, each
       validating as an ``ItsMessageRoot`` (``CamDataV1``, ``CpmDataV1``, or ``DenmDataV1``);
+      blank lines are skipped, and the first invalid line rejects the whole file;
       time/space complexity O(l), l = number of lines in the file.
     * ``PickleActorLoader`` (``.pkl``): Parses an unpickled dictionary shaped as
       ``{"trajectories": {"vehicles": {<station_id>: [<point>, ...]}}}`` into CAM messages;
@@ -149,239 +411,247 @@ instances a file contains or raises ``LoaderError`` if the file does not match i
     * ``PickleCameraLoader`` (``.pkl``): Parses an unpickled list of dictionaries, each
       directly convertible to a ``CpmDataV1`` (Collective Perception Message); time/space
       complexity O(m), m = number of camera data items in the file.
-    * ``GpxLoader`` (``.gpx``): Parses a GPX file containing a vehicle trajectory into CAM
-      messages; time/space complexity O(p), p = total number of track points across all
-      tracks/segments in the file.
+    * ``GpxLoader`` (``.gpx``): Parses a GPX file whose tracks are named
+      ``Path actor <station_id>_<object_id>`` into CAM messages; time/space complexity O(p),
+      p = total number of track points across all tracks/segments in the file.
 
-See :doc:`input_files` for the exact file formats accepted.
+The pickle actor and GPX loaders build their CAM data through the shared
+``FileLoader._build_cam_data()`` helper: values are passed to the CAM fields unchanged (no
+unit conversion), and every field not derived from a trajectory point is ``None``. See
+:doc:`input_files` for the exact file formats accepted.
 
-The ``Scenario`` class ensures that vehicle trajectory playback maintains the original
-scenario timing characteristics, providing accurate replay of loaded vehicle movements within
-the STEP ecosystem. Across its methods, the worst case (in ``load_data()``/
-``_update_time_stations()``) is time O(s) and space O(s), where s is the total number of
-trajectory points/messages loaded across all input files.
+Across its methods, the worst case of ``Scenario`` (in ``load_data()``/
+``_update_time_stations()``) is time O(s log s) and space O(s), where s is the total number
+of trajectory points/messages loaded across all input files: each message is inserted into
+a sorted collection in O(log s).
 
 StepPublisherPklConfig
 ^^^^^^^^^^^^^^^^^^^^^^
 
-The ``StepPublisherPklConfig`` component is responsible for configuration management in the
-STEP Publisher Pickle architecture. Built as a Pydantic ``BaseModel``, it provides a robust,
-type-safe mechanism for loading, validating, and accessing configuration settings throughout
-the application.
+The ``StepPublisherPklConfig`` component (module ``step_publisher_pkl_config``) is
+responsible for configuration management in the STEP Publisher Pickle architecture. Built as
+a Pydantic ``BaseModel``, it provides a robust, type-safe mechanism for loading, validating,
+and accessing configuration settings throughout the application.
 
 Key features of ``StepPublisherPklConfig`` include:
 
-    #. **JSON Configuration Loading**: Loads configuration settings from a JSON file specified
-       via command-line arguments, providing a centralized source of configuration for all
-       components.
-    #. **Type Validation**: Leverages Pydantic's validation system to ensure all configuration
-       values meet the expected types and constraints, preventing configuration errors at
-       runtime.
+    #. **JSON Configuration Loading**: ``main()`` loads it from the JSON file given with
+       ``-c``/``--config`` through ``model_validate_json()``.
+    #. **Type Validation**: Every model is ``strict`` (no type coercion) and
+       ``extra="forbid"``, so all configuration values must meet the expected types and
+       constraints, preventing configuration errors at runtime. ``templateVersion`` must
+       match ``StepConfigVersion.VERSION``.
     #. **Hierarchical Structure**: Organizes configuration in a hierarchical manner, with the
        following top-level fields:
 
         * ``templateVersion``: Configuration data version, matching ``StepConfigVersion.VERSION``
-        * ``inputFiles``: List of paths to the JSONL/Pickle/GPX files to read and publish
+        * ``inputFiles``: List of paths to the JSONL/Pickle/GPX files to read and publish; at
+          least one is required
         * ``stationsBlacklist``: Optional list of station IDs to ignore in the scenario
         * ``waitTimeBeforeStarting``: Time to wait before starting the scenario, in
-          milliseconds
-        * ``stepBroker`` (``StepBrokerConfig``): MQTT client configuration, MQTT protocol
-          configuration (QoS, topic management, session parameters), and cache directory
-        * ``log`` (``LogConfig``): Logging configuration (handlers, levels, formatting)
+          milliseconds (0-5000)
+        * ``stepBroker`` (``StepBrokerConfig``): MQTT client configuration
+          (``MqttClientConfig``: TLS/SSL settings), MQTT protocol configuration
+          (``MqttProtocolConfig``: session, timeouts, queues, publish topics), and cache
+          directory
+        * ``log`` (``LogConfig`` from ``step_cloud_schemas``): Logging configuration
+          (handlers, levels, formatting)
 
-    #. **Immutable Configuration**: The model is declared ``frozen=True`` and ``strict=True``,
-       so once loaded at startup it becomes immutable, ensuring consistency throughout the
-       application's lifecycle.
-    #. **Configuration Sharing**: Acts as a central repository of configuration settings that
-       is shared with other components, providing a single source of truth for system settings.
-    #. **Default Configuration**: Provides a ``get_default()`` static method to generate
-       sensible default configurations when specific values are not provided.
-    #. **JSON Schema Generation**: Supports generating JSON schemas via
-       ``print_config_schema()``/the internal ``_ConfigGenerateJsonSchema`` utility class,
-       accessible via the ``--conf_schema`` CLI option; time/space complexity O(n), n = number
-       of configuration fields.
+    #. **Immutable Configuration**: Every model is ``frozen``, so once loaded at startup the
+       configuration is immutable, ensuring consistency throughout the application's lifecycle.
+    #. **Default Configuration**: Provides ``get_default()`` static methods (enumerations
+       excluded) used to write the configuration template.
+    #. **JSON Schema and Template Generation**: ``print_config_schema(path)`` writes
+       ``<STEP_CONFIG_SCHEMA>.json`` using the internal ``_ConfigGenerateJsonSchema``
+       generator (time/space complexity O(n), n = number of configuration fields);
+       ``print_config_example(path)`` writes ``<STEP_CONFIG_SCHEMA>_template.json`` from
+       ``get_default()``.
 
-MQTT credentials (``MqttCredential``: ``url``, ``port``, ``username``, ``password``) are kept
-separate from ``StepPublisherPklConfig`` and loaded from the environment instead, so secrets
-are never embedded in the persisted configuration document (see :doc:`usage`).
+Credentials are deliberately not part of ``StepPublisherPklConfig``: step_lib
+``MqttCredential`` is a frozen dataclass (``mqtt_url``, ``mqtt_port``, ``mqtt_username``,
+``mqtt_password``), filled from environment variables by its ``from_env()`` method when
+``StepPublisherApp`` is built, so secrets are not embedded in the persisted configuration
+document. Its ``__post_init__`` rejects an empty URL and a port outside the 1-65535 range.
 
-The design of ``StepPublisherPklConfig`` emphasizes immutability and strong validation, helping
-prevent configuration-related issues during runtime while providing a clear, structured
-approach to configuration management.
+Environment Variables
+^^^^^^^^^^^^^^^^^^^^^
+
+The MQTT broker address and credentials are the only settings not taken from the JSON
+configuration file: they are read from the environment, so that secrets are never written to
+a configuration document.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 12 22 44
+
+   * - Variable
+     - Required
+     - Read by
+     - Description
+   * - ``MQTT_URL``
+     - yes
+     - step_lib ``MqttCredential``
+     - MQTT broker host name or IP address
+   * - ``MQTT_PORT``
+     - yes
+     - step_lib ``MqttCredential``
+     - MQTT broker port (1-65535); usually 8883 with TLS
+       (``stepBroker.mqttClient.sslEnable`` true), 1883 without
+   * - ``MQTT_USERNAME``
+     - no
+     - step_lib ``MqttCredential``
+     - Broker username; unset or empty connects anonymously
+   * - ``MQTT_PASSWORD``
+     - no
+     - step_lib ``MqttCredential``
+     - Broker password; ignored, with a WARNING, when ``MQTT_USERNAME`` is not set
+
+How they are read:
+
+    #. ``StepPublisherApp.__init__()`` calls ``MqttCredential.from_env()`` once, before
+       ``AppRunner.run()``.
+    #. ``from_env()`` first loads the ``.env`` file found in the **current working
+       directory** or its nearest parent (``load_dotenv(find_dotenv(usecwd=True))``): what
+       counts is the directory ``step_publisher_pkl`` is launched from, not the directory of
+       the installed package. Without a ``.env`` file only the environment is read.
+    #. A variable already set in the environment (shell, container) wins over the ``.env``
+       file: ``load_dotenv`` only adds missing variables.
+    #. An empty username or password counts as unset.
+    #. The host, the port and whether a username is set are logged at INFO level; the
+       username and the password never are.
+    #. A missing ``MQTT_URL``/``MQTT_PORT``, a non-integer or out-of-range port, or an empty
+       host raise ``ValueError``; ``main()`` logs it with its traceback and returns
+       ``ExitCode.ERROR``.
+
+Credentials that the broker rejects are not detected here but on connection, by
+``StepBroker``: the error propagates out of ``work()`` and ends the run with
+``ExitCode.ERROR``, without retrying.
+
+The repository ships a commented template,
+:download:`env/.env.example <env/.env.example>`: download it, save it as ``.env`` in the
+directory ``step_publisher_pkl`` is launched from and fill in the values. ``.env`` is listed
+in ``.gitignore``; only the template is versioned. See :ref:`step_publisher_pkl_credentials`
+for the file format and the alternatives to the file.
 
 StepLogger
 ^^^^^^^^^^
 
-The ``StepLogger`` component provides specialized logging functionality for the STEP Publisher
-Pickle architecture, enabling comprehensive and configurable logging throughout the application.
-It serves as a wrapper around Python's standard logging facilities with additional features
-tailored to STEP Publisher Pickle's needs.
+``StepLogger`` is provided by the ``step_cloud_schemas`` library (not implemented within
+step_publisher_pkl itself) and is used by the STEP Publisher Pickle to build and configure
+its ``logging.Logger``. ``main()`` first creates a default logger, then, once the
+configuration is loaded, rebuilds it from the ``log`` section of ``StepPublisherPklConfig``
+with the instance name, and force-writes the program, ``step_cloud_schemas`` and ``step_lib``
+versions.
 
 Key features of ``StepLogger`` include:
 
-    #. **UTC-based Timestamps**: Implements a ``UtcFormatter`` class that uses ``gmtime`` for
-       consistent UTC timezone formatting across all log entries, ensuring consistent
-       timestamps regardless of system timezone.
-    #. **Multi-destination Logging**: Supports logging to different output formats and
-       destinations, including:
+    #. **Multiple Handler Types**: Builds loggers with one or more of the following
+       handlers, each independently configurable via ``LogConfig``:
 
-        * File-based logging for persistent records (``FileHandler``)
-        * Standard output (console) for development and debugging (``StreamHandler``)
-        * Rotating file handlers with size-based (``RotatingFileHandler``) or
-          time-based (``TimedRotatingFileHandler``) rotation
-        * Null handler (``NullHandler``) for silent operation
+        * ``stream``: writes to stderr
+        * ``null``: discards all log records
+        * ``file``: writes to a single log file (append or overwrite)
+        * ``sizeFileRotate``: rotates the log file once it exceeds a configured size
+        * ``timeFileRotate``: rotates the log file at a configured time interval
 
-    #. **Log Compression**: Automatic log file compression using ZIP format via the
-       ``_rotator()`` function when log files are rotated, saving disk space for
-       archived logs.
-    #. **Log Level Management**: Provides fine-grained control over logging verbosity
-       with standard log levels (DEBUG, INFO, WARNING, ERROR, CRITICAL).
-    #. **Structured Formatting**: Implements customizable log formats with timestamp,
-       severity level, source component, and structured message content.
-    #. **Configuration Integration**: Leverages the ``log`` configuration section
-       from ``StepPublisherPklConfig`` to enable consistent setup across components.
-    #. **Utility Methods**: Offers utility methods like ``setup_logging()`` for initial
-       configuration and ``get_logger()`` for retrieving appropriately configured
-       logger instances.
+       Rotated log files are automatically compressed.
+    #. **UTC Timestamp Formatting**: All log timestamps are rendered in UTC regardless of
+       the local system timezone.
+    #. **Log Level Management**: Supports the standard log levels (DEBUG, INFO,
+       WARNING, ERROR, CRITICAL) per handler and a global logger level.
+    #. **Public API**: Exposes two classmethods:
 
-The ``StepLogger`` component ensures that the STEP Publisher Pickle maintains comprehensive
-logging capabilities to support monitoring, debugging, and operational insights, particularly
-for tracking multi-vehicle publishing operations and timing-sensitive position updates.
+        * ``get_logger(name, config, instance_name)``: builds and returns a configured
+          ``Logger``. If ``config`` is ``None``, it falls back to a single stderr
+          stream handler at WARNING level. File-based handlers require
+          ``instance_name`` to build the log filename.
+        * ``logger_force_write(logger, msg)``: temporarily elevates the logger and all
+          its handlers to INFO to guarantee a message is emitted (used for the
+          startup/version banners), then restores the original levels.
 
-Exceptions
-^^^^^^^^^^
+StepException
+^^^^^^^^^^^^^
 
-The exception handling components provide a structured error handling mechanism
-for the STEP Publisher Pickle architecture. They define custom exceptions tailored
-to the specific error conditions that can occur during publisher operations.
+step_publisher_pkl defines a minimal exception hierarchy in ``step_exception.py`` (three
+plain classes, O(1) in time and space, with no added fields or logic):
 
-Key aspects include:
+    #. **StepPublisherPklError**: Base exception of the STEP Publisher Pickle. A plain
+       subclass of ``Exception`` with no additional attributes.
+    #. **StepCliError**: Subclass of ``StepPublisherPklError`` raised for command line
+       misuse in ``main()`` (only one of ``-c/--config`` and ``-i/--instance``). ``main()``
+       logs it as a plain error line (no traceback) and returns ``ExitCode.USAGE``.
+    #. **LoaderError**: Subclass of ``StepPublisherPklError`` raised by a ``FileLoader``
+       when a file does not match, or cannot be parsed as, the format that loader handles;
+       it wraps the underlying cause (``OSError``, Pydantic ``ValidationError``,
+       ``UnpicklingError``, etc.). ``Scenario.load_data()`` catches it to try the next
+       candidate loader.
 
-    #. **Exception Hierarchy**: Establishes a well-organized hierarchy, all deriving from
-       ``StepPublisherPklError`` (the package's base exception):
-
-        * ``StepCliError``: Specialized exception for CLI-specific errors such as
-          argument parsing, command execution failures, and configuration loading issues
-        * ``LoaderError``: Raised by a ``FileLoader`` when a file does not match, or cannot
-          be parsed as, the format that loader handles; wraps the underlying cause
-          (``OSError``, Pydantic ``ValidationError``, ``UnpicklingError``, etc.).
-          ``Scenario.load_data()`` catches this to try the next candidate loader.
-        * ``ShutdownRequestedError``: Internal signal raised to unwind ``_main_async``'s
-          ``TaskGroup`` once a graceful shutdown has been requested via
-          SIGINT/SIGTERM/SIGBREAK; never raised across module boundaries.
-
-    #. **Error Classification**: Categorizes errors into distinct types such as:
-
-        * CLI argument and configuration errors
-        * MQTT broker connection failures
-        * Scenario/loader data parsing errors
-        * Message publishing failures
-
-    #. **Integration with Logging**: Collaborates with the ``StepLogger`` component to
-       ensure that exceptions are properly logged with appropriate severity levels.
-
-All exception classes are O(1) in time and space: plain marker subclasses of ``Exception``
-with no added fields or logic.
-
-Main Application (__main__)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The main application module provides the command-line interface and orchestrates the
-asynchronous publishing workflow. It implements the primary execution logic that
-coordinates all other components.
-
-Key features of the main application include:
-
-    #. **Command-Line Interface**: Provides comprehensive CLI with options for:
-
-        * ``--version``/``-v``: Display version information
-        * ``--conf_schema``/``-s``: Generate JSON configuration schema
-        * ``--conf_template``/``-t``: Generate configuration template
-        * ``--config``/``-c`` and ``--instance``/``-i``: Load configuration and run publisher
-
-    #. **Environment-Based Credentials**: ``_get_mqtt_credential()`` loads the ``.env`` file
-       of the current working directory (or an ancestor of it) via
-       ``load_dotenv(find_dotenv(usecwd=True))`` and reads ``MQTT_URL``, ``MQTT_PORT``, ``MQTT_USERNAME``, and
-       ``MQTT_PASSWORD`` from the environment into an ``MqttCredential`` (see :doc:`usage`).
-    #. **Asynchronous Task Orchestration**: Uses ``asyncio.TaskGroup`` to manage
-       concurrent publisher tasks for multiple vehicles, enabling simultaneous
-       publishing while maintaining individual vehicle timing; time O(v)/space O(v) for task
-       creation, where v is the number of vehicles.
-    #. **Exit Code Management**: Defines standard exit codes through the ``ExitCode`` enum:
-
-        * OK (0): Successful execution
-        * USAGE (1): Command-line usage error
-        * ERROR (2): Runtime error
-        * ABORTED (3): User interruption or signal
-
-    #. **Signal Handling**: Implements cross-platform signal handling:
-
-        * Windows: SIGBREAK support (via ``WindowsOsShutdownState``)
-        * Unix: SIGINT/SIGTERM support (Ctrl+C / termination)
-
-    #. **Publisher Task Management**: The ``_publisher_run()`` coroutine manages
-       individual vehicle publishing by:
-
-        * Consuming a vehicle's messages via ``scenario.pop_message(vehicle_id)``
-        * Publishing CAM/CPM/DENM messages through ``client.client_publish_its_message()``
-        * Calculating sleep intervals using ``ItsTime.time_difference()``
-        * Maintaining realistic timing based on scenario timestamps
-
-    #. **Resource Management**: Utilizes async context managers (``async with``)
-       for automatic cleanup of MQTT connections and other resources.
-    #. **Event Loop Configuration**: On Windows, uses ``SelectorEventLoop`` for
-       optimal compatibility with asyncio operations.
-
-The main application serves as the entry point and coordinator, bringing together
-configuration, scenario data, MQTT communication, and logging to deliver a
-complete integration between JSONL/pickle/GPX scenario data and the STEP platform.
+The graceful shutdown signal is not part of this hierarchy: it is the internal
+``_ShutdownRequestedError`` of ``AppRunner`` (``step_cloud_schemas``), which never leaves
+that module.
 
 Component Diagram
 ^^^^^^^^^^^^^^^^^
 
 The following component diagram illustrates the high-level architecture of the STEP Publisher
-Pickle and its interactions with external systems. It shows the relationships between the core
-components (StepBroker, Scenario/FileLoaders, StepPublisherPklConfig, StepLogger, and the
-exception hierarchy) and how they interact with the MQTT Broker and scenario data files. The
-diagram highlights the separation of concerns in the architecture, with StepBroker handling
-MQTT communication, Scenario delegating to pluggable FileLoaders for vehicle trajectory/ITS
-message data, and the main application orchestrating the publishing workflow. Both components
-rely on configuration provided by StepPublisherPklConfig and logging services from StepLogger.
+Pickle and its interactions with external systems. ``main`` loads the configuration and hands
+``StepPublisherApp`` to ``AppRunner``; ``StepPublisherApp`` reads the MQTT credential from the
+environment and owns the ``StepBroker`` (MQTT) and the ``Scenario`` (input files).
 
 .. container:: scrollable-diagram
 
    .. plantuml::
       :align: center
 
+      @startuml
+
+      rectangle "step_cloud_schemas" as Schemas #LightGray {
+         [AppRunner] as Runner
+         [AbstractApp] as AApp
+         [StepLogger] as Logger
+      }
+
+      rectangle "step_lib" as StepLib #LightGray {
+         [MqttCredential] as Credential
+      }
+
       package "STEP Publisher Pickle" {
-         [Main Application] as Main
+         [main] as Main
+         [StepPublisherApp] as App
          [StepBroker] as Broker
          [Scenario] as Scenario
          [FileLoaders] as Loaders
          [StepPublisherPklConfig] as Config
-         [StepLogger] as Logger
          [StepPublisherPklError] as Exception
-         note left of Main
-         Asynchronous publisher
-         orchestrator with CLI
-         and TaskGroup management
+         note right of App
+            Workload: one publisher
+            task per vehicle
          end note
       }
 
       cloud "MQTT Broker" as MQTT
       folder "JSONL / Pickle / GPX Files" as PKL
+      file ".env / environment" as Env
 
-      Main -down-> Broker : uses
-      Main -down-> Scenario : uses
+      Main -right-> Runner : run(StepPublisherApp)
+      Runner -down-> App : work() / on_shutdown()
+      App -up-> AApp : extends
       Main -up-> Config : loads
-      Main -up-> Config : reads MQTT_* env / .env
-      Broker -up-> Config : uses
+      Main -down-> Exception : throws StepCliError
+      App -left-> Credential : from_env()
+      Credential -down-> Env : reads MQTT_* variables
+      App -down-> Broker : creates
+      App -down-> Scenario : creates
+      App -up-> Config : uses
+      Broker -up-> Config : uses stepBroker
+      Broker -left-> Credential : uses
       Broker -down-> MQTT : publishes CAM/CPM/DENM
       Scenario -down-> Loaders : delegates parsing
       Loaders -down-> PKL : loads vehicle data
-      Main -up-> Logger : uses
+      Loaders -right-> Exception : throws LoaderError
+      App -up-> Logger : uses
       Broker -up-> Logger : uses
-      Main -down-> Exception : throws
+      Scenario -up-> Logger : uses
 
       note bottom of MQTT
          Publish only
@@ -394,192 +664,286 @@ rely on configuration provided by StepPublisherPklConfig and logging services fr
          or GPX tracks
       end note
 
-      note top of Config
-         Configuration management
-         with JSON schema support
-      end note
-
-      note top of Scenario
-         Per-vehicle message queue
-         and timing manager
-      end note
+      @enduml
 
 Class Diagram
 -------------
 
-The class diagram below illustrates the structure and relationships between
-the key classes in the STEP Publisher Pickle architecture. It shows the main methods
-and attributes of each class and how they interact with one another. The
-diagram highlights the dependency relationships, where the Main Application relies on
-StepBroker, Scenario, and StepPublisherPklConfig components, Scenario delegates parsing to
-pluggable FileLoader implementations, and StepBroker depends on StepBrokerConfig (a subset of
-StepPublisherPklConfig) for MQTT connection configuration. This object-oriented design allows
-for clear separation of responsibilities and modular development.
+The class diagram below illustrates the structure and relationships between the key classes
+in the STEP Publisher Pickle architecture. ``StepPublisherApp`` extends ``AbstractApp``, reads
+the ``MqttCredential`` from the environment, and creates and uses ``StepBroker`` and
+``Scenario``; ``Scenario`` delegates parsing to pluggable ``FileLoader`` implementations, and
+``StepBroker`` extends ``AsyncComManager`` and depends on ``StepBrokerConfig`` (a subset of
+``StepPublisherPklConfig``) and on the ``MqttCredential``. The external libraries are shown as
+black boxes; the public interface of ``AbstractApp`` and ``AppRunner`` is detailed in
+`Application Runtime (step_cloud_schemas)`_.
 
 .. container:: scrollable-diagram
 
    .. plantuml::
       :align: center
 
+      @startuml
+
       !theme plain
       skinparam classAttributeIconSize 0
 
-      class MainApplication {
-         +async _main_async()
-         +async _publisher_run()
-         +_get_mqtt_credential()
-         +_exception_handler()
-         +main()
+      package "step_publisher_pkl" {
+         class MainApplication <<module __main__>> {
+            -_get_config_schema_file(path)
+            -_get_config_template_file(path)
+            -_args_parse() : ArgumentParser
+            +main() : int
+         }
+
+         enum ExitCode {
+            OK = 0
+            USAGE = 1
+            ERROR = 2
+            ABORTED = 3
+         }
+
+         class StepPublisherApp {
+            -_instance_name: str
+            -_config: StepPublisherPklConfig
+            -_logger: Logger
+            -_mqtt_credential: MqttCredential
+            +__init__(instance_name, config, logger)
+            -async _publisher_run(client, scenario, vehicle_id)
+            +async work() : ExitCode
+            +on_shutdown(stop_signal) : ExitCode
+         }
+
+         class StepBroker {
+            +MAC_ID: int {static}
+            -_config: StepBrokerConfig
+            -_geo_network_address: GeoNetworkAddress
+            -_logger: Logger
+            +async __aenter__() : StepBroker
+            +async client_publish_its_message(message)
+         }
+
+         class Scenario {
+            -_stations: dict[int, SortedList[FacilityMessage]]
+            -_loaders: list[FileLoader]
+            -_loaders_by_suffix: dict[str, list[FileLoader]]
+            +load_data(input_files)
+            +get_vehicle_ids() : Generator[int]
+            +pop_message(vehicle_id) : Generator[FacilityMessage]
+         }
+
+         class TimeReference <<NamedTuple>> {
+            +start_scenario_time: ItsTime
+            +start_real_time: ItsTime
+         }
+
+         abstract class FileLoader {
+            +EXTENSION: str {static}
+            +get_extension: str
+            +{abstract} __call__(file_path) : list[FacilityMessage]
+            #_build_cam_data(...) : CamDataV1
+         }
+
+         class JsonlLoader
+         class PickleActorLoader
+         class PickleCameraLoader
+         class GpxLoader
+
+         class StepPublisherPklConfig {
+            +templateVersion: StepConfigVersion
+            +inputFiles: list[str]
+            +stationsBlacklist: list[int] | None
+            +waitTimeBeforeStarting: int
+            +stepBroker: StepBrokerConfig
+            +log: LogConfig
+            +get_default()
+            +print_config_schema(path)
+            +print_config_example(path)
+         }
+
+         class StepPublisherPklError
+         class StepCliError
+         class LoaderError
       }
 
-      class StepBroker {
-         -_config: StepBrokerConfig
-         -_geo_network_address: GeoNetworkAddress
-         -_logger: Logger
-         +async __aenter__()
-         +async __aexit__()
-         +async client_publish_its_message()
+      package "step_cloud_schemas" #LightGray {
+         abstract class "AbstractApp[R]" as AbstractApp {
+            +{abstract} async work(): R
+            +{abstract} on_shutdown(stop_signal): R
+         }
+         class "AppRunner[R]" as AppRunner <<singleton>> {
+            +logger: Logger
+            +run(app): R
+         }
+         class StepLogger {
+            +get_logger()
+            +logger_force_write()
+         }
       }
 
-      class Scenario {
-         -_logger: Logger
-         -_stations: dict
-         -_loaders: list[FileLoader]
-         +load_data()
-         +get_vehicle_ids()
-         +pop_message()
+      package "step_lib" #LightGray {
+         class AsyncComManager
+         class MqttCredential <<dataclass>> {
+            +mqtt_url: str
+            +mqtt_port: int
+            +mqtt_username: str | None
+            +mqtt_password: str | None
+            +from_env(logger): MqttCredential
+         }
       }
 
-      abstract class FileLoader {
-         +get_extension: str
-         +__call__()
-      }
-
-      class JsonlLoader
-      class PickleActorLoader
-      class PickleCameraLoader
-      class GpxLoader
-
-      class StepPublisherPklConfig {
-         +templateVersion: str
-         +inputFiles: list[str]
-         +stationsBlacklist: list[int] | None
-         +waitTimeBeforeStarting: int
-         +stepBroker: StepBrokerConfig
-         +log: LogConfig
-         +get_default()
-         +model_validate()
-      }
-
-      class StepLogger {
-         +setup_logging()
-         +get_logger()
-      }
-
-      class StepPublisherPklError {
-      }
-
-      class StepCliError {
-      }
-
-      class LoaderError {
-      }
-
-      class ShutdownRequestedError {
-      }
-
-      MainApplication --> StepBroker : creates and uses
-      MainApplication --> Scenario : creates and uses
+      MainApplication --> AppRunner : creates and runs
+      MainApplication --> StepPublisherApp : creates
       MainApplication --> StepPublisherPklConfig : loads
-      MainApplication --> StepLogger : uses
       MainApplication --> StepCliError : throws
-      StepBroker --> StepPublisherPklConfig : uses config
-      StepBroker --> StepLogger : uses
-      StepBroker --> StepPublisherPklError : throws
+      MainApplication --> StepLogger : logs to
+      AppRunner ..> AbstractApp : run(app)
+      StepPublisherApp --|> AbstractApp : R = ExitCode
+      StepPublisherApp --> ExitCode : returns
+      StepPublisherApp --> MqttCredential : reads from env
+      StepPublisherApp --> StepBroker : creates and uses
+      StepPublisherApp --> Scenario : creates and uses
+      StepBroker --|> AsyncComManager
+      StepBroker --> StepPublisherPklConfig : uses stepBroker
+      StepBroker --> MqttCredential : uses
       Scenario --> FileLoader : uses
+      Scenario --> TimeReference : uses
       JsonlLoader --|> FileLoader : implements
       PickleActorLoader --|> FileLoader : implements
       PickleCameraLoader --|> FileLoader : implements
       GpxLoader --|> FileLoader : implements
       FileLoader --> LoaderError : throws
-      Scenario --> StepLogger : uses
       StepCliError --|> StepPublisherPklError : extends
       LoaderError --|> StepPublisherPklError : extends
-      ShutdownRequestedError --|> StepPublisherPklError : extends
+
+      @enduml
 
 Sequence Diagrams
 -----------------
 
-The sequence diagram below illustrates the primary message flow in the STEP Publisher Pickle:
-loading scenario data and publishing ITS messages to the MQTT broker. This diagram shows
-the sequence of interactions between components and the temporal flow of operations as
-vehicle trajectory/message data is loaded, processed, and published.
+The sequence diagrams below illustrate the application lifecycle and the message publishing
+flow of the STEP Publisher Pickle. These diagrams show the sequence of interactions between
+components and the temporal flow of operations as messages move through the system.
 
-Sequence Diagram - ITS Message Publishing from Scenario Files
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Sequence Diagram - Lifecycle
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The following sequence diagram depicts the complete process of publishing CAM/CPM/DENM
-messages from JSONL, pickle, or GPX scenario data to the STEP MQTT broker. It demonstrates
-how the Main Application orchestrates the loading of vehicle trajectories/messages via the
-configured FileLoaders, calculates timing intervals using ItsTime, and publishes messages
-concurrently for multiple vehicles using TaskGroup.
+The following sequence diagram depicts the startup, the run and the graceful shutdown:
+``main`` builds ``AppRunner`` first, then ``StepPublisherApp``, which reads the MQTT
+credential from the environment, and hands it to ``AppRunner``; ``work()`` returns
+``ExitCode.OK`` once every publisher task has finished, an error raised by ``work()`` ends the
+run with ``ExitCode.ERROR``, while a shutdown signal cancels ``work()`` and returns
+``on_shutdown()``.
 
 .. container:: scrollable-diagram
 
    .. plantuml::
       :align: center
 
-      participant "Main Application" as Main
+      @startuml
+
+      participant "main" as Main
+      participant "AppRunner" as Runner
+      participant "StepPublisherApp" as App
+      participant "StepBroker" as Broker
+
+      Main -> Runner : AppRunner[ExitCode](logger, loop_factory)
+      Main -> Main : StepPublisherPklConfig.model_validate_json()
+      Main -> App : StepPublisherApp(instance_name, config, logger)
+      App -> App : MqttCredential.from_env()
+      note right of App
+         .env loaded first; a missing or invalid
+         variable raises ValueError and main()
+         returns ExitCode.ERROR before run()
+      end note
+      Main -> Runner : run(app)
+      Runner -> App : work() (TaskGroup with shutdown watcher)
+      App -> Broker : async with StepBroker(...)
+      Broker -> Broker : MQTT CONNECT
+      App -> App : load scenario, one _publisher_run() task per vehicle
+
+      alt every publisher task finished
+         App -> Broker : exit context (disconnect)
+         App --> Runner : ExitCode.OK
+      else error (e.g. broker connection)
+         App --> Runner : raise ExceptionGroup
+         Runner --> Main : ExceptionGroup
+         note right of Main
+            Logged with traceback,
+            ExitCode.ERROR
+         end note
+      else SIGINT / SIGTERM (SIGBREAK on Windows)
+         Runner -> App : cancel work()
+         App -> Broker : exit context (disconnect)
+         Runner -> App : on_shutdown(stop_signal)
+         App --> Runner : ExitCode.ABORTED
+      end
+      Runner --> Main : ExitCode
+
+      @enduml
+
+Sequence Diagram - ITS Message Publishing from Scenario Files
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The following sequence diagram depicts the complete process of publishing CAM/CPM/DENM
+messages from JSONL, pickle, or GPX scenario data to the STEP MQTT broker, inside
+``StepPublisherApp.work()``: the loading of vehicle trajectories/messages via the configured
+FileLoaders, the timing intervals computed with ItsTime, and the concurrent publishing for
+multiple vehicles in a TaskGroup.
+
+.. container:: scrollable-diagram
+
+   .. plantuml::
+      :align: center
+
+      @startuml
+
+      participant "StepPublisherApp" as App
       participant "Scenario" as Scenario
       participant "FileLoaders" as Loaders
       participant "StepBroker" as Broker
       participant "STEP MQTT Broker" as MQTT
       participant "Scenario Files" as PKL
 
-      Main -> Scenario : load_data(inputFiles)
-      Scenario -> Loaders : try loaders by extension, then fallback
-      Loaders -> PKL : parse JSONL/pickle/GPX file
-      PKL --> Loaders : raw file content
-      Loaders --> Scenario : FacilityMessage instances (or LoaderError)
-      Scenario --> Main : data loaded
-
-      Main -> Scenario : get_vehicle_ids()
-      Scenario --> Main : [vehicle_id_1, vehicle_id_2, ...]
-
-      note over Main
-         Create TaskGroup
-         for concurrent publishing
+      App -> Broker : async with StepBroker(...)
+      Broker -> MQTT : connect
+      note over App
+         TaskGroup nested in the
+         broker context
       end note
+      App -> Scenario : load_data(inputFiles)
+      loop For each input file
+         Scenario -> Loaders : loaders by extension, then fallback
+         Loaders -> PKL : parse JSONL/pickle/GPX file
+         Loaders --> Scenario : FacilityMessage list (or LoaderError)
+      end
+      Scenario -> Scenario : rewrite times to real time
+      Scenario --> App : data loaded
+
+      App -> Scenario : get_vehicle_ids()
+      Scenario --> App : [vehicle_id_1, vehicle_id_2, ...]
 
       loop For each vehicle_id
-         Main -> Main : create _publisher_run(vehicle_id) task
+         App -> App : create _publisher_run(vehicle_id) task
       end
 
-      note over Main
+      note over App
          Tasks run concurrently
-         in TaskGroup
+         in the TaskGroup
       end note
 
-      loop For each vehicle message
-         Main -> Scenario : pop_message(vehicle_id)
-         Scenario --> Main : FacilityMessage (CAM/CPM/DENM)
-
-         alt message exists
-            Main -> Broker : client_publish_its_message(message)
-            note over Broker
-               Encode ITS message
-               with GeoNetwork addressing
-            end note
-            Broker -> MQTT : mqtt_publish(ITS_message)
-            MQTT --> Broker : success
-
-            alt next message exists
-               Main -> Main : calculate time_difference()
-               note over Main
-                  Sleep for calculated delta
-                  to maintain realistic timing
-               end note
-               Main -> Main : asyncio_sleep(delta)
-            end
+      loop For each message of the vehicle
+         App -> Scenario : pop_message(vehicle_id)
+         Scenario --> App : FacilityMessage (CAM/CPM/DENM)
+         App -> App : delta = message time - now
+         alt delta > 0
+            App -> App : asyncio_sleep(delta)
          end
+         App -> Broker : client_publish_its_message(message)
+         Broker -> MQTT : publish ITS message
       end
+
+      App -> Broker : exit context (disconnect)
+      App --> App : ExitCode.OK
+
+      @enduml
