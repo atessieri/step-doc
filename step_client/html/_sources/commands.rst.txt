@@ -131,7 +131,8 @@ The configuration file is a JSON document that defines the behavior of the step_
 The instance name is not part of the file; it is given with ``-i/--instance``. The MQTT
 and Redis addresses and credentials are read from environment variables
 (``MQTT_URL``, ``MQTT_PORT``, ``REDIS_URL``, ``REDIS_PORT``, and the optional
-``*_USERNAME``/``*_PASSWORD``), not from the file.
+``*_USERNAME``/``*_PASSWORD``), not from the file: see :ref:`step_client_credentials`
+and the :download:`.env.example <env/.env.example>` template.
 
 Here's an example of the configuration structure:
 
@@ -145,14 +146,14 @@ Exit Codes
 
 The program uses the following exit codes:
 
-* ``0`` (OK): Successful termination
-* ``1`` (USAGE): No arguments given, or only one of ``-c/--config`` and
-  ``-i/--instance``
-* ``2`` (ERROR): General error during execution
+* ``0`` (OK): Successful termination, including ``-h/--help`` and ``-v/--version``
+* ``1`` (USAGE): No arguments given, an invalid or unknown option, or only one of
+  ``-c/--config`` and ``-i/--instance``
+* ``2`` (ERROR): General error during execution, including an invalid configuration
+  file, a missing or invalid environment variable (``MQTT_URL``, ``MQTT_PORT``,
+  ``REDIS_URL``, ``REDIS_PORT``) and an error a reconnect cannot fix (rejected Redis or
+  MQTT credentials, missing SSL file, untrusted certificate)
 * ``3`` (ABORTED): Operation aborted by user or system
-
-An invalid or unknown option is rejected by ``argparse`` itself, which prints the
-usage and exits with status ``2``, the same value as ``ERROR``.
 
 Examples
 ========
@@ -187,7 +188,7 @@ Program Operation
 When running with a configuration file, the step_client performs the following operations:
 
    #. Reads the MQTT and Redis credentials (``MQTT_URL``, ``MQTT_PORT``, ``MQTT_USERNAME``, ``MQTT_PASSWORD``,
-      ``REDIS_URL``, ``REDIS_PORT``, ``REDIS_USERNAME``, ``REDIS_PASSWORD``) from the environment, first loading the ``.env`` file found in the current working directory (or an ancestor of it), if any
+      ``REDIS_URL``, ``REDIS_PORT``, ``REDIS_USERNAME``, ``REDIS_PASSWORD``) from the environment (step_lib ``MqttCredential.from_env`` and step_redis ``RedisCredential.from_env``), first loading the ``.env`` file found in the current working directory (or an ancestor of it), if any
    #. Connects to the Redis server using the provided connection settings
    #. Connects to the STEP broker using MQTT settings
    #. Subscribes to the specified MQTT topics
@@ -197,7 +198,8 @@ When running with a configuration file, the step_client performs the following o
       - Another task listens for DENM messages on the Redis input stream and publishes them to the STEP broker
       - A third task runs a periodic Redis stream health check to keep the connection pool validated
 
-   #. Automatically handles reconnection if connections are lost (using the specified reconnect interval)
+   #. Automatically handles reconnection if connections are lost (using the specified reconnect interval); an error a
+      reconnect cannot fix ends the program with code 2 (``ERROR``)
    #. Manages graceful shutdown when interrupted: ``AppRunner`` (from ``step_cloud_schemas``) watches for a shutdown
       request (``SIGINT``/``SIGTERM``, or ``SIGINT``/``SIGBREAK`` on Windows), cancels the running tasks and exits with
       code 3 (``ABORTED``)

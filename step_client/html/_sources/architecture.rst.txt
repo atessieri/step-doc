@@ -22,8 +22,9 @@ The package is split into a small number of modules:
     * ``step_client_app``: the ``StepClientApp`` workload (the reconnecting
       broker/Redis bridge) and the ``ExitCode`` enumeration.
     * ``step_broker``: the ``StepBroker`` MQTT gateway.
-    * ``step_client_config``: the Pydantic configuration models and the
-      ``MqttRedisCredential`` dataclass.
+    * ``step_client_config``: the Pydantic configuration models (the MQTT client
+      TLS model ``MqttClientConfig`` comes from step_lib and the Redis connection
+      model ``RedisConnection`` from step_redis).
     * ``step_exception``: the ``StepClientError`` exception hierarchy.
 
 Library
@@ -47,6 +48,8 @@ communication and Redis integration capabilities:
 
         * ``AppRunner``/``AbstractApp``: asyncio application runner with a cooperative
           shutdown on ``SIGINT``/``SIGTERM`` (``SIGINT``/``SIGBREAK`` on Windows)
+        * ``ReconnectingApp``: the ``AbstractApp`` running ``cycle()`` forever, with
+          the reconnect loop and the fatal error handling
         * ``StepLogger``/``LogConfig``: logger factory and logging configuration
         * ``LoggingTimer``: logging of the processing time of each message
         * ``ItsTime``, ``MessageId``, ``TrafficParticipantType`` and ``IS_WINDOWS``
@@ -60,6 +63,11 @@ communication and Redis integration capabilities:
         * MQTT utilities including ``MqttQoS`` enumerations and ``PublishTopicParams``
         * ``GpsLocation`` and ``GeoNetworkAddress`` components
         * ``TLSParameters``: picklable TLS/SSL security parameters
+        * ``MqttClientConfig``: the MQTT client TLS settings of the configuration,
+          turned into ``TLSParameters`` by ``to_tls_params()``
+        * ``MqttCredential``: the MQTT broker host, port and authentication, read
+          from the environment by ``from_env()``
+        * ``StepLibMqttFatalError``: the MQTT connection refusals a reconnect cannot fix
 
     #. **step_redis**: Redis integration library providing:
 
@@ -68,14 +76,19 @@ communication and Redis integration capabilities:
           queuing and distribution
         * ``StepClientRedisStream``, ``StepAdapterRedisStream``,
           ``StepProducerRedisStream``: the CloudEvents-aware streams used by the client
+        * ``RedisConnection``/``RedisCredential``: the Redis connection settings of the
+          configuration and the Redis host, port and authentication read from the
+          environment by ``RedisCredential.from_env()``
+        * ``StepRedisFatalError``: the Redis failures a reconnect cannot fix
 
     #. **aiomqtt**: Asynchronous MQTT client library with TLS support
 
     #. **paho-mqtt**: MQTT protocol implementation providing subscription options and QoS controls
 
-    #. **python-dotenv**: Loads the MQTT/Redis credentials from the ``.env`` file found in
-       the current working directory (or an ancestor of it) into the environment before
-       they are read (``load_dotenv(find_dotenv(usecwd=True))``)
+    #. **python-dotenv** (through step_lib and step_redis): ``MqttCredential.from_env()``
+       and ``RedisCredential.from_env()`` load the ``.env`` file found in the current
+       working directory (or an ancestor of it) into the environment before the
+       credentials are read
 
 This library ecosystem enables the STEP Client to provide a comprehensive, type-safe,
 and highly configurable solution for ITS message communication within the STEP platform.
@@ -91,11 +104,14 @@ Main Components:
 
     #. **main / AppRunner**: CLI entry point and process runner (``AppRunner`` from the
        ``step_cloud_schemas`` library)
+    #. **AbstractApp / ReconnectingApp**: Abstract workload classes (from the
+       ``step_cloud_schemas`` library) that ``StepClientApp`` derives from
     #. **StepClientApp**: Workload bridging the STEP broker and the Redis streams, with
        reconnect handling
     #. **StepBroker**: Gateway class for MQTT communication with the STEP broker
     #. **StepClientConfig**: Configuration management for the client
-    #. **MqttRedisCredential**: MQTT/Redis credentials read from the environment
+    #. **MqttCredential / RedisCredential**: MQTT and Redis credentials read from the
+       environment (from the ``step_lib`` and ``step_redis`` libraries)
     #. **StepRedisPool/StepClientRedisStream**: Redis integration
        for message queuing (from the ``step_redis`` library)
     #. **StepLogger**: Logging utilities used by the STEP client (from the
@@ -124,40 +140,215 @@ Entry Point and AppRunner
 
 ``AppRunner`` (from ``step_cloud_schemas``) owns the process-wide plumbing: the
 ``asyncio.Runner``, the loop exception handler, ``sys.unraisablehook`` and the shutdown
-signal handlers. It runs ``StepClientApp.work()`` next to a shutdown watcher task in a
+signal handlers. It runs ``StepClientApp.work()`` (inherited from ``ReconnectingApp``)
+next to a shutdown watcher task in a
 ``TaskGroup``: when a shutdown signal arrives the watcher raises an internal
 ``_ShutdownRequestedError``, the ``TaskGroup`` cancels ``work`` wherever it is and, once
 every task has unwound, ``StepClientApp.on_shutdown()`` is called with the signal.
 
 ``main()`` maps the outcome to an ``ExitCode``:
 
-    * ``OK`` (0): success (e.g. only schema/template generation was requested)
-    * ``USAGE`` (1): no argument, or ``StepCliError`` (logged as a plain error line)
-    * ``ERROR`` (2): any other unhandled exception (logged with its traceback)
+    * ``OK`` (0): success (e.g. only schema/template generation was requested), including
+      ``-h/--help`` and ``-v/--version``
+    * ``USAGE`` (1): no argument, an invalid or unknown option, or ``StepCliError``
+      (logged as a plain error line)
+    * ``ERROR`` (2): any other unhandled exception, logged with its traceback: an invalid
+      configuration file, a missing or invalid environment variable (``ValueError`` raised
+      by the ``StepClientApp`` constructor, see `Environment Variables`_), or an error
+      that a reconnect cannot fix (``fatal_result()``)
     * ``ABORTED`` (3): shutdown signal (returned by ``on_shutdown``) or
       ``KeyboardInterrupt``
+
+Application Runtime (step_cloud_schemas)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. note::
+   ``AppRunner``, ``AbstractApp`` and ``ReconnectingApp`` are not part of the ``step_client``
+   package: they are imported from the external ``step_cloud_schemas`` dependency, shared by the
+   STEP programs. Only their public interface, the part used by the STEP Client, is described here.
+
+The three classes split a long-running program in two parts: the process-wide plumbing (event
+loop, signal handlers, exception hooks), owned by ``AppRunner``, and the workload, supplied by the
+program as an ``AbstractApp`` subclass. ``R`` is the program's result type: for the STEP Client,
+``ExitCode``.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 78
+
+   * - Class
+     - Role
+   * - ``AbstractApp[R]``
+     - Abstract base class of a workload run by ``AppRunner``. It declares the two methods
+       ``AppRunner`` needs and holds no state (empty ``__slots__``, so a subclass declares its own).
+   * - ``ReconnectingApp[R]``
+     - Abstract ``AbstractApp`` subclass that implements ``work`` as a reconnect loop around a
+       connection cycle (``cycle``), implemented by the program.
+   * - ``AppRunner[R]``
+     - Singleton that runs an ``AbstractApp`` on a new event loop until it ends or a shutdown
+       signal stops it.
+
+The class diagram below shows the public interface of the three classes and how
+``StepClientApp`` plugs into them:
+
+.. container:: scrollable-diagram
+
+   .. plantuml::
+      :align: center
+
+      @startuml
+
+      !theme plain
+      skinparam classAttributeIconSize 0
+
+      package "step_cloud_schemas" #LightGray {
+         abstract class "AbstractApp[R]" as AbstractApp {
+            +{abstract} async work() : R
+            +{abstract} on_shutdown(stop_signal : Signals) : R
+         }
+
+         abstract class "ReconnectingApp[R]" as ReconnectingApp {
+            #_FATAL_ERRORS : tuple[type[Exception], ...] = () {static}
+            +__init__(logger : Logger, reconnect_interval : int)
+            +{abstract} async cycle() : None
+            +{abstract} fatal_result() : R
+            +async work() : R
+         }
+
+         class "AppRunner[R]" as AppRunner <<singleton>> {
+            +__init__(logger_param : Logger, loop_factory = None, exception_handler = None, unraisable_handler = None)
+            +logger : Logger <<property>>
+            +run(app : AbstractApp[R]) : R
+         }
+      }
+
+      package "step_client" {
+         class StepClientApp {
+            #_FATAL_ERRORS = (StepRedisFatalError, StepLibMqttFatalError) {static}
+            +__init__(instance_name : str, config : StepClientConfig, logger : Logger)
+            +async cycle() : None
+            +fatal_result() : ExitCode
+            +on_shutdown(stop_signal : Signals) : ExitCode
+         }
+
+         enum ExitCode {
+            OK = 0
+            USAGE = 1
+            ERROR = 2
+            ABORTED = 3
+         }
+      }
+
+      ReconnectingApp --|> AbstractApp
+      StepClientApp --|> ReconnectingApp : R = ExitCode
+      AppRunner ..> AbstractApp : run(app)
+      StepClientApp ..> ExitCode : returns
+
+      note bottom of AppRunner
+         main() builds AppRunner[ExitCode]
+         (SelectorEventLoop on Windows)
+         and calls run(StepClientApp(...))
+      end note
+
+      @enduml
+
+**AbstractApp: public interface**
+
+   * ``async work() -> R`` (abstract): The workload, called once per run as a task of the
+     ``AppRunner`` ``TaskGroup``; it returns the result when it ends on its own. On a shutdown
+     signal it is cancelled at the ``await`` it is suspended on, so it has to be
+     cancellation-safe.
+   * ``on_shutdown(stop_signal: Signals) -> R`` (abstract): Called by ``AppRunner`` after a
+     shutdown signal stopped ``work``, once every task has unwound (the resources held by ``work``
+     are already released); it runs on the event loop thread and cannot ``await``. Its value is
+     the result of the run. ``StepClientApp`` logs the signal name and returns
+     ``ExitCode.ABORTED``.
+
+**ReconnectingApp: public interface**
+
+   * ``ReconnectingApp(logger, reconnect_interval)``: ``logger`` is used for the start, error and
+     retry messages, ``reconnect_interval`` is the number of seconds to wait before the next cycle.
+     ``StepClientApp`` passes its own logger and ``config.reconnectInterval``.
+   * ``async cycle() -> None`` (abstract): Opens the connections and runs the tasks until one of
+     them fails; returns only if every task ends normally, and then the next cycle starts at once.
+     Like ``work``, it has to be cancellation-safe. ``StepClientApp.cycle()`` opens the
+     ``StepRedisPool`` and the ``StepBroker`` and runs the three bridge tasks.
+   * ``fatal_result() -> R`` (abstract): The result returned by ``work`` after an error that a
+     reconnect cannot fix (``StepClientApp``: ``ExitCode.ERROR``).
+   * ``async work() -> R``: Logs ``Program started``, then runs ``cycle`` in a loop. When ``cycle``
+     raises:
+
+        - while a shutdown cancellation is in progress, the error is logged at INFO level and
+          ``CancelledError`` is restored, so the shutdown goes on without an ERROR traceback;
+        - otherwise the error is logged with its traceback, and if it, or any error nested in an
+          ``ExceptionGroup`` (as raised by a ``TaskGroup``), is one of the subclass's fatal error
+          types, ``work`` logs a CRITICAL line and returns ``fatal_result()``;
+        - otherwise ``work`` waits ``reconnect_interval`` seconds and runs ``cycle`` again.
+
+     It never returns otherwise: the loop ends only when ``AppRunner`` cancels it.
+
+   The fatal error types are the ``_FATAL_ERRORS`` class attribute that each subclass sets
+   (``StepClientApp``: step_redis ``StepRedisFatalError`` and step_lib
+   ``StepLibMqttFatalError``); with none set, every error is retried.
+
+**AppRunner: public interface**
+
+   * ``AppRunner[R](logger_param, loop_factory=None, exception_handler=None, unraisable_handler=None)``:
+
+        - ``logger_param``: Logger used by the default exception and unraisable handlers.
+        - ``loop_factory``: Factory of the event loop created by every ``run``, forwarded to
+          ``asyncio.Runner``; ``None`` uses the asyncio default loop. The STEP Client passes
+          ``asyncio.SelectorEventLoop`` on Windows (``IS_WINDOWS``), because the default
+          ``ProactorEventLoop`` lacks the ``add_reader``/``add_writer`` that ``aiomqtt`` needs.
+        - ``exception_handler``: Event loop exception handler; ``None`` logs the exception on
+          the logger.
+        - ``unraisable_handler``: Installed as ``sys.unraisablehook``; ``None`` logs the exception
+          on the logger.
+
+     The constructor installs the process-wide hooks (signal handlers, ``sys.unraisablehook``): it
+     is called from the main thread as early as possible, which is why ``main()`` builds it before
+     parsing the arguments, so that a signal received before ``run`` is still handled. Being a
+     singleton, only the first construction takes effect; the arguments of later calls are ignored.
+   * ``logger`` (property): The logger given to the constructor.
+   * ``run(app: AbstractApp[R]) -> R``: Opens an ``asyncio.Runner``, installs the exception handler
+     and the shutdown handlers (``SIGINT``/``SIGTERM`` on POSIX, ``SIGINT``/``SIGBREAK`` on
+     Windows), then runs ``app.work()`` next to a shutdown watcher in a ``TaskGroup``. It returns
+     the value of ``app.work()`` when the workload ends on its own, or the value of
+     ``app.on_shutdown(stop_signal)`` when a shutdown signal stops it. Any other exception raised
+     by ``work`` propagates wrapped in an ``ExceptionGroup``, which ``main()`` logs and maps to
+     ``ExitCode.ERROR``.
+
+   A shutdown signal never interrupts the workload at an arbitrary point: the signal handler only
+   sets an event, the watcher task turns it into an exception, and the ``TaskGroup`` cancels
+   ``work`` at the ``await`` it is suspended on.
 
 StepClientApp
 ^^^^^^^^^^^^^
 
-``StepClientApp`` (``step_client_app.py``) is the ``AbstractApp[ExitCode]`` subclass run by
-``AppRunner``. It holds the state shared by every reconnect cycle: the instance name
-(also used as the MQTT client instance name and the Redis stream consumer name), the
-``StepClientConfig``, the logger and the ``MqttRedisCredential``.
+``StepClientApp`` (``step_client_app.py``) is the ``ReconnectingApp[ExitCode]`` subclass
+(step_cloud_schemas, see `Application Runtime (step_cloud_schemas)`_) run by ``AppRunner``.
+It holds the state shared by every connection
+cycle: the instance name (also used as the MQTT client instance name and the Redis stream
+consumer name), the ``StepClientConfig``, the logger, the ``MqttCredential`` and the
+``RedisCredential``. It implements one connection cycle (``cycle()``) and the result of a
+fatal error (``fatal_result()``); the reconnect loop is the inherited ``work()``.
 
 Key responsibilities of ``StepClientApp`` include:
 
-    #. **Credential Loading**: The constructor calls ``load_dotenv()`` and reads
-       ``MQTT_URL``, ``MQTT_PORT``, ``MQTT_USERNAME``, ``MQTT_PASSWORD``, ``REDIS_URL``,
-       ``REDIS_PORT``, ``REDIS_USERNAME`` and ``REDIS_PASSWORD``. URLs and ports are
-       required (``ValueError`` otherwise); usernames and passwords are optional. The
-       credentials are read once at construction rather than in ``work()``, because
-       ``work()`` retries on any exception and a missing variable would never end the
-       program.
-    #. **Connection Cycle**: Each cycle of ``work()`` opens a ``StepRedisPool`` (at most
+    #. **Credential Loading**: The constructor calls step_lib ``MqttCredential.from_env()``
+       (``MQTT_URL``, ``MQTT_PORT``, ``MQTT_USERNAME``, ``MQTT_PASSWORD``) and step_redis
+       ``RedisCredential.from_env()`` (``REDIS_URL``, ``REDIS_PORT``, ``REDIS_USERNAME``,
+       ``REDIS_PASSWORD``), see `Environment Variables`_. URLs and ports are required
+       (``ValueError`` otherwise); usernames and passwords are optional, an empty value
+       counting as unset. The credentials are read once at construction rather than in
+       ``cycle()``, because ``work()`` retries on every non-fatal exception and a missing
+       variable would never end the program: raised before ``AppRunner.run()``, the
+       ``ValueError`` ends it with ``ExitCode.ERROR``.
+    #. **Connection Cycle**: Each ``cycle()`` opens a ``StepRedisPool`` (at most
        ``_REDIS_MAX_CONNECTIONS`` = 3 connections, parameters built by
-       ``_redis_params_convert()`` from ``RedisConnection`` and the credentials) and a
-       ``StepBroker``, then awaits ``StepBroker.subscribe_execution()``.
+       ``StepRedisPoolParams.from_connection()`` from ``RedisConnection`` and the
+       ``RedisCredential``) and a ``StepBroker``, then awaits
+       ``StepBroker.subscribe_execution()``.
     #. **Concurrent Tasks**: Runs three tasks in a ``TaskGroup``:
 
         * ``_step_receive_run()``: STEP broker → adapter/producer Redis streams
@@ -180,15 +371,22 @@ Key responsibilities of ``StepClientApp`` include:
        forwarded at that moment is logged and lost, since both the MQTT subscription and
        the Redis input stream (read with ``noack``) have already acknowledged it —
        delivery is at-most-once.
-    #. **Reconnection**: Any exception in a cycle is logged and the next cycle starts
-       after ``config.reconnectInterval`` seconds. If the current task is being
-       cancelled (shutdown in progress), a ``CancelledError`` is raised instead, so the
-       shutdown is not turned into a reconnect.
+    #. **Reconnection**: Any exception raised by ``cycle()`` is logged by the inherited
+       ``work()`` and the next cycle starts after ``config.reconnectInterval`` seconds. If
+       the current task is being cancelled (shutdown in progress), a ``CancelledError``
+       is raised instead, without an ERROR traceback, so the shutdown is not turned into
+       a reconnect.
+    #. **Permanent Errors**: An error that a reconnect cannot fix (``_FATAL_ERRORS``:
+       step_redis ``StepRedisFatalError`` - rejected Redis credentials, ACL denial,
+       missing SSL file, untrusted certificate - and step_lib ``StepLibMqttFatalError`` -
+       CONNACK refusing the MQTT authentication or authorization) ends the run with
+       ``fatal_result()`` (``ExitCode.ERROR``) instead of retrying forever.
     #. **Shutdown**: ``on_shutdown()`` only logs the signal and returns
        ``ExitCode.ABORTED``; the pool, the broker and the stream clients are released by
-       their async context managers in ``work()``.
+       their async context managers in ``cycle()``.
 
-``work()`` never returns normally: it runs until ``AppRunner`` cancels it.
+``work()`` returns only after a fatal error; otherwise it runs until ``AppRunner``
+cancels it.
 
 StepBroker
 ^^^^^^^^^^
@@ -201,10 +399,10 @@ client applications and the STEP ecosystem.
 Key responsibilities of ``StepBroker`` include:
 
     #. **MQTT Connection Management**: Builds the ``AsyncComManagerParams`` from the
-       ``StepBrokerConfig`` (MQTT protocol settings and publish topics) and the MQTT part
-       of ``MqttRedisCredential`` (host, port, username, password). When ``sslEnable`` is
-       set it builds picklable ``TLSParameters`` (the ``SSLContext`` is built from them on
-       connect); with ``sslVerifyServerCert``
+       ``StepBrokerConfig`` (MQTT protocol settings and publish topics) and the
+       ``MqttCredential`` (host, port, username, password). When ``sslEnable`` is set,
+       step_lib ``MqttClientConfig.to_tls_params()`` builds picklable ``TLSParameters``
+       (the ``SSLContext`` is built from them on connect); with ``sslVerifyServerCert``
        disabled it logs a warning and uses ``ssl.CERT_NONE``.
     #. **Topic Subscription**: ``subscribe_execution()`` subscribes to every configured
        ``subscriptionTopics`` entry with ``SubscribeOptions`` built from
@@ -228,7 +426,7 @@ Key responsibilities of ``StepBroker`` include:
     #. **Context Management**: Overrides ``__aenter__`` only to return the broker instance
        after the parent ``AsyncComManager`` has connected; it does not subscribe.
        ``subscribe_execution()`` must be awaited explicitly afterwards
-       (``StepClientApp.work()`` does so). ``__aexit__`` is inherited unchanged from
+       (``StepClientApp.cycle()`` does so). ``__aexit__`` is inherited unchanged from
        the parent ``AsyncComManager`` for clean resource handling.
 
 ``StepBroker`` has no Redis awareness: forwarding received messages to Redis streams
@@ -259,13 +457,21 @@ Key features of ``StepClientConfig`` include:
 
         * Top level: ``templateVersion``, ``stationId``, ``latitude``, ``longitude``,
           ``reconnectInterval``
-        * ``stepBroker`` (``StepBrokerConfig``): ``mqttClient`` (``MqttClientConfig``,
-          TLS settings), ``mqttProtocol`` (``MqttProtocolConfig``: session, queues,
+        * ``stepBroker`` (``StepBrokerConfig``): ``mqttClient`` (``MqttClientConfig`` from
+          step_lib, TLS settings), ``mqttProtocol`` (``MqttProtocolConfig``: session, queues,
           QoS, ``SubscriptionTopicParams``/``PublishTopicParams`` lists) and ``cacheDir``
-        * ``redis`` (``RedisClientConfig``): ``connection`` (``RedisConnection``) and
+        * ``redis`` (``RedisClientConfig``): ``connection`` (``RedisConnection`` from
+          step_redis) and
           ``streams`` (``RedisStreams``: ``input`` and ``outputs.adapter``/``outputs.producer``)
         * ``log`` (``LogConfig`` from ``step_cloud_schemas``): handlers, levels, formatting
 
+    #. **Cross-field Validation**: ``RedisClientConfig`` checks that
+       ``connection.socketTimeout`` (seconds) is at least ``streams.input.waitTimeout`` plus
+       ``READ_TIMEOUT_MARGIN_MS`` (5000 ms): the blocking ``XREADGROUP`` read is bounded by
+       the socket timeout, and a read that times out first drops the connection and loses
+       any message delivered in that instant (the input stream is read with ``noack``).
+       ``RedisStreamInput.waitTimeout`` is at least 10000 ms, so the stream TTL (twice
+       ``waitTimeout``) always exceeds the blocking read.
     #. **Immutable Configuration**: Every model is ``frozen``, so once loaded at startup the
        configuration is immutable, ensuring consistency throughout the application's lifecycle.
     #. **Configuration Sharing**: Acts as a central repository of configuration settings that
@@ -277,14 +483,92 @@ Key features of ``StepClientConfig`` include:
        generator; ``print_config_example(path)`` writes ``<STEP_CONFIG_SCHEMA>_template.json``
        from ``get_default()``.
 
-Credentials are deliberately not part of ``StepClientConfig``: ``MqttRedisCredential`` is a
-frozen dataclass, filled from environment variables by ``StepClientApp``, so secrets are not
-embedded in the persisted configuration document. Its ``__post_init__`` rejects empty
-URLs and ports outside the 1-65535 range.
+Credentials are deliberately not part of ``StepClientConfig``: step_lib ``MqttCredential``
+and step_redis ``RedisCredential`` are frozen dataclasses, filled from environment variables
+by their ``from_env()`` methods when ``StepClientApp`` is built, so secrets are not embedded
+in the persisted configuration document. Their ``__post_init__`` rejects empty URLs and
+ports outside the 1-65535 range.
 
 The design of ``StepClientConfig`` emphasizes immutability and strong validation, helping prevent
 configuration-related issues during runtime while providing a clear, structured
 approach to configuration management.
+
+Environment Variables
+^^^^^^^^^^^^^^^^^^^^^
+
+The MQTT broker and Redis server addresses and credentials are the only settings not taken
+from the JSON configuration file: they are read from the environment, so that secrets are
+never written to a configuration document.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 12 22 44
+
+   * - Variable
+     - Required
+     - Read by
+     - Description
+   * - ``MQTT_URL``
+     - yes
+     - step_lib ``MqttCredential``
+     - MQTT broker host name or IP address
+   * - ``MQTT_PORT``
+     - yes
+     - step_lib ``MqttCredential``
+     - MQTT broker port (1-65535); usually 8883 with TLS
+       (``stepBroker.mqttClient.sslEnable`` true), 1883 without
+   * - ``MQTT_USERNAME``
+     - no
+     - step_lib ``MqttCredential``
+     - Broker username; unset or empty connects anonymously
+   * - ``MQTT_PASSWORD``
+     - no
+     - step_lib ``MqttCredential``
+     - Broker password; ignored, with a WARNING, when ``MQTT_USERNAME`` is not set
+   * - ``REDIS_URL``
+     - yes
+     - step_redis ``RedisCredential``
+     - Redis server host name or IP address
+   * - ``REDIS_PORT``
+     - yes
+     - step_redis ``RedisCredential``
+     - Redis server port (1-65535); usually 6380 with TLS
+       (``redis.connection.sslEnable`` true), 6379 without
+   * - ``REDIS_USERNAME``
+     - no
+     - step_redis ``RedisCredential``
+     - ACL username; unset or empty authenticates as the ``default`` user
+   * - ``REDIS_PASSWORD``
+     - no
+     - step_redis ``RedisCredential``
+     - Password; unset or empty when the server requires no authentication
+
+How they are read:
+
+    #. ``StepClientApp.__init__()`` calls ``MqttCredential.from_env()`` and
+       ``RedisCredential.from_env()`` once, before ``AppRunner.run()``.
+    #. Each ``from_env()`` first loads the ``.env`` file found in the **current working
+       directory** or its nearest parent (``load_dotenv(find_dotenv(usecwd=True))``): what
+       counts is the directory ``step_client`` is launched from, not the directory of the
+       installed package. Without a ``.env`` file only the environment is read.
+    #. A variable already set in the environment (shell, container) wins over the ``.env``
+       file: ``load_dotenv`` only adds missing variables.
+    #. An empty username or password counts as unset.
+    #. The host, the port and whether a username is set are logged at INFO level; the
+       username and the password never are.
+    #. A missing ``*_URL``/``*_PORT``, a non-integer or out-of-range port, or an empty host
+       raise ``ValueError``; ``main()`` logs it with its traceback and returns
+       ``ExitCode.ERROR``.
+
+Credentials that the server rejects are not detected here but on connection, as fatal
+errors (``StepLibMqttFatalError``, ``StepRedisFatalError``) that end the run with
+``ExitCode.ERROR`` instead of being retried.
+
+The repository ships a commented template,
+:download:`env/.env.example <env/.env.example>`: download it, save it as ``.env`` in the
+directory ``step_client`` is launched from and fill in the values. ``.env`` is listed in
+``.gitignore``; only the template is versioned. See :ref:`step_client_credentials` for the
+file format and the alternatives to the file.
 
 StepRedis
 ^^^^^^^^^
@@ -437,13 +721,14 @@ The stream provides methods for Time-To-Live management:
 **Health Checking:**
 
 The ``ping()`` method sends a ``PING`` command to verify Redis connectivity, logging and
-re-raising ``RedisConnectionError``/``RedisTimeoutError``.
+re-raising the error (translated by step_redis into ``StepRedisConnectionError`` or
+``StepRedisFatalError``).
 
 The ``run_health_check()`` method loops forever, sleeping for the pool's
 ``health_check_interval`` seconds and then calling ``ping()``. An interval of ``0``
 disables it (it just blocks). The STEP Client runs it in
 ``StepClientApp._redis_health_check_run()`` as a sibling task in the ``TaskGroup``, so a
-failed ping cancels the other tasks and triggers the reconnect logic in
+failed ping cancels the other tasks and triggers the reconnect logic of the inherited
 ``StepClientApp.work()``.
 
 **StepClientRedisStream - STEP Client Integration**
@@ -509,10 +794,11 @@ In ``_step_receive_run()``:
 
 **Redis Connection Pool Setup:**
 
-``StepClientApp.work()`` creates ``StepRedisPool`` at each reconnect cycle by:
+``StepClientApp.cycle()`` creates ``StepRedisPool`` at each connection cycle by:
 
-    #. Converting the ``RedisConnection`` config and the Redis part of
-       ``MqttRedisCredential`` to ``StepRedisPoolParams`` (``_redis_params_convert()``)
+    #. Converting the ``RedisConnection`` config and the ``RedisCredential`` to
+       ``StepRedisPoolParams`` (step_redis ``StepRedisPoolParams.from_connection()``, which
+       logs a warning when TLS is enabled without server certificate verification)
     #. Including all SSL/TLS settings from configuration
     #. Setting up TCP keepalive parameters
     #. Limiting the pool to ``_REDIS_MAX_CONNECTIONS`` (3) connections: one held by the
@@ -538,7 +824,7 @@ Redis configuration is managed through ``StepClientConfig``:
 
     * **RedisConnection**: Database index, socket parameters, SSL settings, health check
       interval, connection-available timeout, protocol and retry count (host, port and
-      credentials come from ``MqttRedisCredential``)
+      credentials come from step_redis ``RedisCredential``)
     * **RedisStreams**: Input and output stream configurations
     * **RedisStreamInput**: Stream ID, group ID, wait timeout for incoming messages
     * **RedisStreamOutputs**: Separate configurations for adapter and producer streams
@@ -568,6 +854,9 @@ The implementation handles Redis-specific errors:
     * **RedisTimeoutError**: Logged when no messages arrive within timeout period
     * **RedisConnectionError**: Retried by the pool up to ``retry_count`` times; from
       ``ping()``/``run_health_check()`` it is logged and re-raised
+    * Every redis-py error leaving a step_redis method is translated into
+      ``StepRedisFatalError`` (a reconnect cannot fix it: the run ends with
+      ``ExitCode.ERROR``), ``StepRedisConnectionError`` or ``StepRedisCommandError``
     * **KeyError**: Handles missing keys in stream response with warnings
     * **ValueError**: Raises when required configuration parameters are missing
 
@@ -631,9 +920,9 @@ distinguish STEP Client errors from other unhandled exceptions:
        ``Exception`` with no additional attributes; it is raised by
        ``StepBroker.subscribe_execution()`` when the number of subscription results
        differs from the number of configured topics, or a granted QoS exceeds the
-       configured ``maxSubscriptionQos``. Inside ``StepClientApp.work()`` it is
-       handled like any other exception: logged, then a reconnect after
-       ``reconnectInterval``.
+       configured ``maxSubscriptionQos``. Raised by ``StepClientApp.cycle()``, it is
+       handled by the inherited ``work()`` like any other non-fatal exception: logged,
+       then a reconnect after ``reconnectInterval``.
     #. **StepCliError**: Subclass of ``StepClientError`` raised for CLI-specific
        errors in ``main()`` — such as passing ``-c/--config`` without ``-i/--instance``
        or vice versa. ``main()`` logs it as a plain error line (no traceback) and
@@ -647,7 +936,7 @@ All classes are message-only exceptions (the message is carried via the standard
 ``Exception`` args, not a dedicated attribute); there is no structured error context,
 error-type classification, or recovery-hint mechanism beyond what the raised message
 string conveys. Callers catch and log these via the standard Python exception handling
-(the top-level ``except`` clauses in ``main()`` and the reconnect loop in
+(the top-level ``except`` clauses in ``main()`` and the reconnect loop of the inherited
 ``StepClientApp.work()``).
 
 Component Diagram
@@ -701,6 +990,10 @@ logging services of ``StepLogger``.
 
       Main -right-> Runner : run(StepClientApp)
       Runner -down-> App : work() / on_shutdown()
+      note right of App
+         ReconnectingApp:
+         work() runs cycle()
+      end note
       Main -up-> Config : loads
       Main -down-> Exception : throws StepCliError
       App -left-> Env : reads credentials
@@ -739,9 +1032,11 @@ Class Diagram
 The class diagram below illustrates the structure and relationships between
 the key classes in the STEP Client architecture. It shows the main methods
 and attributes of each class and how they interact with one another.
-``StepClientApp`` implements ``AbstractApp`` and is the only class that knows both the
+``StepClientApp`` extends ``ReconnectingApp`` and is the only class that knows both the
 ``StepBroker`` and the step_redis library; ``StepBroker`` extends ``AsyncComManager`` and has
-no Redis awareness. The external libraries are shown as black boxes.
+no Redis awareness. The external libraries are shown as black boxes; the public interface
+of ``AbstractApp``, ``ReconnectingApp`` and ``AppRunner`` is detailed in
+`Application Runtime (step_cloud_schemas)`_.
 
 .. container:: scrollable-diagram
 
@@ -762,15 +1057,16 @@ no Redis awareness. The external libraries are shown as black boxes.
          }
 
          class StepClientApp {
+            -_REDIS_MAX_CONNECTIONS: int = 3 {static}
+            #_FATAL_ERRORS: tuple {static}
             -_instance_name: str
             -_config: StepClientConfig
-            -_logger: Logger
-            -_mqtt_redis_credential: MqttRedisCredential
-            +async work(): ExitCode
+            -_mqtt_credential: MqttCredential
+            -_redis_credential: RedisCredential
+            +__init__(instance_name, config, logger)
+            +async cycle()
+            +fatal_result(): ExitCode
             +on_shutdown(stop_signal): ExitCode
-            -_get_mqtt_redis_credential(): MqttRedisCredential
-            -_port_parse(var_name, value): int
-            -_env_optional(var_name): str | None
             -_broker_message_log(message, topic, qos)
             -async _its_message_dispatch()
             -async _step_receive_run()
@@ -780,7 +1076,6 @@ no Redis awareness. The external libraries are shown as black boxes.
             -async _cam_message_manage()
             -async _cpm_message_manage()
             -async _denm_message_manage()
-            -_redis_params_convert(): StepRedisPoolParams
          }
 
          class StepBroker {
@@ -805,25 +1100,24 @@ no Redis awareness. The external libraries are shown as black boxes.
             +print_config_example(path)
          }
 
-         class MqttRedisCredential <<dataclass>> {
-            +mqtt_url: str
-            +mqtt_port: int
-            +mqtt_username: str | None
-            +mqtt_password: str | None
-            +redis_url: str
-            +redis_port: int
-            +redis_username: str | None
-            +redis_password: str | None
-         }
-
          class StepClientError
          class StepCliError
          StepCliError --|> StepClientError
       }
 
       package "step_cloud_schemas" #LightGray {
-         abstract class "AbstractApp[R]" as AbstractApp
-         class "AppRunner[R]" as AppRunner {
+         abstract class "AbstractApp[R]" as AbstractApp {
+            +{abstract} async work(): R
+            +{abstract} on_shutdown(stop_signal): R
+         }
+         abstract class "ReconnectingApp[R]" as ReconnectingApp {
+            #_logger: Logger
+            +{abstract} async cycle()
+            +{abstract} fatal_result(): R
+            +async work(): R
+         }
+         class "AppRunner[R]" as AppRunner <<singleton>> {
+            +logger: Logger
             +run(app): R
          }
          class StepLogger {
@@ -834,6 +1128,7 @@ no Redis awareness. The external libraries are shown as black boxes.
 
       package "step_lib" #LightGray {
          class AsyncComManager
+         class MqttCredential <<dataclass>>
       }
 
       rectangle "step_redis" as StepRedis #LightGray {
@@ -845,20 +1140,23 @@ no Redis awareness. The external libraries are shown as black boxes.
          StepClientRedisStream
          StepAdapterRedisStream
          StepProducerRedisStream
+         RedisCredential
          end note
       }
 
-      StepClientApp --|> AbstractApp
+      ReconnectingApp --|> AbstractApp
+      StepClientApp --|> ReconnectingApp : R = ExitCode
       StepBroker --|> AsyncComManager
+      AppRunner ..> AbstractApp : run(app)
       AppRunner --> StepClientApp : runs
       StepClientApp --> ExitCode : returns
       StepClientApp --> StepClientConfig : uses
-      StepClientApp --> MqttRedisCredential : reads from env
+      StepClientApp --> MqttCredential : reads from env
       StepClientApp --> StepBroker : creates
       StepClientApp --> StepRedis : creates
       StepClientApp --> StepLogger : logs to
       StepBroker --> StepClientConfig : uses
-      StepBroker --> MqttRedisCredential : uses MQTT part
+      StepBroker --> MqttCredential : uses
       StepBroker --> StepClientError : throws
       StepRedis --> StepLogger : logs to
 
@@ -876,9 +1174,10 @@ Sequence Diagram - Lifecycle
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The following sequence diagram depicts the startup, the reconnect cycle and the
-graceful shutdown: ``main`` hands ``StepClientApp`` to ``AppRunner``, ``work()`` opens the
-Redis pool and the ``StepBroker`` and runs the three tasks; a failure restarts the cycle
-after ``reconnectInterval``, while a shutdown signal cancels ``work()`` and returns
+graceful shutdown: ``main`` hands ``StepClientApp`` to ``AppRunner``, the inherited
+``work()`` runs ``cycle()``, which opens the Redis pool and the ``StepBroker`` and runs the
+three tasks; a failure restarts the cycle after ``reconnectInterval`` (a fatal error ends
+the run with ``ExitCode.ERROR``), while a shutdown signal cancels ``work()`` and returns
 ``on_shutdown()``.
 
 .. container:: scrollable-diagram
@@ -896,11 +1195,17 @@ after ``reconnectInterval``, while a shutdown signal cancels ``work()`` and retu
 
       Main -> Main : StepClientConfig.model_validate_json()
       Main -> App : StepClientApp(instance_name, config, logger)
-      App -> App : load_dotenv() + read MQTT/Redis env vars
+      App -> App : MqttCredential.from_env() + RedisCredential.from_env()
+      note right of App
+         .env loaded first; a missing or invalid
+         variable raises ValueError and main()
+         returns ExitCode.ERROR before run()
+      end note
       Main -> Runner : run(app)
       Runner -> App : work() (TaskGroup with shutdown watcher)
 
-      loop until cancelled
+      loop until cancelled or fatal error
+         App -> App : cycle()
          App -> Pool : async with StepRedisPool(params)
          App -> Gateway : async with StepBroker(...)
          Gateway -> Gateway : MQTT CONNECT
@@ -912,7 +1217,10 @@ after ``reconnectInterval``, while a shutdown signal cancels ``work()`` and retu
          else
             App -> App : _redis_health_check_run()
          end
-         alt exception (no shutdown in progress)
+         alt fatal exception (_FATAL_ERRORS)
+            App -> App : log exception
+            App --> Runner : ExitCode.ERROR
+         else other exception (no shutdown in progress)
             App -> App : log exception
             App -> App : sleep(reconnectInterval)
          else exception while cancelling
@@ -983,9 +1291,19 @@ publication.
             with the current time
          end note
 
-         Gateway -> MQTT : MQTT PUBLISH (topic, ITS_bytes, QoS)
-         MQTT --> Gateway : PUBACK (QoS 1/2 only)
-         Gateway --> Main : Success
+         alt publish topic configured for DENM
+            Gateway -> MQTT : MQTT PUBLISH (topic, ITS_bytes, QoS)
+            MQTT --> Gateway : PUBACK (QoS 1/2 only)
+            Gateway --> Main : True
+         else no DENM publish topic
+            Gateway --> Main : False (step_lib logs a WARNING)
+         else MQTT transport failure
+            Gateway --> Main : raise StepLibMqttError
+            Main -> Main : add note, re-raise\n(DENM lost, work() reconnects)
+         else other StepLibError (encoding, backpressure)
+            Gateway --> Main : raise StepLibError
+            Main -> Main : log error, drop the DENM
+         end
       else other message type
          Main -> Main : log warning, skip
       end
@@ -1070,5 +1388,12 @@ messages to StepProducerRedisStream).
       else empty payload / unknown type
          Main -> Main : log warning, skip
       end
+
+      note over Main
+         ValidationError of the CloudEvents envelope:
+         logged, message dropped, loop continues.
+         Any other error (e.g. Redis): note added,
+         re-raised, work() reconnects (message lost)
+      end note
 
       @enduml

@@ -51,8 +51,18 @@ Not part of the file:
   * The MQTT and Redis host, port and credentials, read from the environment
     (``MQTT_URL``, ``MQTT_PORT``, ``MQTT_USERNAME``, ``MQTT_PASSWORD``,
     ``REDIS_URL``, ``REDIS_PORT``, ``REDIS_USERNAME``, ``REDIS_PASSWORD``; a
-    ``.env`` file is loaded first). The URLs and ports are required, the
-    usernames and passwords optional.
+    ``.env`` file is loaded first, by step_lib ``MqttCredential.from_env`` and
+    step_redis ``RedisCredential.from_env``). The URLs and ports are required, the
+    usernames and passwords optional (an empty value counts as unset). See
+    :ref:`step_client_credentials` and the
+    :download:`.env.example <../env/.env.example>` template.
+
+Cross-field rule:
+
+  * ``redis.connection.socketTimeout`` (seconds) must be at least
+    ``redis.streams.input.waitTimeout`` + 5000 ms (``RedisClientConfig.READ_TIMEOUT_MARGIN_MS``):
+    the blocking stream read must end before the socket times out. This rule is enforced
+    by the Pydantic model, not by the JSON schema.
 
 Features and Benefits
 ---------------------
