@@ -36,7 +36,7 @@ STEP Producer: Overview
    :target: https://www.sphinx-doc.org/en/master/index.html
    :alt: Sphinx
 .. |TOX| image:: https://img.shields.io/badge/local%20automation-tox-brightgreen.svg
-   :target: https://tox.readthedocs.io/
+   :target: https://tox.wiki/en/latest/
    :alt: Tox
 .. |TEST_COVERAGE| image:: ./badges/test_coverage.svg
    :alt: Test Coverage
@@ -94,20 +94,43 @@ turn each predicted collision into one or more standards-compliant Decentralized
 Notification Messages (DENM) and to manage their lifecycle for as long as the hazard is relevant.
 
 Environment Variables
-----------------------
+---------------------
 
-Redis connection secrets are kept out of the (persisted) JSON configuration file and are
-instead read from the process environment at startup, optionally loaded from a ``.env``
-file, via the ``REDIS_URL``, ``REDIS_PORT``, ``REDIS_USERNAME``, and ``REDIS_PASSWORD``
-variables; the URL and port are required, while the username and password are optional. See
-the :doc:`usage<usage>` section for the full variable reference and an example ``.env`` file.
+The Redis host, port and credentials are kept out of the JSON configuration file and are
+read from the environment once at startup (step_redis ``RedisCredential.from_env``), after
+loading the ``.env`` file of the launch directory or its nearest parent, if any; a variable
+already set in the environment wins over the ``.env`` file:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 15 60
+
+   * - Variable
+     - Required
+     - Description
+   * - ``REDIS_URL``
+     - yes
+     - Redis server host
+   * - ``REDIS_PORT``
+     - yes
+     - Redis server port (1-65535)
+   * - ``REDIS_USERNAME``
+     - no
+     - ACL username, when the server requires authentication
+   * - ``REDIS_PASSWORD``
+     - no
+     - Password, when the server requires authentication
+
+A missing or invalid required variable stops the program with exit code ``2`` (``ERROR``).
+See :ref:`step_producer_credentials` for the full reference and the
+:download:`.env.example <env/.env.example>` template.
 
 Purpose
 -------
 
 step_producer consumes ``StationCollisionArrayV1`` events published by step_crash_prediction on a Redis
-input stream and, for each pair of involved stations, creates or updates a DENM record describing the
-collision risk, following the ETSI EN 302 637-3 message format. It keeps these records indexed and alive
+input stream and, for the reference station (the first after ordering) paired with each other involved
+station, creates or updates a DENM record describing the collision risk, following the ETSI EN 302 637-3 message format. It keeps these records indexed and alive
 for a configurable time window after the estimated collision, automatically expiring and cancelling them
 once that window elapses, and also removes a record early if an explicit termination (negation) message
 for it arrives on the same input stream. The resulting DENM messages are published on an output Redis
@@ -123,7 +146,7 @@ Message Processing
 ~~~~~~~~~~~~~~~~~~
 
 - **Stream-based Architecture**: Utilizes Redis streams for high-throughput, real-time message 
-  processing with guaranteed delivery
+  processing; the input is read without acknowledgement (at-most-once delivery)
 - **Collision Detection**: Converts station collision arrays into structured DENM records 
   with proper ordering and unique identification
 - **Message Transformation**: Processes collision prediction data from Redis streams and 
@@ -138,8 +161,8 @@ Data Management
   performance in chronological and key-based lookups
 - **Automatic Expiration**: Implements time-based cleanup of outdated records based 
   on configurable delay thresholds
-- **Sequence Management**: Handles automatic generation and wrap-around of sequence 
-  numbers for action IDs
+- **Sequence Management**: Handles automatic generation and wrap-around of sequence
+  numbers for action IDs, never reissuing the action ID of a tracked record
 - **Record Persistence**: Provides comprehensive management of DENM records throughout 
   their lifecycle
 
@@ -148,11 +171,12 @@ Configuration and Monitoring
 
 - **Configuration Management**: Robust configuration validation and schema 
   generation using Pydantic models
-- **Logging Framework**: Comprehensive logging with multiple output 
-  handlers (stream, file, null)
+- **Logging Framework**: Comprehensive logging with multiple output
+  handlers (stream, file, rotating file, null)
 - **Signal Handling**: Implements graceful shutdown procedures for 
   production deployment scenarios
-- **Health Monitoring**: Provides operational status and performance metrics
+- **Redis Health Check**: Periodically pings Redis and reconnects on failure; errors a reconnect
+  cannot fix (e.g. rejected credentials) end the program
 
 Core Components
 ---------------
@@ -166,14 +190,15 @@ managing collision-related environmental notifications. It handles:
 - Station collision processing and DENM message generation
 - Message termination and cancellation processing
 - Periodic cleanup of expired DENM records
-- Redis stream integration for message distribution
 
 Key responsibilities:
 
 - Processing station collision arrays into DENM messages
 - Managing active DENM records from creation to expiration
 - Handling termination requests and message cancellations
-- Publishing messages to Redis streams for distribution
+
+It is synchronous and has no Redis access: ``StepProducerApp`` reads the Redis input stream,
+passes the messages to it and publishes the DENMs it returns.
 
 DEN Service Data Manager
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -255,7 +280,7 @@ Standards Compliance
 The step_producer adheres to key ITS standards:
 
 - **ETSI EN 302 637-3**: Decentralized Environmental Notification Messages
-- **ETSI TS 102 894-2**: Cooperative Awareness Messages
+- **ETSI TS 102 894-2**: Common Data Dictionary
 - **ISO 21217**: Communications Architecture
 
 Dependencies
@@ -312,8 +337,8 @@ Generate configuration templates and schemas:
 
 .. code-block:: bash
 
-   python -m step_producer --conf_template my_config_template.json
-   python -m step_producer --conf_schema my_config_schema.json
+   python -m step_producer --conf_template ./my_config_dir
+   python -m step_producer --conf_schema ./my_schema_dir
 
 Integration Mode
 ~~~~~~~~~~~~~~~~
@@ -337,10 +362,8 @@ Testing
 
 The project includes comprehensive tests covering:
 
-- **Unit Tests**: Individual component functionality
-- **Integration Tests**: Redis stream operations and message processing
+- **Unit Tests**: Individual component functionality, with Redis mocked
 - **Configuration Tests**: Validation of configuration schemas and defaults
-- **Performance Tests**: Throughput and latency measurements
 
 Getting Started
 ---------------

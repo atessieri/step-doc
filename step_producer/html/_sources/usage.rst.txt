@@ -60,28 +60,120 @@ designed for ITS message exchange. Key concepts include:
 * **Automatic Reconnection**: Built-in retry mechanism with configurable 
   intervals for handling connection failures
 
+.. _step_producer_credentials:
+
 Environment Variables
-----------------------
+---------------------
 
-Redis connection secrets are kept out of the (persisted) JSON configuration file
-and are instead read from the process environment. On startup, ``_get_redis_credential()``
-calls ``python-dotenv``'s ``load_dotenv()``, which automatically loads a ``.env`` file from
-the current working directory (or an ancestor of it) into the environment before the
-following variables are read:
+The Redis connection settings (database, timeouts, keepalive, SSL, pool) are kept in
+the JSON configuration file, in the ``redis.connection`` section (step_redis
+``RedisConnection``), while the Redis host, port and credentials are read from the
+environment, so that secrets are never written to the configuration file:
 
-  * ``REDIS_URL`` (required): Redis server host address, without protocol or port
-  * ``REDIS_PORT`` (required): Redis server port number
-  * ``REDIS_USERNAME`` (optional): Username for Redis authentication
-  * ``REDIS_PASSWORD`` (optional): Password for Redis authentication
+.. list-table::
+   :header-rows: 1
+   :widths: 25 15 60
 
-``REDIS_URL`` and ``REDIS_PORT`` raise a ``ValueError`` if left unset; ``REDIS_USERNAME`` and
-``REDIS_PASSWORD`` default to unset.
+   * - Variable
+     - Required
+     - Description
+   * - ``REDIS_URL``
+     - yes
+     - Redis server host name or IP address, without protocol or port
+   * - ``REDIS_PORT``
+     - yes
+     - Redis server port (1-65535); usually 6380 with TLS
+       (``redis.connection.sslEnable`` true), 6379 without
+   * - ``REDIS_USERNAME``
+     - no
+     - ACL username, when the server requires authentication
+   * - ``REDIS_PASSWORD``
+     - no
+     - Password, when the server requires authentication
 
-An example ``.env`` file is provided below and can be copied to ``.env`` in the directory
-you run ``step_producer`` from, then filled in with your Redis server's connection details:
+The ``StepProducerApp`` constructor reads them once, through step_redis
+``RedisCredential.from_env``, before the first connection cycle. A missing
+``REDIS_URL`` or ``REDIS_PORT``, a non-integer or out-of-range port, or an empty
+host raise ``ValueError``: since the credential is read outside the reconnect loop,
+a misconfiguration stops the program with exit code ``2`` (``ERROR``) instead of
+being retried forever.
+
+**How RedisCredential.from_env reads them.**
+
+* It first loads the ``.env`` file found in the **current working directory** or
+  in its nearest parent directory (``find_dotenv(usecwd=True)``): what counts is
+  the directory ``step_producer`` is launched from, not the directory of the
+  installed package. Without a ``.env`` file only the environment is read.
+* A variable already set in the environment **wins** over the ``.env`` file:
+  ``load_dotenv`` adds the missing variables and never overrides an existing one.
+* An empty ``REDIS_USERNAME`` or ``REDIS_PASSWORD`` counts as unset: without a
+  username, authentication uses the ``default`` user, and without both no
+  authentication is performed.
+* The host and port are logged at INFO level, together with whether a username
+  is set; the username and the password never are.
+
+**Format of the .env file.**
+
+* One ``KEY=VALUE`` line per variable, no ``export`` needed;
+* ``#`` starts a comment;
+* quote a value only if it contains spaces or ``#`` (``REDIS_PASSWORD="a #b"``);
+* keep the file out of version control: ``.env`` is listed in ``.gitignore``, only
+  the ``.env.example`` template is versioned.
+
+**Template.** ``doc/source/env/.env.example`` is a commented template:
 
 .. literalinclude:: env/.env.example
-  :language: bash
+   :language: bash
+
+Download the template: :download:`.env.example <env/.env.example>`
+(save it as ``.env``). For the ``crash_prediction_demo``, copy it to ``doc/examples``,
+the directory the demo is launched from:
+
+.. tab:: bash
+
+   .. code-block:: bash
+
+       cp doc/source/env/.env.example doc/examples/.env
+
+.. tab:: PowerShell
+
+   .. code-block:: powershell
+
+       Copy-Item doc/source/env/.env.example doc/examples/.env
+
+**Alternatives to the file.** Variables set in the shell or by a container runtime
+take precedence over ``.env``:
+
+.. tab:: bash
+
+   .. code-block:: bash
+
+       export REDIS_URL=redis.example.com
+       export REDIS_PORT=6380
+
+.. tab:: PowerShell
+
+   .. code-block:: powershell
+
+       $env:REDIS_URL = "redis.example.com"
+       $env:REDIS_PORT = "6380"
+
+.. tab:: Docker Compose
+
+   .. code-block:: yaml
+
+       services:
+         step_producer:
+           env_file: .env          # or, one by one:
+           environment:
+             REDIS_URL: redis.example.com
+             REDIS_PORT: "6380"
+
+.. note::
+
+   Credentials that the server rejects, an ACL denial, a missing SSL file or an
+   untrusted certificate are classified by step_redis as ``StepRedisFatalError``:
+   the program ends with exit code ``2`` (``ERROR``) instead of reconnecting.
 
 Configuration
 -------------
@@ -96,32 +188,52 @@ To create a default configuration template:
 
 .. code-block:: bash
 
-    step_producer --conf_template my_config_template.json
+    step_producer --conf_template ./my_config_dir
 
-This generates a template that you can customize for your specific needs.
+This writes the template file into the directory (created if missing), which you can
+customize for your specific needs.
 
 Key Configuration Parameters
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   
 * **Base Configuration**:
 
-  * stationId: Station identification number
-  * timeAfterCollision: Time to keep broadcasting a DENM after the collision (seconds)
-  * denmLastUpdateMaxDelay: Maximum delay for a DENM record's reference time before
-    it is treated as expired (milliseconds)
-  * denmCheckLastUpdateInterval: Interval for checking DENM updates (seconds)
-  * reconnectInterval: Time between reconnection attempts (seconds)
+  * templateVersion: Configuration template version; only ``"1"`` is accepted
+  * stationId: Station ID of the ITS station originating the DENMs, used as
+    ``originatingStationId`` of their ActionIds (0-4294967295)
+  * timeAfterCollision: Time to keep broadcasting a DENM after the estimated collision,
+    added to the time to collision to form its validity duration (seconds, 0-10)
+  * denmLastUpdateMaxDelay: Maximum age of a DENM record's reference time before
+    the record is treated as expired (milliseconds, 1-10000)
+  * denmCheckLastUpdateInterval: Period of the cleanup of the expired DENM records
+    (seconds, 1-60)
+  * reconnectInterval: Time between reconnection attempts (seconds, 1-10)
 
 * **Redis Configuration**:
-  
-  * connection: Redis server connection details
-  * streams: Configuration for Redis streams (inputs and outputs)
-  
+
+  * connection: Redis connection settings (database, timeouts, keepalive, SSL, pool); the
+    host, port and credentials come from the ``REDIS_*`` environment variables (see
+    :ref:`step_producer_credentials`)
+  * streams.input: ``streamId`` and ``groupId`` of the input stream the producer messages
+    are read from (consumer group, the instance name is the consumer name), and
+    ``waitTimeout``, the receive wait timeout (milliseconds, at least 10000)
+  * streams.outputs.client: ``streamId`` of the client output stream the DENMs are
+    published to, and ``maxLength``, the approximate maximum number of entries
+    retained in it (at least 1)
+
+  .. note::
+
+     ``connection.socketTimeout`` must be at least ``streams.input.waitTimeout`` plus
+     5000 milliseconds (``RedisClientConfig.READ_TIMEOUT_MARGIN_MS``), otherwise the
+     configuration is rejected: a blocking read that times out first drops the
+     connection and loses any message delivered in that instant, since the input
+     stream is read without acknowledgement.
+
 * **Log Configuration**:
 
-  * level: Logging level (e.g., DEBUG, INFO, WARNING, ERROR)
-  * format: Log message format
-  * handlers: List of log handlers (e.g., console, file)
+  * globalLevel: Level of the root logger (e.g., DEBUG, INFO, WARNING, ERROR)
+  * handlersConfig: List of log handlers (stream, file, rotating file, null), each with its own
+    ``level`` and ``format``
 
 Example Configuration
 ^^^^^^^^^^^^^^^^^^^^^
@@ -138,12 +250,23 @@ To run the STEP Producer as a standalone service:
 
 .. code-block:: bash
 
-    step_producer --config /path/to/config.json
+    step_producer --config /path/to/config.json --instance producer_1
 
 This will start the Producer, which will:
 
+    #. Read the Redis host, port and credentials from the environment (see
+       :ref:`step_producer_credentials`)
     #. Connect to Redis
-    #. Process messages between STEP Client and STEP Crash Prediction
+    #. Receive the station collision arrays (from STEP Crash Prediction) and the DENM
+       negations (from STEP Client) on the input stream, and publish the derived DENMs
+       to the client output stream
+    #. Periodically remove the expired DENM records and publish their cancellations
+    #. Reconnect after ``reconnectInterval`` seconds when the connection fails, keeping
+       the tracked DENM records
+
+The Producer runs until it receives ``SIGINT``/``SIGTERM`` (``Ctrl+C``/``Ctrl+Break`` on
+Windows), then releases the Redis connections and exits with code 3 (``ABORTED``). An
+error a reconnect cannot fix (e.g. rejected credentials) ends it with code 2 (``ERROR``).
 
 Command-Line Options
 --------------------
@@ -152,7 +275,10 @@ The STEP Producer supports several command-line options:
 
   * ``--version``, ``-v``: Show version information
   * ``--help``, ``-h``: Show help information
-  * ``--conf_schema``, ``-s``: Generate a JSON schema for the configuration
-  * ``--conf_template``, ``-t``: Generate a configuration template
-  * ``--config``, ``-c``: Path to configuration file
-  * ``--instance``, ``-i``: Specify the instance name
+  * ``--conf_schema``, ``-s``: Write the JSON schema of the configuration into a directory
+  * ``--conf_template``, ``-t``: Write a configuration template into a directory
+  * ``--config``, ``-c``: Path to configuration file (requires ``--instance``)
+  * ``--instance``, ``-i``: Specify the instance name, also used as the Redis stream
+    consumer name (requires ``--config``)
+
+See :doc:`commands` for the exit codes.

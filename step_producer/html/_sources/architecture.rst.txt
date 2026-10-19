@@ -72,10 +72,12 @@ Core Dependencies
    implementations like ``StepProducerRedisStream`` and ``StepClientRedisStream`` for different
    stream operations. The STEP Producer uses these classes directly without custom extensions.
 
-**python-dotenv**
-   Loads Redis connection credentials from a ``.env`` file into the process environment at
-   startup, so secrets are kept out of the (persisted) JSON configuration document. Used by
-   ``_get_redis_credential()`` in the main application module (see :doc:`usage`).
+**python-dotenv** (through step_redis)
+   Loads Redis connection credentials from the ``.env`` file of the current working
+   directory (or its nearest parent) into the process environment at startup, without
+   overriding a variable already set, so secrets are kept out of the (persisted) JSON
+   configuration document. Used by step_redis ``RedisCredential.from_env()``, called by the
+   ``StepProducerApp`` constructor (see :ref:`step_producer_credentials`).
 
 Architecture Integration
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -109,8 +111,13 @@ Main Components:
    #. **StepProducerConfig**: Configuration management for the Producer
    #. **StepLogger** (from ``step_cloud_schemas``): Logging utilities used by the STEP Producer
    #. **StepException**: Custom exceptions for error handling
-   #. **Main Application (__main__)**: Command-line interface, environment-based Redis
-      credentials, and asynchronous task orchestration
+   #. **Main Application (__main__)**: Command-line interface; runs ``StepProducerApp``
+      through ``AppRunner`` (from ``step_cloud_schemas``)
+   #. **StepProducerApp**: Workload of the program: environment-based Redis credentials,
+      asynchronous task orchestration and automatic reconnection
+   #. **Application Runtime** (from ``step_cloud_schemas``): ``AppRunner``, which runs the
+      workload with a cooperative shutdown, and the abstract classes ``AbstractApp`` and
+      ``ReconnectingApp``, which ``StepProducerApp`` derives from
 
 DenServiceManager
 ^^^^^^^^^^^^^^^^^
@@ -124,14 +131,16 @@ termination and cleanup.
 
    #. **Collision Event Processing**: Receives and processes ``StationCollisionArrayV1`` objects, converting 
       collision detection data into structured DENM messages for distribution throughout the ITS network.
-   #. **Message Lifecycle Management**: Orchestrates the entire DENM message lifecycle, including creation, 
-      publication, update handling, and automatic termination of expired notifications.
+   #. **Message Lifecycle Management**: Orchestrates the DENM message lifecycle, including creation, 
+      update handling, and cancellation of expired notifications; the messages it returns are
+      published by ``StepProducerApp``.
    #. **Termination Handling**: Processes incoming DENM records with negation termination flags, ensuring 
       proper cleanup of cancelled collision notifications.
-   #. **Automatic Cleanup**: Implements a sophisticated periodic cleanup mechanism that identifies expired 
-      DENM records and publishes cancellation messages to maintain system integrity.
-   #. **Redis Stream Integration**: Manages the publication of DENM messages and cancellations to Redis streams, 
-      enabling seamless integration with other STEP ecosystem components.
+   #. **Automatic Cleanup**: ``periodical_cleanup()`` removes the expired DENM records and returns a
+      cancellation copy of each one still within its validity, which ``StepProducerApp`` publishes.
+
+``DenServiceManager`` is synchronous and has no Redis access: all Redis reading and publishing is
+done by ``StepProducerApp``.
 
 **Key Methods:**
 
@@ -139,23 +148,26 @@ termination and cleanup.
      to the data manager for record creation and returning list of DENM messages
    * ``process_denm_record_received()``: Handles incoming DENM records, specifically processing 
      termination requests with negation flags
-   * ``periodical_cleanup()``: Executes cleanup operation, identifying expired records and 
-     returning list of cancellation messages
+   * ``periodical_cleanup()``: Removes the records whose reference time is older than
+     ``denm_last_update_max_delay_ms`` and returns a cancellation message for each removed record
+     still within its ``validityDuration``
    * ``_denm_create_cancellation()``: Creates cancellation DENM messages by copying original message data 
      while setting the termination flag
 
 **Architecture Integration:**
 
-The ``DenServiceManager`` operates as an asynchronous service that coordinates between the ``DenServiceDataManager`` 
-for data persistence and the ``StepProducerRedisStream`` for message distribution. It utilizes comprehensive logging 
-for operational visibility and implements configurable timing parameters for adaptive behavior in different traffic 
-scenarios.
+The ``DenServiceManager`` is a synchronous facade over the ``DenServiceDataManager``: it turns the received
+messages into data operations and returns the DENM messages to publish. ``StepProducerApp`` creates a single
+instance for the whole run (kept across Redis reconnects) and shares it between its receive and cleanup tasks;
+the methods never await, so the two tasks never interleave inside it.
 
 **Configuration Parameters:**
 
    * ``station_id``: Unique identifier for the originating ITS station
-   * ``time_after_collision_sec``: Duration in seconds to continue broadcasting DENM after collision detection
-   * ``denm_last_update_max_delay_ms``: Maximum allowed delay in milliseconds for DENM record updates
+   * ``time_after_collision_sec``: Duration in seconds to continue broadcasting a DENM after the estimated
+     collision time (added to the time to collision to form the ``validityDuration``)
+   * ``denm_last_update_max_delay_ms``: Maximum age in milliseconds of a record's reference time before the
+     record is treated as expired by the cleanup
 
 DenServiceDataManager
 ^^^^^^^^^^^^^^^^^^^^^
@@ -167,11 +179,11 @@ multiple data structures for optimal performance.
 
 **Internal Architecture:**
 
-The data management layer consists of three primary data structures:
+The data management layer consists of four primary data structures:
 
-   #. **DenmRecordInfo**: A frozen dataclass that encapsulates DENM data (``DenmDataV1``), reference time 
-      (``ItsTime``), and monotonic timestamp. Automatically extracts reference time from the DENM's 
-      management container upon initialization.
+   #. **DenmRecordInfo**: A frozen dataclass that encapsulates DENM data (``DenmDataV1``) and its record key;
+      the reference time (``ItsTime``) and the monotonic creation timestamp are derived on initialization
+      (from the DENM's management container and ``time.monotonic()``) and cannot be passed to the constructor.
    #. **OrderedListRecord**: A time-ordered record container with comparison operators for chronological 
       sorting. Pairs a reference time with a unique record key for efficient sorted list operations.
    #. **RecordKey**: A frozen dataclass holding unique identifiers for DENM records, containing reference 
@@ -192,16 +204,27 @@ The data manager employs a multi-index architecture for optimal performance:
 
 **Key Functionality:**
 
-   #. **Collision Array Processing**: The ``insert_station_collision_array()`` method converts station 
-      collision arrays into structured DENM records, implementing intelligent record key generation and 
-      sequence number management with automatic wrap-around at 65536.
+   #. **Collision Array Processing**: The ``insert_station_collision_array()`` method converts a station
+      collision array into DENM records, one for the reference station (the first after ordering) paired
+      with each other station (k-1 records for k stations); the stations are ordered by station ID and
+      object ID. A pair repeated in the same array is built once, the last occurrence winning. The
+      records are first all built and then committed together: if any of them fails, no record of the
+      array is created or updated.
+   #. **DENM Content**: The validity duration is the time to collision (rounded up, never negative)
+      plus ``time_after_collision_sec``. The situation's event type is the collision risk cause code,
+      with the sub cause code selected by the type of the involved station (pedestrian, cyclist,
+      vulnerable road user for mopeds, motorcycles, light VRU vehicles and animals, motor vehicle for
+      the other vehicle types, unavailable otherwise). A station type confidence of 0 becomes an
+      unavailable object type confidence.
    #. **Multi-Index Management**: Maintains synchronized indices across all data structures, ensuring 
       consistency during record creation, updates, and deletions while providing optimal access patterns 
       for different query types.
    #. **Automatic Expiration**: The ``get_denm_records_clean_reference_expired()`` method identifies 
       expired records based on configurable delay thresholds, supporting automatic cleanup operations.
-   #. **Sequence Number Generation**: Handles automatic generation and management of unique sequence 
-      numbers for action IDs, implementing proper wrap-around logic to prevent conflicts.
+   #. **Sequence Number Generation**: Generates the sequence numbers of the action IDs; after
+      ``ActionId.SEQUENCE_NUMBER_MAX`` the counter wraps around and skips the sequence numbers still held
+      by a tracked record, so a live ActionId is never reissued; ``OverflowError`` is raised when every
+      sequence number is held by a tracked record. An existing record keeps its ActionId on update.
 
 **Record Management:**
 
@@ -225,11 +248,17 @@ maintain message continuity.
 
 **Expiration Management:**
 
-The component implements sophisticated expiration logic through
-``get_denm_records_clean_reference_expired()``, removing records whose reference time has
-fallen outside the configured maximum delay while respecting each record's own validity
-duration. This enables adaptive cleanup scheduling that responds to actual system load and
-message aging patterns.
+``get_denm_records_clean_reference_expired()`` removes the records whose reference time is
+older than ``now - denm_last_update_max_delay_ms`` and returns the DENM of those still within
+their own ``validityDuration`` (by monotonic age), for which a cancellation is published; the
+removed records no longer valid produce no cancellation. The cleanup runs every
+``denmCheckLastUpdateInterval`` seconds.
+
+**Thread Safety:**
+
+No locking is used around the indexes. All the methods are synchronous (they never await), so one
+instance can be shared by several asyncio tasks of the same event loop, as ``StepProducerApp`` does
+through its ``DenServiceManager``; it must not be shared between threads.
 
 OrderedListRecord Module
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -251,7 +280,8 @@ operations (insert, search, delete) in sorted lists and hash tables.
       
       * Encapsulates reference time (``ItsTime``) and record key (``RecordKey``)
       * Implements ``__lt__``, ``__le__``, ``__gt__``, ``__ge__`` for chronological ordering
-      * Implements ``__eq__`` and ``__hash__`` based on record key for deduplication
+      * Implements ``__eq__`` and ``__hash__`` based on the (reference time, record key) pair,
+        consistently with the ordering
       * Uses ``__slots__`` with hash caching for minimal memory footprint
       * Decorated with ``@total_ordering`` for complete comparison support
 
@@ -262,8 +292,8 @@ operations (insert, search, delete) in sorted lists and hash tables.
    * **Immutable Keys**: Frozen dataclasses ensure record keys cannot be modified after creation
    * **Comparison Semantics**: 
      
-     - Ordering based on reference time (chronological)
-     - Equality based on record key (uniqueness)
+     - Ordering based on reference time (chronological), ties broken by record key
+     - Equality based on reference time and record key
    
    * **Type Safety**: Leverages dataclass validation and type hints for robust implementation
 
@@ -293,7 +323,7 @@ The configuration system follows a well-structured hierarchical model with multi
 
    #. **StepProducerConfig**: Top-level configuration class that orchestrates all Producer settings
    #. **RedisClientConfig**: Dedicated configuration for Redis connectivity and stream management
-   #. **RedisConnection**: Low-level Redis connection parameters including SSL, timeouts, and pooling
+   #. **RedisConnection** (from step_redis): Low-level Redis connection parameters including SSL, timeouts, and pooling
    #. **RedisStreams**: Stream-specific configuration for input/output stream definitions
    #. **LogConfig**: Comprehensive logging configuration with multiple handler types
 
@@ -301,24 +331,31 @@ The configuration system follows a well-structured hierarchical model with multi
 
 **Producer Instance Settings:**
 
-   * ``templateVersion``: Configuration schema version for compatibility management
-   * ``instanceName``: Unique identifier for the Producer instance within the ecosystem (not in config model, runtime param)
+   * ``templateVersion``: Configuration schema version for compatibility management; only ``"1"`` is accepted
+   * ``instanceName``: Unique identifier for the Producer instance within the ecosystem, also used as the
+     Redis stream consumer name (not in config model, ``-i``/``--instance`` runtime parameter)
    * ``stationId``: ITS station identifier (0-4294967295) for message origination
-   * ``timeAfterCollision``: Duration in seconds to continue broadcasting DENM after collision detection (0-10)
-   * ``denmLastUpdateMaxDelay``: Maximum allowed delay in milliseconds for DENM record updates (1-10000)
-   * ``denmCheckLastUpdateInterval``: Interval in seconds for checking DENM updates and cleanup operations (1-60)
-   * ``reconnectInterval``: Time interval in seconds for automatic reconnection attempts (0-10)
+   * ``timeAfterCollision``: Duration in seconds to continue broadcasting a DENM after the estimated collision time (0-10)
+   * ``denmLastUpdateMaxDelay``: Maximum age in milliseconds of a record's reference time before it expires (1-10000)
+   * ``denmCheckLastUpdateInterval``: Period in seconds of the expired DENM cleanup (1-60)
+   * ``reconnectInterval``: Time interval in seconds for automatic reconnection attempts (1-10)
 
 **Redis Integration Configuration:**
 
 The ``RedisClientConfig`` provides comprehensive Redis connectivity management:
 
-   * **Connection Management**: Full Redis connection parameters including host, port, authentication, 
-     database selection, and SSL configuration
-   * **Socket Configuration**: Advanced socket settings for timeout management, keepalive parameters, 
+   * **Connection Management**: Database selection, SSL configuration and pool settings; the Redis host,
+     port and credentials are not in the configuration, they are read from the ``REDIS_*`` environment
+     variables (see :ref:`step_producer_credentials`)
+   * **Socket Configuration**: Advanced socket settings for timeout management, keepalive parameters,
      and connection health monitoring
-   * **Stream Configuration**: Input and output stream definitions with stream IDs, consumer groups, 
-     maximum lengths, and wait timeouts
+   * **Stream Configuration**: The input stream (``RedisStreamInput``: ``streamId``, consumer group
+     ``groupId``, receive ``waitTimeout`` of at least 10000 ms) and the client output stream
+     (``RedisStreamOutput``: ``streamId``, approximate ``maxLength`` of at least 1)
+   * **Read Timeout Check**: ``connection.socketTimeout`` must be at least ``streams.input.waitTimeout``
+     plus ``READ_TIMEOUT_MARGIN_MS`` (5000 ms), otherwise validation fails: a blocking ``XREADGROUP``
+     that times out first drops the connection and loses any message delivered in that instant (the
+     input stream is read with ``noack``)
    * **Security Settings**: SSL/TLS configuration with client certificates, CA verification, and 
      encrypted connections
 
@@ -339,20 +376,22 @@ The ``LogConfig`` component supports multiple logging strategies through a flexi
    #. **Strong Typing**: Comprehensive type annotations with Pydantic field validation for 
       all configuration parameters
    #. **Range Validation**: Numeric fields include appropriate range constraints 
-      (e.g., port numbers 0-65535, station IDs 0-4294967295)
+      (e.g., station IDs 0-4294967295, keepalive intervals 1-32767)
    #. **String Validation**: Minimum length requirements and format validation for critical 
       string fields
    #. **Immutable Configuration**: Frozen model instances prevent accidental modification 
       after initialization
    #. **Schema Generation**: Automated JSON schema generation for configuration documentation 
       and validation
-   #. **Default Factory Methods**: Each configuration class provides ``get_default()`` methods 
+   #. **Default Factory Methods**: The configuration models provide ``get_default()`` methods 
       for rapid setup
 
 **Configuration Management Utilities:**
 
-   * ``print_config_schema()``: Generates JSON schema files for external configuration validation
-   * ``print_config_example()``: Creates example configuration files with default values
+   * ``print_config_schema()``: Generates the JSON schema file (``step_producer_config_v1_schema.json``,
+     with ``$id`` and ``$schema`` set) for external configuration validation
+   * ``print_config_example()``: Creates the example configuration file
+     (``step_producer_config_v1_schema_template.json``) with the ``get_default()`` values
    * ``model_validate()``: Validates configuration data against the defined schema
    * ``model_dump_json()``: Serializes configuration to JSON format for persistence
 
@@ -361,7 +400,7 @@ The ``LogConfig`` component supports multiple logging strategies through a flexi
 The configuration system includes production-ready security features:
 
    * SSL/TLS configuration for encrypted Redis connections
-   * Authentication parameters for secure Redis access
+   * Redis authentication read from the environment, never stored in the configuration file
    * Certificate-based authentication with client key and certificate file support
    * Health check intervals for connection monitoring
    * Configurable connection pooling for performance optimization
@@ -395,13 +434,13 @@ The library exposes several key abstractions used by STEP Producer:
    
    * **StepRedisPoolParams**: Configuration parameters for connection pool initialization
    * **StepRedisStreamParams**: Configuration parameters for stream setup
-   * **StepProducerRedisStream**: Producer-specific stream implementation for:
+   * **StepProducerRedisStream**: Producer input stream, used to receive:
      
-     - Receiving collision data from ``step_crash_prediction`` component
-     - Receiving DENM messages from ``step_client`` component
-     - Publishing DENM messages to ``step_client`` for distribution
+     - Collision data from the ``step_crash_prediction`` component
+     - DENM messages (negations) from the ``step_client`` component
    
-   * **StepClientRedisStream**: Client stream interface for message routing
+   * **StepClientRedisStream**: Client output stream, used to publish the generated DENMs and the
+     cancellations to ``step_client`` for distribution
 
 **Message Flow:**
 
@@ -410,14 +449,15 @@ The library exposes several key abstractions used by STEP Producer:
       - ``ProducerCloudEventsStationCollisionArrayV1``: Collision prediction data
       - ``ProducerCloudEventsDenmDataV1``: DENM records (for negation processing)
    
-   #. **Output Publishing**: Publishes generated DENM messages to output streams as 
-      ``ProducerCloudEventsDenmDataV1`` cloud events
+   #. **Output Publishing**: Publishes generated DENM messages to the client output stream as
+      ``ClientCloudEventsDenmDataV1`` cloud events
 
 **Integration Benefits:**
 
    * Transparent connection pooling and resource management
    * Automatic message serialization using step_cloud_schemas
-   * Stream reliability with consumer group support
+   * Consumer group support; the input is read without acknowledgement (``noack``), so a message
+     is delivered at most once and is lost if its processing fails
    * Asynchronous operations for high throughput
    * Configurable retry and reconnection logic
 
@@ -429,7 +469,7 @@ StepLogger
 ^^^^^^^^^^
 
 .. note::
-   ``StepLogger`` is not part of the ``step_producer`` package itself — it is imported from
+   ``StepLogger`` is not part of the ``step_producer`` package itself - it is imported from
    the external ``step_cloud_schemas`` dependency and used by the STEP Producer for logging.
 
 The ``StepLogger`` component provides specialized logging functionality used by the STEP Producer
@@ -444,7 +484,6 @@ Key features of ``StepLogger`` include:
       
       * File-based logging for persistent records
       * Standard output (console) for development and debugging
-      * Syslog integration for system monitoring
       * Configurable log rotation based on size or time intervals
    
    #. **Log Level Management**: Provides fine-grained control over logging verbosity 
@@ -455,9 +494,9 @@ Key features of ``StepLogger`` include:
       transaction IDs, and operation details to facilitate troubleshooting.
    #. **Configuration Integration**: Leverages the logging configuration section 
       from ``StepProducerConfig`` to enable consistent setup across components.
-   #. **Utility Methods**: Offers utility methods like ``setup_logging()`` for initial 
-      configuration and ``get_logger()`` for retrieving appropriately configured 
-      logger instances.
+   #. **Utility Methods**: Offers ``get_logger()``, which configures and returns the logger
+      from the ``log`` section of the configuration, and ``logger_force_write()``, which writes
+      a line regardless of the configured level.
    #. **Error Handling**: Includes robust error handling to prevent logging failures 
       from impacting core application functionality.
 
@@ -468,52 +507,284 @@ across all system components.
 StepException
 ^^^^^^^^^^^^^
 
-The ``step_exception`` module provides custom exception classes for error handling
-within the STEP Producer architecture. These exceptions are designed to handle
-various error scenarios including CLI errors, interruptions, and other exceptional conditions.
+The ``step_exception`` module defines two plain exception classes:
 
-Key features include:
-
-   #. **StepCliError**: Custom exception class for command-line interface errors,
-      inherits from ``StepProducerError``
-   #. **Error Context**: Provides mechanisms to include additional context or 
-      information about errors when raising exceptions
-   #. **Graceful Shutdown**: Designed for scenarios requiring graceful shutdown 
-      with proper resource cleanup
-   #. **Integration with Logging**: Works seamlessly with ``StepLogger`` component 
-      to capture detailed error information for debugging and operational monitoring
+   #. **StepProducerError**: Base class of the STEP Producer exceptions.
+   #. **StepCliError**: Command line misuse (only one of ``-c``/``--config`` and
+      ``-i``/``--instance``); ``main()`` logs it as a single error line, without a
+      traceback, and returns ``ExitCode.USAGE``.
 
 Main Application (__main__)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The main application module provides the command-line interface and orchestrates the
-asynchronous processing workflow. It implements the primary execution logic that
-coordinates all other components.
+The main application module is the command-line entry point. It parses the arguments,
+loads the configuration and hands the workload, ``StepProducerApp``, to ``AppRunner``
+(from ``step_cloud_schemas``), which owns the event loop and the signal handling.
 
 Key features of the main application include:
 
    #. **Command-Line Interface**: Provides a CLI (``_args_parse()``) with options for:
 
-      * ``--version``/``-v``: Display version information
-      * ``--conf_schema``/``-s``: Generate JSON configuration schema
-      * ``--conf_template``/``-t``: Generate configuration template
-      * ``--config``/``-c`` and ``--instance``/``-i``: Load configuration and run the service
+      * no option: Display the help (exit code ``USAGE``)
+      * ``--help``/``-h`` and ``--version``/``-v``: Display help or version information
+        (exit code ``OK``); an invalid or unknown option exits with ``USAGE``
+      * ``--conf_schema``/``-s``: Write the JSON configuration schema into a directory
+      * ``--conf_template``/``-t``: Write the configuration template into a directory
+      * ``--config``/``-c`` and ``--instance``/``-i``: Load configuration and run the service;
+        the two options must be given together, otherwise ``StepCliError`` is logged as a
+        plain error line and the exit code is ``USAGE``
 
-   #. **Environment-Based Credentials**: ``_get_redis_credential()`` loads a ``.env`` file
-      via ``load_dotenv()`` and reads ``REDIS_URL``, ``REDIS_PORT``, ``REDIS_USERNAME``, and
-      ``REDIS_PASSWORD`` from the environment into a ``RedisCredential`` (see :doc:`usage`);
-      ``REDIS_URL`` and ``REDIS_PORT`` are required, the username and password are optional.
-   #. **Asynchronous Task Orchestration**: ``_main_async()`` uses ``asyncio.TaskGroup`` to run
-      three concurrent tasks - ``_stream_receive_run()`` (stream reception and dispatch),
-      ``_periodical_cleanup_run()`` (expired DENM cleanup), and ``_redis_health_check_run()``
-      (Redis connection health check) - alongside a shutdown watcher task.
-   #. **Graceful Shutdown**: On POSIX, ``loop.add_signal_handler()`` registers SIGINT/SIGTERM
-      handlers that set a ``stop_event``; a sibling ``_wait_for_shutdown()`` task then raises
-      ``ShutdownRequestedError`` to unwind the ``TaskGroup`` deterministically. On Windows,
-      ``WindowsOsShutdownState`` (from ``step_cloud_schemas``) and a ``SIGBREAK`` handler
-      provide the equivalent behavior.
-   #. **Automatic Reconnection**: On an unhandled exception, ``_main_async()`` waits
-      ``config.reconnectInterval`` seconds and retries the Redis connection and task setup.
+   #. **Logging Setup**: Reconfigures ``StepLogger`` from the loaded configuration and logs
+      the program, ``step_cloud_schemas`` and ``step_redis`` versions.
+   #. **Application Run**: Builds ``AppRunner[ExitCode]`` (selector event loop on Windows,
+      as for the other STEP programs) and runs ``StepProducerApp``, returning its exit code.
+   #. **Exception Handling**: ``KeyboardInterrupt`` returns ``ABORTED``; any other unhandled
+      exception (e.g. an invalid configuration file or a missing ``REDIS_URL``/``REDIS_PORT``
+      variable) is logged with its traceback and returns ``ERROR``.
+
+Application Runtime (step_cloud_schemas)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. note::
+   ``AppRunner``, ``AbstractApp`` and ``ReconnectingApp`` are not part of the ``step_producer``
+   package: they are imported from the external ``step_cloud_schemas`` dependency, shared by the
+   STEP programs. Only their public interface, the part used by the STEP Producer, is described here.
+
+The three classes split a long-running program in two parts: the process-wide plumbing (event
+loop, signal handlers, exception hooks), owned by ``AppRunner``, and the workload, supplied by the
+program as an ``AbstractApp`` subclass. ``R`` is the program's result type: for the STEP Producer,
+``ExitCode``.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 78
+
+   * - Class
+     - Role
+   * - ``AbstractApp[R]``
+     - Abstract base class of a workload run by ``AppRunner``. It declares the two methods
+       ``AppRunner`` needs and holds no state (empty ``__slots__``, so a subclass declares its own).
+   * - ``ReconnectingApp[R]``
+     - Abstract ``AbstractApp`` subclass that implements ``work`` as a reconnect loop around a
+       connection cycle, implemented by the program.
+   * - ``AppRunner[R]``
+     - Singleton that runs an ``AbstractApp`` on a new event loop until it ends or a shutdown
+       signal stops it.
+
+The class diagram below shows the public interface of the three classes and how
+``StepProducerApp`` plugs into them:
+
+.. container:: scrollable-diagram
+
+   .. plantuml::
+      :align: center
+
+      !theme plain
+      skinparam classAttributeIconSize 0
+
+      package "step_cloud_schemas" {
+         abstract class "AbstractApp[R]" as AbstractApp {
+            +{abstract} async work() : R
+            +{abstract} on_shutdown(stop_signal : Signals) : R
+         }
+
+         abstract class "ReconnectingApp[R]" as ReconnectingApp {
+            +__init__(logger : Logger, reconnect_interval : int)
+            +{abstract} async cycle() : None
+            +{abstract} fatal_result() : R
+            +async work() : R
+         }
+
+         class "AppRunner[R]" as AppRunner <<singleton>> {
+            +__init__(logger_param : Logger, loop_factory = None, exception_handler = None, unraisable_handler = None)
+            +logger : Logger <<property>>
+            +run(app : AbstractApp[R]) : R
+         }
+      }
+
+      package "step_producer" {
+         class "StepProducerApp" as StepProducerApp {
+            +__init__(instance_name : str, config : StepProducerConfig, logger : Logger)
+            +async cycle() : None
+            +fatal_result() : ExitCode
+            +on_shutdown(stop_signal : Signals) : ExitCode
+         }
+
+         enum ExitCode {
+            OK = 0
+            USAGE = 1
+            ERROR = 2
+            ABORTED = 3
+         }
+      }
+
+      ReconnectingApp --|> AbstractApp
+      StepProducerApp --|> ReconnectingApp : R = ExitCode
+      AppRunner ..> AbstractApp : run(app)
+      StepProducerApp ..> ExitCode : returns
+
+      note bottom of AppRunner
+         main() builds AppRunner[ExitCode]
+         (SelectorEventLoop on Windows)
+         and calls run(StepProducerApp(...))
+      end note
+
+**AbstractApp: public interface**
+
+   * ``async work() -> R`` (abstract): The workload, called once per run as a task of the
+     ``AppRunner`` ``TaskGroup``; it returns the result when it ends on its own. On a shutdown
+     signal it is cancelled at the ``await`` it is suspended on, so it has to be
+     cancellation-safe.
+   * ``on_shutdown(stop_signal: Signals) -> R`` (abstract): Called by ``AppRunner`` after a
+     shutdown signal stopped ``work``, once every task has unwound (the resources held by ``work``
+     are already released); it runs on the event loop thread and cannot ``await``. Its value is
+     the result of the run.
+
+**ReconnectingApp: public interface**
+
+   * ``ReconnectingApp(logger, reconnect_interval)``: ``logger`` is used for the start, error and
+     retry messages, ``reconnect_interval`` is the number of seconds to wait before the next cycle.
+   * ``async cycle() -> None`` (abstract): Opens the connections and runs the tasks until one of
+     them fails; returns only if every task ends normally, and then the next cycle starts at once.
+     Like ``work``, it has to be cancellation-safe.
+   * ``fatal_result() -> R`` (abstract): The result returned by ``work`` after an error that a
+     reconnect cannot fix.
+   * ``async work() -> R``: Logs ``Program started``, then runs ``cycle`` in a loop. When ``cycle``
+     raises:
+
+        - while a shutdown cancellation is in progress, the error is logged at INFO level and
+          ``CancelledError`` is restored, so the shutdown goes on without an ERROR traceback;
+        - otherwise the error is logged with its traceback, and if it, or any error nested in an
+          ``ExceptionGroup`` (as raised by a ``TaskGroup``), is one of the subclass's fatal error
+          types, ``work`` returns ``fatal_result()``;
+        - otherwise ``work`` waits ``reconnect_interval`` seconds and runs ``cycle`` again.
+
+     It never returns otherwise: the loop ends only when ``AppRunner`` cancels it.
+
+   The fatal error types are a class attribute that each subclass sets (``StepProducerApp``:
+   ``StepRedisFatalError``); with none set, every error is retried.
+
+**AppRunner: public interface**
+
+   * ``AppRunner[R](logger_param, loop_factory=None, exception_handler=None, unraisable_handler=None)``:
+
+        - ``logger_param``: Logger used by the default exception and unraisable handlers.
+        - ``loop_factory``: Factory of the event loop created by every ``run``, forwarded to
+          ``asyncio.Runner``; ``None`` uses the asyncio default loop. The STEP Producer passes
+          ``asyncio.SelectorEventLoop`` on Windows, as the other STEP programs do.
+        - ``exception_handler``: Event loop exception handler; ``None`` logs the exception on
+          the logger.
+        - ``unraisable_handler``: Installed as ``sys.unraisablehook``; ``None`` logs the exception
+          on the logger.
+
+     The constructor installs the process-wide hooks (signal handlers, ``sys.unraisablehook``): it
+     is called from the main thread as early as possible, which is why ``main()`` builds it before
+     parsing the arguments, so that a signal received before ``run`` is still handled. Being a
+     singleton, only the first construction takes effect; the arguments of later calls are ignored.
+   * ``logger`` (property): The logger given to the constructor.
+   * ``run(app: AbstractApp[R]) -> R``: Opens an ``asyncio.Runner``, installs the exception handler
+     and the shutdown handlers (``SIGINT``/``SIGTERM`` on POSIX, ``CTRL_C``/``CTRL_BREAK`` on
+     Windows), then runs ``app.work()`` next to a shutdown watcher in a ``TaskGroup``. It returns
+     the value of ``app.work()`` when the workload ends on its own, or the value of
+     ``app.on_shutdown(stop_signal)`` when a shutdown signal stops it. Any other exception raised
+     by ``work`` propagates wrapped in an ``ExceptionGroup``, which ``main()`` logs and maps to
+     ``ExitCode.ERROR``.
+
+   A shutdown signal never interrupts the workload at an arbitrary point: the signal handler only
+   sets an event, the watcher task turns it into an exception, and the ``TaskGroup`` cancels
+   ``work`` at the ``await`` it is suspended on.
+
+**How the STEP Producer uses them:**
+
+.. container:: scrollable-diagram
+
+   .. plantuml::
+      :align: center
+
+      participant "main()" as Main
+      participant "AppRunner" as Runner
+      participant "StepProducerApp" as App
+      participant "ReconnectingApp.work()" as Work
+
+      Main -> Runner : AppRunner[ExitCode](logger, loop_factory)
+      Main -> App : StepProducerApp(instance_name, config, logger)
+      note right of App
+         Reads the Redis credential
+         from the environment
+      end note
+      Main -> Runner : run(app)
+      Runner -> Work : work()
+      loop until fatal error or shutdown
+         Work -> App : cycle()
+         App --> Work : error
+         alt fatal error (StepRedisFatalError)
+            Work -> App : fatal_result()
+            Work --> Runner : ExitCode.ERROR
+         else other error
+            Work -> Work : sleep reconnectInterval
+         end
+      end
+      alt shutdown signal
+         Runner -> Work : cancel
+         Runner -> App : on_shutdown(stop_signal)
+         App --> Runner : ExitCode.ABORTED
+      end
+      Runner --> Main : ExitCode
+
+StepProducerApp
+^^^^^^^^^^^^^^^
+
+``StepProducerApp`` (module ``step_producer_app``) is the ``ReconnectingApp`` subclass
+(step_cloud_schemas, see `Application Runtime (step_cloud_schemas)`_) run by ``AppRunner``:
+the reconnecting DEN service on top of the Redis
+streams. It implements one connection cycle (``cycle()``) and the result of a fatal error
+(``fatal_result()``), while the reconnect loop is the inherited ``work()``. It also defines
+the ``ExitCode`` enumeration.
+
+Key features of ``StepProducerApp`` include:
+
+   #. **Environment-Based Credentials**: the constructor calls step_redis
+      ``RedisCredential.from_env()`` once: it loads the ``.env`` file of the current working
+      directory (or an ancestor of it) and reads ``REDIS_URL``, ``REDIS_PORT``,
+      ``REDIS_USERNAME``, and ``REDIS_PASSWORD`` from the environment (see
+      :ref:`step_producer_credentials`); ``REDIS_URL`` and ``REDIS_PORT`` are required, the
+      username and password are optional (an empty value counts as unset).
+      Reading them at construction (not in ``cycle()``) makes a missing variable end the
+      program instead of being retried forever.
+   #. **Asynchronous Task Orchestration**: the constructor creates a single
+      ``DenServiceManager``; each ``cycle()`` opens a ``StepRedisPool`` (parameters from
+      ``StepRedisPoolParams.from_connection()``, at most ``_REDIS_MAX_CONNECTIONS`` = 2
+      connections) and the client output stream, then uses
+      ``asyncio.TaskGroup`` to run three concurrent tasks - ``_stream_receive_run()`` (stream
+      reception and dispatch), ``_periodical_cleanup_run()`` (expired DENM cleanup) and
+      ``_redis_health_check_run()`` (Redis connection health check). The receive and cleanup tasks
+      publish on the same client output stream.
+   #. **Message Dispatch**: ``_producer_message_dispatch()`` routes a ``ProducerCloudEventsDenmDataV1``
+      to ``_denm_message_handler()`` and a ``ProducerCloudEventsStationCollisionArrayV1`` to
+      ``_station_collision_array_message_handler()``, whose DENMs are published as a batch by
+      ``_denm_messages_publish()``; any other type is skipped with a warning. Each handler, the batch
+      publish and each cleanup are timed by a ``LoggingTimer`` at INFO level.
+   #. **Stream Parameters**: ``_input_stream_params()`` builds the input stream parameters (stream,
+      consumer group, wait timeout, the instance name as consumer, TTL from
+      ``StepRedisStreamParams.ttl_seconds_from_wait_timeout()``), also used by the health check;
+      ``_client_stream_params()`` builds the client output stream parameters (stream and
+      ``maxLength``).
+   #. **Per-Message Error Isolation**: A received message whose processing raises ``ValueError``
+      (pydantic ``ValidationError`` included) is logged and dropped; the loop goes on and the tracked
+      DENM records are kept. A collision array is applied all or nothing.
+   #. **Automatic Reconnection**: On any other error, the inherited ``work()`` waits
+      ``config.reconnectInterval`` seconds and runs ``cycle()`` again, keeping the same
+      ``DenServiceManager`` (tracked records and ActionId sequence survive the reconnect).
+   #. **Permanent Errors**: An error that a reconnect cannot fix (``_FATAL_ERRORS``:
+      ``StepRedisFatalError`` from step_redis, i.e. rejected credentials, ACL denial, missing
+      SSL file, untrusted certificate) ends the run with ``fatal_result()``
+      (``ExitCode.ERROR``) instead of retrying forever.
+   #. **Graceful Shutdown**: Delegated to ``AppRunner``: on ``SIGINT``/``SIGTERM`` (POSIX) or
+      ``CTRL_C``/``CTRL_BREAK`` (Windows) it cancels ``work()``, the ``async with`` blocks
+      release the Redis pool and streams, and ``on_shutdown()`` logs the signal and returns
+      ``ExitCode.ABORTED``. A failure raised while the cancellation unwinds is turned back
+      into ``CancelledError`` instead of triggering a reconnect, and is logged at INFO level
+      without an ERROR traceback.
    #. **Exit Code Management**: Defines standard exit codes through the ``ExitCode`` enum:
 
       * OK (0): Successful execution
@@ -547,6 +818,12 @@ components and how they interact with Redis streams and external data sources.
             end note
          }
          [StepProducerConfig] as Config
+         [StepProducerApp] as App
+         note right of App
+            Reconnecting workload:
+            receive, cleanup and
+            health check tasks
+         end note
       }
       package "Redis Integration" {
          [StepRedisPool] as RedisPool <<step_redis>>
@@ -560,11 +837,18 @@ components and how they interact with Redis streams and external data sources.
       }
       package "step_cloud_schemas" {
          [StepLogger] as Logger <<step_cloud_schemas>>
+         [AppRunner] as Runner <<step_cloud_schemas>>
+         [ReconnectingApp] as RApp <<step_cloud_schemas>>
       }
+      Runner -- App : runs
+      App -- RApp : extends
+      App -- DSM : processes messages
+      App -- ProducerRedisStream : receives input messages
+      App -- ClientRedisStream : publishes DENM messages
+      App -- Config : uses configuration
+      App -- Logger : logs operations
       DSM -- DSDM : delegates data operations
-      DSM -- ProducerRedisStream : publishes DENM messages
       DSM -- Logger : logs operations
-      DSM -- Config : uses configuration 
       DSDM -- Logger : logs data operations
       ProducerRedisStream -- RedisPool : uses connection pool
       ClientRedisStream -- RedisPool : uses connection pool 
@@ -616,6 +900,7 @@ and attributes of each class and how they interact with one another.
 
       class DenmRecordInfo {
          +denm_data: DenmDataV1
+         +record_key: RecordKey
          +reference_time: ItsTime
          +monotonic_time_sec: int
          +__post_init__
@@ -634,6 +919,8 @@ and attributes of each class and how they interact with one another.
          +__gt__
          +__ge__
          +__hash__
+         +__str__
+         +__repr__
       }
 
       class RecordKey {
@@ -684,12 +971,56 @@ and attributes of each class and how they interact with one another.
       }
 
       class StepLogger <<from step_cloud_schemas>> {
-         +{static} setup_logging
          +{static} get_logger
+         +{static} logger_force_write
       }
 
+      abstract class AbstractApp<R> <<from step_cloud_schemas>> {
+         +{abstract} async work() : R
+         +{abstract} on_shutdown(stop_signal) : R
+      }
+
+      abstract class ReconnectingApp<R> <<from step_cloud_schemas>> {
+         +__init__(logger, reconnect_interval)
+         +{abstract} async cycle()
+         +{abstract} fatal_result() : R
+         +async work() : R
+      }
+
+      class AppRunner<R> <<from step_cloud_schemas>> {
+         +__init__(logger_param, loop_factory, exception_handler, unraisable_handler)
+         +logger : Logger <<property>>
+         +run(app : AbstractApp) : R
+      }
+
+      class StepProducerApp {
+         -_config
+         -_instance_name
+         -_logger
+         -_den_service
+         -_redis_credential
+         +cycle
+         +fatal_result
+         +on_shutdown
+         -_stream_receive_run
+         -_periodical_cleanup_run
+         -_redis_health_check_run
+         -_producer_message_dispatch
+         -_denm_message_handler
+         -_station_collision_array_message_handler
+         -_denm_messages_publish
+         -_input_stream_params
+         -_client_stream_params
+      }
+
+      ReconnectingApp --|> AbstractApp : extends
+      StepProducerApp --|> ReconnectingApp : extends
+      AppRunner ..> AbstractApp : runs
+      StepProducerApp --> DenServiceManager : processes messages with
+      StepProducerApp --> StepProducerRedisStream : receives from
+      StepProducerApp --> StepClientRedisStream : publishes to
+      StepProducerApp --> StepProducerConfig : configured by
       DenServiceManager --> DenServiceDataManager : uses
-      DenServiceManager --> StepProducerRedisStream : publishes to
       DenServiceManager --> StepLogger : logs with
       
       DenServiceDataManager --> DenmRecordInfo : manages
@@ -725,7 +1056,7 @@ DENM creation and publication
 The following sequence diagram depicts the process of DENM creation starting 
 from the crash event message sent by STEP Crash Prediction. It demonstrates how the 
 DenServiceManager component processes the incoming collision data, creates the 
-DENM messages, and publishes them to Redis streams. 
+DENM messages, which ``StepProducerApp`` publishes to the client Redis stream.
 
 .. container:: scrollable-diagram
 
@@ -735,22 +1066,26 @@ DENM messages, and publishes them to Redis streams.
       participant "STEP Crash Prediction" as CrashPrediction
       participant "STEP Client" as Client
       participant "StepProducerRedisStream" as RedisStream
+      participant "StepProducerApp" as App
       participant "DenServiceManager" as DenManager
       participant "DenServiceDataManager" as DenDataManager
+      participant "StepClientRedisStream" as ClientStream
 
       CrashPrediction -> RedisStream : Station Collision Array
-      RedisStream -> DenManager : Station Collision Array
+      RedisStream -> App : Station Collision Array
+      App -> DenManager : process_station_collisions_received()
       DenManager -> DenDataManager : insert_station_collision_array() 
       note over DenDataManager
          Check if DENMs for collision pairs
-         already exist. Generate action IDs
-         and create/update DENM records.
+         already exist. Generate action IDs,
+         build all the DENM records, then
+         commit them together.
          Return list of DENM messages.
       end note
       DenDataManager -> DenManager : List of DenmDataV1
-      DenManager -> RedisStream : List of DenmDataV1
-      RedisStream -> Client : DENM_1
-      RedisStream -> Client : DENM_n
+      DenManager -> App : List of DenmDataV1
+      App -> ClientStream : DENM_1 ... DENM_n
+      ClientStream -> Client : DENM_1 ... DENM_n
    
 DENM negation
 ^^^^^^^^^^^^^
@@ -764,11 +1099,13 @@ The sequence diagram below illustrates the process of negation of a DENM.
 
       participant "STEP Client" as Client
       participant "StepProducerRedisStream" as RedisStream
+      participant "StepProducerApp" as App
       participant "DenServiceManager" as DenManager
       participant "DenServiceDataManager" as DenDataManager
 
       Client -> RedisStream : DENM with Negation
-      RedisStream -> DenManager : process_denm_record_received()
+      RedisStream -> App : DENM with Negation
+      App -> DenManager : process_denm_record_received()
       DenManager -> DenDataManager : remove_denm_record(action_id)
       note over DenDataManager
          Lookup DENM by action ID in index.
@@ -786,7 +1123,7 @@ The sequence diagram below illustrates the periodic cleanup process that removes
    .. plantuml::
       :align: center
 
-      participant "Cleanup Task" as CleanupTask
+      participant "Cleanup Task (StepProducerApp)" as CleanupTask
       participant "DenServiceManager" as DenManager
       participant "DenServiceDataManager" as DenDataManager
       participant "StepClientRedisStream" as RedisStream
@@ -797,21 +1134,24 @@ The sequence diagram below illustrates the periodic cleanup process that removes
          DenManager -> DenDataManager : get_denm_records_clean_reference_expired()
          note over DenDataManager
             Iterate through sorted records
-            from oldest. Check if reference time
-            plus validity duration has expired.
-            Remove and return expired records.
+            from oldest. Remove the records whose
+            reference time is older than
+            now - denmLastUpdateMaxDelay.
+            Return those still within
+            their validity duration.
          end note
-         DenDataManager -> DenManager : List of expired DenmDataV1
-         loop For each expired DENM
+         DenDataManager -> DenManager : List of removed, still valid DenmDataV1
+         loop For each returned DENM
             DenManager -> DenManager : _denm_create_cancellation()
             note over DenManager
                Create cancellation DENM
                by copying original with
                termination=CANCELLATION
             end note
-            DenManager -> RedisStream : DENM Cancellation
-            RedisStream -> Client : DENM Cancellation
          end loop
+         DenManager -> CleanupTask : List of cancellations
+         CleanupTask -> RedisStream : DENM Cancellation (each)
+         RedisStream -> Client : DENM Cancellation
       end loop
 
 Performance Considerations
@@ -859,9 +1199,9 @@ DENM records:
 
 **Performance Implications**:
 
-* **Best Case**: All collision records already exist → still :math:`O(k*log(k) + k*log(n))`, since
+* **Best Case**: All collision records already exist: still :math:`O(k*log(k) + k*log(n))`, since
   each existing record is removed from and re-inserted into the sorted list
-* **Worst Case**: All collision records are new → :math:`O(k*log(k) + k*log(n))` for full processing
+* **Worst Case**: All collision records are new: :math:`O(k*log(k) + k*log(n))` for full processing
 * **Space Complexity**: :math:`O(k)` additional per message, plus :math:`O(n)` for maintaining active DENM records
 
 **Scalability Considerations:**
@@ -899,17 +1239,19 @@ Periodic Cleanup Performance
 
 **Algorithm Complexity Analysis:**
 
-#. **Batch Record Identification and Removal**: :math:`O(e*log(n))` where e is the number of expired records
+#. **Expired Range Lookup**: :math:`O(log(n))` - ``irange`` search of the threshold, paid even when
+   nothing expired
+#. **Batch Record Removal**: :math:`O(e*log(n))` where e is the number of expired records
 #. **Cancellation Message Generation**: :math:`O(e)` - Linear with expired count
 #. **Redis Stream Publication**: :math:`O(e)` - Linear network operations
 
-**Overall Complexity**: :math:`O(e*log(n))`
+**Overall Complexity**: :math:`O(log(n) + e*log(n))`
 
 **Performance Optimization:**
 
 * **Early Termination**: Sorted list enables early exit when unexpired records are encountered
-* **Batch Processing**: Minimizes Redis stream overhead through batched publications
-* **Adaptive Scheduling**: Cleanup interval adapts based on system load
+* **Fixed Scheduling**: The cleanup runs every ``denmCheckLastUpdateInterval`` seconds; each
+  cancellation is published with its own XADD
 
 **Memory Management Strategies:**
 

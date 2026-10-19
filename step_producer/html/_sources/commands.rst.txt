@@ -22,7 +22,8 @@ Basic Usage
 
     step_producer [options]
 
-If no options are provided, the program will display the help message.
+If no options are provided, the program displays the help message and exits with
+code ``1`` (``USAGE``).
 
 Options
 =======
@@ -35,21 +36,26 @@ The following command line options are available:
 ``-v, --version``
     Show the program version and exit.
 
-``-s, --conf_schema <schema file>``
-    Write the configuration JSON schema to the specified file.
+``-s, --conf_schema <schema dir>``
+    Write the configuration JSON schema (``step_producer_config_v1_schema.json``)
+    into the specified directory, created if missing.
 
-``-t, --conf_template <template file>``
-    Write a configuration template to the specified file.
+``-t, --conf_template <template dir>``
+    Write a configuration template (``step_producer_config_v1_schema_template.json``)
+    into the specified directory, created if missing.
 
 ``-c, --config <config file>``
     Load the configuration from the specified file and run the module.
 
 ``-i, --instance <instance name>``
-    Specify the instance name.
+    Specify the instance name, also used as the Redis stream consumer name.
 
 .. note::
-    When the module uses the `-c` or `--config` option, also the -i or --instance option 
-    must be specified to set the instance name
+    The ``-c``/``--config`` and ``-i``/``--instance`` options must be given together:
+    when only one of them is present, the program logs a single error line (no
+    traceback) and exits with code ``1`` (``USAGE``). The Redis host, port and
+    credentials are not command line options: they are read from the environment
+    (see :ref:`step_producer_credentials`).
 
 Detailed Command Description
 ============================
@@ -83,9 +89,10 @@ To generate a JSON schema file documenting all configuration options:
 
 .. code-block:: bash
 
-    step_producer --conf_schema /path/to/schema_file.json
+    step_producer --conf_schema /path/to/schema_dir
 
-This command creates a JSON schema file at the specified path. The file describes
+This command writes ``step_producer_config_v1_schema.json`` into the specified
+directory, creating it if missing. The file describes
 all available configuration options, their types, defaults, and constraints. 
 The schema can be used for validation or as a reference for creating custom configurations.
 
@@ -96,9 +103,10 @@ To generate a configuration template file with default values:
 
 .. code-block:: bash
 
-    step_producer --conf_template /path/to/template_file.json
+    step_producer --conf_template /path/to/template_dir
 
-This command creates a JSON configuration file with default values 
+This command writes ``step_producer_config_v1_schema_template.json`` into the
+specified directory, creating it if missing, with default values 
 for all settings. Users can modify this file as needed to customize their configuration.
 
 Running with Configuration
@@ -110,8 +118,11 @@ To run the module with a specific configuration:
 
     step_producer --instance test --config /path/to/config_file.json
 
-This loads the configuration from the specified file and starts the step_producer.
-The module will connect to the Redis streams as specified in the configuration.
+This loads the configuration from the specified file, reconfigures the logger from its
+``log`` section, logs the program, ``step_cloud_schemas`` and ``step_redis`` versions and
+starts the step_producer. The module connects to the Redis streams specified in the
+configuration, with the host, port and credentials read from the ``REDIS_*`` environment
+variables or a ``.env`` file (see :ref:`step_producer_credentials`).
 
 Configuration File Structure
 ============================
@@ -137,10 +148,13 @@ Exit Codes
 
 The program uses the following exit codes:
 
-* ``0`` (OK): Successful termination
-* ``1`` (USAGE): Command line usage error
-* ``2`` (ERROR): General error during execution
-* ``3`` (ABORTED): Operation aborted by user or system
+* ``0`` (OK): Successful termination, including ``-h``/``--help`` and ``-v``/``--version``
+* ``1`` (USAGE): Command line usage error: no arguments, an invalid or unknown option, or
+  only one of ``-c``/``--config`` and ``-i``/``--instance``
+* ``2`` (ERROR): An unhandled exception (e.g. an invalid configuration file or a missing
+  ``REDIS_URL``/``REDIS_PORT`` variable), or an error a reconnect cannot fix (rejected
+  credentials, ACL denial, missing SSL file, untrusted certificate)
+* ``3`` (ABORTED): Operation aborted by user or system (``Ctrl+C`` or a shutdown signal)
 
 Examples
 ========
@@ -149,13 +163,13 @@ Generate a configuration schema:
 
 .. code-block:: bash
 
-    step_producer --conf_schema ./schema.json
+    step_producer --conf_schema ./schema_dir
 
 Create a configuration template:
 
 .. code-block:: bash
 
-    step_producer --conf_template ./template.json
+    step_producer --conf_template ./template_dir
 
 Run with specific configuration:
 
@@ -167,7 +181,7 @@ Generate both schema and template:
 
 .. code-block:: bash
 
-    step_producer --conf_schema ./schema.json --conf_template ./template.json
+    step_producer --conf_schema ./schema_dir --conf_template ./template_dir
 
 Program Operation
 =================
@@ -175,16 +189,26 @@ Program Operation
 When running with a configuration file, the step_producer 
 performs the following operations:
 
-   #. Connects to the Redis server using the provided connection settings
-   #. Starts two asynchronous tasks:
+   #. Reads the Redis host, port and credentials from the environment once, before the
+      first connection: a missing variable stops the program instead of being retried
+   #. Connects to the Redis server using the provided connection settings (a pool of at
+      most 2 connections) and opens the client output stream
+   #. Starts three asynchronous tasks:
 
-      - **Stream Message Reception**: Continuously listens to Redis input streams for incoming messages, 
-        processes DENM records and station collision arrays, and handles message routing based on message type
-      - **Periodic DENM Cleanup**: Automatically identifies and cancels expired DENM 
-        (Decentralized Environmental Notification Message) records, publishing cancellation messages to 
-        Redis streams at configurable intervals
-   
-   #. Automatically handles reconnection if connections are lost (using the specified reconnect interval)
+      - **Stream Message Reception**: Continuously listens to the Redis input stream for incoming
+        messages and dispatches them by type: a DENM record with a negation removes the record it
+        targets, a station collision array creates or updates the DENM records, whose DENMs are
+        published to the client output stream; an unknown type is skipped with a warning, and a
+        message whose processing fails validation is logged and dropped
+      - **Periodic DENM Cleanup**: Every ``denmCheckLastUpdateInterval`` seconds, removes the
+        expired DENM (Decentralized Environmental Notification Message) records and publishes
+        a cancellation for each one still within its validity duration
+      - **Redis Health Check**: Periodically pings the Redis server, so a lost connection
+        triggers the reconnection
+
+   #. Automatically handles reconnection if connections are lost (after ``reconnectInterval``
+      seconds), keeping the tracked DENM records; an error a reconnect cannot fix ends the
+      program with exit code ``2`` (``ERROR``)
    #. Manages graceful shutdown when interrupted
 
 The module will continue running until manually interrupted (e.g., with Ctrl+C) or until a system signal is received.
@@ -195,8 +219,9 @@ Advanced Usage
 Signal Handling
 ---------------
 
-The step_producer properly handles system signals for graceful shutdown. When a signal is received, 
-it cleans up resources and terminates with the appropriate exit code.
+The step_producer properly handles system signals for graceful shutdown. On ``SIGINT``/``SIGTERM``
+(POSIX) or ``CTRL_C``/``CTRL_BREAK`` (Windows), the running tasks are cancelled, the Redis pool and
+streams are released, the signal name is logged and the program exits with code ``3`` (``ABORTED``).
 
 Logging
 -------
@@ -206,6 +231,10 @@ in the configuration file, including:
 
 * Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
 * Console logging
-* File logging with rotation options
+* File logging with size or time based rotation options
+* Null logging
+
+The durations of the message processing, of the DENM publishing and of each cleanup
+are logged at INFO level.
 
 You can enable debug logging to troubleshoot connection or message handling issues.
