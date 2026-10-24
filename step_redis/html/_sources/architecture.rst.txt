@@ -240,6 +240,7 @@ its relationships with other components in the package.
          +__aexit__(exc_type, exc_val, exc_tb): None
          +create_input_stream(): Awaitable[None]
          +publish_message(message: str): Awaitable[None]
+         +publish_messages(messages: Sequence[str], *, transaction: bool = False): Awaitable[None]
          +receive_message(): AsyncGenerator[str]
          +update_stream_ttl(ttl_seconds: int): Awaitable[bool]
          +get_stream_ttl(): Awaitable[int]
@@ -249,23 +250,31 @@ its relationships with other components in the package.
       
       class StepAdapterRedisStream {
          +publish_cam_message(message: CamDataV1): Awaitable[None]
+         +publish_cam_messages(messages: Sequence[CamDataV1], *, transaction: bool = False): Awaitable[None]
+         +publish_cpm_message(message: CpmDataV1): Awaitable[None]
+         +publish_cpm_messages(messages: Sequence[CpmDataV1], *, transaction: bool = False): Awaitable[None]
       }
-      
+
       class StepClientRedisStream {
          +publish_denm_message(message: DenmDataV1): Awaitable[None]
+         +publish_denm_messages(messages: Sequence[DenmDataV1], *, transaction: bool = False): Awaitable[None]
       }
-      
+
       class StepProducerRedisStream {
          +publish_denm_message(message: DenmDataV1): Awaitable[None]
+         +publish_denm_messages(messages: Sequence[DenmDataV1], *, transaction: bool = False): Awaitable[None]
          +publish_station_collision_array(array: StationCollisionArrayV1): Awaitable[None]
+         +publish_station_collision_arrays(arrays: Sequence[StationCollisionArrayV1], *, transaction: bool = False): Awaitable[None]
       }
-      
+
       class StepCrashPredictionRedisStream {
          +publish_position_array(array: PositionArrayV1): Awaitable[None]
+         +publish_position_arrays(arrays: Sequence[PositionArrayV1], *, transaction: bool = False): Awaitable[None]
       }
-      
+
       class StepMonitoringRedisStream {
-         +publish_forecasted_trajectory(trajectory: ForecastedTrajectoryV1): Awaitable[None]
+         +publish_forecasted_trajectory(trajectory: list[ActorTrajectoryForecasted]): Awaitable[None]
+         +publish_forecasted_trajectories(trajectories: Sequence[list[ActorTrajectoryForecasted]], *, transaction: bool = False): Awaitable[None]
       }
       
       class StepRedisPool {
@@ -441,11 +450,16 @@ consumers to process messages independently and reliably.
 
 **Message Publishing Flow**
 
-When a message is published using ``publish_message()`` or specialized methods like 
-``publish_cam_message()``, the following operations occur:
+When a message is published using ``publish_message()``, ``publish_messages()`` or
+specialized methods like ``publish_cam_message()``/``publish_cam_messages()``, the
+following operations occur:
 
    1. Message is serialized to JSON (for CloudEvents-compliant messages)
-   2. ``XADD`` command adds the message to the stream with a field named ``payload``
+   2. One ``XADD`` per message adds it to the stream with a field named ``payload``; all
+      the ``XADD`` of a call are sent on one pipeline, so N messages cost a single
+      network round trip. The pipeline is not transactional by default (every entry is
+      independent); ``transaction=True`` wraps the commands in ``MULTI``/``EXEC`` so
+      they are applied atomically
    3. Stream is trimmed to ``published_message_max_retained`` using approximate trimming (``XTRIM ~ maxlen``)
    4. If configured, stream TTL is refreshed using ``EXPIRE`` command
    5. Message receives a unique ID based on server timestamp and sequence number
