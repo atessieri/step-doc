@@ -6,7 +6,7 @@ Finding the Optimal Interpolation Period
 Overview
 --------
 
-The ``_find_optimal_period()`` method computes the best possible output period (in milliseconds) 
+The ``GapFiller.optimal_period()`` method computes the best possible output period (in milliseconds) 
 and number of intervals between two timestamps to achieve evenly-spaced interpolated points. 
 The algorithm attempts to match the configured nominal output period while respecting allowed 
 deviation constraints.
@@ -98,47 +98,38 @@ The algorithm follows these steps:
 5. **Decision Logic**
 
    **Case A: Exact Solution Exists** (:math:`n_{min} \leq n_{max}`)
-   
-   When a valid solution exists with the exact time difference:
 
-   - Clamp the ideal interval count to the valid range:
+   When a valid solution exists with the exact time difference, the candidates are the
+   floor and the ceiling of the ideal count, each clamped to the valid range:
 
-     .. math::
+   .. math::
 
-        n_{optimal} = \max(n_{min}, \min(n_{max}, \text{round}(n_{ideal})))
-
-   - Calculate the period using integer division:
-
-     .. math::
-
-        P_{optimal} = \lfloor \frac{d}{n_{optimal}} \rfloor
+      C = \{\max(n_{min}, \min(n_{max}, \lfloor n_{ideal} \rfloor)),\;
+            \max(n_{min}, \min(n_{max}, \lceil n_{ideal} \rceil))\}
 
    - Set ``period_ideal = True``
 
    **Case B: No Exact Solution** (:math:`n_{min} > n_{max}`)
-   
-   When no valid solution exists within the constraints, choose the boundary 
-   interval count closest to ideal:
 
-   - Select the closest boundary value:
+   The candidates are the boundary counts, :math:`n_{max}` only when it is at least one:
 
-     .. math::
+   .. math::
 
-        n_{optimal} = \begin{cases}
-        n_{max} & \text{if } |n_{max} - n_{ideal}| \leq |n_{min} - n_{ideal}| \\
-        n_{min} & \text{otherwise}
-        \end{cases}
-
-   - Calculate the period using integer division:
-
-     .. math::
-
-        P_{optimal} = \lfloor \frac{d}{n_{optimal}} \rfloor
+      C = \{n_{min}\} \cup \{n_{max} \mid n_{max} \geq 1\}
 
    - Set ``period_ideal = False``
 
-   Note: In this case, the calculated period will fall outside the strict 
+   Note: In this case, the calculated period will fall outside the strict
    deviation constraints, but it represents the best possible approximation.
+
+6. **Choose the Candidate**
+
+   .. math::
+
+      n_{optimal} = \arg\min_{n \in C} \left| \frac{d}{n} - P_{nominal} \right|
+      \quad \text{(the smaller } n \text{ on a tie)}
+
+      P_{optimal} = \lfloor \frac{d}{n_{optimal}} \rfloor
 
 Guarantees
 ----------
@@ -146,7 +137,8 @@ Guarantees
 The algorithm guarantees that:
 
 1. All generated timestamps fall within :math:`[t_{last}, t_{new}]`
-2. The spacing between consecutive points respects the configured deviation when possible
+2. For an ideal solution every interval, the last one included, is within
+   :math:`[P_{min}, P_{max}]`; otherwise the intervals are the closest achievable
 3. The total number of intervals optimally balances the nominal period target
 4. Period calculation uses integer division to ensure whole millisecond values
 5. The solution is mathematically optimal (O(1) complexity)
@@ -216,9 +208,9 @@ Calculation:
     - ``interval_number_min = ceil(2800 / 1050) = ceil(2.667) = 3``
     - ``interval_number_max = floor(2800 / 950) = floor(2.947) = 2``
     - No exact solution: :math:`3 > 2`
-    - Distance to max: :math:`|2 - 2.8| = 0.8`
-    - Distance to min: :math:`|3 - 2.8| = 0.2`
-    - Choose min (closer to ideal): ``interval_number_optimal = 3``
+    - Period with max: :math:`|2800/2 - 1000| = 400`
+    - Period with min: :math:`|2800/3 - 1000| = 66.7`
+    - Choose min (period closer to nominal): ``interval_number_optimal = 3``
     - ``period_optimal = 2800 // 3 = 933`` ms
 
 Result:
@@ -242,7 +234,7 @@ Calculation:
     - ``interval_number_min = ceil(1205 / 110) = 11``
     - ``interval_number_max = floor(1205 / 90) = 13``
     - Solution exists: :math:`11 \leq 13`
-    - ``interval_number_optimal = round(12.05) = 12``
+    - ``interval_number_optimal = 12`` (floor 12 gives 100.4 ms, ceiling 13 gives 92.7 ms)
     - ``period_optimal = 1205 // 12 = 100`` ms (with remainder)
 
 Result:
@@ -278,10 +270,12 @@ Implementation Notes
 Integer Division Behavior
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The algorithm uses Python's integer division (``//``) which:
-    - Always returns a whole number (floor division)
-    - Ensures all timestamps are whole milliseconds
-    - May result in slight timing variations when ``d`` is not evenly divisible by ``n``
+``period_optimal`` is the floor division ``d // n`` and is used for logging only.
+``GapFiller.interpolation_timestamps()`` places timestamp :math:`i` at
+:math:`t_{last} + \lfloor i \cdot d / n \rfloor`, so every interval is
+:math:`\lfloor d/n \rfloor` or :math:`\lceil d/n \rceil`: the :math:`d \bmod n`
+remainder is spread over the intervals and, for an ideal solution, every interval
+(the last one included) stays within :math:`[P_{min}, P_{max}]`.
 
 Debug Logging
 ~~~~~~~~~~~~~
@@ -304,7 +298,7 @@ Example log output:
 Warning Conditions
 ~~~~~~~~~~~~~~~~~~
 
-Non-ideal solutions trigger warnings in calling methods because:
+Non-ideal solutions trigger warnings in ``GapFiller.interpolation_timestamps()`` because:
     - The period falls outside the configured deviation range
     - This may indicate configuration issues or unusual timing conditions
     - Users should review if this occurs frequently
@@ -329,22 +323,18 @@ Given valid range :math:`n \in [n_{min}, n_{max}]`, the algorithm selects the
 Proof
 ~~~~~
 
-1. Since :math:`p = \frac{d}{n}`, as :math:`n` increases, :math:`p` decreases monotonically.
+1. :math:`f(n) = |d/n - P_{nominal}|` decreases for :math:`n < n_{ideal}` and increases for
+   :math:`n > n_{ideal}`, since :math:`d/n` decreases monotonically in :math:`n`.
 
-2. The ideal continuous solution is :math:`n_{ideal} = \frac{d}{P_{nominal}}`, 
-   which gives :math:`p = P_{nominal}`.
+2. Over the integers of :math:`[n_{min}, n_{max}]`, the minimum of :math:`f` is therefore at
+   the largest valid integer not above :math:`n_{ideal}` or at the smallest valid integer
+   not below it: :math:`\lfloor n_{ideal} \rfloor` and :math:`\lceil n_{ideal} \rceil`,
+   each clamped to the range.
 
-3. For integer :math:`n`:
-
-   - If :math:`n_{ideal} \in [n_{min}, n_{max}]`, then :math:`\text{round}(n_{ideal})` 
-     gives the closest integer, minimizing :math:`|p - P_{nominal}|`.
-   
-   - If :math:`n_{ideal} < n_{min}`, then :math:`n_{min}` is the closest valid value.
-   
-   - If :math:`n_{ideal} > n_{max}`, then :math:`n_{max}` is the closest valid value.
-
-4. The clamping operation :math:`\max(n_{min}, \min(n_{max}, \text{round}(n_{ideal})))` 
-   implements exactly this logic. ∎
+3. :math:`d/n` is not linear in :math:`n`, so :math:`\text{round}(n_{ideal})` may pick the
+   worse of the two (e.g. :math:`d = 245`, :math:`P_{nominal} = 100`: :math:`n = 3` gives
+   81.7 ms, error 18.3, while :math:`\text{round}(2.45) = 2` gives 122.5 ms, error 22.5);
+   comparing both candidates directly gives the minimum.
 
 When No Valid Solution Exists
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -356,9 +346,21 @@ The algorithm chooses the boundary value closest to :math:`n_{ideal}`:
 - Provides the best possible approximation
 - Signals the caller via ``period_ideal = False``
 
+CPM Resampling
+--------------
+
+``GapFiller.resample()`` applies the same choice to the whole span of the points of a
+perceived object (first to last time): the :math:`n + 1` grid times are the two ends plus the
+:math:`n - 1` timestamps of ``GapFiller.interpolation_timestamps()``. A grid time equal to an
+input time keeps the real position, so an input period dividing the output one (e.g. 100 ms
+points at 5 Hz) is a pure decimation, while a longer input period is filled with interpolated
+positions.
+
 See Also
 --------
 
-- ``_create_interpolated_timestamp_array()`` - Uses this method to generate timestamp arrays
-- ``PointDatasetConfig`` - Configuration parameters that control period constraints
-- ``add_position()`` - Main entry point that triggers period calculation and interpolation
+- ``GapFiller.interpolation_timestamps()`` - Uses this method to generate timestamp arrays
+- ``GapFiller.resample()`` - Uses it over the whole span of the CPM points
+- ``GapFillerConfig`` - Configuration parameters that control period constraints
+- ``PointDataset.add_point()`` - CAM entry point that triggers period calculation and
+  interpolation (through ``GapFiller.fill()``)

@@ -1,32 +1,37 @@
 Architecture
 ============
 
-This document describes the architecture of the STEP Adapter, a Python package 
+This document describes the architecture of the STEP Adapter, a Python package
 for processing real-time vehicle position data for crash prediction systems.
 
 Overview
 --------
 
-The **STEP Adapter** is a critical component of the STEP (Safer Transport for Europe Platform) ecosystem, 
-specifically designed for processing raw GNSS tracking data and ITS communication messages into smooth, 
-regularly-sampled position arrays optimized for Crash Prediction algorithms. This Redis-based microservice 
-transforms irregular vehicle position data from CAM (Cooperative Awareness Messages) and CPM (Collective 
-Perception Messages) into high-quality interpolated trajectories suitable for real-time traffic analysis 
-and collision prediction.
+The **STEP Adapter** is a component of the STEP (Safer Transport for Europe Platform) ecosystem
+that converts ITS messages into position arrays for the Crash Prediction algorithms. This
+Redis-based microservice reads CAM (Cooperative Awareness Messages) and CPM (Collective
+Perception Messages) from a Redis input stream, converts them into ``PositionArrayV1``
+messages and publishes them to the crash prediction Redis stream:
+
+   * **CAM**: every sender keeps a short position history; a new position is validated against
+     the previous one and, when the gap from it is larger than the output period, the gap is
+     filled with positions interpolated by a cubic spline at the configured output frequency.
+   * **CPM**: every perceived object is converted into one position array, from its measured
+     position and its predicted path, without any history between messages.
 
 Library
 -------
 
-The STEP Adapter leverages a carefully selected set of libraries and frameworks to implement 
-robust, high-performance position data processing capabilities. The library architecture follows 
-a layered approach with core Python libraries, specialized scientific packages, and custom STEP 
+The STEP Adapter leverages a carefully selected set of libraries and frameworks to implement
+robust, high-performance position data processing capabilities. The library architecture follows
+a layered approach with core Python libraries, specialized scientific packages, and custom STEP
 ecosystem components.
 
 Core Dependencies
 ^^^^^^^^^^^^^^^^^
 
 **Pydantic**
-   Advanced data validation and settings management library that provides the foundation for 
+   Data validation and settings management library that provides the foundation for
    configuration management throughout the STEP Adapter. Pydantic enables:
 
       * **Type Safety**: Strong typing with automatic validation for all configuration parameters
@@ -34,386 +39,731 @@ Core Dependencies
       * **Serialization**: Robust JSON serialization/deserialization for configuration persistence
       * **Model Validation**: Runtime validation of configuration data with detailed error reporting
 
-   Used extensively in ``StepAdapterConfig`` and related configuration classes to ensure 
-   type-safe, validated configuration management across all Adapter components.
+   Used in ``StepAdapterConfig`` and its nested configuration classes, which are strict, frozen
+   and forbid extra fields.
 
 **SciPy**
-   Scientific computing library providing the mathematical foundation for position interpolation. 
-   Key capabilities include:
+   Scientific computing library providing the mathematical foundation for position interpolation:
 
-      * **CubicSpline**: Advanced cubic spline interpolation for smooth trajectory generation
-      * **Numerical Stability**: Robust algorithms for handling irregular data distributions
-      * **Performance**: Optimized C implementations for high-frequency processing
+      * **CubicSpline**: Cubic spline interpolation for smooth trajectory generation
+      * **Vector-valued splines**: Latitude, longitude and (when every point has one) altitude
+        share one spline, so a single tridiagonal system is solved for all of them
+      * **No extrapolation**: The spline is evaluated with ``extrapolate=False``
 
-   Critical for the ``PointDataset`` component where position trajectories require smooth 
-   interpolation between irregular GNSS measurements for collision prediction accuracy. The 
-   CubicSpline class is used directly within PointDataset for generating interpolated positions.
+   Used by ``GapFiller``, shared by ``PointDataset`` and ``ObjectPerceivedDataset``, to
+   generate the interpolated positions (see :doc:`spline_cubic`).
 
 **NumPy**
-   Fundamental numerical computing library that provides efficient array operations and 
-   mathematical functions. Core functionality includes:
+   Numerical computing library that provides efficient array operations:
 
-      * **Array Operations**: Efficient multi-dimensional array processing for position data
-      * **Mathematical Functions**: Vectorized operations for motion parameter calculations
-      * **Memory Efficiency**: Optimized memory layout for large trajectory datasets
-
-   Essential for supporting SciPy operations and enabling efficient numerical processing 
-   throughout the interpolation pipeline.
+      * **Pre-allocated buffers**: Each ``PointDataset`` allocates its input arrays (timestamps,
+        latitudes, longitudes, altitudes) once and reuses them on every interpolation
+      * **Vectorized motion**: Distance, speed and heading of a whole position chain (CAM gap
+        or CPM grid) are computed with array operations, from one batched geodesic call
+      * **Validator replication**: The range clamping/wrapping of the pydantic validators is
+        applied once to whole arrays, so the interpolated objects are built without validation
 
 **SortedContainers**
-   High-performance pure-Python sorted container implementation that provides the data structure 
-   foundation for efficient temporal ordering in multi-actor scenarios. Key capabilities include:
+   Pure-Python sorted container implementation used by ``ActorDataset``:
 
-      * **Sorted Lists**: O(log n) insertion and deletion with maintained chronological ordering
-      * **Memory Efficiency**: Optimized memory layout for large actor collections
-      * **Performance**: Fast search, insert, and delete operations for time-ordered datasets
-
-   Critical for the ``ActorDataset`` where chronologically ordered position data across multiple 
-   vehicles requires efficient temporal indexing and actor lifecycle management.
+      * **SortedList**: :math:`O(log(m))` insertion and deletion, where m is the number of actors
+      * **Bisection**: A single ``bisect_right`` finds every actor older than the allowed time
+      * **Slice deletion**: The expired actors are removed from the index in one batch
 
 **step_cloud_schemas**
-   Custom STEP ecosystem library that defines standardized ITS message schemas and data structures. 
+   Custom STEP ecosystem library that defines standardized ITS message schemas and data structures.
    This library provides:
 
-      * **ITS Message Schemas**: Complete CAM and CPM message structures compliant with ETSI standards
-      * **Cloud Events**: Standardized cloud event wrappers for ITS message distribution
-      * **Position Primitives**: Core position data types including coordinates, timestamps, and motion parameters
+      * **ITS Message Schemas**: ``CamDataV1`` and ``CpmDataV1`` message structures compliant with ETSI standards
+      * **Cloud Events**: ``AdapterCloudEventsCamDataV1`` and ``AdapterCloudEventsCpmDataV1`` wrappers
+      * **Position Primitives**: ``PositionInfo``, ``ReferencePosition``, ``ItsTime``, ``Speed``,
+        ``Heading``, ``ActorId`` and the ``Geocode`` geodesic utilities
       * **Position Arrays**: ``PositionArrayV1`` structures for crash prediction integration
-
-   Essential for maintaining compatibility across the STEP ecosystem and ensuring standard-compliant 
-   message processing and position data generation.
+      * **Runtime and Logging**: ``AppRunner``, ``ReconnectingApp``, ``StepLogger``, ``LogConfig``
+        and ``LoggingTimer``, shared by the STEP programs
 
 **step_redis**
    STEP-specific Redis integration library that provides the messaging and stream processing
-   foundation. Core functionality includes:
+   foundation as a black box interface. Core functionality includes:
 
-      * **Connection Pooling**: Efficient Redis connection management with automatic reconnection
+      * **Connection Pooling**: Redis connection pool management
       * **Stream Processing**: High-level abstractions for Redis streams with consumer group support
       * **Message Serialization**: Automatic conversion between Python objects and Redis stream data
-      * **Error Handling**: Robust error handling and recovery mechanisms for Redis operations
+      * **Error Classification**: Redis errors that a reconnect cannot fix are raised as
+        ``StepRedisFatalError``
 
-   Provides the base classes ``StepRedisPool`` and ``StepRedisStream``, plus specialized
-   stream adapters such as ``StepAdapterRedisStream`` and ``StepCrashPredictionRedisStream``
-   used by the STEP Adapter service.
+   Provides the base classes ``StepRedisPool`` and ``StepRedisStream``, plus the specialized
+   streams ``StepAdapterRedisStream`` and ``StepCrashPredictionRedisStream`` used by the STEP
+   Adapter. The STEP Adapter uses these classes directly without custom extensions.
+
+**python-dotenv** (through step_redis)
+   Loads Redis connection credentials from the ``.env`` file of the current working
+   directory (or its nearest parent) into the process environment at startup, without
+   overriding a variable already set, so secrets are kept out of the (persisted) JSON
+   configuration document. Used by step_redis ``RedisCredential.from_env()``, called by the
+   ``StepAdapterApp`` constructor (see :ref:`step_adapter_credentials`).
 
 Architecture Integration
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 The library selection supports the STEP Adapter's architectural requirements:
 
-* **High Performance**: SciPy and NumPy enable efficient interpolation of high-frequency 
+* **High Performance**: SciPy and NumPy enable efficient interpolation of high-frequency
   position data streams
-* **Type Safety**: Pydantic provides compile-time and runtime type validation throughout the system
+* **Type Safety**: Pydantic provides runtime type validation of the configuration
 * **Standards Compliance**: step_cloud_schemas ensures ETSI ITS standard compliance for all messages
-* **Scalability**: step_redis abstractions support horizontal scaling through Redis stream 
-  distribution
-* **Maintainability**: Comprehensive development tooling ensures code quality and documentation 
+* **Scalability**: step_redis consumer groups let several instances share the input stream;
+  since the actor histories are kept per instance, the CAM messages of one sender must reach
+  the same instance (see Actor Partitioning)
+* **Maintainability**: Comprehensive development tooling ensures code quality and documentation
   standards
 
 Components
 ----------
 
-The architecture follows a modular design pattern that separates concerns between position data processing, 
-interpolation, actor management, Redis integration, and configuration management. This enables flexibility 
-and maintainability in the system design.
+The architecture follows a modular design pattern that separates concerns between position data processing,
+interpolation, actor management, Redis integration, and configuration management.
 
 Main Components:
 
-   #. **ActorDataset/ActorDatasetConfig**: Multi-actor position dataset management
-      with real-time interpolation and temporal indexing.
-   #. **PointDataset/PointDatasetConfig**: Position dataset management with cubic
-      spline interpolation for individual actors, directly performing all interpolation
-      tasks using SciPy.
-   #. **StepRedisPool/StepAdapterRedisStream/StepCrashPredictionRedisStream**: External
-      Redis integration from ``step_redis`` for message streaming and crash prediction
-      data distribution.
+   #. **ActorDataset/ActorDatasetConfig**: Registry of the per-actor ``PointDataset`` instances fed
+      by CAM messages, with time-ordered cleanup of the expired actors
+   #. **PointDataset/PointDatasetConfig**: Per-actor position history with coherence checks;
+      the gaps are filled by ``GapFiller``
+   #. **GapFiller/GapFillerConfig**: Output period resampling shared by CAM and CPM: cubic
+      spline interpolation of longer periods, decimation of shorter ones
+   #. **ObjectPerceivedDataset/ObjectPerceivedDatasetConfig**: Stateless conversion of CPM
+      perceived objects into position arrays resampled at the output period
+   #. **numeric_bounds**: Numeric bounds shared by the JSON configuration,
+      ``PointDatasetConfig`` and ``GapFillerConfig``
    #. **StepAdapterConfig**: Configuration management for the Adapter
-   #. **StepLogger**: Logging utilities specific to the STEP Adapter
-   #. **StepCliError**: Custom exceptions for error handling
+   #. **Redis Integration (step_redis)**: Redis connection pooling and stream processing via
+      ``StepRedisPool``, ``StepAdapterRedisStream`` and ``StepCrashPredictionRedisStream``
+   #. **StepLogger** (from ``step_cloud_schemas``): Logging utilities used by the STEP Adapter
+   #. **StepException**: Custom exceptions for error handling
+   #. **Main Application (__main__)**: Command-line interface; runs ``StepAdapterApp``
+      through ``AppRunner`` (from ``step_cloud_schemas``)
+   #. **StepAdapterApp**: Workload of the program: environment-based Redis credentials,
+      asynchronous task orchestration and automatic reconnection
+   #. **Application Runtime** (from ``step_cloud_schemas``): ``AppRunner``, which runs the
+      workload with a cooperative shutdown, and the abstract classes ``AbstractApp`` and
+      ``ReconnectingApp``, which ``StepAdapterApp`` derives from
 
 ActorDataset
 ^^^^^^^^^^^^
 
-The ``ActorDataset`` class serves as the primary coordinator for multi-actor position processing within 
-the STEP Adapter architecture. This component manages the complete lifecycle of vehicle position data 
-from multiple concurrent actors, providing thread-safe concurrent processing, automatic memory management, 
-and high-performance interpolation capabilities designed for V2X applications.
+The ``ActorDataset`` class (module ``actor_dataset``) is the registry of the CAM senders. It maps
+every actor (``ActorId``: station id plus optional object id; a CAM sender has no object id) to its
+own ``PointDataset``, and keeps a ``SortedList`` of (last record time, actor) pairs ordering the
+actors by the time of their latest accepted point.
 
 **Core Responsibilities:**
 
-   #. **Multi-Actor Coordination**: Manages position datasets across hundreds to thousands of vehicles 
-      simultaneously, providing logarithmic scaling performance and predictable memory usage.
-   #. **CAM Message Processing**: Receives and processes CAM and CPM messages, converting ITS 
-      communication data into structured position trajectories for crash prediction analysis.
-   #. **Temporal Indexing**: Maintains sophisticated multi-index architecture with O(log m) scaling 
-      where m is the fleet size, enabling efficient actor lifecycle management.
-   #. **Automatic Cleanup**: Implements intelligent cleanup mechanisms that identify expired actors 
-      and remove outdated position data to maintain bounded memory usage.
-   #. **Thread-Safe Operations**: Provides concurrent access capabilities for high-frequency telemetry 
-      streams while maintaining data consistency.
+   #. **CAM Message Processing**: ``add_cam_message()`` converts a ``CamDataV1`` into a
+      ``PositionInfo`` (``POSITION_GNSS``, time = CAM ``creationTime``), inserts it into the
+      dataset of its sender and wraps the returned positions in a ``PositionArrayV1`` with
+      ``sourceType`` ``GNSS_SRC``, ``sampleFrequency`` = ``outputNominalSampleFrequency`` and the
+      vehicle length/width of the CAM. A CAM without position is skipped with a warning; a
+      rejected point returns ``None``.
+   #. **Actor Registration**: The ``PointDataset`` of a new actor is created on its first point
+      and registered only if that point is accepted.
+   #. **Temporal Indexing**: On every accepted point the (last record time, actor) entry of the
+      actor is replaced in the ``SortedList``, at :math:`O(log(m))`.
+   #. **Automatic Cleanup**: ``clear_old_points()`` computes the limit as the current ITS time minus
+      ``inputOldestAllowedTime``, finds the expired actors with one ``bisect_right`` and removes
+      them from the registry and the index in one batch.
 
-**Key Methods:**
-
-    * ``add_cam_message()``: Main entry point for processing CAM data and generating
-       ``PositionArrayV1`` output
-    * ``clear_old_points()``: Executes periodic cleanup operations, removing expired actors
-       and reclaiming memory resources
-
-**Architecture Integration:**
-
-The ``ActorDataset`` operates as the coordination hub between individual ``PointDataset`` instances
-for actor-specific processing and the external ``step_redis`` streams used by the service runtime.
-It utilizes comprehensive logging for operational visibility and implements configurable timing
-parameters for adaptive behavior in different traffic scenarios.
-
-**Configuration Parameters:**
+**Configuration Parameters** (``ActorDatasetConfig``, built by ``StepAdapterApp`` from
+``StepAdapterConfig``):
 
    * ``input_max_point_number``: Maximum number of input points retained per actor
-   * ``input_max_period_ms``: Maximum allowed period between input points
+     (``maxActorHistoryPointNumber``)
+   * ``input_min_altitude_trailing_point_percent``: Minimum trailing run of points with altitude
+     needed to interpolate it (``minActorHistoryAltitudeTrailingPointPercent``)
+   * ``input_max_period_ms``: Maximum allowed period between input points (``inputMaxPeriod``)
    * ``input_max_local_time_deviation_ms``: Maximum allowed local time deviation
-   * ``input_oldest_allowed_time_ms``: Oldest input timestamp accepted for processing
-   * ``output_nominal_sample_frequency``: Target interpolation rate for position arrays
+     (``inputLocalTimeMaxDeviation`` converted from seconds)
+   * ``input_oldest_allowed_time_ms``: Maximum age of the last point of an actor before cleanup
+     (``inputOldestAllowedTime`` converted from seconds)
+   * ``output_nominal_sample_frequency``: Output frequency in Hz; the output period is
+     1000 // frequency ms
    * ``output_period_max_deviation_ms``: Maximum timing tolerance for interpolation points
+     (``outputPeriodMaxDeviation``)
+
+**Thread Safety:**
+
+``ActorDataset`` is **not thread-safe**: no lock is used. ``StepAdapterApp`` calls it from
+the tasks of a single asyncio event loop, which never interleave inside its synchronous
+methods, so no lock is needed there; multi-threaded callers need external synchronization.
 
 PointDataset
 ^^^^^^^^^^^^
 
-The ``PointDataset`` class provides comprehensive position data management for individual actors 
-with integrated cubic spline interpolation capabilities. This component serves as the complete 
-solution for processing GNSS tracking data, performing temporal validation, and generating smooth 
-position trajectories using SciPy's CubicSpline directly.
+The ``PointDataset`` class (module ``point_dataset``) holds the position history of one actor: a
+deque of at most n ``PositionInfoRecord`` plus four pre-allocated NumPy buffers of n + 1 entries,
+n = ``maxActorHistoryPointNumber``. Each ``add_point()`` call validates the new position, then
+returns it, possibly preceded by interpolated positions.
 
-**Core Functionality:**
+**Coherence Rules** (``_COHERENCE_RULES``, run by ``_check_position_coherence()``): every
+check is bound to the action taken when it fails; the checks run in this order and the first
+failure decides the action of ``add_point()``:
 
-   #. **Position Validation**: The ``add_point()`` method validates incoming position data 
-      including station and object identifiers, temporal consistency, and coordinate validity 
-      before processing.
-   #. **Direct Interpolation Processing**: Performs cubic spline interpolation internally using 
-      SciPy's CubicSpline to generate smooth trajectories from irregular GNSS measurements with 
-      configurable output frequencies. When interpolation is needed, generates intermediate 
-      positions and appends the actual received position as the final point.
-   #. **Actor Metadata Tracking**: Maintains and updates vehicle dimensions alongside position 
-      data, ensuring complete actor information for crash prediction algorithms.
-   #. **Gap Detection**: Automatically handles large temporal gaps by clearing interpolation 
-      history to prevent unrealistic trajectory generation across data discontinuities.
-   #. **Resource Management**: Implements bounded memory usage through sliding window approaches 
-      with pre-allocated numpy arrays that prevent unbounded accumulation during long-running operations.
+   .. list-table::
+      :header-rows: 1
+      :widths: 30 40 30
 
-**Performance Characteristics:**
+      * - Result
+        - Condition
+        - Action
+      * - ``LOCAL_TIME_NOT_COHERENT_ERROR``
+        - Position time farther than ``inputLocalTimeMaxDeviation`` from the local time
+          (checked first, also for the first position; its failure prevails over any
+          other one, so it never clears the history)
+        - Position rejected (``None``)
+      * - ``PERIOD_TOO_SHORT_ERROR``
+        - Time from the last position below the nominal output period minus the deviation
+        - Position rejected (``None``)
+      * - ``PERIOD_TOO_LONG_ERROR``
+        - Time from the last position above ``inputMaxPeriod``
+        - History cleared, trajectory restarted from the position
+      * - ``POSITION_ERROR``
+        - Implied speed above ``SPEED_COHERENCE_THRESHOLD`` (120 m/s) against a confirmed
+          history of at least ``CONFIRMED_HISTORY_POINT_NUMBER_MIN`` (2) positions: the new
+          position is the likely outlier
+        - Position rejected (``None``)
+      * - ``POSITION_ERROR``
+        - Implied speed above ``SPEED_COHERENCE_THRESHOLD`` against a single, unconfirmed
+          position
+        - History cleared, trajectory restarted from the position
 
-The component exhibits the following complexity characteristics:
+   A wrong history recovers by itself: rejected positions do not update the last time, so
+   within ``inputMaxPeriod`` the maximum period rule restarts the trajectory; the worst case is
+   an output gap of that length for the actor.
 
-   * **Point Addition**: O(n + k*log(n) + k) per point where n is input queue size and k is output points
-   * **Point Retrieval**: O(k) for interpolated position results
-   * **Memory Usage**: O(n + k) with both components bounded by configuration parameters
+   A position of another actor is rejected with a warning.
 
-**Output Behavior:**
+**Output Behavior** (``_create_positions_list()``):
 
-When a new position is received:
+   * **First position or history reset**: The position is returned as-is.
+   * **Fast path** (gap within the nominal output period plus the deviation): the position is
+     returned with speed and heading recomputed from the distance/heading already computed by
+     the coherence check.
+   * **Interpolation path** (larger gap): ``GapFiller.fill()`` chooses the output period and
+     the number of intervals (``GapFiller.optimal_period()``, see :doc:`find_period`),
+     evaluates the cubic spline fitted on the history at the k interpolated timestamps
+     (``GapFiller.interpolate()``) and returns the k interpolated positions
+     (``POSITION_GNSS_ESTIMATED``) followed by the received position, the last point being
+     always the measured one.
 
-   * **Fast Path (high-frequency data)**: Returns single position list containing only the new position
-   * **Interpolation Path (temporal gap detected)**: Returns list of k interpolated positions followed 
-     by the actual received position as the final element, ensuring the last transmitted point is 
-     always the measured GNSS position
+**Speed and Heading:** The speed and heading reported by the sender are never preserved: they
+are always recomputed from the geodesic displacement relative to the previous point (one batched
+geodesic call over the whole interpolation chain).
+
+**Altitude:** Interpolated by ``GapFiller`` (see GapFiller) from the trailing run of points
+with altitude ending at the new position.
+
+**Vehicle Dimensions:** The vehicle length and width are updated on every accepted position when
+provided (``None`` keeps the stored value) and reset with the history.
 
 **Thread Safety:**
 
-This component is not thread-safe and requires external synchronization for concurrent access 
-from multiple threads. Applications should implement appropriate locking strategies or use 
-thread-local storage patterns.
+This component is not thread-safe and requires external synchronization for concurrent access
+from multiple threads.
+
+GapFiller
+^^^^^^^^^
+
+The ``GapFiller`` class (module ``gap_filler``) puts positions at the output period
+(``outputNominalSampleFrequency`` ± ``outputPeriodMaxDeviation``). It keeps no state between
+calls (configuration and logger only) and is shared by both datasets:
+
+   * **fill()** (streaming, CAM): fills the gap between the last queued position of an actor
+     and a new one with the k interpolated positions of the cubic spline fitted on the actor
+     history, followed by the new position. A gap shorter than the nominal period minus the
+     deviation never reaches it: ``PointDataset`` rejects the position (streaming decimation).
+   * **resample()** (batch, CPM): resamples a whole time-ordered list of positions. Positions
+     already at the output period are returned as-is; otherwise the grid is
+     first time + floor(i * span / n), i in [0, n], with n chosen by ``optimal_period()`` over
+     the whole span, so a longer input period is interpolated and a shorter one decimated. A
+     grid time equal to an input time keeps the real position (an input period dividing the
+     output one is a pure decimation); the others become ``POSITION_PERCEIVED_ESTIMATED``
+     positions from the spline fitted on every input position. The output is truncated to a
+     maximum number of points.
+
+**Speed and Heading:** The speed and heading of every output position after the first one are
+recomputed from the geodesic displacement relative to the previous point (one batched geodesic
+call over the whole chain); the first position of ``resample()`` is unchanged.
+
+**Altitude:** The altitude is interpolated together with latitude and longitude when every point
+has one. Otherwise only the trailing run of consecutive points with altitude, ending at the last
+point, is used by a separate spline, when its length reaches
+``minActorHistoryAltitudeTrailingPointPercent`` percent of the points (never fewer than 4); the
+positions before the run, or all of them with a shorter run, have no altitude.
+
+**Thread Safety:** No mutable state is kept, so concurrent calls are safe as long as the logger
+is.
+
+ObjectPerceivedDataset
+^^^^^^^^^^^^^^^^^^^^^^
+
+The ``ObjectPerceivedDataset`` class (module ``object_perceived_dataset``) converts the perceived
+objects of a ``CpmDataV1`` message into position arrays at the output period. Unlike
+``ActorDataset``, it keeps no history between messages.
+
+``add_cpm_message()`` returns one ``PositionArrayV1`` per perceived object, in message order:
+
+   * **Points**: The measured position (``POSITION_PERCEIVED``, with the object speed and heading)
+     followed by one ``POSITION_PERCEIVED_PREDICTED`` point per predicted path entry. All points
+     share one ``Identification``: the CPM sender station id, the object type and its
+     confidence. A point not strictly following the previous one is dropped with a warning.
+   * **Resampling**: ``GapFiller.resample()`` puts the points at the output period
+     (interpolation of a longer CPM period, decimation of a shorter one), keeping the measured
+     position unchanged and recomputing speed and heading of the following points; at most
+     ``PositionArrayV1.POINTS_MAX_LENGTH`` (101) points are kept, the others are dropped with a
+     warning. No limit is applied to the gap between two CPM points.
+   * **Source Type**: ``CAMERA_SRC``.
+   * **Sample Frequency**: ``outputNominalSampleFrequency``.
+   * **Dimensions**: ``objectDimensionX`` becomes the vehicle length and ``objectDimensionY`` the
+     vehicle width (ETSI CPM convention: X is the longitudinal axis).
+   * **Skipped Objects**: An object without ``objectId`` or without predicted positions is skipped
+     with a warning.
+
+numeric_bounds
+^^^^^^^^^^^^^^
+
+The ``numeric_bounds`` module is the single source of the inclusive bounds applied to the same
+quantity by the JSON configuration (pydantic ``ge``/``le`` of ``StepAdapterConfig``) and by
+``PointDatasetConfig.__post_init__`` and ``GapFillerConfig.__post_init__``:
+
+   .. list-table::
+      :header-rows: 1
+      :widths: 50 25 25
+
+      * - Constants
+        - Minimum
+        - Maximum
+      * - ``INPUT_MAX_POINT_NUMBER_MIN`` / ``INPUT_MAX_POINT_NUMBER_MAX``
+        - 5
+        - 30
+      * - ``INPUT_MIN_ALTITUDE_TRAILING_POINT_PERCENT_MIN`` / ``INPUT_MIN_ALTITUDE_TRAILING_POINT_PERCENT_MAX``
+        - 0
+        - 100
+      * - ``INPUT_MAX_PERIOD_MS_MIN`` / ``INPUT_MAX_PERIOD_MS_MAX``
+        - 1000 ms
+        - 4000 ms
+      * - ``OUTPUT_MAX_PERIOD_DEVIATION_MS_MIN`` / ``OUTPUT_MAX_PERIOD_DEVIATION_MS_MAX``
+        - 0 ms
+        - 50 ms
 
 StepAdapterConfig
 ^^^^^^^^^^^^^^^^^
 
-The ``StepAdapterConfig`` component provides comprehensive configuration management for the STEP Adapter architecture, 
-leveraging Pydantic for robust validation, serialization, and schema generation capabilities. This component serves as 
-the central configuration hub that defines all operational parameters, connection settings, and behavioral configurations
-for the Adapter service.
+The ``StepAdapterConfig`` component (module ``step_adapter_config``) provides the configuration
+loaded from the JSON file given with ``-c``/``--config``, leveraging Pydantic for validation,
+serialization, and schema generation.
 
 **Hierarchical Configuration Architecture:**
 
-The configuration system follows a well-structured hierarchical model with multiple specialized configuration classes:
+   #. **StepAdapterConfig**: Top-level configuration class
+   #. **RedisClientConfig**: Redis connectivity and stream management
+   #. **RedisConnection** (from ``step_redis``): Redis connection parameters (database, timeouts,
+      keepalive, SSL, pool); the host, port and credentials are not part of it
+   #. **RedisStreams**: Input stream (``RedisStreamInput``) and output streams
+      (``RedisStreamOutputs``, with the ``crashPrediction`` ``RedisStreamOutput``)
+   #. **LogConfig** (from ``step_cloud_schemas``): Logging configuration with multiple handler types
 
-   #. **StepAdapterConfig**: Top-level configuration class that orchestrates all Adapter settings
-   #. **RedisClientConfig**: Dedicated configuration for Redis connectivity and stream management
-   #. **RedisConnection**: Low-level Redis connection parameters including SSL, timeouts, and pooling
-   #. **RedisStreams**: Stream-specific configuration for input/output stream definitions
-   #. **LogConfig**: Comprehensive logging configuration with multiple handler types
+**Adapter Settings:**
 
-**Core Configuration Domains:**
-
-**Adapter Instance Settings:**
-
-   * ``templateVersion``: Configuration schema version for compatibility management
-   * ``instanceName``: Unique identifier for the Adapter instance within the ecosystem
-   * ``reconnectInterval``: Time interval in seconds for automatic reconnection attempts
+   * ``templateVersion``: Configuration schema version; only ``"1"`` is accepted
+   * ``instanceName``: Unique identifier for the Adapter instance, also used as the Redis stream
+     consumer name (not in the configuration model, ``-i``/``--instance`` runtime parameter)
+   * ``maxActorHistoryPointNumber``: Maximum number of points in the history of an actor (5-30)
+   * ``minActorHistoryAltitudeTrailingPointPercent``: Minimum trailing run of points with
+     altitude, as a percentage of the history points, needed to interpolate the altitude when
+     some points lack it (0-100, at least 4 points)
+   * ``inputMaxPeriod``: Maximum period in milliseconds between two positions of an actor; a
+     longer gap clears its history (1000-4000)
+   * ``inputLocalTimeMaxDeviation``: Maximum deviation in seconds between the position time and
+     the local time; a position beyond it is discarded (0-30)
+   * ``inputOldestAllowedTime``: Maximum age in seconds of the last position of an actor before
+     the cleaner removes it (0-30)
+   * ``outputNominalSampleFrequency``: Output frequency in Hz (1, 2, 5 or 10)
+   * ``outputPeriodMaxDeviation``: Maximum deviation in milliseconds from the output period (0-50)
+   * ``cleanerInterval``: Period in seconds of the actor cleanup (1-60)
+   * ``reconnectInterval``: Time interval in seconds for automatic reconnection attempts (1-60)
 
 **Redis Integration Configuration:**
 
-The ``RedisClientConfig`` provides comprehensive Redis connectivity management:
-
-   * **Connection Management**: Full Redis connection parameters including host, port, authentication, 
-     database selection, and SSL configuration
-   * **Socket Configuration**: Advanced socket settings for timeout management, keepalive parameters, 
+   * **Connection Management**: Database selection, SSL configuration and pool settings; the Redis host,
+     port and credentials are not in the configuration, they are read from the ``REDIS_*`` environment
+     variables (see :ref:`step_adapter_credentials`)
+   * **Socket Configuration**: Socket settings for timeout management, keepalive parameters,
      and connection health monitoring
-   * **Stream Configuration**: Input and output stream definitions with stream IDs, consumer groups, 
-     maximum lengths, and wait timeouts for CAM and CPM message processing
-   * **Security Settings**: SSL/TLS configuration with client certificates, CA verification, and 
+   * **Stream Configuration**: The input stream (``RedisStreamInput``: ``streamId``, consumer group
+     ``groupId``, receive ``waitTimeout`` of 10000-300000 ms) and the crash prediction output stream
+     (``RedisStreamOutput``: ``streamId``, approximate ``maxLength`` of 1-1000000)
+   * **Read Timeout Check**: ``connection.socketTimeout`` must be at least ``streams.input.waitTimeout``
+     plus ``READ_TIMEOUT_MARGIN_MS`` (5000 ms), otherwise validation fails: a blocking ``XREADGROUP``
+     that times out first drops the connection and loses any message delivered in that instant (the
+     input stream is read with ``noack``)
+   * **Security Settings**: SSL/TLS configuration with client certificates, CA verification, and
      encrypted connections
-
-**Logging System Configuration:**
-
-The ``LogConfig`` component supports multiple logging strategies through a flexible handler system:
-
-   * **LogStreamHandler**: Console-based logging for development and debugging
-   * **LogFileHandler**: File-based logging with append/overwrite options
-   * **LogSizeFileRotateHandler**: Size-based log rotation with configurable thresholds 
-     and backup counts
-   * **LogTimeFileRotateHandler**: Time-based log rotation supporting various intervals 
-     (seconds, minutes, hours, days, weekdays)
-   * **LogNullHandler**: Null logging for production environments requiring log suppression
 
 **Validation and Schema Features:**
 
-   #. **Strong Typing**: Comprehensive type annotations with Pydantic field validation for 
-      all configuration parameters
-   #. **Range Validation**: Numeric fields include appropriate range constraints 
-      (e.g., port numbers 0-65535, timeout values)
-   #. **String Validation**: Minimum length requirements and format validation for critical 
-      string fields
-   #. **Immutable Configuration**: Frozen model instances prevent accidental modification 
-      after initialization
-   #. **Schema Generation**: Automated JSON schema generation for configuration documentation 
-      and validation
-   #. **Default Factory Methods**: Each configuration class provides ``get_default()`` methods 
-      for rapid setup
+   #. **Strict Typing**: Strict mode, no type coercion
+   #. **Range Validation**: Numeric fields have inclusive ranges, shared with ``PointDatasetConfig``
+      through ``numeric_bounds``
+   #. **String Validation**: Strings of 1-1024 characters
+   #. **Immutable Configuration**: Frozen model instances, extra fields forbidden
+   #. **Schema Generation**: ``print_config_schema()`` writes the JSON schema, with ``$id`` set to
+      ``step_adapter_config_v1_schema``
+   #. **Default Factory Methods**: Each configuration class provides ``get_default()``;
+      ``print_config_example()`` writes the default configuration as a template
 
-**Configuration Management Utilities:**
+Redis Integration (step_redis)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-   * ``print_config_schema()``: Generates JSON schema files for external configuration validation
-   * ``print_config_example()``: Creates example configuration files with default values
-   * ``model_validate()``: Validates configuration data against the defined schema
-   * ``model_dump_json()``: Serializes configuration to JSON format for persistence
+The STEP Adapter integrates with Redis through the **step_redis** library, which provides
+the messaging infrastructure as a black box with well-defined interfaces.
 
-**Security and Production Considerations:**
+**step_redis Interface:**
 
-The configuration system includes production-ready security features:
+   * **StepRedisPool**: Redis connection pool, used as an async context manager
+   * **StepRedisPoolParams**: Pool parameters, built by ``StepRedisPoolParams.from_connection()``
+     from ``RedisConnection`` and the ``RedisCredential`` read from the environment
+   * **StepRedisStream**: Base class for Redis stream operations (stream creation, publishing,
+     receiving); its ``run_health_check()`` is used by the health check task
+   * **StepRedisStreamParams**: Stream parameters (stream, consumer group, wait timeout,
+     consumer name, TTL or maximum length)
+   * **StepAdapterRedisStream**: Adapter input stream; ``receive_adapter_message()`` yields the
+     ``AdapterCloudEventsCamDataV1`` and ``AdapterCloudEventsCpmDataV1`` messages published by
+     ``step_client``
+   * **StepCrashPredictionRedisStream**: Crash prediction output stream; ``publish_position_array()``
+     publishes a ``PositionArrayV1`` to ``step_crash_prediction``
 
-   * SSL/TLS configuration for encrypted Redis connections
-   * Authentication parameters for secure Redis access
-   * Certificate-based authentication with client key and certificate file support
-   * Health check intervals for connection monitoring
-   * Configurable connection pooling for performance optimization
+**Integration Benefits:**
 
-**Integration with STEP Ecosystem:**
-
-The configuration integrates seamlessly with other STEP components by providing standardized 
-configuration patterns, consistent validation rules, and compatible schema definitions that 
-enable configuration sharing and validation across the entire STEP platform.
-
-
-Redis Streams Integration (step_redis)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The Redis integration layer is provided by the external ``step_redis`` package. The STEP Adapter
-service uses the following components from that library to receive ITS messages and publish
-position arrays for crash prediction systems.
-
-``StepRedisPool``
-
-   #. **Connection Management**: Provides Redis connection pooling with async context
-      management through ``__aenter__`` and ``__aexit__``.
-   #. **Connection Configuration**: Manages Redis connection parameters such as host,
-      port, authentication, SSL, and keepalive settings.
-   #. **Connection Pooling**: Optimizes performance and resource utilization when
-      interacting with Redis streams.
-
-``StepAdapterRedisStream``
-
-   #. **Stream Management**: Extends ``StepRedisStream`` to handle STEP Adapter
-      CloudEvents messages.
-   #. **Input Stream Processing**: Receives CAM/CPM adapter messages from ``step_client``.
-   #. **Stream Creation**: Creates and configures input streams with appropriate consumer
-      group IDs for message distribution and load balancing.
-   #. **Message Receiving**: Provides ``receive_adapter_message()`` for parsing adapter
-      CloudEvents payloads.
-
-``StepCrashPredictionRedisStream``
-
-   #. **Output Stream Management**: Publishes position arrays to ``step_crash_prediction``.
-   #. **Message Publishing**: Provides ``publish_position_array()`` for CloudEvents-compliant
-      position array messages.
-   #. **Message Receiving**: Provides ``receive_crash_prediction_message()`` for consuming
-      crash prediction messages if needed.
-
-Together, these components form the communication infrastructure that enables standardized
-message exchange between STEP Adapter and other components in the STEP ecosystem through
-Redis streams, specifically facilitating the flow of position data to crash prediction systems.
+   * Transparent connection pooling and resource management
+   * Automatic message serialization using step_cloud_schemas
+   * Consumer group support; the input is read without acknowledgement (``noack``), so a message
+     is delivered at most once and is lost if its processing fails
+   * Asynchronous operations for high throughput
+   * Classification of the errors a reconnect cannot fix (``StepRedisFatalError``)
 
 StepLogger
 ^^^^^^^^^^
 
-The ``StepLogger`` component provides specialized logging functionality for the STEP Adapter
-architecture, enabling comprehensive and configurable logging throughout the application. 
-It serves as a wrapper around Python's standard logging facilities with additional features 
-tailored to STEP Adapter's needs.
+.. note::
+   ``StepLogger`` is not part of the ``step_adapter`` package itself - it is imported from
+   the external ``step_cloud_schemas`` dependency and used by the STEP Adapter for logging.
 
-Key features of ``StepLogger`` include:
+The ``StepLogger`` component provides the logging functionality used by the STEP Adapter:
 
-   #. **Multi-destination Logging**: Supports logging to different output formats and 
-      destinations, including:
-      
-      * File-based logging for persistent records
-      * Standard output (console) for development and debugging
-      * Syslog integration for system monitoring
-      * Configurable log rotation based on size or time intervals
-   
-   #. **Log Level Management**: Provides fine-grained control over logging verbosity 
-      with standard log levels (DEBUG, INFO, WARNING, ERROR, CRITICAL).
-   #. **Structured Formatting**: Implements customizable log formats with timestamp, 
-      severity level, source component, and structured message content.
-   #. **Context-aware Logging**: Includes context information such as actor IDs, 
-      processing details, and interpolation status to facilitate troubleshooting.
-   #. **Configuration Integration**: Leverages the logging configuration section 
-      from ``StepAdapterConfig`` to enable consistent setup across components.
-   #. **Utility Methods**: Offers utility methods like ``get_logger()`` for retrieving
-      appropriately configured logger instances and ``logger_force_write()`` for
-      forced INFO output.
-   #. **Error Handling**: Includes robust error handling to prevent logging failures 
-      from impacting core position processing functionality.
+   #. **Multi-destination Logging**: Stream (console), file, size-based and time-based rotating
+      file, and null handlers, configured in the ``log`` section of the configuration
+   #. **Log Level Management**: A global level and a level per handler
+   #. **Structured Formatting**: Customizable log formats with UTC timestamp, severity level,
+      process, module and function
+   #. **Utility Methods**: ``get_logger()``, which configures and returns the logger from the
+      ``log`` section of the configuration, and ``logger_force_write()``, which writes a line
+      regardless of the configured level
+   #. **Processing Timing**: ``LoggingTimer`` (also from ``step_cloud_schemas``) logs at INFO
+      level the duration of each message handling and of each cleanup
 
-The ``StepLogger`` component ensures that the STEP Adapter maintains comprehensive 
-logging capabilities to support monitoring, debugging, and operational insights 
-across all system components, particularly for tracking position processing performance 
-and interpolation quality.
+StepException
+^^^^^^^^^^^^^
 
-StepCliError
-^^^^^^^^^^^^
+The ``step_exception`` module defines two plain exception classes:
 
-The ``StepCliError`` component provides a custom exception class for handling
-command-line interface errors and application interruptions within the STEP Adapter architecture. 
-This exception is designed to be raised in situations where command-line processing 
-encounters errors or when normal operation flow needs to be interrupted.
+   #. **StepAdapterError**: Base class of the STEP Adapter exceptions; raised by ``ActorDataset``
+      and ``PointDataset`` when their internal state is inconsistent.
+   #. **StepCliError**: Command line misuse (only one of ``-c``/``--config`` and
+      ``-i``/``--instance``); ``main()`` logs it as a single error line, without a
+      traceback, and returns ``ExitCode.USAGE``.
 
-Key features of ``StepCliError`` include:
+Main Application (__main__)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-   #. **Custom Exception Class**: Inherits from Python's built-in ``Exception`` class, 
-      allowing it to be raised and caught like any standard exception.
-   #. **CLI Error Context**: Provides a mechanism to include additional context or 
-      information about command-line processing errors when raising the exception.
-   #. **Graceful Shutdown**: Designed to be used in scenarios where the application 
-      needs to gracefully shut down or clean up resources before exiting.
-   #. **Integration with Logging**: Can be logged using the ``StepLogger`` component 
-      to capture detailed error information for debugging and operational monitoring.
-   #. **Exit Code Management**: Supports proper exit code handling for different 
-      error scenarios in command-line environments.
+The main application module is the command-line entry point. It parses the arguments,
+loads the configuration and hands the workload, ``StepAdapterApp``, to ``AppRunner``
+(from ``step_cloud_schemas``), which owns the event loop and the signal handling.
+
+Key features of the main application include:
+
+   #. **Command-Line Interface**: Provides a CLI (``_args_parse()``) with options for:
+
+      * no option: Display the help (exit code ``USAGE``)
+      * ``--help``/``-h`` and ``--version``/``-v``: Display help or version information
+        (exit code ``OK``); an invalid or unknown option exits with ``USAGE``
+      * ``--conf_schema``/``-s``: Write the JSON configuration schema into a directory
+      * ``--conf_template``/``-t``: Write the configuration template into a directory
+      * ``--config``/``-c`` and ``--instance``/``-i``: Load configuration and run the service;
+        the two options must be given together, otherwise ``StepCliError`` is logged as a
+        plain error line and the exit code is ``USAGE``
+
+   #. **Logging Setup**: Reconfigures ``StepLogger`` from the loaded configuration and logs
+      the program, ``step_cloud_schemas`` and ``step_redis`` versions.
+   #. **Application Run**: Builds ``AppRunner[ExitCode]`` (selector event loop on Windows,
+      as for the other STEP programs) and runs ``StepAdapterApp``, returning its exit code.
+   #. **Exception Handling**: ``KeyboardInterrupt`` returns ``ABORTED``; any other unhandled
+      exception (e.g. an invalid configuration file or a missing ``REDIS_URL``/``REDIS_PORT``
+      variable) is logged with its traceback and returns ``ERROR``.
+
+Application Runtime (step_cloud_schemas)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. note::
+   ``AppRunner``, ``AbstractApp`` and ``ReconnectingApp`` are not part of the ``step_adapter``
+   package: they are imported from the external ``step_cloud_schemas`` dependency, shared by the
+   STEP programs. Only their public interface, the part used by the STEP Adapter, is described here.
+
+The three classes split a long-running program in two parts: the process-wide plumbing (event
+loop, signal handlers, exception hooks), owned by ``AppRunner``, and the workload, supplied by the
+program as an ``AbstractApp`` subclass. ``R`` is the program's result type: for the STEP Adapter,
+``ExitCode``.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 78
+
+   * - Class
+     - Role
+   * - ``AbstractApp[R]``
+     - Abstract base class of a workload run by ``AppRunner``. It declares the two methods
+       ``AppRunner`` needs and holds no state (empty ``__slots__``, so a subclass declares its own).
+   * - ``ReconnectingApp[R]``
+     - Abstract ``AbstractApp`` subclass that implements ``work`` as a reconnect loop around a
+       connection cycle, implemented by the program.
+   * - ``AppRunner[R]``
+     - Singleton that runs an ``AbstractApp`` on a new event loop until it ends or a shutdown
+       signal stops it.
+
+The class diagram below shows the public interface of the three classes and how
+``StepAdapterApp`` plugs into them:
+
+.. container:: scrollable-diagram
+
+   .. plantuml::
+      :align: center
+
+      !theme plain
+      skinparam classAttributeIconSize 0
+
+      package "step_cloud_schemas" {
+         abstract class "AbstractApp[R]" as AbstractApp {
+            +{abstract} async work() : R
+            +{abstract} on_shutdown(stop_signal : Signals) : R
+         }
+
+         abstract class "ReconnectingApp[R]" as ReconnectingApp {
+            +__init__(logger : Logger, reconnect_interval : int)
+            +{abstract} async cycle() : None
+            +{abstract} fatal_result() : R
+            +async work() : R
+         }
+
+         class "AppRunner[R]" as AppRunner <<singleton>> {
+            +__init__(logger_param : Logger, loop_factory = None, exception_handler = None, unraisable_handler = None)
+            +logger : Logger <<property>>
+            +run(app : AbstractApp[R]) : R
+         }
+      }
+
+      package "step_adapter" {
+         class "StepAdapterApp" as StepAdapterApp {
+            +__init__(instance_name : str, config : StepAdapterConfig, logger : Logger)
+            +async cycle() : None
+            +fatal_result() : ExitCode
+            +on_shutdown(stop_signal : Signals) : ExitCode
+         }
+
+         enum ExitCode {
+            OK = 0
+            USAGE = 1
+            ERROR = 2
+            ABORTED = 3
+         }
+      }
+
+      ReconnectingApp --|> AbstractApp
+      StepAdapterApp --|> ReconnectingApp : R = ExitCode
+      AppRunner ..> AbstractApp : run(app)
+      StepAdapterApp ..> ExitCode : returns
+
+      note bottom of AppRunner
+         main() builds AppRunner[ExitCode]
+         (SelectorEventLoop on Windows)
+         and calls run(StepAdapterApp(...))
+      end note
+
+**AbstractApp: public interface**
+
+   * ``async work() -> R`` (abstract): The workload, called once per run as a task of the
+     ``AppRunner`` ``TaskGroup``; it returns the result when it ends on its own. On a shutdown
+     signal it is cancelled at the ``await`` it is suspended on, so it has to be
+     cancellation-safe.
+   * ``on_shutdown(stop_signal: Signals) -> R`` (abstract): Called by ``AppRunner`` after a
+     shutdown signal stopped ``work``, once every task has unwound (the resources held by ``work``
+     are already released); it runs on the event loop thread and cannot ``await``. Its value is
+     the result of the run.
+
+**ReconnectingApp: public interface**
+
+   * ``ReconnectingApp(logger, reconnect_interval)``: ``logger`` is used for the start, error and
+     retry messages, ``reconnect_interval`` is the number of seconds to wait before the next cycle.
+   * ``async cycle() -> None`` (abstract): Opens the connections and runs the tasks until one of
+     them fails; returns only if every task ends normally, and then the next cycle starts at once.
+     Like ``work``, it has to be cancellation-safe.
+   * ``fatal_result() -> R`` (abstract): The result returned by ``work`` after an error that a
+     reconnect cannot fix.
+   * ``async work() -> R``: Logs ``Program started``, then runs ``cycle`` in a loop. When ``cycle``
+     raises:
+
+        - while a shutdown cancellation is in progress, the error is logged at INFO level and
+          ``CancelledError`` is restored, so the shutdown goes on without an ERROR traceback;
+        - otherwise the error is logged with its traceback, and if it, or any error nested in an
+          ``ExceptionGroup`` (as raised by a ``TaskGroup``), is one of the subclass's fatal error
+          types, ``work`` returns ``fatal_result()``;
+        - otherwise ``work`` waits ``reconnect_interval`` seconds and runs ``cycle`` again.
+
+     It never returns otherwise: the loop ends only when ``AppRunner`` cancels it.
+
+   The fatal error types are a class attribute that each subclass sets (``StepAdapterApp``:
+   ``StepRedisFatalError``); with none set, every error is retried.
+
+**AppRunner: public interface**
+
+   * ``AppRunner[R](logger_param, loop_factory=None, exception_handler=None, unraisable_handler=None)``:
+
+        - ``logger_param``: Logger used by the default exception and unraisable handlers.
+        - ``loop_factory``: Factory of the event loop created by every ``run``, forwarded to
+          ``asyncio.Runner``; ``None`` uses the asyncio default loop. The STEP Adapter passes
+          ``asyncio.SelectorEventLoop`` on Windows, as the other STEP programs do.
+        - ``exception_handler``: Event loop exception handler; ``None`` logs the exception on
+          the logger.
+        - ``unraisable_handler``: Installed as ``sys.unraisablehook``; ``None`` logs the exception
+          on the logger.
+
+     The constructor installs the process-wide hooks (signal handlers, ``sys.unraisablehook``): it
+     is called from the main thread as early as possible, which is why ``main()`` builds it before
+     parsing the arguments, so that a signal received before ``run`` is still handled. Being a
+     singleton, only the first construction takes effect; the arguments of later calls are ignored.
+   * ``logger`` (property): The logger given to the constructor.
+   * ``run(app: AbstractApp[R]) -> R``: Opens an ``asyncio.Runner``, installs the exception handler
+     and the shutdown handlers (``SIGINT``/``SIGTERM`` on POSIX, ``CTRL_C``/``CTRL_BREAK`` on
+     Windows), then runs ``app.work()`` next to a shutdown watcher in a ``TaskGroup``. It returns
+     the value of ``app.work()`` when the workload ends on its own, or the value of
+     ``app.on_shutdown(stop_signal)`` when a shutdown signal stops it. Any other exception raised
+     by ``work`` propagates wrapped in an ``ExceptionGroup``, which ``main()`` logs and maps to
+     ``ExitCode.ERROR``.
+
+   A shutdown signal never interrupts the workload at an arbitrary point: the signal handler only
+   sets an event, the watcher task turns it into an exception, and the ``TaskGroup`` cancels
+   ``work`` at the ``await`` it is suspended on.
+
+**How the STEP Adapter uses them:**
+
+.. container:: scrollable-diagram
+
+   .. plantuml::
+      :align: center
+
+      participant "main()" as Main
+      participant "AppRunner" as Runner
+      participant "StepAdapterApp" as App
+      participant "ReconnectingApp.work()" as Work
+
+      Main -> Runner : AppRunner[ExitCode](logger, loop_factory)
+      Main -> App : StepAdapterApp(instance_name, config, logger)
+      note right of App
+         Reads the Redis credential
+         from the environment
+      end note
+      Main -> Runner : run(app)
+      Runner -> Work : work()
+      loop until fatal error or shutdown
+         Work -> App : cycle()
+         App --> Work : error
+         alt fatal error (StepRedisFatalError)
+            Work -> App : fatal_result()
+            Work --> Runner : ExitCode.ERROR
+         else other error
+            Work -> Work : sleep reconnectInterval
+         end
+      end
+      alt shutdown signal
+         Runner -> Work : cancel
+         Runner -> App : on_shutdown(stop_signal)
+         App --> Runner : ExitCode.ABORTED
+      end
+      Runner --> Main : ExitCode
+
+StepAdapterApp
+^^^^^^^^^^^^^^
+
+``StepAdapterApp`` (module ``step_adapter_app``) is the ``ReconnectingApp`` subclass
+(step_cloud_schemas, see `Application Runtime (step_cloud_schemas)`_) run by ``AppRunner``:
+the reconnecting adapter service on top of the Redis streams. It implements one connection
+cycle (``cycle()``) and the result of a fatal error (``fatal_result()``), while the reconnect
+loop is the inherited ``work()``. It also defines the ``ExitCode`` enumeration.
+
+Key features of ``StepAdapterApp`` include:
+
+   #. **Environment-Based Credentials**: the constructor calls step_redis
+      ``RedisCredential.from_env()`` once: it loads the ``.env`` file of the current working
+      directory (or an ancestor of it) and reads ``REDIS_URL``, ``REDIS_PORT``,
+      ``REDIS_USERNAME``, and ``REDIS_PASSWORD`` from the environment (see
+      :ref:`step_adapter_credentials`); ``REDIS_URL`` and ``REDIS_PORT`` are required, the
+      username and password are optional (an empty value counts as unset).
+      Reading them at construction (not in ``cycle()``) makes a missing variable end the
+      program instead of being retried forever.
+   #. **Asynchronous Task Orchestration**: each ``cycle()`` creates a new ``ActorDataset``
+      (``_actor_dataset_create()``) and ``ObjectPerceivedDataset``, opens a ``StepRedisPool``
+      (parameters from ``StepRedisPoolParams.from_connection()``, at most
+      ``_REDIS_MAX_CONNECTIONS`` = 2 connections), then uses ``asyncio.TaskGroup`` to run three
+      concurrent tasks - ``_stream_receive_run()`` (stream reception, conversion and publishing),
+      ``_cleaner_run()`` (every ``cleanerInterval`` seconds, ``ActorDataset.clear_old_points()``)
+      and ``_redis_health_check_run()`` (Redis connection health check).
+   #. **Message Dispatch**: ``_stream_receive_run()`` creates the input stream, then routes each
+      received message: an ``AdapterCloudEventsCamDataV1`` to ``ActorDataset.add_cam_message()``
+      (at most one position array), an ``AdapterCloudEventsCpmDataV1`` to
+      ``ObjectPerceivedDataset.add_cpm_message()`` (one position array per perceived object); any
+      other type is skipped with a warning. Every resulting position array is published on the
+      crash prediction stream. Each message handling is timed by a ``LoggingTimer`` at INFO level.
+   #. **Stream Parameters**: ``_input_stream_params()`` builds the input stream parameters (stream,
+      consumer group, wait timeout, the instance name as consumer, TTL from
+      ``StepRedisStreamParams.ttl_seconds_from_wait_timeout()``), also used by the health check;
+      ``_crash_prediction_stream_params()`` builds the crash prediction output stream parameters
+      (stream and ``maxLength``).
+   #. **Automatic Reconnection**: A Redis error raised by any task ends the cycle; the inherited
+      ``work()`` waits ``config.reconnectInterval`` seconds and runs ``cycle()`` again. The
+      datasets are created per cycle, so the actor histories collected before the failure are
+      dropped. A message whose conversion fails (``StepAdapterError`` or ``ValueError``,
+      pydantic validation errors included) is only logged and skipped by
+      ``_message_to_position_arrays()``, without ending the cycle.
+   #. **Permanent Errors**: An error that a reconnect cannot fix (``_FATAL_ERRORS``:
+      ``StepRedisFatalError`` from step_redis, i.e. rejected credentials, ACL denial, missing
+      SSL file, untrusted certificate) ends the run with ``fatal_result()``
+      (``ExitCode.ERROR``) instead of retrying forever.
+   #. **Graceful Shutdown**: Delegated to ``AppRunner``: on ``SIGINT``/``SIGTERM`` (POSIX) or
+      ``CTRL_C``/``CTRL_BREAK`` (Windows) it cancels ``work()``, the ``async with`` blocks
+      release the Redis pool and streams, and ``on_shutdown()`` logs the signal and returns
+      ``ExitCode.ABORTED``. A failure raised while the cancellation unwinds is turned back
+      into ``CancelledError`` instead of triggering a reconnect, and is logged at INFO level
+      without an ERROR traceback.
+   #. **Exit Code Management**: Defines standard exit codes through the ``ExitCode`` enum:
+
+      * OK (0): Successful execution
+      * USAGE (1): Invalid command-line usage
+      * ERROR (2): General execution error
+      * ABORTED (3): Process interrupted by signal
 
 Component Diagram
 ^^^^^^^^^^^^^^^^^
 
 The following component diagram illustrates the high-level architecture of the STEP Adapter
-and its interactions with external systems. It shows the relationships between the core
-components and how they interact with Redis streams and external data sources.
+and its interactions with external systems.
 
 .. container:: scrollable-diagram
 
@@ -421,63 +771,107 @@ components and how they interact with Redis streams and external data sources.
       :align: center
 
       package "STEP Adapter" {
+         [StepAdapterApp] as App
          package "Position Processing" {
             [ActorDataset] as AD
             [PointDataset] as PD
+            [ObjectPerceivedDataset] as OPD
+            [GapFiller] as GF
             note left of AD
-               Multi-actor coordination with
-               temporal indexing
+               Multi-actor registry with
+               temporal indexing (CAM)
             end note
             note right of PD
-               Integrated cubic spline interpolation
-               using SciPy for trajectory smoothing
+               Coherence checks
+               (CAM history)
+            end note
+            note right of OPD
+               Stateless CPM conversion
+               at the output period
+            end note
+            note right of GF
+               Output period resampling:
+               interpolation and decimation
             end note
          }
          [StepAdapterConfig] as Config
+      }
+      package "step_cloud_schemas" {
+         [AppRunner] as Runner
          [StepLogger] as Logger
       }
       package "step_redis" {
          [StepRedisPool] as RedisPool
          [StepAdapterRedisStream] as AdapterRedisStream
          [StepCrashPredictionRedisStream] as CrashRedisStream
-         note bottom of AdapterRedisStream
-            Redis Streams for
-            ITS message processing
-         end note
+         [RedisCredential] as Credential
       }
-      AdapterRedisStream --> AD : CAM/CPM messages
-      AD --> CrashRedisStream : position arrays
+      [step_client] as Client
+      [step_crash_prediction] as CrashPrediction
+      [Environment / .env] as Env
+
+      Client --> AdapterRedisStream : CAM/CPM messages
+      Runner --> App : run
+      AdapterRedisStream --> App : adapter messages
+      App --> AD : CAM
+      App --> OPD : CPM
       AD -- PD : manages multiple
-      AD -- Logger : logs operations
-      AD -- Config : get configuration
-      PD -- Logger : logs processing
+      PD --> GF : fill
+      OPD --> GF : resample
+      App --> CrashRedisStream : position arrays
+      CrashRedisStream --> CrashPrediction : PositionArrayV1
+      App -- Config : configured by
+      App -- Logger : logs operations
+      Credential --> Env : REDIS_*
+      App --> Credential : from_env
       AdapterRedisStream -- RedisPool : uses
       CrashRedisStream -- RedisPool : uses
 
 Class Diagram
 -------------
 
-The class diagram below illustrates the structure and relationships between 
-the key classes in the STEP Adapter architecture. It shows the main methods 
-and attributes of each class and how they interact with one another.
+The class diagram below illustrates the structure and relationships between
+the key classes in the STEP Adapter architecture.
 
 .. container:: scrollable-diagram
 
    .. plantuml::
       :align: center
-      
+
       !theme plain
       skinparam classAttributeIconSize 0
+
+      class StepAdapterApp {
+         -_instance_name
+         -_config
+         -_redis_credential
+         +__init__
+         +async cycle
+         +fatal_result
+         +on_shutdown
+         -_input_stream_params
+         -_crash_prediction_stream_params
+         -_actor_dataset_create
+         -_perceived_dataset_create
+         -async _stream_receive_run
+         -async _cleaner_run
+         -async _redis_health_check_run
+      }
 
       class ActorDataset {
          -_actor_dataset
          -_last_ordered_recorded_time
          -_config
+         -_point_dataset_config
          -_logger
          +__init__
          +add_cam_message
          +clear_old_points
+         -_cam_data_to_position_info
+         -_insert_point_dataset
       }
+
+      class ActorDatasetConfig <<dataclass>>
 
       class PointDataset {
          -_input_points_queue
@@ -485,34 +879,67 @@ and attributes of each class and how they interact with one another.
          -_np_input_points_latitude
          -_np_input_points_longitude
          -_np_input_points_altitude
-         -_vehicle_length
-         -_vehicle_width
          -_actor
          -_config
+         -_gap_filler
          -_logger
          +__init__
          +add_point
          +actor
-         +vehicle_length
-         +vehicle_width
          +last_record_time
-         -_create_interpolated_arrays
-         -_build_interpolated_positions
-         -_apply_motion
-         -_create_positions_list
          -_check_position_coherence
+         -_check_local_time
+         -_check_minimum_period
+         -_check_maximum_period
+         -_check_speed
+         -_create_positions_list
+         -_populate_input_arrays
          -_clear_history
       }
+
+      class PointDatasetConfig <<dataclass>> {
+         +gap_filler_config
+      }
+
+      class GapFiller {
+         -_config
+         -_logger
+         +__init__
+         +config
+         +output_nominal_sample_frequency
+         +optimal_period
+         +interpolation_timestamps
+         +interpolate
+         +fill
+         +resample
+         +apply_motion
+         -_build_chain_positions
+         -_compute_chain_motion
+      }
+
+      class GapFillerConfig <<dataclass>>
+
+      class ObjectPerceivedDataset {
+         -_config
+         -_gap_filler
+         -_logger
+         +__init__
+         +add_cpm_message
+         -_to_position_array
+         -_time_ordered_records
+      }
+
+      class ObjectPerceivedDatasetConfig <<dataclass>>
 
       class StepAdapterConfig {
          +templateVersion
          +maxActorHistoryPointNumber
+         +minActorHistoryAltitudeTrailingPointPercent
          +inputMaxPeriod
          +inputLocalTimeMaxDeviation
          +inputOldestAllowedTime
          +outputNominalSampleFrequency
          +outputPeriodMaxDeviation
-         +receiveClientNumber
          +cleanerInterval
          +reconnectInterval
          +redis
@@ -523,77 +950,52 @@ and attributes of each class and how they interact with one another.
       }
 
       package "step_redis" {
-         class StepRedisPool {
-            +__init__
-            +async __aenter__
-            +async __aexit__
-         }
-
-         class StepRedisStream {
-            +__init__
-            +async __aenter__
-            +async __aexit__
-            +async create_input_stream
-            +async publish_message
-            +async receive_message
-         }
-
+         class StepRedisPool
          class StepAdapterRedisStream {
-            +__init__
-            +async __aenter__
-            +async publish_cam_message
+            +async create_input_stream
             +async receive_adapter_message
          }
-
          class StepCrashPredictionRedisStream {
-            +__init__
-            +async __aenter__
             +async publish_position_array
-            +async receive_crash_prediction_message
+         }
+         class StepRedisStream {
+            +async run_health_check
          }
       }
 
-      class StepLogger {
-         +{static} get_logger
-         +{static} logger_force_write
+      package "step_cloud_schemas" {
+         abstract class "ReconnectingApp[ExitCode]" as ReconnectingApp
       }
 
+      StepAdapterApp --|> ReconnectingApp
+      StepAdapterApp --> ActorDataset : creates per cycle
+      StepAdapterApp --> ObjectPerceivedDataset : creates per cycle
+      StepAdapterApp --> StepAdapterConfig : configured by
+      StepAdapterApp --> StepRedisPool : opens
+      StepAdapterApp --> StepAdapterRedisStream : receives from
+      StepAdapterApp --> StepCrashPredictionRedisStream : publishes to
+      StepAdapterApp --> StepRedisStream : health check
+      ActorDataset --> ActorDatasetConfig
       ActorDataset --> PointDataset : manages
-      StepAdapterRedisStream --> ActorDataset : consumes
-      ActorDataset --> StepCrashPredictionRedisStream : publishes to
-      ActorDataset --> StepLogger : logs with
-      
-      PointDataset --> StepLogger : logs with
-      
-      StepAdapterRedisStream --> StepRedisPool : uses
-      StepCrashPredictionRedisStream --> StepRedisPool : uses
-      StepAdapterRedisStream --> StepAdapterConfig : configured by
-      StepCrashPredictionRedisStream --> StepAdapterConfig : configured by
-      
-      StepLogger --> StepAdapterConfig : configured by
-
-      StepAdapterRedisStream --|> StepRedisStream : extends
-      StepCrashPredictionRedisStream --|> StepRedisStream : extends
+      PointDataset --> PointDatasetConfig
+      PointDataset --> GapFiller
+      ObjectPerceivedDataset --> ObjectPerceivedDatasetConfig
+      ObjectPerceivedDataset --> GapFiller
+      GapFiller --> GapFillerConfig
+      StepAdapterRedisStream --|> StepRedisStream
+      StepCrashPredictionRedisStream --|> StepRedisStream
 
 Sequence Diagrams
 -----------------
 
-The sequence diagrams below illustrate the primary message flows 
-in the STEP Adapter:
+The sequence diagrams below illustrate the primary message flows in the STEP Adapter:
 
-   * Position data processing and interpolation 
-   * Position array publishing to crash prediction
+   * CAM processing and interpolation
+   * CPM processing
+   * Periodic cleanup of the expired actors
 
-These diagrams show the sequence of interactions between components and the 
-temporal flow of operations as position data moves through the system.
-
-Position Data Processing and Interpolation
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The following sequence diagram depicts the process of position data processing starting 
-from ITS messages sent by STEP Client. It demonstrates how the ActorDataset component 
-processes incoming CAM/CPM messages, coordinates with PointDataset for actor-specific
-processing, and generates interpolated position arrays.
+CAM Processing and Interpolation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. container:: scrollable-diagram
 
@@ -602,181 +1004,162 @@ processing, and generates interpolated position arrays.
 
       participant "STEP Client" as Client
       participant "StepAdapterRedisStream" as AdapterStream
+      participant "StepAdapterApp" as App
       participant "ActorDataset" as ActorDataset
       participant "PointDataset" as PointDataset
       participant "StepCrashPredictionRedisStream" as CrashStream
 
-      Client -> AdapterStream : CAM/CPM Message
-      AdapterStream -> ActorDataset : Position Data
+      Client -> AdapterStream : AdapterCloudEventsCamDataV1
+      AdapterStream -> App : receive_adapter_message()
+      App -> ActorDataset : add_cam_message(cam)
       ActorDataset -> PointDataset : add_point()
       note over PointDataset
-         Validate position data,
-         update actor metadata,
-         apply cubic spline interpolation
-         using SciPy's CubicSpline,
-         generate smooth trajectory points,
-         append received position as last point
+         Coherence checks (period,
+         speed, local time); then
+         fast path or GapFiller.fill()
+         cubic spline interpolation,
+         received position as last point
       end note
-      PointDataset -> ActorDataset : Interpolated Points + Received Position
-      ActorDataset -> CrashStream : publish_position_array()
-   
-Position Array Publishing to Crash Prediction
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      PointDataset --> ActorDataset : positions or None
+      ActorDataset -> ActorDataset : update temporal index
+      ActorDataset --> App : PositionArrayV1 or None
+      alt position array
+         App -> CrashStream : publish_position_array()
+      end
 
-The sequence diagram below illustrates the process of publishing position arrays
-to the crash prediction system for analysis.
+CPM Processing
+^^^^^^^^^^^^^^
 
 .. container:: scrollable-diagram
 
    .. plantuml::
       :align: center
 
-      participant "ActorDataset" as ActorDataset
-      participant "StepCrashPredictionRedisStream" as RedisStream
-      participant "STEP Crash Prediction" as CrashPrediction
+      participant "STEP Client" as Client
+      participant "StepAdapterRedisStream" as AdapterStream
+      participant "StepAdapterApp" as App
+      participant "ObjectPerceivedDataset" as OPD
+      participant "GapFiller" as GF
+      participant "StepCrashPredictionRedisStream" as CrashStream
 
-      ActorDataset -> RedisStream : publish_position_array()
-      note over ActorDataset
-         Build a PositionArrayV1
-         from interpolated points
+      Client -> AdapterStream : AdapterCloudEventsCpmDataV1
+      AdapterStream -> App : receive_adapter_message()
+      App -> OPD : add_cpm_message(cpm)
+      loop every perceived object
+         OPD -> GF : resample(records)
+         note over GF
+            Output period grid:
+            interpolation or decimation
+         end note
+         GF --> OPD : positions
+      end
+      note over OPD
+         One PositionArrayV1 per perceived
+         object: measured position plus
+         resampled predicted path
       end note
-      RedisStream -> CrashPrediction : Position Array V1
-      note over CrashPrediction
-         Process position arrays for
-         collision risk analysis
-      end note
+      OPD --> App : list[PositionArrayV1]
+      loop every position array
+         App -> CrashStream : publish_position_array()
+      end
+
+Periodic Cleanup
+^^^^^^^^^^^^^^^^
+
+.. container:: scrollable-diagram
+
+   .. plantuml::
+      :align: center
+
+      participant "StepAdapterApp._cleaner_run" as Cleaner
+      participant "ActorDataset" as ActorDataset
+
+      loop every cleanerInterval seconds
+         Cleaner -> ActorDataset : clear_old_points()
+         note over ActorDataset
+            limit = now - inputOldestAllowedTime
+            bisect_right on the temporal index,
+            drop the expired actors in one batch
+         end note
+      end
 
 Performance Considerations
 --------------------------
 
-The STEP Adapter architecture is designed for high-performance processing of position data with 
-careful consideration of algorithmic complexity and data structure selection. The following analysis 
-provides Big O complexity calculations for the primary position processing scenarios.
+The complexity figures below use:
+
+   * **n** = ``maxActorHistoryPointNumber``, the per-actor history size (5-30)
+   * **k** = interpolated positions generated by one CAM insertion, bounded by
+     ``inputMaxPeriod`` / (output nominal period - ``outputPeriodMaxDeviation``), at most 80
+   * **m** = number of tracked actors
+   * **r** = number of actors expired by one cleanup
+   * **o** = perceived objects in one CPM message, **p** = predicted path points per object,
+     **g** = resampled points per object (at most 101)
 
 Data Structure Performance Characteristics
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The ``ActorDataset`` employs a multi-index architecture optimized for different access patterns:
+* **Actor registry** (``dict``): :math:`O(1)` lookup of the ``PointDataset`` of an actor
+* **Temporal index** (``SortedList``): :math:`O(log(m))` insertion/deletion
+* **Position history** (``deque`` with ``maxlen``): :math:`O(1)` append, oldest point dropped
+  automatically
+* **Interpolation buffers**: NumPy arrays of n + 1 entries, allocated once per actor
 
-* **Sorted List (temporal indexing)**: Maintains chronological 
-  ordering with :math:`O(log(m))` insertion/deletion where m is fleet size
-* **Hash-based Actor Index**: Provides :math:`O(1)` 
-  constant time lookup for actor-specific datasets
-* **PointDataset per Actor**: :math:`O(1)` access to individual actor processing pipelines
-* **Interpolation Queues**: Bounded deque structures with :math:`O(1)` insertion/removal
+CAM Message Processing
+^^^^^^^^^^^^^^^^^^^^^^
 
-Where **n** represents the number of position points per actor and **m** represents the total number of active actors.
+For one CAM message (``ActorDataset.add_cam_message``):
 
-Position Message Processing Performance
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1. **Actor Resolution**: :math:`O(1)` - Hash table lookup
+2. **Coherence Checks**: :math:`O(1)` - One geodesic distance/heading computation
+3. **Interpolation** (only when the gap exceeds the output period plus the deviation):
 
-**Scenario**: Processing CAM/CPM messages from ``step_client``
+   * **Spline Construction**: :math:`O(n)` - Tridiagonal solve over the history
+   * **Spline Evaluation**: :math:`O(k*log(n))` - Interval search for each interpolated timestamp
+   * **Motion and Positions**: :math:`O(k)` - One batched geodesic call and k positions
 
-**Algorithm Complexity Analysis:**
+4. **Temporal Index Update**: :math:`O(log(m))`
 
-For processing a position message for a single actor:
+**Overall Complexity**: :math:`O(n + k*log(n) + log(m))` time and :math:`O(n + k)` additional space
+per CAM message; :math:`O(log(m))` on the fast path.
 
-1. **Actor Resolution**: :math:`O(1)` - Hash table lookup for existing actor dataset
-2. **Position Validation**: :math:`O(1)` - Constant time validation of position data
-3. **Interpolation Processing**: :math:`O(n + k*log(n) + k)` where:
-   
-   * **Spline Coefficient Calculation**: :math:`O(n)` - Linear with input queue size
-   * **Output Point Generation**: :math:`O(k*log(n))` - Binary search for temporal positioning
-   * **Motion Parameter Calculation**: :math:`O(k)` - Linear with output points
-   
-4. **Position Array Creation**: :math:`O(k)` - Linear with interpolated points
+CPM Message Processing
+^^^^^^^^^^^^^^^^^^^^^^
 
-**Overall Complexity**: :math:`O(n + k*log(n) + k)` per position message
+For one CPM message (``ObjectPerceivedDataset.add_cpm_message``): :math:`O(o*(p + g*log(p)))`
+time and :math:`O(o*(p + g))` space: p points parsed, one spline over them evaluated at the
+estimated grid points, one position array of at most g points per perceived object; no state is
+kept.
 
-**Performance Implications**:
+Actor Cleanup
+^^^^^^^^^^^^^
 
-* **Best Case**: No interpolation needed → :math:`O(1)` for validation only
-* **Typical Case**: Regular processing → :math:`O(n + k*log(n) + k)` bounded by configuration
-* **Worst Case**: Complete spline recalculation → :math:`O(n + k*log(n) + k)` with maximum queue sizes
-* **Space Complexity**: :math:`O(n + k)` for input and output queues per actor
+For one cleanup (``ActorDataset.clear_old_points``):
 
-**Scalability Considerations:**
+#. **Expired Actors Search**: :math:`O(log(m))` - One bisection on the temporal index
+#. **Registry Removal**: :math:`O(r)` - Hash table deletions
+#. **Index Removal**: :math:`O(r*log(m))` - SortedList slice deletion item by item when r < m/8,
+   rebuild of the list otherwise
 
-* With n=50 input points and k=10 output points: ~500 operations per message
-* System performance scales logarithmically with output point density
-* Memory usage scales linearly with actor count and path length configuration
+**Overall Complexity**: :math:`O(log(m) + r*log(m))`, :math:`O(m*log(m))` in the worst case.
 
-Multi-Actor Fleet Processing Performance
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Memory
+^^^^^^
 
-**Scenario**: Processing position data across entire vehicle fleet
-
-**Algorithm Complexity Analysis:**
-
-For processing position updates across m active actors:
-
-1. **Actor Lookup**: :math:`O(1)` - Hash table access for actor identification
-2. **Temporal Index Update**: :math:`O(log(m))` - Sorted list maintenance for actor ordering
-3. **Per-Actor Processing**: :math:`O(n + k*log(n) + k)` - Individual actor interpolation
-4. **Position Array Generation**: :math:`O(m*k)` - Collecting results from all active actors
-
-**Overall Complexity**: :math:`O(n + k*log(n) + log(m))` per message system-wide
-
-**Performance Implications:**
-
-* **Fleet Scaling**: Processing time grows logarithmically with fleet size due to temporal indexing
-* **Interpolation Bound**: Individual actor processing limited by configuration parameters
-* **Memory Efficiency**: Total system memory = :math:`O(m*(n + k))` with bounded growth
-* **Concurrent Processing**: Architecture supports parallel processing of independent actors
-
-Actor Cleanup and Memory Management Performance
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-**Scenario**: Automatic cleanup of expired actors and outdated position data
-
-**Algorithm Complexity Analysis:**
-
-#. **Temporal Index Scan**: :math:`O(e*log(m))` where e is the number of expired actors
-#. **Actor Dataset Removal**: :math:`O(e)` - Hash table deletions for expired actors
-#. **Memory Reclamation**: :math:`O(e*(n + k))` - Cleanup of associated position data
-
-**Overall Complexity**: :math:`O(e*log(m) + e*(n + k))`
-
-**Performance Optimization:**
-
-* **Early Termination**: Temporal indexing enables efficient identification of expired actors
-* **Batch Processing**: Minimizes overhead through batched cleanup operations
-* **Adaptive Scheduling**: Cleanup frequency adapts based on fleet activity patterns
-
-**Memory Management Strategies:**
-
-* **Bounded Queues**: Sliding window approach prevents unbounded memory growth
-* **Automatic Expiration**: Time-based cleanup prevents actor accumulation
-* **Efficient Data Structures**: Optimized containers minimize memory overhead
-
-Interpolation Algorithm Performance
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-**Scenario**: Cubic spline interpolation for trajectory smoothing
-
-**Algorithm Complexity Analysis:**
-
-For the core interpolation processing within ``PointDataset``:
-
-1. **Spline Coefficient Calculation**: :math:`O(n)` - SciPy CubicSpline computational complexity for 3 dimensions
-2. **Temporal Validation**: :math:`O(1)` - Constant time checks for timing consistency
-3. **Output Point Generation**: :math:`O(k*log(n))` - Spline evaluation for k interpolated points
-4. **Motion Parameter Calculation**: :math:`O(k)` - Speed and heading computation for interpolated points
-5. **Received Position Append**: :math:`O(1)` - Final position appended to output list
-
-**Mathematical Optimization:**
-
-* **Numerical Stability**: SciPy provides robust algorithms for irregular data distributions
-* **Vectorized Operations**: NumPy enables efficient array processing with pre-allocated arrays
-* **Direct Processing**: Eliminates delegation overhead by performing interpolation in-place
+The total memory is :math:`O(m*n)` for the actor histories, plus the transient
+:math:`O(n + k)` buffers of one CAM insertion or the :math:`O(o*(p + g))` buffers and output of
+one CPM message.
+The actors are removed by the cleaner after ``inputOldestAllowedTime`` seconds without a new
+accepted position.
 
 Bottleneck Analysis
 ^^^^^^^^^^^^^^^^^^^
-The STEP Adapter architecture is designed to handle high-frequency position processing, 
-but certain bottlenecks may arise. The following analysis identifies 
-potential bottlenecks and mitigation strategies:
 
-* **Primary Bottleneck**: Cubic spline coefficient calculation (CPU bound)
-* **Secondary Bottleneck**: Redis stream publication latency (network I/O bound)
-* **Mitigation Strategy**: Asynchronous processing and connection pooling
-* **Scaling Limits**: Performance degrades with very large fleet sizes (>1000 actors)
+* **Primary Bottleneck**: Cubic spline construction and evaluation on the interpolation path
+  (CPU bound)
+* **Secondary Bottleneck**: Redis stream publication latency (network I/O bound), one publish
+  round trip per message (pipeline over its position arrays, ``publish_position_arrays``)
+* **Single Event Loop**: Messages are processed one at a time on one asyncio event loop; to
+  scale, run more instances in the same consumer group
+* **Actor Partitioning**: The actor history is per instance: with several instances, the CAM
+  messages of one sender should reach the same instance to keep its trajectory continuous

@@ -34,13 +34,18 @@ where the coefficients :math:`a_i, b_i, c_i, d_i` are determined by the constrai
 Multi-dimensional Interpolation
 -------------------------------
 
-For trajectory interpolation, three separate cubic splines are created:
+Latitude, longitude and altitude share the same abscissa :math:`t` (time in milliseconds since
+epoch), so they are interpolated by one **vector-valued** cubic spline: SciPy solves a single
+tridiagonal system for all the columns instead of building independent splines.
 
-- **Latitude spline**: :math:`\text{Lat}(t) = \text{CubicSpline}(t, \text{latitude\_values})`
-- **Longitude spline**: :math:`\text{Lon}(t) = \text{CubicSpline}(t, \text{longitude\_values})`
-- **Altitude spline**: :math:`\text{Alt}(t) = \text{CubicSpline}(t, \text{altitude\_values})`
-
-where :math:`t` represents time in milliseconds since epoch.
+- **Every point has an altitude**: one spline over (latitude, longitude, altitude).
+- **Some points lack it**: one spline over (latitude, longitude); the altitude is interpolated by a
+  separate spline over the **trailing run** of consecutive points with altitude ending at the last
+  point (the new CAM position, or the last CPM point), only when that run is at least
+  ``minActorHistoryAltitudeTrailingPointPercent`` percent of the points, and never shorter than 4
+  points (the smallest run giving a real cubic: 2 points give a line, 3 a parabola). Otherwise the
+  interpolated positions have no altitude; with ``extrapolate=False`` the positions before the run
+  have none either.
 
 Implementation Details
 ======================
@@ -48,43 +53,47 @@ Implementation Details
 Core Algorithm
 --------------
 
-The interpolation process follows these steps:
+The spline lives in ``GapFiller`` (module ``gap_filler``), shared by the CAM and CPM datasets.
+For a CAM position, ``PointDataset`` and ``GapFiller.fill()`` follow these steps:
 
-1. **Data Collection**: Accumulate GPS points in a sliding window (deque)
-2. **Array Preparation**: Extract time stamps and coordinates into NumPy arrays
-3. **Spline Creation**: Generate three independent cubic splines for each spatial dimension
-4. **Interpolation**: Evaluate splines at desired time points
-5. **Output Generation**: Create interpolated position objects with computed motion parameters
+1. **Data Collection**: The queued positions of the actor (a deque of at most
+   ``maxActorHistoryPointNumber`` records) plus the new position
+2. **Array Preparation**: ``PointDataset`` copies timestamps and coordinates into NumPy buffers
+   allocated once per actor (n + 1 entries); a missing altitude is stored as NaN
+3. **Timestamps**: The interpolated timestamps between the last queued position and the new one,
+   from the period chosen by ``GapFiller.optimal_period()`` (see :doc:`find_period`)
+4. **Spline Creation**: ``GapFiller.interpolate()`` builds one vector-valued ``CubicSpline``, plus
+   the trailing-run altitude spline when needed
+5. **Interpolation**: The splines evaluated at those timestamps with ``extrapolate=False``
+6. **Output Generation**: ``GapFiller.fill()`` computes distance, speed and heading of the whole
+   chain with one batched geodesic call and builds the interpolated positions
+   (``POSITION_GNSS_ESTIMATED``), followed by the received position
 
 Code Structure
 --------------
 
 .. code-block:: python
 
-   def _create_interpolators(self) -> tuple[CubicSpline, CubicSpline, CubicSpline]:
-       """Create cubic spline interpolators for latitude, longitude, and altitude."""
-       queue_len = len(self._input_points_queue)
-       
-       # Prepare arrays for vectorized operations
-       point_times_array = numpy.empty(queue_len, dtype=numpy.int64)
-       latitudes_array = numpy.empty(queue_len, dtype=numpy.float64)
-       longitudes_array = numpy.empty(queue_len, dtype=numpy.float64)
-       altitudes_array = numpy.empty(queue_len, dtype=numpy.int32)
-       
-       # Single pass through queue to populate arrays
-       for i, (time, position_info) in enumerate(self._input_points_queue):
-           point_times_array[i] = time
-           position = position_info.position
-           latitudes_array[i] = position.latitude
-           longitudes_array[i] = position.longitude
-           altitudes_array[i] = position.altitude.value if position.altitude else 0
-           
-       # Create three independent cubic splines
-       return (
-           CubicSpline(x=point_times_array, y=latitudes_array),
-           CubicSpline(x=point_times_array, y=longitudes_array),
-           CubicSpline(x=point_times_array, y=altitudes_array),
-       )
+   # GapFiller.interpolate: lat/lon (and altitude, when every point has one) share the same x
+   column_count = 3 if altitude_complete else 2
+   combined_y = np.empty(shape=(points_number, column_count), dtype=np.float64)
+   combined_y[:, 0] = latitudes
+   combined_y[:, 1] = np.unwrap(longitudes, period=LONGITUDE_RANGE)
+   if altitude_complete:
+       combined_y[:, 2] = altitudes_m
+   interpolator = CubicSpline(x=times_ms, y=combined_y)
+   interpolated = interpolator(x=target_times_ms, extrapolate=False)
+
+CPM Resampling
+--------------
+
+For a CPM perceived object, ``GapFiller.resample()`` fits one spline on every point of the object
+(measured position plus predicted path, in strictly increasing time order) and evaluates it only
+at the output grid times without a real point: the grid of the output period spans the points
+(see :doc:`find_period`), so a longer CPM period is interpolated and a shorter one decimated. The
+measured position is kept unchanged, the real predicted points on the grid are kept with
+recomputed speed and heading, and the other grid points become ``POSITION_PERCEIVED_ESTIMATED``
+positions. Points already at the output period are returned as-is.
 
 Performance Analysis
 ====================
@@ -97,58 +106,76 @@ The cubic spline interpolation has the following time complexity characteristics
 **Spline Construction: O(n)**
   - Array preparation: O(n) where n is the number of input points
   - SciPy CubicSpline construction: O(n) due to the tridiagonal matrix solver
-  - Total spline creation: O(3n) = O(n) for three dimensions
+  - Total spline creation: O(n), one vector-valued spline plus, at most, one altitude spline
 
 **Interpolation Evaluation: O(log(n))**
   - Binary search for spline segment: O(log(n))
   - Polynomial evaluation: O(1)
   - **Per evaluation**: O(log(n))
 
-**Point Addition: O(n + k·log(n) + k)**
-  - Input validation: O(1)
-  - Queue management: O(1) amortized (deque operations)
-  - Spline reconstruction: O(n) when minimum points threshold is met
-  - Interpolation evaluation: O(k·log(n)) where k is output points and log(n) for spline evaluation
-  - Output generation: O(k) for creating position objects
-  - **Total**: O(n + k·log(n) + k)
+**Point Addition: O(n + k·log(n))**
+  - Coherence checks: O(1)
+  - Queue management: O(1) (deque with ``maxlen``)
+  - Spline construction: O(n), only on the interpolation path
+  - Interpolation evaluation: O(k·log(n)) where k is the number of interpolated positions
+  - Output generation: O(k) for the batched geodesic call and the position objects
+  - **Total**: O(n + k·log(n))
 
 Space Complexity
 ----------------
 
 **Memory Usage: O(n + k)**
-  - Input queue storage: O(n) for maintaining sliding window of points
-  - Spline coefficients: O(4n) for cubic polynomial coefficients (temporary array)
-  - Temporary arrays: O(3n) for time, latitude, longitude, altitude arrays
-  - Output queue: O(k) for interpolated results
-  - **Total**: O(n + k) steady-state with bounded queues
+  - Input queue storage: O(n), at most ``maxActorHistoryPointNumber`` records
+  - Input buffers: O(n), four NumPy arrays of n + 1 entries allocated once per actor
+  - Spline coefficients: O(n), temporary
+  - Output: O(k) for the interpolated positions
+  - **Total**: O(n + k) with bounded queues
 
 **Memory Efficiency Features:**
-  - Sliding window prevents unbounded growth: O(n) where n is bounded by ``max_actor_history_length_ms``
-  - Automatic cleanup of outdated points
-  - Deque-based queues for efficient insertion/deletion
-  - Pre-allocated arrays for vectorized operations
+  - Bounded history: n = ``maxActorHistoryPointNumber`` (5-30), the oldest point dropped automatically
+  - Automatic cleanup of the actors without recent positions
+  - Pre-allocated arrays reused by every interpolation
 
 .. note::
-   The algorithm maintains constant memory usage in steady-state operation due to the 
-   bounded sliding window approach, making it suitable for long-running real-time applications.
+   The algorithm maintains constant memory usage per actor due to the bounded history,
+   making it suitable for long-running real-time applications.
 
 Configuration Parameters
 ========================
 
-The interpolation behavior is controlled by ``PointInterpolationConfig``:
+The interpolation behavior is controlled by ``GapFillerConfig``, built from the program
+configuration (``StepAdapterConfig``) by ``PointDatasetConfig.gap_filler_config()`` for CAM and
+by ``ObjectPerceivedDataset`` for CPM:
 
 .. code-block:: python
 
    @dataclass(frozen=True, kw_only=True, slots=True)
-   class PointInterpolationConfig:
-       max_actor_history_length_ms: int              # Sliding window duration (ms)
-       output_nominal_period_ms: int    # Target output sampling rate (ms)
-       period_max_deviation_ms: int     # Timing tolerance (ms)
+   class GapFillerConfig:
+       input_min_altitude_trailing_point_percent: int  # Altitude trailing run (%)
+       output_nominal_period_ms: int                   # Target output period (ms)
+       output_max_period_deviation_ms: int             # Timing tolerance (ms)
 
-**Parameter Constraints:**
-  - ``max_actor_history_length_ms > 2 * output_nominal_period_ms`` (minimum window size)
-  - ``0 < output_nominal_period_ms ≤ 1000`` (reasonable output rates)
-  - ``0 ≤ period_max_deviation_ms < output_nominal_period_ms`` (timing tolerance)
+The CAM history is controlled by ``PointDatasetConfig``, which also holds the three fields above:
+
+.. code-block:: python
+
+   @dataclass(frozen=True, kw_only=True, slots=True)
+   class PointDatasetConfig:
+       input_max_point_number: int                     # History size (points)
+       input_min_altitude_trailing_point_percent: int  # Altitude trailing run (%)
+       input_max_period_ms: int                        # Longer gap clears the history (ms)
+       input_max_local_time_deviation_ms: int          # Local time tolerance (ms)
+       output_nominal_period_ms: int                   # Target output period (ms)
+       output_max_period_deviation_ms: int             # Timing tolerance (ms)
+
+**Parameter Constraints** (checked by ``__post_init__``, inclusive):
+  - ``input_max_point_number``: 5-30
+  - ``input_max_period_ms``: 1000-4000
+  - ``input_max_local_time_deviation_ms``: 0-30000
+  - ``input_min_altitude_trailing_point_percent``: 0-100 (``GapFillerConfig``)
+  - ``output_nominal_period_ms``: 100-1000, 1000 // ``outputNominalSampleFrequency``
+    (``GapFillerConfig``)
+  - ``output_max_period_deviation_ms``: 0-50 (``GapFillerConfig``)
 
 Examples
 ========
@@ -158,27 +185,29 @@ Basic Usage Example
 
 .. code-block:: python
 
-   from step_adapter.point_interpolation import PointInterpolation, PointInterpolationConfig
    import logging
-   
+
+   from step_adapter.point_dataset import PointDataset, PointDatasetConfig
+
    # Configure interpolation parameters
-   config = PointInterpolationConfig(
-       max_actor_history_length_ms=5000,    # 5-second sliding window
-       output_nominal_period_ms=100,        # 10 Hz output rate  
-       period_max_deviation_ms=20           # ±20ms tolerance
+   config = PointDatasetConfig(
+       input_max_point_number=15,
+       input_min_altitude_trailing_point_percent=25,
+       input_max_period_ms=3000,
+       input_max_local_time_deviation_ms=10000,
+       output_nominal_period_ms=100,  # 10 Hz output rate
+       output_max_period_deviation_ms=25,
    )
-   
-   # Create interpolator instance
-   logger = logging.getLogger()
-   interpolator = PointInterpolation(config, logger)
-   
-   # Process GPS points
-   for timestamp, position_info in gps_data_stream:
-       result = interpolator.add_point(timestamp, position_info)
-       if result == PointInterpolation.InsertPointResult.SUCCESS:
-           # Get interpolated trajectory points
-           interpolated_positions = interpolator.get_interpolated_values()
-           for pos in interpolated_positions:
+
+   # One dataset per actor
+   dataset = PointDataset(actor_par=actor_id, config=config, logger=logging.getLogger())
+
+   # Process the positions of the actor
+   for position_info in positions:
+       positions_out = dataset.add_point(new_position=position_info)
+       if positions_out is not None:
+           # Interpolated positions followed by the received one
+           for pos in positions_out:
                print(f"Time: {pos.time}, Lat: {pos.position.latitude}, "
                      f"Lon: {pos.position.longitude}")
 
@@ -242,11 +271,15 @@ The following example demonstrates trajectory interpolation with cubic splines:
 Algorithm Advantages
 ====================
 
-**Smoothness**: Cubic splines provide C² continuity, ensuring smooth trajectories without sharp corners or discontinuities.
+**Smoothness**: Cubic splines provide C^2 continuity, ensuring smooth trajectories without sharp corners or discontinuities.
 
-**Locality**: Changes in one data point only affect nearby spline segments, providing numerical stability.
+**Global Fit**: The spline coefficients come from one tridiagonal system over the whole
+sliding window, so a change in one data point affects every segment, with an influence
+decaying away from the point; the bounded window keeps this cost O(n).
 
-**Minimum Curvature**: Among all twice-differentiable interpolating functions, cubic splines minimize the integral of the square of the second derivative, producing the "smoothest" possible curve.
+**Smoothness of the End Conditions**: SciPy's default not-a-knot end conditions are used;
+the minimum-curvature property holds only for natural end conditions, which are not used
+here.
 
 **Computational Efficiency**: O(n) construction time and O(log n) evaluation time make it suitable for real-time applications.
 
@@ -259,8 +292,8 @@ Limitations and Considerations
 
 **Oscillation**: With noisy data or poor point distribution, cubic splines can exhibit unwanted oscillations between data points.
 
-**Temporal Gaps**: Large gaps in time can cause unrealistic interpolation; the implementation includes gap detection to prevent this.
+**Temporal Gaps**: Large gaps in time can cause unrealistic interpolation; for CAM a gap longer than ``inputMaxPeriod`` clears the history instead of interpolating across it, while no limit is applied to the gaps of a CPM predicted path (already a modelled trajectory).
 
 **Coordinate System**: Interpolation is performed in geographic coordinates (lat/lon), which may introduce distortions for large distances due to Earth's curvature.
 
-**Minimum Points**: Requires at least 4 points for stable cubic spline construction.
+**Minimum Points**: The interpolation runs from the second position of a trajectory: with 2 points the spline degenerates to a line, with 3 to a parabola; a real cubic needs at least 4 points (the minimum required for the separate altitude spline).

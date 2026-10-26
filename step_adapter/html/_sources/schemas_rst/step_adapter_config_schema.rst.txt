@@ -14,17 +14,27 @@ class containing several nested configuration components for different aspects o
   * **Base Configuration**
 
       * ``templateVersion``: The version of the template (currently "1")
-      * ``maxActorHistoryLength``: The maximum length of the actor's history in seconds
-      * ``outputNominalSampleFrequency``: The frequency of output nominal samples (Hz)
-      * ``periodMaxDeviationMs``: The maximum deviation for periodical updates (milliseconds)
-      * ``receiveClientNumber``: The number of clients to receive updates
-      * ``cleanerInterval``: The interval for the cleaner task (seconds)
-      * ``reconnectInterval``: Time between reconnection attempts (seconds)
+      * ``maxActorHistoryPointNumber``: The maximum number of points in the actor's history (5-30)
+      * ``minActorHistoryAltitudeTrailingPointPercent``: The minimum trailing run of points with
+        altitude, as a percentage of the history points (or of the points of a CPM perceived
+        object), needed to interpolate the altitude (0-100)
+      * ``inputMaxPeriod``: The maximum period between two positions of an actor (1000-4000 milliseconds)
+      * ``inputLocalTimeMaxDeviation``: The maximum deviation of the position time from the local
+        time (0-30 seconds)
+      * ``inputOldestAllowedTime``: The maximum age of the last position of an actor before it is
+        removed (0-30 seconds)
+      * ``outputNominalSampleFrequency``: The output frequency of the CAM and CPM position arrays
+        (1, 2, 5 or 10 Hz)
+      * ``outputPeriodMaxDeviation``: The maximum deviation from the output period (0-50 milliseconds)
+      * ``cleanerInterval``: The interval for the cleaner task (1-60 seconds)
+      * ``reconnectInterval``: Time between reconnection attempts (1-60 seconds)
 
   * **Redis Client Configuration**
 
-      * Connection parameters for message broker integration
-      * Security settings
+      * Connection parameters (database, timeouts, keepalive, pool); the host, port and
+        credentials are read from the environment (see :ref:`step_adapter_credentials`)
+      * Security settings (SSL/TLS)
+      * Input stream and crash prediction output stream
 
   * **Logging Configuration**
 

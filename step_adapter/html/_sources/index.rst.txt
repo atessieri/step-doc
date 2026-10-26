@@ -1,6 +1,10 @@
 STEP Adapter: Overview
 ======================
 
+.. raw:: html
+
+   <a class="back-to-portal" href="../../index.html">Back to STEP Documentation</a>
+
 .. |DEV_STAT| image:: https://img.shields.io/badge/status-beta-yellow.svg
    :target: https://gitlab.automotive.vodafone.com/vfa-init/pnrr/step_adapter
    :alt: Development Status
@@ -32,7 +36,7 @@ STEP Adapter: Overview
    :target: https://www.sphinx-doc.org/en/master/index.html
    :alt: Sphinx
 .. |TOX| image:: https://img.shields.io/badge/local%20automation-tox-brightgreen.svg
-   :target: https://tox.readthedocs.io/
+   :target: https://tox.wiki/en/latest/
    :alt: Tox
 .. |TEST_COVERAGE| image:: ./badges/test_coverage.svg
    :alt: Test Coverage
@@ -78,25 +82,64 @@ STEP Adapter: Overview
    find_period
    spline_cubic
    architecture
+   docstring_coverage_report
+   coverage_report
    schemas_rst/json_schemas
    step_adapter_rst/step_adapter
    test_rst/test
 
 
 
-The **step_adapter** is a critical component of the STEP (Safer Transport for Europe Platform) ecosystem, 
-specifically designed for real-time position processing and Crash Prediction data preparation 
-within Intelligent Transportation Systems (ITS) environments. This Redis-based microservice processes 
-raw GNSS tracking data into smooth, regularly-sampled position arrays optimized for crash 
-prediction algorithms.
+The **step_adapter** is a component of the STEP (Safer Transport for Europe Platform) ecosystem,
+specifically designed for real-time position processing and Crash Prediction data preparation
+within Intelligent Transportation Systems (ITS) environments. This Redis-based microservice converts
+CAM and CPM messages into regularly-sampled position arrays for the crash prediction algorithms.
+
+Environment Variables
+---------------------
+
+The Redis host, port and credentials are kept out of the JSON configuration file and are
+read from the environment once at startup (step_redis ``RedisCredential.from_env``), after
+loading the ``.env`` file of the launch directory or its nearest parent, if any; a variable
+already set in the environment wins over the ``.env`` file:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 15 60
+
+   * - Variable
+     - Required
+     - Description
+   * - ``REDIS_URL``
+     - yes
+     - Redis server host
+   * - ``REDIS_PORT``
+     - yes
+     - Redis server port (1-65535)
+   * - ``REDIS_USERNAME``
+     - no
+     - ACL username, when the server requires authentication
+   * - ``REDIS_PASSWORD``
+     - no
+     - Password, when the server requires authentication
+
+A missing or invalid required variable stops the program with exit code ``2`` (``ERROR``).
+See :ref:`step_adapter_credentials` for the full reference and the
+:download:`.env.example <env/.env.example>` template.
 
 Purpose
 -------
 
-The **step_adapter** serves as a data preprocessing pipeline that transforms communication messages 
-(CAM, CPM) into position array messages for traffic monitoring and analysis. It processes raw GNSS 
-measurements from Redis streams and generates smooth position trajectories using advanced **cubic spline** 
-interpolation techniques, ensuring optimal data quality for downstream Crash Prediction systems.
+The **step_adapter** consumes the ``AdapterCloudEventsCamDataV1`` and ``AdapterCloudEventsCpmDataV1``
+events published by step_client on a Redis input stream and publishes ``PositionArrayV1`` events
+to the crash prediction Redis stream:
+
+- for every CAM sender it keeps a short position history, validates each new position against
+  the previous one and fills the gaps with positions interpolated by a **cubic spline** at the
+  configured output frequency, the received position being always the last point;
+- for every perceived object of a CPM it builds one position array from the measured position
+  and the predicted path, resampled at the configured output frequency (interpolated when the CPM
+  period is longer, decimated when shorter).
 
 Key Features
 ------------
@@ -104,24 +147,28 @@ Key Features
 Real-time Data Processing
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- **Stream-based Architecture**: Utilizes Redis streams for high-throughput, real-time message 
-  processing with guaranteed delivery and connection pooling
-- **Vehicle Position Processing**: Transforms raw GNSS measurements into smooth position 
+- **Stream-based Architecture**: Utilizes Redis streams with consumer groups and connection
+  pooling; the input is read without acknowledgement (at most once delivery)
+- **Vehicle Position Processing**: Transforms raw GNSS measurements into smooth position
   trajectories using **cubic spline** interpolation techniques
-- **Multi-Message Support**: Processes CAM (Cooperative Awareness Messages) and CPM (Collective 
+- **Multi-Message Support**: Processes CAM (Cooperative Awareness Messages) and CPM (Collective
   Perception Messages)
-- **Actor Dataset Management**: Maintains temporal position tracking for multiple concurrent 
-  vehicles with automatic data cleanup
+- **Actor Dataset Management**: Maintains a position history for each CAM sender, removing the
+  senders without recent positions periodically
 
 Interpolation and Validation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - **Cubic Spline Interpolation**: Advanced interpolation engine for generating smooth position 
   trajectories from irregular GNSS data with configurable output frequencies
-- **Configurable Sampling**: Supports output frequencies from 1Hz to 10Hz with predictable 
-  performance characteristics
-- **Bounded Memory Usage**: Sliding window approach prevents unbounded memory accumulation 
-  with automatic cleanup of outdated records
+- **Output Period Resampling**: One ``GapFiller`` shared by CAM and CPM puts every position
+  array at the configured sample frequency: interpolation of the CAM gaps, interpolation or
+  decimation of the CPM predicted paths
+- **Coherence Checks**: Positions too close in time, or too far from the local time, are
+  discarded; a too long gap or an implausible speed restarts the actor history
+- **Configurable Sampling**: Output frequencies of 1, 2, 5 or 10 Hz
+- **Bounded Memory Usage**: At most 5-30 positions per actor, with automatic cleanup of the
+  expired actors
 
 Configuration and Monitoring
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -131,7 +178,9 @@ Configuration and Monitoring
 - **Schema Generation**: JSON schema generation for configuration validation and template creation
 - **Comprehensive Logging**: Multiple output handlers (stream, file, rotating file) with 
   UTC formatting and configurable levels
-- **Signal Handling**: Implements graceful shutdown procedures for production deployment scenarios
+- **Signal Handling**: Graceful shutdown through ``AppRunner`` (from ``step_cloud_schemas``)
+- **Automatic Reconnection**: A failed connection cycle is retried after ``reconnectInterval``
+  seconds; errors a reconnect cannot fix end the program
 
 Core Components
 ---------------
@@ -139,56 +188,65 @@ Core Components
 Actor Dataset Manager
 ~~~~~~~~~~~~~~~~~~~~~~
 
-The ``ActorDataset`` class provides comprehensive management of multiple trajectories 
-in real-time telemetry applications. It serves as the main orchestration component for 
-multi-actor trajectory management and handles:
+The ``ActorDataset`` class is the registry of the CAM senders. It handles:
 
-  - Processing incoming CAM data streams and maintaining individual trajectory datasets
-  - Thread-safe concurrent access patterns optimized for high-throughput telemetry
-  - Temporal management with automatic cleanup of expired actor data
-  - Actor registry and temporal index maintenance for efficient lookup operations
+  - Converting each CAM message into a position and routing it to the ``PointDataset`` of its
+    sender, created on the first accepted position
+  - Wrapping the returned positions in a ``PositionArrayV1``
+  - A temporal index (``SortedList``) of the actors ordered by their last position time
+  - The periodic removal of the actors whose last position is older than
+    ``inputOldestAllowedTime``
 
-Key responsibilities:
-  - Managing actor lifecycle from registration to expiration
-  - Coordinating trajectory interpolation for all tracked vehicles  
-  - Providing predictable memory usage and performance characteristics
-  - Handling concurrent access to shared actor data structures
+It is not thread-safe: the program uses it from a single asyncio event loop.
 
 Point Dataset Manager
 ~~~~~~~~~~~~~~~~~~~~~
 
-The ``PointDataset`` class provides a complete solution for managing individual 
-position datasets with integrated cubic spline interpolation. It implements:
+The ``PointDataset`` class manages the position history of one actor; its gaps are filled by
+cubic spline interpolation through ``GapFiller``. It implements:
 
-  - **Direct Interpolation Processing**: Uses SciPy's CubicSpline directly for 
-    cubic spline calculations and trajectory generation
-  - **Configuration Management**: Processing parameters including path length, output frequency, 
-    and timing constraints
-  - **Memory Management**: Bounded growth patterns with pre-allocated numpy arrays and sliding window management
-  - **Output Behavior**: Returns interpolated positions followed by the actual received GNSS position as the final point
-  
-- **Performance Optimization**: O(n + k*log(n) + k + log(m)) time complexity for point addition operations where:
-  
-  - n = input queue size (bounded by max_actor_history_length_ms configuration)
-  - k = number of interpolated output points generated per addition
-  - m = number of active actors being processed
+  - **Coherence Checks**: Minimum and maximum period, speed and local time checks of each new
+    position
+  - **Gap Filling**: Delegates the cubic spline interpolation of a gap to ``GapFiller.fill()``
+  - **Memory Management**: A bounded deque of positions and pre-allocated NumPy buffers
+  - **Output Behavior**: Returns interpolated positions followed by the actual received GNSS
+    position as the final point; speed and heading are recomputed from the displacement
+  - **Performance**: O(n + k*log(n)) time per position on the interpolation path, where n is the
+    history size (``maxActorHistoryPointNumber``, 5-30) and k the number of interpolated
+    positions
 
-- **Configurable Output**: Support for 1Hz to 10Hz output frequencies with millisecond 
-  processing latency
-- **Quality Assurance**: Comprehensive validation of input data and interpolation results
+Gap Filler
+~~~~~~~~~~
+
+The ``GapFiller`` class puts positions at the output period (``outputNominalSampleFrequency``
+plus or minus ``outputPeriodMaxDeviation``) with SciPy's CubicSpline. It keeps no state and is
+shared by both datasets:
+
+  - **fill()** (CAM): fills the gap between the last position of an actor and a new one with
+    interpolated positions, followed by the new one
+  - **resample()** (CPM): puts a whole predicted path on the output period grid; a longer
+    period is interpolated, a shorter one decimated, and a grid time equal to a real point
+    keeps that point
+  - **Speed and Heading**: Recomputed from the displacement for every position after the first
+
+Perceived Object Dataset
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``ObjectPerceivedDataset`` class converts every perceived object of a CPM message into one
+position array (measured position plus predicted path, resampled by ``GapFiller.resample()`` to
+at most 101 points at the configured sample frequency), without keeping any history.
 
 Redis Integration
 ~~~~~~~~~~~~~~~~~
 
-The Redis integration components (``StepAdapterRedisPool`` and ``StepAdapterRedisStream``) provide:
+The Redis integration components come from ``step_redis`` (``StepRedisPool``,
+``StepAdapterRedisStream`` and ``StepCrashPredictionRedisStream``) and provide:
 
-  - **Connection Management**: Specialized Redis connection pools with configurable limits 
-    and automatic reconnection capabilities
-  - **Stream Operations**: Creation and management of client input/output streams for 
-    communication messages
+  - **Connection Management**: Redis connection pools, with the host, port and credentials read
+    from the environment
+  - **Stream Operations**: Creation of the input stream and its consumer group
   - **Message Processing**: Receiving and validating CAM and CPM messages from streams
-  - **Data Distribution**: Publishing position array messages to output streams for 
-    Crash Prediction systems
+  - **Data Distribution**: Publishing position array messages to the crash prediction stream
 
 Configuration System
 ~~~~~~~~~~~~~~~~~~~~
@@ -199,13 +257,13 @@ The configuration system (``StepAdapterConfig``) offers:
   - **Type Safety**: Strong typing and validation via Pydantic models with comprehensive validation
   - **Schema Generation**: JSON schema generation for configuration validation and template creation
   - **Default Configurations**: Pre-configured default instances for quick setup and development
-  - **Actor Dataset Configuration**: Specialized configuration for timing parameters and 
+  - **Actor Dataset Configuration**: Specialized configuration for timing parameters and
     trajectory management
 
 Logging Infrastructure
 ~~~~~~~~~~~~~~~~~~~~~~
 
-The logging system (``StepLogger``) provides:
+The logging system (``StepLogger``, from ``step_cloud_schemas``) provides:
 
   - **Multiple Handlers**: Stream, file, rotating file, and null handlers for flexible output options
   - **UTC Formatting**: Standardized UTC timestamp formatting for consistent log entries
@@ -221,36 +279,34 @@ Event-Driven Processing
 
 The service follows an event-driven architecture pattern:
 
-  #. **Input Processing**: Monitors Redis streams for CAM and CPM messages from vehicles
-  #. **Position Processing**: Transforms raw GNSS data into smooth position trajectories 
-     using cubic spline interpolation
-  #. **Actor Management**: Maintains individual datasets for each tracked with 
-     temporal data management
-  #. **Output Generation**: Publishes processed position array messages to output streams 
-     for Crash Prediction systems
-  #. **Cleanup Operations**: Periodically removes expired actor data and manages memory usage
+  #. **Input Processing**: Monitors the Redis input stream for CAM and CPM messages
+  #. **Position Processing**: Transforms CAM positions into smooth position trajectories
+     using cubic spline interpolation; resamples the CPM perceived objects at the output period
+  #. **Actor Management**: Maintains an individual dataset for each CAM sender
+  #. **Output Generation**: Publishes the position arrays to the crash prediction stream
+  #. **Cleanup Operations**: Periodically removes the expired actors
 
 Asynchronous Operations
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 The architecture utilizes:
 
-  - **Async/await**: Non-blocking operations for high-throughput message processing with 
-    concurrent stream consumers
-  - **Redis Streams**: Message distribution and persistence with connection pooling
-  - **Task Groups**: Concurrent processing of multiple operations including stream reception 
-    and data cleanup
-  - **Connection Pooling**: Efficient resource management for Redis connections with 
-    automatic reconnection
+  - **AppRunner** (from ``step_cloud_schemas``): Owns the event loop and the signal handling, and
+    runs the ``StepAdapterApp`` workload
+  - **Reconnect Loop**: ``StepAdapterApp`` derives from ``ReconnectingApp``: each connection cycle
+    is retried after ``reconnectInterval`` seconds
+  - **Task Groups**: Three concurrent tasks per cycle: stream reception, actor cleanup and Redis
+    health check
+  - **Connection Pooling**: A Redis connection pool of at most two connections per cycle
 
 Message Flow
 ~~~~~~~~~~~~
 
-#. **Message Reception**: CAM and CPM messages received via Redis streams from vehicles
-#. **Trajectory Processing**: Raw GNSS data transformed into smooth position trajectories 
-   using interpolation
-#. **Actor Dataset Update**: Position data added to individual datasets with automatic cleanup
-#. **Position Array Generation**: Interpolated position arrays published to output Redis streams
+#. **Message Reception**: CAM and CPM messages received via the Redis input stream from step_client
+#. **Trajectory Processing**: CAM positions validated and interpolated in the history of their sender;
+   CPM perceived objects converted one by one and resampled at the output period
+#. **Position Array Generation**: The position arrays published to the crash prediction stream
+#. **Cleanup**: The actors without recent positions removed every ``cleanerInterval`` seconds
 
 Standards Compliance
 --------------------
@@ -266,20 +322,21 @@ Dependencies
 Core Dependencies
 ~~~~~~~~~~~~~~~~~
 
-- **step_cloud_schemas**: Message schemas and data structures for CAM, CPM processing
+- **step_cloud_schemas**: Message schemas and data structures for CAM, CPM processing, plus the
+  application runtime (``AppRunner``) and logging (``StepLogger``)
 - **step_redis**: Redis integration and connection management with stream operations
 - **pydantic**: Configuration validation and schema generation with type safety
 - **scipy**: Cubic spline interpolation algorithms for trajectory smoothing
+- **numpy**: Array operations for the interpolation and motion computation
 - **sortedcontainers**: Efficient sorted data structures for temporal data management
-- **asyncio**: Asynchronous processing capabilities for concurrent operations
 
 Development Dependencies
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-- **pytest**: Testing framework for unit and integration tests
-- **autoflake**: Code formatting and optimization tools
-- **docformatter**: Documentation formatting for code documentation
-- **beautifulsoup4**: HTML parsing for documentation generation
+- **pytest** (with pytest-asyncio, pytest-cov, pytest-mock, pytest-timeout): Testing framework
+- **ruff**, **mypy**, **pylint**, **isort**, **autoflake**: Formatting, linting and type checking
+- **tox** (with tox-uv): Local automation
+- **sphinx** and its extensions: Documentation generation
 
 Deployment
 ----------
@@ -309,34 +366,33 @@ Run as a continuous service processing real-time data streams:
 
 .. code-block:: bash
 
-   python -m step_adapter --instance vehicle_tracker --config production.json
+   python -m step_adapter --instance adapter_1 --config production.json
+
+The Redis host, port and credentials must be set in the environment or in a ``.env``
+file (see :ref:`step_adapter_credentials`).
 
 Configuration Generation
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-Generate configuration templates and schemas:
+Generate the configuration template and schema into a directory:
 
 .. code-block:: bash
 
-   python -m step_adapter --conf_template
-   python -m step_adapter --conf_schema
-
-Integration Mode
-~~~~~~~~~~~~~~~~
-
-Integrate into larger applications as a library component with programmatic 
-configuration and custom trajectory processing logic for tracking systems.
+   python -m step_adapter --conf_template ./config
+   python -m step_adapter --conf_schema ./config
 
 Testing
 -------
 
-The project includes comprehensive tests covering:
+The project includes unit tests covering:
 
-- **Unit Tests**: Individual component functionality including interpolation algorithms
-- **Integration Tests**: Redis stream operations and message processing workflows  
-- **Configuration Tests**: Validation of configuration schemas and default values
-- **Performance Tests**: Throughput and latency measurements under various loads
-- **Actor Dataset Tests**: Multi-actor trajectory management and cleanup operations
+- **Point Dataset**: Coherence checks and gap filling of ``PointDataset``
+- **Resampling**: Period selection, cubic spline interpolation, altitude handling, CAM gap
+  filling and CPM resampling of ``GapFiller``
+- **Perceived Objects**: CPM conversion and resampling of ``ObjectPerceivedDataset``
+- **Actor Dataset**: CAM conversion, multi-actor management and cleanup of ``ActorDataset``
+- **Configuration**: Validation, default values, JSON schema and template generation
+- **Command Line**: Argument handling and exit codes of ``__main__``
 
 Getting Started
 ---------------

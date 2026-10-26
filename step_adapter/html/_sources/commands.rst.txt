@@ -35,21 +35,26 @@ The following command line options are available:
 ``-v, --version``
     Show the program version and exit.
 
-``-s, --conf_schema <schema file>``
-    Write the configuration JSON schema to the specified file.
+``-s, --conf_schema <schema directory>``
+    Write the configuration JSON schema (``step_adapter_config_v1_schema.json``)
+    into the specified directory, created if missing.
 
-``-t, --conf_template <template file>``
-    Write a configuration template to the specified file.
+``-t, --conf_template <template directory>``
+    Write a configuration template (``step_adapter_config_v1_schema_template.json``)
+    into the specified directory, created if missing.
 
 ``-c, --config <config file>``
     Load the configuration from the specified file and run the module.
 
 ``-i, --instance <instance name>``
-    Specify the instance name.
+    Specify the instance name, also used as the Redis stream consumer name.
 
 .. note::
-    When the module uses the `-c` or `--config` option, also the -i or --instance option 
-    must be specified to set the instance name
+    The ``-c``/``--config`` and ``-i``/``--instance`` options must be given together:
+    when only one of them is present, the program logs a single error line (no
+    traceback) and exits with code ``1`` (``USAGE``). The Redis host, port and
+    credentials are not command line options: they are read from the environment
+    (see :ref:`step_adapter_credentials`).
 
 Detailed Command Description
 ============================
@@ -83,9 +88,10 @@ To generate a JSON schema file documenting all configuration options:
 
 .. code-block:: bash
 
-    step_adapter --conf_schema /path/to/schema_file.json
+    step_adapter --conf_schema /path/to/schema_dir
 
-This command creates a JSON schema file at the specified path. The file describes
+This command creates the JSON schema file ``step_adapter_config_v1_schema.json`` in the
+specified directory. The file describes
 all available configuration options, their types, defaults, and constraints. 
 The schema can be used for validation or as a reference for creating custom configurations.
 
@@ -96,10 +102,10 @@ To generate a configuration template file with default values:
 
 .. code-block:: bash
 
-    step_adapter --conf_template /path/to/template_file.json
+    step_adapter --conf_template /path/to/template_dir
 
-This command creates a JSON configuration file with default values 
-for all settings. Users can modify this file as needed to customize their configuration.
+This command creates the JSON configuration file ``step_adapter_config_v1_schema_template.json``
+with default values for all settings in the specified directory. Users can modify this file as needed to customize their configuration.
 
 Running with Configuration
 --------------------------
@@ -110,8 +116,11 @@ To run the module with a specific configuration:
 
     step_adapter --instance test --config /path/to/config_file.json
 
-This loads the configuration from the specified file and starts the step_adapter.
-The module will connect to the Redis streams as specified in the configuration.
+This loads the configuration from the specified file, reconfigures the logger from its
+``log`` section, logs the program, ``step_cloud_schemas`` and ``step_redis`` versions and
+starts the step_adapter. The module connects to the Redis streams specified in the
+configuration, with the host, port and credentials read from the ``REDIS_*`` environment
+variables or a ``.env`` file (see :ref:`step_adapter_credentials`).
 
 Configuration File Structure
 ============================
@@ -137,10 +146,13 @@ Exit Codes
 
 The program uses the following exit codes:
 
-* ``0`` (OK): Successful termination
-* ``1`` (USAGE): Command line usage error
-* ``2`` (ERROR): General error during execution
-* ``3`` (ABORTED): Operation aborted by user or system
+* ``0`` (OK): Successful termination, including ``-h``/``--help`` and ``-v``/``--version``
+* ``1`` (USAGE): No arguments, an invalid or unknown option, or only one of
+  ``-c``/``--config`` and ``-i``/``--instance``
+* ``2`` (ERROR): General error during execution: an invalid configuration file, a missing
+  ``REDIS_URL``/``REDIS_PORT`` variable, or a Redis error a reconnect cannot fix
+  (``StepRedisFatalError``)
+* ``3`` (ABORTED): Operation aborted by user or system (``SIGINT``/``SIGTERM``, Ctrl+C)
 
 Examples
 ========
@@ -149,13 +161,13 @@ Generate a configuration schema:
 
 .. code-block:: bash
 
-    step_adapter --conf_schema ./schema.json
+    step_adapter --conf_schema ./schema
 
 Create a configuration template:
 
 .. code-block:: bash
 
-    step_adapter --conf_template ./template.json
+    step_adapter --conf_template ./template
 
 Run with specific configuration:
 
@@ -167,7 +179,7 @@ Generate both schema and template:
 
 .. code-block:: bash
 
-    step_adapter --conf_schema ./schema.json --conf_template ./template.json
+    step_adapter --conf_schema ./schema --conf_template ./template
 
 Program Operation
 =================
@@ -175,26 +187,30 @@ Program Operation
 When running with a configuration file, the step_adapter
 performs the following operations:
 
-   #. Connects to the Redis server using the provided connection settings
-   #. Initializes an ActorDataset for managing position trajectories with temporal data management
-   #. Starts multiple asynchronous tasks based on configuration:
+   #. Reads the Redis host, port and credentials from the environment (see
+      :ref:`step_adapter_credentials`); a missing or invalid variable ends the program
+      with exit code ``2``
+   #. Runs connection cycles through ``AppRunner``; each cycle creates new, empty actor
+      and perceived object datasets, opens a Redis connection pool and starts three
+      asynchronous tasks:
 
-      - **Stream Message Reception**: Multiple concurrent Redis stream consumer instances (based on ``receiveClientNumber`` config) 
-        continuously listen to Redis input streams for incoming CAM (Cooperative Awareness Messages) and CPM (Collective 
-        Perception Messages)
-      - **Vehicle Position Processing**: Processes each received CAM message by converting it to position information, 
-        inserting it into the actor dataset with cubic spline interpolation, and generating smooth position arrays
-      - **Position Array Publishing**: When sufficient data is available, publishes interpolated position arrays 
-        to Redis output streams for Crash Prediction and traffic monitoring systems
-      - **Periodic Dataset Cleanup**: Automatically removes expired trajectory data at configurable intervals 
-        (``cleanerInterval``) to prevent memory buildup and maintain optimal performance
-   
-   #. Automatically handles reconnection if connections are lost (using the specified reconnect interval)
-   #. Manages graceful shutdown when interrupted with proper resource cleanup
+      - **Stream Message Reception**: Listens to the Redis input stream for CAM
+        (Cooperative Awareness Messages) and CPM (Collective Perception Messages); each CAM
+        is added to the history of its sender, possibly with cubic spline interpolated
+        positions, and each perceived object of a CPM becomes one position array resampled
+        at the output frequency; every position array is published to the crash prediction
+        stream
+      - **Periodic Dataset Cleanup**: Every ``cleanerInterval`` seconds, removes the actors
+        whose last position is older than ``inputOldestAllowedTime``
+      - **Redis Health Check**: Periodically checks the Redis connection
 
-The module operates as a real-time position processing pipeline, transforming raw GNSS measurements 
-into smooth, regularly-sampled position trajectories optimized for Crash Prediction algorithms. It will continue 
-running until manually interrupted (e.g., with Ctrl+C) or until a system signal is received.
+   #. When a task fails, the cycle ends and a new one starts after ``reconnectInterval``
+      seconds; an error a reconnect cannot fix (rejected credentials, ACL denial, missing
+      SSL file, untrusted certificate) ends the program with exit code ``2``
+   #. Manages graceful shutdown when interrupted, releasing the Redis connections
+
+It will continue running until manually interrupted (e.g., with Ctrl+C) or until a
+system signal is received.
 
 Advanced Usage
 ==============
@@ -202,8 +218,10 @@ Advanced Usage
 Signal Handling
 ---------------
 
-The step_adapter properly handles system signals for graceful shutdown. When a signal is received, 
-it cleans up resources and terminates with the appropriate exit code.
+Signal handling is owned by ``AppRunner`` (from ``step_cloud_schemas``, see
+:doc:`architecture`): on ``SIGINT``/``SIGTERM`` (POSIX) or ``CTRL_C``/``CTRL_BREAK`` (Windows)
+the running tasks are cancelled, the Redis pool and streams are released and the program
+exits with code ``3`` (``ABORTED``).
 
 Logging
 -------
@@ -214,5 +232,7 @@ in the configuration file, including:
 * Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
 * Console logging
 * File logging with rotation options
+
+At INFO level, the duration of each message handling and of each cleanup is logged.
 
 You can enable debug logging to troubleshoot connection or message handling issues.

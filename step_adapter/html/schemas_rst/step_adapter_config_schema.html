@@ -6,17 +6,17 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>STEP Adapter Config V1 Schema &mdash; STEP Adapter 1.1.12 documentation</title>
+  <title>STEP Adapter Config V1 Schema &mdash; STEP Adapter 1.2.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/tabs.css?v=4c969af8" />
-      <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=ca5f51dc" />
-      <link rel="stylesheet" type="text/css" href="../_static/css/sphinx_prompt_css.css?v=351d85e3" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-reports.089ed2e62f89368aa21ac7591d90c12a.css?v=83177741" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=578e62fd" />
 
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=b63844d9"></script>
+      <script src="../_static/documentation_options.js?v=6efca38a"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/tabs.js?v=3ee01567"></script>
@@ -84,6 +84,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../usage.html#prerequisites">Prerequisites</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../usage.html#installation">Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../usage.html#basic-concepts">Basic Concepts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../usage.html#environment-variables">Environment Variables</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../usage.html#configuration">Configuration</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../usage.html#creating-a-configuration-file">Creating a Configuration File</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../usage.html#key-configuration-parameters">Key Configuration Parameters</a></li>
@@ -143,6 +144,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../find_period.html#when-no-valid-solution-exists">When No Valid Solution Exists</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../find_period.html#cpm-resampling">CPM Resampling</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../find_period.html#see-also">See Also</a></li>
 </ul>
 </li>
@@ -156,6 +158,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../spline_cubic.html#implementation-details">Implementation Details</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../spline_cubic.html#core-algorithm">Core Algorithm</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../spline_cubic.html#code-structure">Code Structure</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../spline_cubic.html#cpm-resampling">CPM Resampling</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../spline_cubic.html#performance-analysis">Performance Analysis</a><ul>
@@ -183,44 +186,62 @@
 <li class="toctree-l2"><a class="reference internal" href="../architecture.html#components">Components</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../architecture.html#actordataset">ActorDataset</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../architecture.html#pointdataset">PointDataset</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../architecture.html#gapfiller">GapFiller</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../architecture.html#objectperceiveddataset">ObjectPerceivedDataset</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../architecture.html#numeric-bounds">numeric_bounds</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../architecture.html#stepadapterconfig">StepAdapterConfig</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../architecture.html#redis-streams-integration-step-redis">Redis Streams Integration (step_redis)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../architecture.html#redis-integration-step-redis">Redis Integration (step_redis)</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../architecture.html#steplogger">StepLogger</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../architecture.html#stepclierror">StepCliError</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../architecture.html#stepexception">StepException</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../architecture.html#main-application-main">Main Application (__main__)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../architecture.html#application-runtime-step-cloud-schemas">Application Runtime (step_cloud_schemas)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../architecture.html#stepadapterapp">StepAdapterApp</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../architecture.html#component-diagram">Component Diagram</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../architecture.html#class-diagram">Class Diagram</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../architecture.html#sequence-diagrams">Sequence Diagrams</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../architecture.html#position-data-processing-and-interpolation">Position Data Processing and Interpolation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../architecture.html#position-array-publishing-to-crash-prediction">Position Array Publishing to Crash Prediction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../architecture.html#cam-processing-and-interpolation">CAM Processing and Interpolation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../architecture.html#cpm-processing">CPM Processing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../architecture.html#periodic-cleanup">Periodic Cleanup</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../architecture.html#performance-considerations">Performance Considerations</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../architecture.html#data-structure-performance-characteristics">Data Structure Performance Characteristics</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../architecture.html#position-message-processing-performance">Position Message Processing Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../architecture.html#multi-actor-fleet-processing-performance">Multi-Actor Fleet Processing Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../architecture.html#actor-cleanup-and-memory-management-performance">Actor Cleanup and Memory Management Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../architecture.html#interpolation-algorithm-performance">Interpolation Algorithm Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../architecture.html#cam-message-processing">CAM Message Processing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../architecture.html#cpm-message-processing">CPM Message Processing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../architecture.html#actor-cleanup">Actor Cleanup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../architecture.html#memory">Memory</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../architecture.html#bottleneck-analysis">Bottleneck Analysis</a></li>
 </ul>
 </li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../docstring_coverage_report.html">API Documentation Coverage Summary</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../docstring_coverage_report.html#step-adapter-coverage">STEP Adapter coverage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../docstring_coverage_report.html#test-coverage">Test coverage</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../coverage_report.html">Test Coverage Summary</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="json_schemas.html">JSON Schemas</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="json_schemas.html#input-message-schema">Input Message Schema</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="cloud_events_step_adapter_schema.html">STEP Adapter Schema</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="cloud_events_step_adapter_schema.html#cloud-event-step-adapter">Cloud Event STEP Adapter</a><ul>
 <li class="toctree-l5"><a class="reference internal" href="cloud_events_step_adapter_schema.html#acceleration-component">Acceleration Component</a></li>
 <li class="toctree-l5"><a class="reference internal" href="cloud_events_step_adapter_schema.html#cloud-event-cam-data-v1">Cloud Event Cam Data V1</a></li>
+<li class="toctree-l5"><a class="reference internal" href="cloud_events_step_adapter_schema.html#cloud-event-cpm-data-v1">Cloud Event CPM Data V1</a></li>
 <li class="toctree-l5"><a class="reference internal" href="cloud_events_step_adapter_schema.html#reference-altitude">Reference Altitude</a></li>
 <li class="toctree-l5"><a class="reference internal" href="cloud_events_step_adapter_schema.html#cam-data-version-1">CAM Data Version 1</a></li>
+<li class="toctree-l5"><a class="reference internal" href="cloud_events_step_adapter_schema.html#cpm-data-version-1">CPM Data Version 1</a></li>
 <li class="toctree-l5"><a class="reference internal" href="cloud_events_step_adapter_schema.html#curvature">Curvature</a></li>
 <li class="toctree-l5"><a class="reference internal" href="cloud_events_step_adapter_schema.html#curvature-calculation-mode">Curvature Calculation Mode</a></li>
 <li class="toctree-l5"><a class="reference internal" href="cloud_events_step_adapter_schema.html#cloud-event-data-content-types">Cloud Event Data Content Types</a></li>
 <li class="toctree-l5"><a class="reference internal" href="cloud_events_step_adapter_schema.html#drive-direction">Drive Direction</a></li>
 <li class="toctree-l5"><a class="reference internal" href="cloud_events_step_adapter_schema.html#heading">Heading</a></li>
 <li class="toctree-l5"><a class="reference internal" href="cloud_events_step_adapter_schema.html#identification">Identification</a></li>
+<li class="toctree-l5"><a class="reference internal" href="cloud_events_step_adapter_schema.html#object-dimension">Object Dimension</a></li>
+<li class="toctree-l5"><a class="reference internal" href="cloud_events_step_adapter_schema.html#path-point-predicted">Path Point Predicted</a></li>
+<li class="toctree-l5"><a class="reference internal" href="cloud_events_step_adapter_schema.html#perceived-object">Perceived Object</a></li>
 <li class="toctree-l5"><a class="reference internal" href="cloud_events_step_adapter_schema.html#position-confidence-ellipse">Position Confidence Ellipse</a></li>
 <li class="toctree-l5"><a class="reference internal" href="cloud_events_step_adapter_schema.html#reference-position">Reference Position</a></li>
 <li class="toctree-l5"><a class="reference internal" href="cloud_events_step_adapter_schema.html#cloudevents-specification-version">CloudEvents Specification Version</a></li>
@@ -250,6 +271,7 @@
 <li class="toctree-l5"><a class="reference internal" href="cloud_events_step_crash_prediction_schema.html#position-info">Position Info</a></li>
 <li class="toctree-l5"><a class="reference internal" href="cloud_events_step_crash_prediction_schema.html#position-type">Position Type</a></li>
 <li class="toctree-l5"><a class="reference internal" href="cloud_events_step_crash_prediction_schema.html#reference-position">Reference Position</a></li>
+<li class="toctree-l5"><a class="reference internal" href="cloud_events_step_crash_prediction_schema.html#source-type">Source Type</a></li>
 <li class="toctree-l5"><a class="reference internal" href="cloud_events_step_crash_prediction_schema.html#cloudevents-specification-version">CloudEvents Specification Version</a></li>
 <li class="toctree-l5"><a class="reference internal" href="cloud_events_step_crash_prediction_schema.html#speed">Speed</a></li>
 <li class="toctree-l5"><a class="reference internal" href="cloud_events_step_crash_prediction_schema.html#traffic-participant-type">Traffic Participant Type</a></li>
@@ -323,17 +345,6 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../step_adapter_rst/step_adapter.html">step_adapter package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../step_adapter_rst/step_adapter.html#submodules">Submodules</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../step_adapter_rst/step_adapter.__main__.html">step_adapter.__main__ module</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../step_adapter_rst/step_adapter.__main__.html#step_adapter.__main__.ExitCode"><code class="docutils literal notranslate"><span class="pre">ExitCode</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.__main__.html#step_adapter.__main__.ExitCode.OK"><code class="docutils literal notranslate"><span class="pre">ExitCode.OK</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.__main__.html#step_adapter.__main__.ExitCode.USAGE"><code class="docutils literal notranslate"><span class="pre">ExitCode.USAGE</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.__main__.html#step_adapter.__main__.ExitCode.ERROR"><code class="docutils literal notranslate"><span class="pre">ExitCode.ERROR</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.__main__.html#step_adapter.__main__.ExitCode.ABORTED"><code class="docutils literal notranslate"><span class="pre">ExitCode.ABORTED</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l4"><a class="reference internal" href="../step_adapter_rst/step_adapter.__main__.html#step_adapter.__main__.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
-</ul>
-</li>
 <li class="toctree-l3"><a class="reference internal" href="../step_adapter_rst/step_adapter.actor_dataset.html">step_adapter.actor_dataset module</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../step_adapter_rst/step_adapter.actor_dataset.html#step_adapter.actor_dataset.ActorDataset"><code class="docutils literal notranslate"><span class="pre">ActorDataset</span></code></a><ul>
 <li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.actor_dataset.html#step_adapter.actor_dataset.ActorDataset.config"><code class="docutils literal notranslate"><span class="pre">ActorDataset.config</span></code></a></li>
@@ -344,6 +355,7 @@
 </li>
 <li class="toctree-l4"><a class="reference internal" href="../step_adapter_rst/step_adapter.actor_dataset.html#step_adapter.actor_dataset.ActorDatasetConfig"><code class="docutils literal notranslate"><span class="pre">ActorDatasetConfig</span></code></a><ul>
 <li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.actor_dataset.html#step_adapter.actor_dataset.ActorDatasetConfig.input_max_point_number"><code class="docutils literal notranslate"><span class="pre">ActorDatasetConfig.input_max_point_number</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.actor_dataset.html#step_adapter.actor_dataset.ActorDatasetConfig.input_min_altitude_trailing_point_percent"><code class="docutils literal notranslate"><span class="pre">ActorDatasetConfig.input_min_altitude_trailing_point_percent</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.actor_dataset.html#step_adapter.actor_dataset.ActorDatasetConfig.input_max_period_ms"><code class="docutils literal notranslate"><span class="pre">ActorDatasetConfig.input_max_period_ms</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.actor_dataset.html#step_adapter.actor_dataset.ActorDatasetConfig.input_max_local_time_deviation_ms"><code class="docutils literal notranslate"><span class="pre">ActorDatasetConfig.input_max_local_time_deviation_ms</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.actor_dataset.html#step_adapter.actor_dataset.ActorDatasetConfig.input_oldest_allowed_time_ms"><code class="docutils literal notranslate"><span class="pre">ActorDatasetConfig.input_oldest_allowed_time_ms</span></code></a></li>
@@ -353,13 +365,106 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../step_adapter_rst/step_adapter.gap_filler.html">step_adapter.gap_filler module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../step_adapter_rst/step_adapter.gap_filler.html#step_adapter.gap_filler.ChainMotion"><code class="docutils literal notranslate"><span class="pre">ChainMotion</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.gap_filler.html#step_adapter.gap_filler.ChainMotion.distance_heading"><code class="docutils literal notranslate"><span class="pre">ChainMotion.distance_heading</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.gap_filler.html#step_adapter.gap_filler.ChainMotion.time_diff_ms"><code class="docutils literal notranslate"><span class="pre">ChainMotion.time_diff_ms</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.gap_filler.html#step_adapter.gap_filler.ChainMotion.has_motion"><code class="docutils literal notranslate"><span class="pre">ChainMotion.has_motion</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.gap_filler.html#step_adapter.gap_filler.ChainMotion.speed_values"><code class="docutils literal notranslate"><span class="pre">ChainMotion.speed_values</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.gap_filler.html#step_adapter.gap_filler.ChainMotion.heading_values"><code class="docutils literal notranslate"><span class="pre">ChainMotion.heading_values</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../step_adapter_rst/step_adapter.gap_filler.html#step_adapter.gap_filler.GapFiller"><code class="docutils literal notranslate"><span class="pre">GapFiller</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.gap_filler.html#step_adapter.gap_filler.GapFiller.config_par"><code class="docutils literal notranslate"><span class="pre">GapFiller.config_par</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.gap_filler.html#step_adapter.gap_filler.GapFiller.logger"><code class="docutils literal notranslate"><span class="pre">GapFiller.logger</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.gap_filler.html#step_adapter.gap_filler.GapFiller.apply_motion"><code class="docutils literal notranslate"><span class="pre">GapFiller.apply_motion()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.gap_filler.html#step_adapter.gap_filler.GapFiller.config"><code class="docutils literal notranslate"><span class="pre">GapFiller.config</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.gap_filler.html#step_adapter.gap_filler.GapFiller.fill"><code class="docutils literal notranslate"><span class="pre">GapFiller.fill()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.gap_filler.html#step_adapter.gap_filler.GapFiller.interpolate"><code class="docutils literal notranslate"><span class="pre">GapFiller.interpolate()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.gap_filler.html#step_adapter.gap_filler.GapFiller.interpolation_timestamps"><code class="docutils literal notranslate"><span class="pre">GapFiller.interpolation_timestamps()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.gap_filler.html#step_adapter.gap_filler.GapFiller.optimal_period"><code class="docutils literal notranslate"><span class="pre">GapFiller.optimal_period()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.gap_filler.html#step_adapter.gap_filler.GapFiller.output_nominal_sample_frequency"><code class="docutils literal notranslate"><span class="pre">GapFiller.output_nominal_sample_frequency</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.gap_filler.html#step_adapter.gap_filler.GapFiller.resample"><code class="docutils literal notranslate"><span class="pre">GapFiller.resample()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../step_adapter_rst/step_adapter.gap_filler.html#step_adapter.gap_filler.GapFillerConfig"><code class="docutils literal notranslate"><span class="pre">GapFillerConfig</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.gap_filler.html#step_adapter.gap_filler.GapFillerConfig.input_min_altitude_trailing_point_percent"><code class="docutils literal notranslate"><span class="pre">GapFillerConfig.input_min_altitude_trailing_point_percent</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.gap_filler.html#step_adapter.gap_filler.GapFillerConfig.output_nominal_period_ms"><code class="docutils literal notranslate"><span class="pre">GapFillerConfig.output_nominal_period_ms</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.gap_filler.html#step_adapter.gap_filler.GapFillerConfig.output_max_period_deviation_ms"><code class="docutils literal notranslate"><span class="pre">GapFillerConfig.output_max_period_deviation_ms</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.gap_filler.html#step_adapter.gap_filler.GapFillerConfig.__post_init__"><code class="docutils literal notranslate"><span class="pre">GapFillerConfig.__post_init__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.gap_filler.html#step_adapter.gap_filler.GapFillerConfig.output_period_max_ms"><code class="docutils literal notranslate"><span class="pre">GapFillerConfig.output_period_max_ms</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.gap_filler.html#step_adapter.gap_filler.GapFillerConfig.output_period_min_ms"><code class="docutils literal notranslate"><span class="pre">GapFillerConfig.output_period_min_ms</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../step_adapter_rst/step_adapter.gap_filler.html#step_adapter.gap_filler.InterpolatedArrays"><code class="docutils literal notranslate"><span class="pre">InterpolatedArrays</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.gap_filler.html#step_adapter.gap_filler.InterpolatedArrays.times_ms"><code class="docutils literal notranslate"><span class="pre">InterpolatedArrays.times_ms</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.gap_filler.html#step_adapter.gap_filler.InterpolatedArrays.latitudes"><code class="docutils literal notranslate"><span class="pre">InterpolatedArrays.latitudes</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.gap_filler.html#step_adapter.gap_filler.InterpolatedArrays.longitudes"><code class="docutils literal notranslate"><span class="pre">InterpolatedArrays.longitudes</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.gap_filler.html#step_adapter.gap_filler.InterpolatedArrays.altitudes"><code class="docutils literal notranslate"><span class="pre">InterpolatedArrays.altitudes</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../step_adapter_rst/step_adapter.gap_filler.html#step_adapter.gap_filler.MotionValues"><code class="docutils literal notranslate"><span class="pre">MotionValues</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.gap_filler.html#step_adapter.gap_filler.MotionValues.speed"><code class="docutils literal notranslate"><span class="pre">MotionValues.speed</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.gap_filler.html#step_adapter.gap_filler.MotionValues.heading"><code class="docutils literal notranslate"><span class="pre">MotionValues.heading</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../step_adapter_rst/step_adapter.gap_filler.html#step_adapter.gap_filler.OptimalPeriod"><code class="docutils literal notranslate"><span class="pre">OptimalPeriod</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.gap_filler.html#step_adapter.gap_filler.OptimalPeriod.period_ms"><code class="docutils literal notranslate"><span class="pre">OptimalPeriod.period_ms</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.gap_filler.html#step_adapter.gap_filler.OptimalPeriod.interval_number"><code class="docutils literal notranslate"><span class="pre">OptimalPeriod.interval_number</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.gap_filler.html#step_adapter.gap_filler.OptimalPeriod.ideal"><code class="docutils literal notranslate"><span class="pre">OptimalPeriod.ideal</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../step_adapter_rst/step_adapter.numeric_bounds.html">step_adapter.numeric_bounds module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../step_adapter_rst/step_adapter.numeric_bounds.html#step_adapter.numeric_bounds.INPUT_LOCAL_TIME_MAX_DEVIATION_S_MAX"><code class="docutils literal notranslate"><span class="pre">INPUT_LOCAL_TIME_MAX_DEVIATION_S_MAX</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../step_adapter_rst/step_adapter.numeric_bounds.html#step_adapter.numeric_bounds.INPUT_LOCAL_TIME_MAX_DEVIATION_S_MIN"><code class="docutils literal notranslate"><span class="pre">INPUT_LOCAL_TIME_MAX_DEVIATION_S_MIN</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../step_adapter_rst/step_adapter.numeric_bounds.html#step_adapter.numeric_bounds.INPUT_MAX_PERIOD_MS_MAX"><code class="docutils literal notranslate"><span class="pre">INPUT_MAX_PERIOD_MS_MAX</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../step_adapter_rst/step_adapter.numeric_bounds.html#step_adapter.numeric_bounds.INPUT_MAX_PERIOD_MS_MIN"><code class="docutils literal notranslate"><span class="pre">INPUT_MAX_PERIOD_MS_MIN</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../step_adapter_rst/step_adapter.numeric_bounds.html#step_adapter.numeric_bounds.INPUT_MAX_POINT_NUMBER_MAX"><code class="docutils literal notranslate"><span class="pre">INPUT_MAX_POINT_NUMBER_MAX</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../step_adapter_rst/step_adapter.numeric_bounds.html#step_adapter.numeric_bounds.INPUT_MAX_POINT_NUMBER_MIN"><code class="docutils literal notranslate"><span class="pre">INPUT_MAX_POINT_NUMBER_MIN</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../step_adapter_rst/step_adapter.numeric_bounds.html#step_adapter.numeric_bounds.INPUT_MIN_ALTITUDE_TRAILING_POINT_PERCENT_MAX"><code class="docutils literal notranslate"><span class="pre">INPUT_MIN_ALTITUDE_TRAILING_POINT_PERCENT_MAX</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../step_adapter_rst/step_adapter.numeric_bounds.html#step_adapter.numeric_bounds.INPUT_MIN_ALTITUDE_TRAILING_POINT_PERCENT_MIN"><code class="docutils literal notranslate"><span class="pre">INPUT_MIN_ALTITUDE_TRAILING_POINT_PERCENT_MIN</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../step_adapter_rst/step_adapter.numeric_bounds.html#step_adapter.numeric_bounds.OUTPUT_MAX_PERIOD_DEVIATION_MS_MAX"><code class="docutils literal notranslate"><span class="pre">OUTPUT_MAX_PERIOD_DEVIATION_MS_MAX</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../step_adapter_rst/step_adapter.numeric_bounds.html#step_adapter.numeric_bounds.OUTPUT_MAX_PERIOD_DEVIATION_MS_MIN"><code class="docutils literal notranslate"><span class="pre">OUTPUT_MAX_PERIOD_DEVIATION_MS_MIN</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../step_adapter_rst/step_adapter.object_perceived_dataset.html">step_adapter.object_perceived_dataset module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../step_adapter_rst/step_adapter.object_perceived_dataset.html#step_adapter.object_perceived_dataset.ObjectPerceivedDataset"><code class="docutils literal notranslate"><span class="pre">ObjectPerceivedDataset</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.object_perceived_dataset.html#step_adapter.object_perceived_dataset.ObjectPerceivedDataset.config"><code class="docutils literal notranslate"><span class="pre">ObjectPerceivedDataset.config</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.object_perceived_dataset.html#step_adapter.object_perceived_dataset.ObjectPerceivedDataset.logger"><code class="docutils literal notranslate"><span class="pre">ObjectPerceivedDataset.logger</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.object_perceived_dataset.html#step_adapter.object_perceived_dataset.ObjectPerceivedDataset.add_cpm_message"><code class="docutils literal notranslate"><span class="pre">ObjectPerceivedDataset.add_cpm_message()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../step_adapter_rst/step_adapter.object_perceived_dataset.html#step_adapter.object_perceived_dataset.ObjectPerceivedDatasetConfig"><code class="docutils literal notranslate"><span class="pre">ObjectPerceivedDatasetConfig</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.object_perceived_dataset.html#step_adapter.object_perceived_dataset.ObjectPerceivedDatasetConfig.input_min_altitude_trailing_point_percent"><code class="docutils literal notranslate"><span class="pre">ObjectPerceivedDatasetConfig.input_min_altitude_trailing_point_percent</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.object_perceived_dataset.html#step_adapter.object_perceived_dataset.ObjectPerceivedDatasetConfig.output_nominal_sample_frequency"><code class="docutils literal notranslate"><span class="pre">ObjectPerceivedDatasetConfig.output_nominal_sample_frequency</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.object_perceived_dataset.html#step_adapter.object_perceived_dataset.ObjectPerceivedDatasetConfig.output_period_max_deviation_ms"><code class="docutils literal notranslate"><span class="pre">ObjectPerceivedDatasetConfig.output_period_max_deviation_ms</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../step_adapter_rst/step_adapter.point_dataset.html">step_adapter.point_dataset module</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.ChainMotion"><code class="docutils literal notranslate"><span class="pre">ChainMotion</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.ChainMotion.distance_heading"><code class="docutils literal notranslate"><span class="pre">ChainMotion.distance_heading</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.ChainMotion.time_diff_ms"><code class="docutils literal notranslate"><span class="pre">ChainMotion.time_diff_ms</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.ChainMotion.has_motion"><code class="docutils literal notranslate"><span class="pre">ChainMotion.has_motion</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.ChainMotion.speed_values"><code class="docutils literal notranslate"><span class="pre">ChainMotion.speed_values</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.ChainMotion.heading_values"><code class="docutils literal notranslate"><span class="pre">ChainMotion.heading_values</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.CoherenceAction"><code class="docutils literal notranslate"><span class="pre">CoherenceAction</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.CoherenceAction.ACCEPT"><code class="docutils literal notranslate"><span class="pre">CoherenceAction.ACCEPT</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.CoherenceAction.REJECT"><code class="docutils literal notranslate"><span class="pre">CoherenceAction.REJECT</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.CoherenceAction.RESTART"><code class="docutils literal notranslate"><span class="pre">CoherenceAction.RESTART</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.CoherenceCheck"><code class="docutils literal notranslate"><span class="pre">CoherenceCheck</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.CoherenceCheck.result"><code class="docutils literal notranslate"><span class="pre">CoherenceCheck.result</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.CoherenceCheck.distance_heading"><code class="docutils literal notranslate"><span class="pre">CoherenceCheck.distance_heading</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.CoherenceCheck.action"><code class="docutils literal notranslate"><span class="pre">CoherenceCheck.action</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.CoherenceInput"><code class="docutils literal notranslate"><span class="pre">CoherenceInput</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.CoherenceInput.new_record"><code class="docutils literal notranslate"><span class="pre">CoherenceInput.new_record</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.CoherenceInput.last_record"><code class="docutils literal notranslate"><span class="pre">CoherenceInput.last_record</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.CoherenceRule"><code class="docutils literal notranslate"><span class="pre">CoherenceRule</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.CoherenceRule.check"><code class="docutils literal notranslate"><span class="pre">CoherenceRule.check</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.CoherenceRule.failure_action"><code class="docutils literal notranslate"><span class="pre">CoherenceRule.failure_action</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l4"><a class="reference internal" href="../step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.InsertPointResult"><code class="docutils literal notranslate"><span class="pre">InsertPointResult</span></code></a><ul>
@@ -379,32 +484,46 @@
 <li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.PointDataset.actor"><code class="docutils literal notranslate"><span class="pre">PointDataset.actor</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.PointDataset.add_point"><code class="docutils literal notranslate"><span class="pre">PointDataset.add_point()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.PointDataset.last_record_time"><code class="docutils literal notranslate"><span class="pre">PointDataset.last_record_time</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.PointDataset.vehicle_length"><code class="docutils literal notranslate"><span class="pre">PointDataset.vehicle_length</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.PointDataset.vehicle_width"><code class="docutils literal notranslate"><span class="pre">PointDataset.vehicle_width</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l4"><a class="reference internal" href="../step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.PointDatasetConfig"><code class="docutils literal notranslate"><span class="pre">PointDatasetConfig</span></code></a><ul>
 <li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.PointDatasetConfig.input_max_point_number"><code class="docutils literal notranslate"><span class="pre">PointDatasetConfig.input_max_point_number</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.PointDatasetConfig.input_min_altitude_trailing_point_percent"><code class="docutils literal notranslate"><span class="pre">PointDatasetConfig.input_min_altitude_trailing_point_percent</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.PointDatasetConfig.input_max_period_ms"><code class="docutils literal notranslate"><span class="pre">PointDatasetConfig.input_max_period_ms</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.PointDatasetConfig.input_max_local_time_deviation_ms"><code class="docutils literal notranslate"><span class="pre">PointDatasetConfig.input_max_local_time_deviation_ms</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.PointDatasetConfig.output_nominal_period_ms"><code class="docutils literal notranslate"><span class="pre">PointDatasetConfig.output_nominal_period_ms</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.PointDatasetConfig.output_max_period_deviation_ms"><code class="docutils literal notranslate"><span class="pre">PointDatasetConfig.output_max_period_deviation_ms</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.PointDatasetConfig.__post_init__"><code class="docutils literal notranslate"><span class="pre">PointDatasetConfig.__post_init__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.point_dataset.html#step_adapter.point_dataset.PointDatasetConfig.gap_filler_config"><code class="docutils literal notranslate"><span class="pre">PointDatasetConfig.gap_filler_config()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_app.html">step_adapter.step_adapter_app module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_app.html#step_adapter.step_adapter_app.ExitCode"><code class="docutils literal notranslate"><span class="pre">ExitCode</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_app.html#step_adapter.step_adapter_app.ExitCode.OK"><code class="docutils literal notranslate"><span class="pre">ExitCode.OK</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_app.html#step_adapter.step_adapter_app.ExitCode.USAGE"><code class="docutils literal notranslate"><span class="pre">ExitCode.USAGE</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_app.html#step_adapter.step_adapter_app.ExitCode.ERROR"><code class="docutils literal notranslate"><span class="pre">ExitCode.ERROR</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_app.html#step_adapter.step_adapter_app.ExitCode.ABORTED"><code class="docutils literal notranslate"><span class="pre">ExitCode.ABORTED</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_app.html#step_adapter.step_adapter_app.StepAdapterApp"><code class="docutils literal notranslate"><span class="pre">StepAdapterApp</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_app.html#step_adapter.step_adapter_app.StepAdapterApp.instance_name"><code class="docutils literal notranslate"><span class="pre">StepAdapterApp.instance_name</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_app.html#step_adapter.step_adapter_app.StepAdapterApp.config"><code class="docutils literal notranslate"><span class="pre">StepAdapterApp.config</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_app.html#step_adapter.step_adapter_app.StepAdapterApp.logger"><code class="docutils literal notranslate"><span class="pre">StepAdapterApp.logger</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_app.html#step_adapter.step_adapter_app.StepAdapterApp.cycle"><code class="docutils literal notranslate"><span class="pre">StepAdapterApp.cycle()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_app.html#step_adapter.step_adapter_app.StepAdapterApp.fatal_result"><code class="docutils literal notranslate"><span class="pre">StepAdapterApp.fatal_result()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_app.html#step_adapter.step_adapter_app.StepAdapterApp.on_shutdown"><code class="docutils literal notranslate"><span class="pre">StepAdapterApp.on_shutdown()</span></code></a></li>
 </ul>
 </li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_config.html">step_adapter.step_adapter_config module</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.ConfigGenerateJsonSchema"><code class="docutils literal notranslate"><span class="pre">ConfigGenerateJsonSchema</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.ConfigGenerateJsonSchema.generate"><code class="docutils literal notranslate"><span class="pre">ConfigGenerateJsonSchema.generate()</span></code></a></li>
-</ul>
-</li>
 <li class="toctree-l4"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.NominalSampleFrequency"><code class="docutils literal notranslate"><span class="pre">NominalSampleFrequency</span></code></a><ul>
 <li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.NominalSampleFrequency.FREQUENCY_1"><code class="docutils literal notranslate"><span class="pre">NominalSampleFrequency.FREQUENCY_1</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.NominalSampleFrequency.FREQUENCY_2"><code class="docutils literal notranslate"><span class="pre">NominalSampleFrequency.FREQUENCY_2</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.NominalSampleFrequency.FREQUENCY_5"><code class="docutils literal notranslate"><span class="pre">NominalSampleFrequency.FREQUENCY_5</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.NominalSampleFrequency.FREQUENCY_10"><code class="docutils literal notranslate"><span class="pre">NominalSampleFrequency.FREQUENCY_10</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.NominalSampleFrequency.__get_pydantic_json_schema__"><code class="docutils literal notranslate"><span class="pre">NominalSampleFrequency.__get_pydantic_json_schema__()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l4"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisClientConfig"><code class="docutils literal notranslate"><span class="pre">RedisClientConfig</span></code></a><ul>
@@ -412,30 +531,6 @@
 <li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisClientConfig.streams"><code class="docutils literal notranslate"><span class="pre">RedisClientConfig.streams</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisClientConfig.get_default"><code class="docutils literal notranslate"><span class="pre">RedisClientConfig.get_default()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisClientConfig.model_config"><code class="docutils literal notranslate"><span class="pre">RedisClientConfig.model_config</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l4"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisConnection"><code class="docutils literal notranslate"><span class="pre">RedisConnection</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisConnection.host"><code class="docutils literal notranslate"><span class="pre">RedisConnection.host</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisConnection.port"><code class="docutils literal notranslate"><span class="pre">RedisConnection.port</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisConnection.username"><code class="docutils literal notranslate"><span class="pre">RedisConnection.username</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisConnection.password"><code class="docutils literal notranslate"><span class="pre">RedisConnection.password</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisConnection.db"><code class="docutils literal notranslate"><span class="pre">RedisConnection.db</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisConnection.socketTimeout"><code class="docutils literal notranslate"><span class="pre">RedisConnection.socketTimeout</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisConnection.socketConnectTimeout"><code class="docutils literal notranslate"><span class="pre">RedisConnection.socketConnectTimeout</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisConnection.socketKeepIdle"><code class="docutils literal notranslate"><span class="pre">RedisConnection.socketKeepIdle</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisConnection.socketKeepAlive"><code class="docutils literal notranslate"><span class="pre">RedisConnection.socketKeepAlive</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisConnection.socketKeepCnt"><code class="docutils literal notranslate"><span class="pre">RedisConnection.socketKeepCnt</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisConnection.sslEnable"><code class="docutils literal notranslate"><span class="pre">RedisConnection.sslEnable</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisConnection.sslClientKeyFile"><code class="docutils literal notranslate"><span class="pre">RedisConnection.sslClientKeyFile</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisConnection.sslClientKeyFilePassword"><code class="docutils literal notranslate"><span class="pre">RedisConnection.sslClientKeyFilePassword</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisConnection.sslClientCertFile"><code class="docutils literal notranslate"><span class="pre">RedisConnection.sslClientCertFile</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisConnection.sslCertRequested"><code class="docutils literal notranslate"><span class="pre">RedisConnection.sslCertRequested</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisConnection.sslCaCertsFile"><code class="docutils literal notranslate"><span class="pre">RedisConnection.sslCaCertsFile</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisConnection.healthCheckInterval"><code class="docutils literal notranslate"><span class="pre">RedisConnection.healthCheckInterval</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisConnection.connectionAvailableTimeout"><code class="docutils literal notranslate"><span class="pre">RedisConnection.connectionAvailableTimeout</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisConnection.protocol"><code class="docutils literal notranslate"><span class="pre">RedisConnection.protocol</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisConnection.get_default"><code class="docutils literal notranslate"><span class="pre">RedisConnection.get_default()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisConnection.model_config"><code class="docutils literal notranslate"><span class="pre">RedisConnection.model_config</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l4"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.RedisStreamInput"><code class="docutils literal notranslate"><span class="pre">RedisStreamInput</span></code></a><ul>
@@ -469,12 +564,12 @@
 <li class="toctree-l4"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.StepAdapterConfig"><code class="docutils literal notranslate"><span class="pre">StepAdapterConfig</span></code></a><ul>
 <li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.StepAdapterConfig.templateVersion"><code class="docutils literal notranslate"><span class="pre">StepAdapterConfig.templateVersion</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.StepAdapterConfig.maxActorHistoryPointNumber"><code class="docutils literal notranslate"><span class="pre">StepAdapterConfig.maxActorHistoryPointNumber</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.StepAdapterConfig.minActorHistoryAltitudeTrailingPointPercent"><code class="docutils literal notranslate"><span class="pre">StepAdapterConfig.minActorHistoryAltitudeTrailingPointPercent</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.StepAdapterConfig.inputMaxPeriod"><code class="docutils literal notranslate"><span class="pre">StepAdapterConfig.inputMaxPeriod</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.StepAdapterConfig.inputLocalTimeMaxDeviation"><code class="docutils literal notranslate"><span class="pre">StepAdapterConfig.inputLocalTimeMaxDeviation</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.StepAdapterConfig.inputOldestAllowedTime"><code class="docutils literal notranslate"><span class="pre">StepAdapterConfig.inputOldestAllowedTime</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.StepAdapterConfig.outputNominalSampleFrequency"><code class="docutils literal notranslate"><span class="pre">StepAdapterConfig.outputNominalSampleFrequency</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.StepAdapterConfig.outputPeriodMaxDeviation"><code class="docutils literal notranslate"><span class="pre">StepAdapterConfig.outputPeriodMaxDeviation</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.StepAdapterConfig.receiveClientNumber"><code class="docutils literal notranslate"><span class="pre">StepAdapterConfig.receiveClientNumber</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.StepAdapterConfig.cleanerInterval"><code class="docutils literal notranslate"><span class="pre">StepAdapterConfig.cleanerInterval</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.StepAdapterConfig.reconnectInterval"><code class="docutils literal notranslate"><span class="pre">StepAdapterConfig.reconnectInterval</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.StepAdapterConfig.redis"><code class="docutils literal notranslate"><span class="pre">StepAdapterConfig.redis</span></code></a></li>
@@ -505,6 +600,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../test_rst/file_compare/test.file_compare.html">test.file_compare package</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/file_compare/test.file_compare.html#structure">Structure</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/file_compare/test.file_compare.html#usage">Usage</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/file_compare/test.file_compare.html#test.file_compare.files_equal_as_text"><code class="docutils literal notranslate"><span class="pre">files_equal_as_text()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/file_compare/test.file_compare.html#subpackages">Subpackages</a><ul>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/file_compare/schemas/test.file_compare.schemas.html">test.file_compare.schemas package</a></li>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/file_compare/templates/test.file_compare.templates.html">test.file_compare.templates package</a></li>
@@ -516,132 +612,238 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../test_rst/test.html#submodules">Submodules</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../test_rst/test.test___init__.html">test.test___init__ module</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___init__.html#test.test___init__.test_package_exports"><code class="docutils literal notranslate"><span class="pre">test_package_exports()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___init__.html#test.test___init__.test_release_date"><code class="docutils literal notranslate"><span class="pre">test_release_date()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___init__.html#test.test___init__.test_version"><code class="docutils literal notranslate"><span class="pre">test_version()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___init__.html#test.test___init__.test___all__"><code class="docutils literal notranslate"><span class="pre">test___all__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___init__.html#test.test___init__.test___all___resolves"><code class="docutils literal notranslate"><span class="pre">test___all___resolves()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___init__.html#test.test___init__.test_constants"><code class="docutils literal notranslate"><span class="pre">test_constants()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../test_rst/test.test___main__.html">test.test___main__ module</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.TestExitCode"><code class="docutils literal notranslate"><span class="pre">TestExitCode</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.TestExitCode.test_enum_length"><code class="docutils literal notranslate"><span class="pre">TestExitCode.test_enum_length()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.TestExitCode.test_enum_values"><code class="docutils literal notranslate"><span class="pre">TestExitCode.test_enum_values()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.redis_stream_fixture"><code class="docutils literal notranslate"><span class="pre">redis_stream_fixture()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_args_parse"><code class="docutils literal notranslate"><span class="pre">test_args_parse()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_exception_handler"><code class="docutils literal notranslate"><span class="pre">test_exception_handler()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_get_config_schema_file"><code class="docutils literal notranslate"><span class="pre">test_get_config_schema_file()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_get_config_template_file"><code class="docutils literal notranslate"><span class="pre">test_get_config_template_file()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.MODULE"><code class="docutils literal notranslate"><span class="pre">MODULE</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.SCHEMA_FILE"><code class="docutils literal notranslate"><span class="pre">SCHEMA_FILE</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.TEMPLATE_FILE"><code class="docutils literal notranslate"><span class="pre">TEMPLATE_FILE</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test___main__"><code class="docutils literal notranslate"><span class="pre">test___main__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test__args_parse"><code class="docutils literal notranslate"><span class="pre">test__args_parse()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test__get_config_schema_file"><code class="docutils literal notranslate"><span class="pre">test__get_config_schema_file()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test__get_config_template_file"><code class="docutils literal notranslate"><span class="pre">test__get_config_template_file()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_main"><code class="docutils literal notranslate"><span class="pre">test_main()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_main_async"><code class="docutils literal notranslate"><span class="pre">test_main_async()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_main_interrupt_exception"><code class="docutils literal notranslate"><span class="pre">test_main_interrupt_exception()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_redis_params_convert"><code class="docutils literal notranslate"><span class="pre">test_redis_params_convert()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_signal_handler_raises_keyboard_interrupt"><code class="docutils literal notranslate"><span class="pre">test_signal_handler_raises_keyboard_interrupt()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_stream_cleaner_run"><code class="docutils literal notranslate"><span class="pre">test_stream_cleaner_run()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test___main__.html#test.test___main__.test_stream_receive_run"><code class="docutils literal notranslate"><span class="pre">test_stream_receive_run()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../test_rst/test.test_actor_dataset.html">test.test_actor_dataset module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_actor_dataset.html#test.test_actor_dataset.LATITUDE"><code class="docutils literal notranslate"><span class="pre">LATITUDE</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_actor_dataset.html#test.test_actor_dataset.LATITUDE_STEP"><code class="docutils literal notranslate"><span class="pre">LATITUDE_STEP</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_actor_dataset.html#test.test_actor_dataset.LONGITUDE"><code class="docutils literal notranslate"><span class="pre">LONGITUDE</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_actor_dataset.html#test.test_actor_dataset.TestActorDataset"><code class="docutils literal notranslate"><span class="pre">TestActorDataset</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_actor_dataset.html#test.test_actor_dataset.TestActorDataset.test___init__"><code class="docutils literal notranslate"><span class="pre">TestActorDataset.test___init__()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_actor_dataset.html#test.test_actor_dataset.TestActorDataset.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestActorDataset.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_actor_dataset.html#test.test_actor_dataset.TestActorDataset.test__cam_data_to_position_info"><code class="docutils literal notranslate"><span class="pre">TestActorDataset.test__cam_data_to_position_info()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_actor_dataset.html#test.test_actor_dataset.TestActorDataset.test__insert_point_dataset"><code class="docutils literal notranslate"><span class="pre">TestActorDataset.test__insert_point_dataset()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_actor_dataset.html#test.test_actor_dataset.TestActorDataset.test_add_cam_message"><code class="docutils literal notranslate"><span class="pre">TestActorDataset.test_add_cam_message()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_actor_dataset.html#test.test_actor_dataset.TestActorDataset.test_cam_data_to_position_info"><code class="docutils literal notranslate"><span class="pre">TestActorDataset.test_cam_data_to_position_info()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_actor_dataset.html#test.test_actor_dataset.TestActorDataset.test_clear_old_points"><code class="docutils literal notranslate"><span class="pre">TestActorDataset.test_clear_old_points()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_actor_dataset.html#test.test_actor_dataset.TestActorDataset.test_init"><code class="docutils literal notranslate"><span class="pre">TestActorDataset.test_init()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_actor_dataset.html#test.test_actor_dataset.TestActorDataset.test_insert_point_dataset"><code class="docutils literal notranslate"><span class="pre">TestActorDataset.test_insert_point_dataset()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_actor_dataset.html#test.test_actor_dataset.TestActorDataset.test_insert_point_dataset_error"><code class="docutils literal notranslate"><span class="pre">TestActorDataset.test_insert_point_dataset_error()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_actor_dataset.html#test.test_actor_dataset.TestActorDatasetConfig"><code class="docutils literal notranslate"><span class="pre">TestActorDatasetConfig</span></code></a><ul>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_actor_dataset.html#test.test_actor_dataset.TestActorDatasetConfig.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestActorDatasetConfig.test___slots__()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_actor_dataset.html#test.test_actor_dataset.TestActorDatasetConfig.test_data"><code class="docutils literal notranslate"><span class="pre">TestActorDatasetConfig.test_data()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_actor_dataset.html#test.test_actor_dataset.TestActorDatasetConfig.test_frozen"><code class="docutils literal notranslate"><span class="pre">TestActorDatasetConfig.test_frozen()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_actor_dataset.html#test.test_actor_dataset.now_ms_fixture"><code class="docutils literal notranslate"><span class="pre">now_ms_fixture()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../test_rst/test.test_gap_filler.html">test.test_gap_filler module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.ACTOR"><code class="docutils literal notranslate"><span class="pre">ACTOR</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.LATITUDE"><code class="docutils literal notranslate"><span class="pre">LATITUDE</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.LATITUDE_STEP"><code class="docutils literal notranslate"><span class="pre">LATITUDE_STEP</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.LONGITUDE"><code class="docutils literal notranslate"><span class="pre">LONGITUDE</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.OBJECT_ID"><code class="docutils literal notranslate"><span class="pre">OBJECT_ID</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.START_MS"><code class="docutils literal notranslate"><span class="pre">START_MS</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.STATION_ID"><code class="docutils literal notranslate"><span class="pre">STATION_ID</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.TestChainMotion"><code class="docutils literal notranslate"><span class="pre">TestChainMotion</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.TestChainMotion.test__fields"><code class="docutils literal notranslate"><span class="pre">TestChainMotion.test__fields()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller"><code class="docutils literal notranslate"><span class="pre">TestGapFiller</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test___init__"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test___init__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test__altitude_trailing_point_number"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test__altitude_trailing_point_number()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test__build_chain_positions"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test__build_chain_positions()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test__compute_chain_motion"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test__compute_chain_motion()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test__required_altitude_trailing_point_number"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test__required_altitude_trailing_point_number()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test__speed_heading_from_motion"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test__speed_heading_from_motion()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test__truncate_positions"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test__truncate_positions()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test__wrap_heading_values"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test__wrap_heading_values()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test__wrap_longitude_values"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test__wrap_longitude_values()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test_apply_motion"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test_apply_motion()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test_class_constants"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test_class_constants()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test_config"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test_config()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test_fill"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test_fill()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test_interpolate"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test_interpolate()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test_interpolation_timestamps"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test_interpolation_timestamps()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test_optimal_period"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test_optimal_period()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test_output_nominal_sample_frequency"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test_output_nominal_sample_frequency()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test_resample"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test_resample()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFillerConfig"><code class="docutils literal notranslate"><span class="pre">TestGapFillerConfig</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFillerConfig.test___post_init__"><code class="docutils literal notranslate"><span class="pre">TestGapFillerConfig.test___post_init__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFillerConfig.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestGapFillerConfig.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFillerConfig.test_class_constants"><code class="docutils literal notranslate"><span class="pre">TestGapFillerConfig.test_class_constants()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFillerConfig.test_output_period_max_ms"><code class="docutils literal notranslate"><span class="pre">TestGapFillerConfig.test_output_period_max_ms()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFillerConfig.test_output_period_min_ms"><code class="docutils literal notranslate"><span class="pre">TestGapFillerConfig.test_output_period_min_ms()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.TestInterpolatedArrays"><code class="docutils literal notranslate"><span class="pre">TestInterpolatedArrays</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.TestInterpolatedArrays.test__fields"><code class="docutils literal notranslate"><span class="pre">TestInterpolatedArrays.test__fields()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.TestMotionValues"><code class="docutils literal notranslate"><span class="pre">TestMotionValues</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.TestMotionValues.test__fields"><code class="docutils literal notranslate"><span class="pre">TestMotionValues.test__fields()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.TestOptimalPeriod"><code class="docutils literal notranslate"><span class="pre">TestOptimalPeriod</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.TestOptimalPeriod.test__fields"><code class="docutils literal notranslate"><span class="pre">TestOptimalPeriod.test__fields()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../test_rst/test.test_numeric_bounds.html">test.test_numeric_bounds module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_numeric_bounds.html#test.test_numeric_bounds.test_bounds"><code class="docutils literal notranslate"><span class="pre">test_bounds()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../test_rst/test.test_object_perceived_dataset.html">test.test_object_perceived_dataset module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_object_perceived_dataset.html#test.test_object_perceived_dataset.START_MS"><code class="docutils literal notranslate"><span class="pre">START_MS</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_object_perceived_dataset.html#test.test_object_perceived_dataset.TestObjectPerceivedDataset"><code class="docutils literal notranslate"><span class="pre">TestObjectPerceivedDataset</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_object_perceived_dataset.html#test.test_object_perceived_dataset.TestObjectPerceivedDataset.test___init__"><code class="docutils literal notranslate"><span class="pre">TestObjectPerceivedDataset.test___init__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_object_perceived_dataset.html#test.test_object_perceived_dataset.TestObjectPerceivedDataset.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestObjectPerceivedDataset.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_object_perceived_dataset.html#test.test_object_perceived_dataset.TestObjectPerceivedDataset.test__time_ordered_records"><code class="docutils literal notranslate"><span class="pre">TestObjectPerceivedDataset.test__time_ordered_records()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_object_perceived_dataset.html#test.test_object_perceived_dataset.TestObjectPerceivedDataset.test__to_position_array"><code class="docutils literal notranslate"><span class="pre">TestObjectPerceivedDataset.test__to_position_array()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_object_perceived_dataset.html#test.test_object_perceived_dataset.TestObjectPerceivedDataset.test_add_cpm_message"><code class="docutils literal notranslate"><span class="pre">TestObjectPerceivedDataset.test_add_cpm_message()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_object_perceived_dataset.html#test.test_object_perceived_dataset.TestObjectPerceivedDatasetConfig"><code class="docutils literal notranslate"><span class="pre">TestObjectPerceivedDatasetConfig</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_object_perceived_dataset.html#test.test_object_perceived_dataset.TestObjectPerceivedDatasetConfig.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestObjectPerceivedDatasetConfig.test___slots__()</span></code></a></li>
 </ul>
 </li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../test_rst/test.test_point_dataset.html">test.test_point_dataset module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.LATITUDE"><code class="docutils literal notranslate"><span class="pre">LATITUDE</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.LATITUDE_STEP"><code class="docutils literal notranslate"><span class="pre">LATITUDE_STEP</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.LONGITUDE"><code class="docutils literal notranslate"><span class="pre">LONGITUDE</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.STATION_ID"><code class="docutils literal notranslate"><span class="pre">STATION_ID</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.TestCoherenceAction"><code class="docutils literal notranslate"><span class="pre">TestCoherenceAction</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.TestCoherenceAction.test_value"><code class="docutils literal notranslate"><span class="pre">TestCoherenceAction.test_value()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.TestCoherenceCheck"><code class="docutils literal notranslate"><span class="pre">TestCoherenceCheck</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.TestCoherenceCheck.test__fields"><code class="docutils literal notranslate"><span class="pre">TestCoherenceCheck.test__fields()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.TestCoherenceCheck.test_action_default"><code class="docutils literal notranslate"><span class="pre">TestCoherenceCheck.test_action_default()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.TestCoherenceInput"><code class="docutils literal notranslate"><span class="pre">TestCoherenceInput</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.TestCoherenceInput.test__fields"><code class="docutils literal notranslate"><span class="pre">TestCoherenceInput.test__fields()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.TestCoherenceRule"><code class="docutils literal notranslate"><span class="pre">TestCoherenceRule</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.TestCoherenceRule.test__fields"><code class="docutils literal notranslate"><span class="pre">TestCoherenceRule.test__fields()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.TestInsertPointResult"><code class="docutils literal notranslate"><span class="pre">TestInsertPointResult</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.TestInsertPointResult.test_enum_length"><code class="docutils literal notranslate"><span class="pre">TestInsertPointResult.test_enum_length()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.TestInsertPointResult.test_enum_values"><code class="docutils literal notranslate"><span class="pre">TestInsertPointResult.test_enum_values()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.TestInsertPointResult.test_value"><code class="docutils literal notranslate"><span class="pre">TestInsertPointResult.test_value()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDataset"><code class="docutils literal notranslate"><span class="pre">TestPointDataset</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDataset.test___init__"><code class="docutils literal notranslate"><span class="pre">TestPointDataset.test___init__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDataset.test___repr__"><code class="docutils literal notranslate"><span class="pre">TestPointDataset.test___repr__()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDataset.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestPointDataset.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDataset.test___str__"><code class="docutils literal notranslate"><span class="pre">TestPointDataset.test___str__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDataset.test__check_local_time"><code class="docutils literal notranslate"><span class="pre">TestPointDataset.test__check_local_time()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDataset.test__check_maximum_period"><code class="docutils literal notranslate"><span class="pre">TestPointDataset.test__check_maximum_period()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDataset.test__check_minimum_period"><code class="docutils literal notranslate"><span class="pre">TestPointDataset.test__check_minimum_period()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDataset.test__check_position_coherence"><code class="docutils literal notranslate"><span class="pre">TestPointDataset.test__check_position_coherence()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDataset.test__check_speed"><code class="docutils literal notranslate"><span class="pre">TestPointDataset.test__check_speed()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDataset.test__check_speed_from_confirmed_history"><code class="docutils literal notranslate"><span class="pre">TestPointDataset.test__check_speed_from_confirmed_history()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDataset.test__check_speed_from_unconfirmed_history"><code class="docutils literal notranslate"><span class="pre">TestPointDataset.test__check_speed_from_unconfirmed_history()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDataset.test__clear_history"><code class="docutils literal notranslate"><span class="pre">TestPointDataset.test__clear_history()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDataset.test__create_positions_list"><code class="docutils literal notranslate"><span class="pre">TestPointDataset.test__create_positions_list()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDataset.test__populate_input_arrays"><code class="docutils literal notranslate"><span class="pre">TestPointDataset.test__populate_input_arrays()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDataset.test__seed_first_position"><code class="docutils literal notranslate"><span class="pre">TestPointDataset.test__seed_first_position()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDataset.test_actor"><code class="docutils literal notranslate"><span class="pre">TestPointDataset.test_actor()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDataset.test_add_point"><code class="docutils literal notranslate"><span class="pre">TestPointDataset.test_add_point()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDataset.test_apply_motion"><code class="docutils literal notranslate"><span class="pre">TestPointDataset.test_apply_motion()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDataset.test_check_position_coherence"><code class="docutils literal notranslate"><span class="pre">TestPointDataset.test_check_position_coherence()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDataset.test_clamp_latitude"><code class="docutils literal notranslate"><span class="pre">TestPointDataset.test_clamp_latitude()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDataset.test_clear_history"><code class="docutils literal notranslate"><span class="pre">TestPointDataset.test_clear_history()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDataset.test_create_interpolated_arrays"><code class="docutils literal notranslate"><span class="pre">TestPointDataset.test_create_interpolated_arrays()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDataset.test_create_interpolated_arrays_error"><code class="docutils literal notranslate"><span class="pre">TestPointDataset.test_create_interpolated_arrays_error()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDataset.test_create_interpolated_timestamp_array"><code class="docutils literal notranslate"><span class="pre">TestPointDataset.test_create_interpolated_timestamp_array()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDataset.test_create_positions_list_error"><code class="docutils literal notranslate"><span class="pre">TestPointDataset.test_create_positions_list_error()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDataset.test_create_positions_list_fast_path"><code class="docutils literal notranslate"><span class="pre">TestPointDataset.test_create_positions_list_fast_path()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDataset.test_create_positions_list_fast_path_missing_distance_heading"><code class="docutils literal notranslate"><span class="pre">TestPointDataset.test_create_positions_list_fast_path_missing_distance_heading()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDataset.test_create_positions_list_interpolation_path"><code class="docutils literal notranslate"><span class="pre">TestPointDataset.test_create_positions_list_interpolation_path()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDataset.test_find_optimal_period"><code class="docutils literal notranslate"><span class="pre">TestPointDataset.test_find_optimal_period()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDataset.test_initialization"><code class="docutils literal notranslate"><span class="pre">TestPointDataset.test_initialization()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDataset.test_class_constants"><code class="docutils literal notranslate"><span class="pre">TestPointDataset.test_class_constants()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDataset.test_last_record_time"><code class="docutils literal notranslate"><span class="pre">TestPointDataset.test_last_record_time()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDataset.test_repr"><code class="docutils literal notranslate"><span class="pre">TestPointDataset.test_repr()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDataset.test_speed_heading_from_motion"><code class="docutils literal notranslate"><span class="pre">TestPointDataset.test_speed_heading_from_motion()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDataset.test_str"><code class="docutils literal notranslate"><span class="pre">TestPointDataset.test_str()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDataset.test_vehicle_length"><code class="docutils literal notranslate"><span class="pre">TestPointDataset.test_vehicle_length()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDataset.test_vehicle_width"><code class="docutils literal notranslate"><span class="pre">TestPointDataset.test_vehicle_width()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDataset.test_wrap_longitude"><code class="docutils literal notranslate"><span class="pre">TestPointDataset.test_wrap_longitude()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDatasetConfig"><code class="docutils literal notranslate"><span class="pre">TestPointDatasetConfig</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDatasetConfig.test___post_init__"><code class="docutils literal notranslate"><span class="pre">TestPointDatasetConfig.test___post_init__()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDatasetConfig.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestPointDatasetConfig.test___slots__()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDatasetConfig.test_data"><code class="docutils literal notranslate"><span class="pre">TestPointDatasetConfig.test_data()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.TestPointDatasetConfig.test_gap_filler_config"><code class="docutils literal notranslate"><span class="pre">TestPointDatasetConfig.test_gap_filler_config()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_point_dataset.html#test.test_point_dataset.now_ms_fixture"><code class="docutils literal notranslate"><span class="pre">now_ms_fixture()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../test_rst/test.test_step_adapter_app.html">test.test_step_adapter_app module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_step_adapter_app.html#test.test_step_adapter_app.MODULE"><code class="docutils literal notranslate"><span class="pre">MODULE</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_step_adapter_app.html#test.test_step_adapter_app.TestExitCode"><code class="docutils literal notranslate"><span class="pre">TestExitCode</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_adapter_app.html#test.test_step_adapter_app.TestExitCode.test_value"><code class="docutils literal notranslate"><span class="pre">TestExitCode.test_value()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_step_adapter_app.html#test.test_step_adapter_app.TestStepAdapterApp"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterApp</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_adapter_app.html#test.test_step_adapter_app.TestStepAdapterApp.test___init__"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterApp.test___init__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_adapter_app.html#test.test_step_adapter_app.TestStepAdapterApp.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterApp.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_adapter_app.html#test.test_step_adapter_app.TestStepAdapterApp.test__actor_dataset_create"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterApp.test__actor_dataset_create()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_adapter_app.html#test.test_step_adapter_app.TestStepAdapterApp.test__cleaner_run"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterApp.test__cleaner_run()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_adapter_app.html#test.test_step_adapter_app.TestStepAdapterApp.test__crash_prediction_stream_params"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterApp.test__crash_prediction_stream_params()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_adapter_app.html#test.test_step_adapter_app.TestStepAdapterApp.test__input_stream_params"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterApp.test__input_stream_params()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_adapter_app.html#test.test_step_adapter_app.TestStepAdapterApp.test__message_to_position_arrays"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterApp.test__message_to_position_arrays()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_adapter_app.html#test.test_step_adapter_app.TestStepAdapterApp.test__perceived_dataset_create"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterApp.test__perceived_dataset_create()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_adapter_app.html#test.test_step_adapter_app.TestStepAdapterApp.test__redis_health_check_run"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterApp.test__redis_health_check_run()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_adapter_app.html#test.test_step_adapter_app.TestStepAdapterApp.test__stream_receive_run"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterApp.test__stream_receive_run()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_adapter_app.html#test.test_step_adapter_app.TestStepAdapterApp.test_class_constants"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterApp.test_class_constants()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_adapter_app.html#test.test_step_adapter_app.TestStepAdapterApp.test_cycle"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterApp.test_cycle()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_adapter_app.html#test.test_step_adapter_app.TestStepAdapterApp.test_fatal_result"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterApp.test_fatal_result()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_adapter_app.html#test.test_step_adapter_app.TestStepAdapterApp.test_on_shutdown"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterApp.test_on_shutdown()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_step_adapter_app.html#test.test_step_adapter_app.redis_env_fixture"><code class="docutils literal notranslate"><span class="pre">redis_env_fixture()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../test_rst/test.test_step_adapter_config.html">test.test_step_adapter_config module</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestConfigGenerateJsonSchema"><code class="docutils literal notranslate"><span class="pre">TestConfigGenerateJsonSchema</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestConfigGenerateJsonSchema.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestConfigGenerateJsonSchema.test___slots__()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestConfigGenerateJsonSchema.test_generate"><code class="docutils literal notranslate"><span class="pre">TestConfigGenerateJsonSchema.test_generate()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestConfigGenerateJsonSchema.test_generate_with_validation_mode"><code class="docutils literal notranslate"><span class="pre">TestConfigGenerateJsonSchema.test_generate_with_validation_mode()</span></code></a></li>
-</ul>
-</li>
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestNominalSampleFrequency"><code class="docutils literal notranslate"><span class="pre">TestNominalSampleFrequency</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestNominalSampleFrequency.test___get_pydantic_json_schema__"><code class="docutils literal notranslate"><span class="pre">TestNominalSampleFrequency.test___get_pydantic_json_schema__()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestNominalSampleFrequency.test_value"><code class="docutils literal notranslate"><span class="pre">TestNominalSampleFrequency.test_value()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestRedisClientConfig"><code class="docutils literal notranslate"><span class="pre">TestRedisClientConfig</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestRedisClientConfig.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestRedisClientConfig.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestRedisClientConfig.test__read_timeout_check"><code class="docutils literal notranslate"><span class="pre">TestRedisClientConfig.test__read_timeout_check()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestRedisClientConfig.test_get_default"><code class="docutils literal notranslate"><span class="pre">TestRedisClientConfig.test_get_default()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestRedisConnection"><code class="docutils literal notranslate"><span class="pre">TestRedisConnection</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestRedisConnection.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestRedisConnection.test___slots__()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestRedisConnection.test_get_default"><code class="docutils literal notranslate"><span class="pre">TestRedisConnection.test_get_default()</span></code></a></li>
-</ul>
-</li>
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestRedisStreamInput"><code class="docutils literal notranslate"><span class="pre">TestRedisStreamInput</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestRedisStreamInput.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestRedisStreamInput.test___slots__()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestRedisStreamInput.test_get_default"><code class="docutils literal notranslate"><span class="pre">TestRedisStreamInput.test_get_default()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestRedisStreamInput.test_model_validate_json"><code class="docutils literal notranslate"><span class="pre">TestRedisStreamInput.test_model_validate_json()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestRedisStreamOutput"><code class="docutils literal notranslate"><span class="pre">TestRedisStreamOutput</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestRedisStreamOutput.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestRedisStreamOutput.test___slots__()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestRedisStreamOutput.test_get_default"><code class="docutils literal notranslate"><span class="pre">TestRedisStreamOutput.test_get_default()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestRedisStreamOutput.test_model_validate_json"><code class="docutils literal notranslate"><span class="pre">TestRedisStreamOutput.test_model_validate_json()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestRedisStreamOutputs"><code class="docutils literal notranslate"><span class="pre">TestRedisStreamOutputs</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestRedisStreamOutputs.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestRedisStreamOutputs.test___slots__()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestRedisStreamOutputs.test_get_default"><code class="docutils literal notranslate"><span class="pre">TestRedisStreamOutputs.test_get_default()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestRedisStreamOutputs.test_model_validate_json"><code class="docutils literal notranslate"><span class="pre">TestRedisStreamOutputs.test_model_validate_json()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestRedisStreams"><code class="docutils literal notranslate"><span class="pre">TestRedisStreams</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestRedisStreams.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestRedisStreams.test___slots__()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestRedisStreams.test_get_default"><code class="docutils literal notranslate"><span class="pre">TestRedisStreams.test_get_default()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestRedisStreams.test_model_validate_json"><code class="docutils literal notranslate"><span class="pre">TestRedisStreams.test_model_validate_json()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestStepAdapterConfig"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterConfig</span></code></a><ul>
-<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestStepAdapterConfig.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterConfig.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestStepAdapterConfig.test_STEP_CONFIG_SCHEMA"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterConfig.test_STEP_CONFIG_SCHEMA()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestStepAdapterConfig.test_get_default"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterConfig.test_get_default()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestStepAdapterConfig.test_model_config_frozen"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterConfig.test_model_config_frozen()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestStepAdapterConfig.test_model_validate_json"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterConfig.test_model_validate_json()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestStepAdapterConfig.test_print_config_example"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterConfig.test_print_config_example()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestStepAdapterConfig.test_print_config_schema"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterConfig.test_print_config_schema()</span></code></a></li>
 </ul>
@@ -649,6 +851,17 @@
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestStepConfigVersion"><code class="docutils literal notranslate"><span class="pre">TestStepConfigVersion</span></code></a><ul>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestStepConfigVersion.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestStepConfigVersion.test___slots__()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_adapter_config.html#test.test_step_adapter_config.TestStepConfigVersion.test_value"><code class="docutils literal notranslate"><span class="pre">TestStepConfigVersion.test_value()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../test_rst/test.test_step_exception.html">test.test_step_exception module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_step_exception.html#test.test_step_exception.TestStepAdapterError"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterError</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_exception.html#test.test_step_exception.TestStepAdapterError.test___init__"><code class="docutils literal notranslate"><span class="pre">TestStepAdapterError.test___init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_step_exception.html#test.test_step_exception.TestStepCliError"><code class="docutils literal notranslate"><span class="pre">TestStepCliError</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_step_exception.html#test.test_step_exception.TestStepCliError.test___init__"><code class="docutils literal notranslate"><span class="pre">TestStepCliError.test___init__()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -699,20 +912,30 @@ class containing several nested configuration components for different aspects o
 <blockquote>
 <div><ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">templateVersion</span></code>: The version of the template (currently “1”)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">maxActorHistoryLength</span></code>: The maximum length of the actor’s history in seconds</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">outputNominalSampleFrequency</span></code>: The frequency of output nominal samples (Hz)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">periodMaxDeviationMs</span></code>: The maximum deviation for periodical updates (milliseconds)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">receiveClientNumber</span></code>: The number of clients to receive updates</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">cleanerInterval</span></code>: The interval for the cleaner task (seconds)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">reconnectInterval</span></code>: Time between reconnection attempts (seconds)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">maxActorHistoryPointNumber</span></code>: The maximum number of points in the actor’s history (5-30)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">minActorHistoryAltitudeTrailingPointPercent</span></code>: The minimum trailing run of points with
+altitude, as a percentage of the history points (or of the points of a CPM perceived
+object), needed to interpolate the altitude (0-100)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">inputMaxPeriod</span></code>: The maximum period between two positions of an actor (1000-4000 milliseconds)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">inputLocalTimeMaxDeviation</span></code>: The maximum deviation of the position time from the local
+time (0-30 seconds)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">inputOldestAllowedTime</span></code>: The maximum age of the last position of an actor before it is
+removed (0-30 seconds)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">outputNominalSampleFrequency</span></code>: The output frequency of the CAM and CPM position arrays
+(1, 2, 5 or 10 Hz)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">outputPeriodMaxDeviation</span></code>: The maximum deviation from the output period (0-50 milliseconds)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cleanerInterval</span></code>: The interval for the cleaner task (1-60 seconds)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">reconnectInterval</span></code>: Time between reconnection attempts (1-60 seconds)</p></li>
 </ul>
 </div></blockquote>
 </li>
 <li><p><strong>Redis Client Configuration</strong></p>
 <blockquote>
 <div><ul class="simple">
-<li><p>Connection parameters for message broker integration</p></li>
-<li><p>Security settings</p></li>
+<li><p>Connection parameters (database, timeouts, keepalive, pool); the host, port and
+credentials are read from the environment (see <a class="reference internal" href="../usage.html#step-adapter-credentials"><span class="std std-ref">Environment Variables</span></a>)</p></li>
+<li><p>Security settings (SSL/TLS)</p></li>
+<li><p>Input stream and crash prediction output stream</p></li>
 </ul>
 </div></blockquote>
 </li>
@@ -744,67 +967,64 @@ class containing several nested configuration components for different aspects o
 to the python classes.</p>
 <p>Example of the configuration schema:</p>
 <div class="highlight-JSON notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;templateVersion&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;1&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;maxActorHistoryPointNumber&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">15</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;inputMaxPeriod&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">3000</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;inputLocalTimeMaxDeviation&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;inputOldestAllowedTime&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">15</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;outputNominalSampleFrequency&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;outputPeriodMaxDeviation&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">25</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;receiveClientNumber&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;cleanerInterval&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">20</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;reconnectInterval&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;redis&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;connection&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="nt">&quot;host&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;localhost&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;port&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">6379</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;username&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;username&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;password&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;password&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;db&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;socketTimeout&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">30</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;socketConnectTimeout&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">30</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;socketKeepIdle&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">30</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;socketKeepAlive&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">30</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;socketKeepCnt&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;sslEnable&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;sslClientKeyFile&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;/path/to/client.key&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;sslClientKeyFilePassword&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;password&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;sslClientCertFile&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;/path/to/client.crt&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;sslCertRequested&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;sslCaCertsFile&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;/path/to/ca_certs_file.crt&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;healthCheckInterval&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">20</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;connectionAvailableTimeout&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;protocol&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span>
+<span class="w">  </span><span class="nt">"templateVersion"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"maxActorHistoryPointNumber"</span><span class="p">:</span><span class="w"> </span><span class="mi">15</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"minActorHistoryAltitudeTrailingPointPercent"</span><span class="p">:</span><span class="w"> </span><span class="mi">25</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"inputMaxPeriod"</span><span class="p">:</span><span class="w"> </span><span class="mi">3000</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"inputLocalTimeMaxDeviation"</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"inputOldestAllowedTime"</span><span class="p">:</span><span class="w"> </span><span class="mi">15</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"outputNominalSampleFrequency"</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"outputPeriodMaxDeviation"</span><span class="p">:</span><span class="w"> </span><span class="mi">25</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"cleanerInterval"</span><span class="p">:</span><span class="w"> </span><span class="mi">20</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"reconnectInterval"</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"redis"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"connection"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">"db"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"socketTimeout"</span><span class="p">:</span><span class="w"> </span><span class="mi">40</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"socketConnectTimeout"</span><span class="p">:</span><span class="w"> </span><span class="mi">30</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"socketKeepIdle"</span><span class="p">:</span><span class="w"> </span><span class="mi">30</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"socketKeepAlive"</span><span class="p">:</span><span class="w"> </span><span class="mi">30</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"socketKeepCnt"</span><span class="p">:</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"sslEnable"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"sslClientKeyFile"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/path/to/client.key"</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"sslClientKeyFilePassword"</span><span class="p">:</span><span class="w"> </span><span class="s2">"&lt;password&gt;"</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"sslClientCertFile"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/path/to/client.crt"</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"sslCertRequested"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"sslCaCertsFile"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/path/to/ca_certs_file.crt"</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"healthCheckInterval"</span><span class="p">:</span><span class="w"> </span><span class="mi">20</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"connectionAvailableTimeout"</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"protocol"</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"retryCount"</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span>
 <span class="w">    </span><span class="p">},</span>
-<span class="w">    </span><span class="nt">&quot;streams&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="nt">&quot;outputs&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;crashPrediction&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">          </span><span class="nt">&quot;streamId&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;stream id&quot;</span><span class="p">,</span>
-<span class="w">          </span><span class="nt">&quot;maxLength&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1000</span>
+<span class="w">    </span><span class="nt">"streams"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">"outputs"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"crashPrediction"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">"streamId"</span><span class="p">:</span><span class="w"> </span><span class="s2">"stream id"</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">"maxLength"</span><span class="p">:</span><span class="w"> </span><span class="mi">1000</span>
 <span class="w">        </span><span class="p">}</span>
 <span class="w">      </span><span class="p">},</span>
-<span class="w">      </span><span class="nt">&quot;input&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;streamId&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;stream id&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;groupId&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;group id&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;waitTimeout&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">30000</span>
+<span class="w">      </span><span class="nt">"input"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"streamId"</span><span class="p">:</span><span class="w"> </span><span class="s2">"stream id"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"groupId"</span><span class="p">:</span><span class="w"> </span><span class="s2">"group id"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"waitTimeout"</span><span class="p">:</span><span class="w"> </span><span class="mi">30000</span>
 <span class="w">      </span><span class="p">}</span>
 <span class="w">    </span><span class="p">}</span>
 <span class="w">  </span><span class="p">},</span>
-<span class="w">  </span><span class="nt">&quot;log&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;handlersConfig&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">  </span><span class="nt">"log"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"handlersConfig"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 <span class="w">      </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;handler&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">          </span><span class="nt">&quot;handlerType&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;file&quot;</span><span class="p">,</span>
-<span class="w">          </span><span class="nt">&quot;path&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;./log&quot;</span><span class="p">,</span>
-<span class="w">          </span><span class="nt">&quot;filenameTrailer&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;.log&quot;</span><span class="p">,</span>
-<span class="w">          </span><span class="nt">&quot;append&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
+<span class="w">        </span><span class="nt">"handler"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">"handlerType"</span><span class="p">:</span><span class="w"> </span><span class="s2">"file"</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">"path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"./log"</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">"filenameTrailer"</span><span class="p">:</span><span class="w"> </span><span class="s2">".log"</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">"append"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
 <span class="w">        </span><span class="p">},</span>
-<span class="w">        </span><span class="nt">&quot;level&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;INFO&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;format&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;%(asctime)s.%(msecs)03dZ [%(levelname)s][pid=%(process)d][module=%(module)s][function=%(funcName)s]: %(message)s&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;dateFormat&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;%Y-%m-%d %H:%M:%S&quot;</span>
+<span class="w">        </span><span class="nt">"level"</span><span class="p">:</span><span class="w"> </span><span class="s2">"INFO"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"%(asctime)s.%(msecs)03dZ [%(levelname)s][pid=%(process)d][module=%(module)s][function=%(funcName)s]: %(message)s"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"dateFormat"</span><span class="p">:</span><span class="w"> </span><span class="s2">"%Y-%m-%d %H:%M:%S"</span>
 <span class="w">      </span><span class="p">}</span>
 <span class="w">    </span><span class="p">],</span>
-<span class="w">    </span><span class="nt">&quot;globalLevel&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;INFO&quot;</span>
+<span class="w">    </span><span class="nt">"globalLevel"</span><span class="p">:</span><span class="w"> </span><span class="s2">"INFO"</span>
 <span class="w">  </span><span class="p">}</span>
 <span class="p">}</span>
 </pre></div>
@@ -814,7 +1034,7 @@ to the python classes.</p>
 <h2>JSON Schema<a class="headerlink" href="#json-schema" title="Link to this heading"></a></h2>
 <p id="step-adapter-config-schema">This is JSON Schema <strong>version 1</strong></p>
 <section id="step-adapter-configuration">
-<span id="step-adapter-configuration"></span><h3>STEP Adapter Configuration<a class="headerlink" href="#step-adapter-configuration" title="Link to this heading"></a></h3>
+<span id="id1"></span><h3>STEP Adapter Configuration<a class="headerlink" href="#step-adapter-configuration" title="Link to this heading"></a></h3>
 <p>STEP adapter configuration</p>
 <table class="docutils align-default">
 <tbody>
@@ -863,6 +1083,26 @@ to the python classes.</p>
 <td><p>5</p></td>
 </tr>
 <tr class="row-odd"><td rowspan="6"><ul class="simple">
+<li><p><strong>minActorHistoryAltitudeTrailingPointPercent</strong></p></li>
+</ul>
+</td>
+<td colspan="2"><p><em>Minimum Actor History Altitude Trailing Point Percent</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="2"><p>Minimum length, as a percentage of the actor’s history points, of the run of consecutive points with altitude ending at the newest point, needed to interpolate the altitude when some points lack it (at least 4 points)</p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td><p><em>integer</em></p></td>
+</tr>
+<tr class="row-even"><td><p>examples</p></td>
+<td><p>25</p></td>
+</tr>
+<tr class="row-odd"><td><p>maximum</p></td>
+<td><p>100</p></td>
+</tr>
+<tr class="row-even"><td><p>minimum</p></td>
+<td><p>0</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="6"><ul class="simple">
 <li><p><strong>inputMaxPeriod</strong></p></li>
 </ul>
 </td>
@@ -888,7 +1128,7 @@ to the python classes.</p>
 </td>
 <td colspan="2"><p><em>Input Maximum Local Time Deviation</em></p></td>
 </tr>
-<tr class="row-even"><td colspan="2"><p>Maximum local time deviation in seconds of input position period. If the time deviation between the position time and local system time exceeds this value, the data is discarded.</p></td>
+<tr class="row-even"><td colspan="2"><p>Maximum deviation in seconds between the position time and the local system time; a position beyond it is discarded.</p></td>
 </tr>
 <tr class="row-odd"><td><p>type</p></td>
 <td><p><em>integer</em></p></td>
@@ -908,7 +1148,7 @@ to the python classes.</p>
 </td>
 <td colspan="2"><p><em>Input Oldest Allowed Time</em></p></td>
 </tr>
-<tr class="row-even"><td colspan="2"><p>Oldest allowed time in seconds for input position data. If the position time is older than the current local system time minus this value, the data is discarded.</p></td>
+<tr class="row-even"><td colspan="2"><p>Oldest allowed time in seconds for the last position of an actor: the cleaner removes an actor whose last position is older than the current local system time minus this value.</p></td>
 </tr>
 <tr class="row-odd"><td><p>type</p></td>
 <td><p><em>integer</em></p></td>
@@ -933,7 +1173,7 @@ to the python classes.</p>
 <tr class="row-odd"><td><p>examples</p></td>
 <td><p>10</p></td>
 </tr>
-<tr class="row-even"><td colspan="2"><p><a class="reference internal" href="#nominal-sample-frequency">Nominal Sample Frequency</a></p></td>
+<tr class="row-even"><td colspan="2"><p><a class="reference internal" href="#id11">Nominal Sample Frequency</a></p></td>
 </tr>
 <tr class="row-odd"><td rowspan="6"><ul class="simple">
 <li><p><strong>outputPeriodMaxDeviation</strong></p></li>
@@ -954,26 +1194,6 @@ to the python classes.</p>
 </tr>
 <tr class="row-even"><td><p>minimum</p></td>
 <td><p>0</p></td>
-</tr>
-<tr class="row-odd"><td rowspan="6"><ul class="simple">
-<li><p><strong>receiveClientNumber</strong></p></li>
-</ul>
-</td>
-<td colspan="2"><p><em>Receive Client Number</em></p></td>
-</tr>
-<tr class="row-even"><td colspan="2"><p>Number of receive clients</p></td>
-</tr>
-<tr class="row-odd"><td><p>type</p></td>
-<td><p><em>integer</em></p></td>
-</tr>
-<tr class="row-even"><td><p>examples</p></td>
-<td><p>3</p></td>
-</tr>
-<tr class="row-odd"><td><p>maximum</p></td>
-<td><p>50</p></td>
-</tr>
-<tr class="row-even"><td><p>minimum</p></td>
-<td><p>1</p></td>
 </tr>
 <tr class="row-odd"><td rowspan="6"><ul class="simple">
 <li><p><strong>cleanerInterval</strong></p></li>
@@ -1001,7 +1221,7 @@ to the python classes.</p>
 </td>
 <td colspan="2"><p><em>Reconnection Interval</em></p></td>
 </tr>
-<tr class="row-even"><td colspan="2"><p>Reconnection interval in seconds</p></td>
+<tr class="row-even"><td colspan="2"><p>Reconnection interval in seconds (at least 1)</p></td>
 </tr>
 <tr class="row-odd"><td><p>type</p></td>
 <td><p><em>integer</em></p></td>
@@ -1010,30 +1230,30 @@ to the python classes.</p>
 <td><p>2</p></td>
 </tr>
 <tr class="row-odd"><td><p>maximum</p></td>
-<td><p>10</p></td>
+<td><p>60</p></td>
 </tr>
 <tr class="row-even"><td><p>minimum</p></td>
-<td><p>0</p></td>
+<td><p>1</p></td>
 </tr>
 <tr class="row-odd"><td><ul class="simple">
 <li><p><strong>redis</strong></p></li>
 </ul>
 </td>
-<td colspan="2"><p><a class="reference internal" href="#redis-configuration">Redis Configuration</a></p></td>
+<td colspan="2"><p><a class="reference internal" href="#id12">Redis Configuration</a></p></td>
 </tr>
 <tr class="row-even"><td><ul class="simple">
 <li><p><strong>log</strong></p></li>
 </ul>
 </td>
-<td colspan="2"><p><a class="reference internal" href="#log-configuration">Log Configuration</a></p></td>
+<td colspan="2"><p><a class="reference internal" href="#id2">Log Configuration</a></p></td>
 </tr>
 <tr class="row-odd"><td><p>additionalProperties</p></td>
-<td colspan="2"><p>False</p></td>
+<td colspan="2"><p>false</p></td>
 </tr>
 </tbody>
 </table>
 <section id="log-configuration">
-<span id="log-configuration"></span><h4>Log Configuration<a class="headerlink" href="#log-configuration" title="Link to this heading"></a></h4>
+<span id="id2"></span><h4>Log Configuration<a class="headerlink" href="#log-configuration" title="Link to this heading"></a></h4>
 <p>Log configuration</p>
 <table class="docutils align-default">
 <tbody>
@@ -1042,7 +1262,7 @@ to the python classes.</p>
 </tr>
 <tr class="row-even"><td colspan="3"><p>properties</p></td>
 </tr>
-<tr class="row-odd"><td rowspan="5"><ul class="simple">
+<tr class="row-odd"><td rowspan="6"><ul class="simple">
 <li><p><strong>handlersConfig</strong></p></li>
 </ul>
 </td>
@@ -1054,32 +1274,35 @@ to the python classes.</p>
 <td><p><em>array</em></p></td>
 </tr>
 <tr class="row-even"><td><p>items</p></td>
-<td><p><a class="reference internal" href="#log-handler-configuration">Log Handler Configuration</a></p></td>
+<td><p><a class="reference internal" href="#id4">Log Handler Configuration</a></p></td>
 </tr>
-<tr class="row-odd"><td><p>minItems</p></td>
+<tr class="row-odd"><td><p>maxItems</p></td>
+<td><p>10</p></td>
+</tr>
+<tr class="row-even"><td><p>minItems</p></td>
 <td><p>1</p></td>
 </tr>
-<tr class="row-even"><td rowspan="4"><ul class="simple">
+<tr class="row-odd"><td rowspan="4"><ul class="simple">
 <li><p><strong>globalLevel</strong></p></li>
 </ul>
 </td>
 <td colspan="2"><p><em>Log GlobalLevel</em></p></td>
 </tr>
-<tr class="row-odd"><td colspan="2"><p>Level of log</p></td>
+<tr class="row-even"><td colspan="2"><p>Level of log</p></td>
 </tr>
-<tr class="row-even"><td><p>examples</p></td>
+<tr class="row-odd"><td><p>examples</p></td>
 <td><p>INFO</p></td>
 </tr>
-<tr class="row-odd"><td colspan="2"><p><a class="reference internal" href="#logging-level">Logging Level</a></p></td>
+<tr class="row-even"><td colspan="2"><p><a class="reference internal" href="#id6">Logging Level</a></p></td>
 </tr>
-<tr class="row-even"><td><p>additionalProperties</p></td>
-<td colspan="2"><p>False</p></td>
+<tr class="row-odd"><td><p>additionalProperties</p></td>
+<td colspan="2"><p>false</p></td>
 </tr>
 </tbody>
 </table>
 </section>
 <section id="log-file-handler">
-<span id="log-file-handler"></span><h4>Log File Handler<a class="headerlink" href="#log-file-handler" title="Link to this heading"></a></h4>
+<span id="id3"></span><h4>Log File Handler<a class="headerlink" href="#log-file-handler" title="Link to this heading"></a></h4>
 <p>Log on file</p>
 <table class="docutils align-default">
 <tbody>
@@ -1105,7 +1328,7 @@ to the python classes.</p>
 <tr class="row-odd"><td><p>const</p></td>
 <td colspan="2"><p>file</p></td>
 </tr>
-<tr class="row-even"><td rowspan="5"><ul class="simple">
+<tr class="row-even"><td rowspan="6"><ul class="simple">
 <li><p><strong>path</strong></p></li>
 </ul>
 </td>
@@ -1119,23 +1342,29 @@ to the python classes.</p>
 <tr class="row-odd"><td><p>examples</p></td>
 <td colspan="2"><p>./log</p></td>
 </tr>
-<tr class="row-even"><td><p>minLength</p></td>
+<tr class="row-even"><td><p>maxLength</p></td>
+<td colspan="2"><p>1024</p></td>
+</tr>
+<tr class="row-odd"><td><p>minLength</p></td>
 <td colspan="2"><p>1</p></td>
 </tr>
-<tr class="row-odd"><td rowspan="6"><ul class="simple">
+<tr class="row-even"><td rowspan="7"><ul class="simple">
 <li><p><strong>filenameTrailer</strong></p></li>
 </ul>
 </td>
 <td colspan="3"><p><em>Log Filename Trailer</em></p></td>
 </tr>
-<tr class="row-even"><td colspan="3"><p>Trailer for the log filename</p></td>
+<tr class="row-odd"><td colspan="3"><p>Trailer for the log filename</p></td>
 </tr>
-<tr class="row-odd"><td><p>examples</p></td>
+<tr class="row-even"><td><p>examples</p></td>
 <td colspan="2"><p>.log</p></td>
 </tr>
-<tr class="row-even"><td rowspan="3"><p>anyOf</p></td>
+<tr class="row-odd"><td rowspan="4"><p>anyOf</p></td>
 <td><p>type</p></td>
 <td><p><em>string</em></p></td>
+</tr>
+<tr class="row-even"><td><p>maxLength</p></td>
+<td><p>1024</p></td>
 </tr>
 <tr class="row-odd"><td><p>minLength</p></td>
 <td><p>1</p></td>
@@ -1155,16 +1384,16 @@ to the python classes.</p>
 <td colspan="2"><p><em>boolean</em></p></td>
 </tr>
 <tr class="row-even"><td><p>examples</p></td>
-<td colspan="2"><p>True</p></td>
+<td colspan="2"><p>true</p></td>
 </tr>
 <tr class="row-odd"><td><p>additionalProperties</p></td>
-<td colspan="3"><p>False</p></td>
+<td colspan="3"><p>false</p></td>
 </tr>
 </tbody>
 </table>
 </section>
 <section id="log-handler-configuration">
-<span id="log-handler-configuration"></span><h4>Log Handler Configuration<a class="headerlink" href="#log-handler-configuration" title="Link to this heading"></a></h4>
+<span id="id4"></span><h4>Log Handler Configuration<a class="headerlink" href="#log-handler-configuration" title="Link to this heading"></a></h4>
 <p>Log handler configuration</p>
 <table class="docutils align-default">
 <tbody>
@@ -1182,15 +1411,15 @@ to the python classes.</p>
 <tr class="row-even"><td colspan="2"><p>Handler of log</p></td>
 </tr>
 <tr class="row-odd"><td rowspan="5"><p>oneOf</p></td>
-<td><p><a class="reference internal" href="#log-stream-handler">Log Stream Handler</a></p></td>
+<td><p><a class="reference internal" href="#id9">Log Stream Handler</a></p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#log-null-handler">Log Null Handler</a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#id7">Log Null Handler</a></p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#log-file-handler">Log File Handler</a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#id3">Log File Handler</a></p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#log-size-file-rotate-handler">Log Size File Rotate Handler</a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#id8">Log Size File Rotate Handler</a></p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#log-time-file-rotate-handler">Log Time File Rotate Handler</a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#id10">Log Time File Rotate Handler</a></p></td>
 </tr>
 <tr class="row-even"><td rowspan="4"><ul class="simple">
 <li><p><strong>level</strong></p></li>
@@ -1203,9 +1432,9 @@ to the python classes.</p>
 <tr class="row-even"><td><p>examples</p></td>
 <td><p>INFO</p></td>
 </tr>
-<tr class="row-odd"><td colspan="2"><p><a class="reference internal" href="#logging-level">Logging Level</a></p></td>
+<tr class="row-odd"><td colspan="2"><p><a class="reference internal" href="#id6">Logging Level</a></p></td>
 </tr>
-<tr class="row-even"><td rowspan="5"><ul class="simple">
+<tr class="row-even"><td rowspan="6"><ul class="simple">
 <li><p><strong>format</strong></p></li>
 </ul>
 </td>
@@ -1219,34 +1448,40 @@ to the python classes.</p>
 <tr class="row-odd"><td><p>examples</p></td>
 <td><p>%(asctime)s.%(msecs)03dZ [%(levelname)s][pid=%(process)d][module=%(module)s][function=%(funcName)s]: %(message)s</p></td>
 </tr>
-<tr class="row-even"><td><p>minLength</p></td>
+<tr class="row-even"><td><p>maxLength</p></td>
+<td><p>1024</p></td>
+</tr>
+<tr class="row-odd"><td><p>minLength</p></td>
 <td><p>1</p></td>
 </tr>
-<tr class="row-odd"><td rowspan="5"><ul class="simple">
+<tr class="row-even"><td rowspan="6"><ul class="simple">
 <li><p><strong>dateFormat</strong></p></li>
 </ul>
 </td>
 <td colspan="2"><p><em>Log Date Format</em></p></td>
 </tr>
-<tr class="row-even"><td colspan="2"><p>Date format of log</p></td>
+<tr class="row-odd"><td colspan="2"><p>Date format of log</p></td>
 </tr>
-<tr class="row-odd"><td><p>type</p></td>
+<tr class="row-even"><td><p>type</p></td>
 <td><p><em>string</em></p></td>
 </tr>
-<tr class="row-even"><td><p>examples</p></td>
+<tr class="row-odd"><td><p>examples</p></td>
 <td><p>%Y-%m-%d %H:%M:%S</p></td>
+</tr>
+<tr class="row-even"><td><p>maxLength</p></td>
+<td><p>1024</p></td>
 </tr>
 <tr class="row-odd"><td><p>minLength</p></td>
 <td><p>1</p></td>
 </tr>
 <tr class="row-even"><td><p>additionalProperties</p></td>
-<td colspan="2"><p>False</p></td>
+<td colspan="2"><p>false</p></td>
 </tr>
 </tbody>
 </table>
 </section>
 <section id="log-interval-type">
-<span id="log-interval-type"></span><h4>Log Interval Type<a class="headerlink" href="#log-interval-type" title="Link to this heading"></a></h4>
+<span id="id5"></span><h4>Log Interval Type<a class="headerlink" href="#log-interval-type" title="Link to this heading"></a></h4>
 <p>Log interval type</p>
 <table class="docutils align-default">
 <tbody>
@@ -1260,7 +1495,7 @@ to the python classes.</p>
 </table>
 </section>
 <section id="logging-level">
-<span id="logging-level"></span><h4>Logging Level<a class="headerlink" href="#logging-level" title="Link to this heading"></a></h4>
+<span id="id6"></span><h4>Logging Level<a class="headerlink" href="#logging-level" title="Link to this heading"></a></h4>
 <p>Level used for logging</p>
 <table class="docutils align-default">
 <tbody>
@@ -1274,7 +1509,7 @@ to the python classes.</p>
 </table>
 </section>
 <section id="log-null-handler">
-<span id="log-null-handler"></span><h4>Log Null Handler<a class="headerlink" href="#log-null-handler" title="Link to this heading"></a></h4>
+<span id="id7"></span><h4>Log Null Handler<a class="headerlink" href="#log-null-handler" title="Link to this heading"></a></h4>
 <p>Log on null stream</p>
 <table class="docutils align-default">
 <tbody>
@@ -1301,13 +1536,13 @@ to the python classes.</p>
 <td><p>null</p></td>
 </tr>
 <tr class="row-even"><td><p>additionalProperties</p></td>
-<td colspan="2"><p>False</p></td>
+<td colspan="2"><p>false</p></td>
 </tr>
 </tbody>
 </table>
 </section>
 <section id="log-size-file-rotate-handler">
-<span id="log-size-file-rotate-handler"></span><h4>Log Size File Rotate Handler<a class="headerlink" href="#log-size-file-rotate-handler" title="Link to this heading"></a></h4>
+<span id="id8"></span><h4>Log Size File Rotate Handler<a class="headerlink" href="#log-size-file-rotate-handler" title="Link to this heading"></a></h4>
 <p>Log on file and rotate by size</p>
 <table class="docutils align-default">
 <tbody>
@@ -1333,7 +1568,7 @@ to the python classes.</p>
 <tr class="row-odd"><td><p>const</p></td>
 <td colspan="2"><p>sizeFileRotate</p></td>
 </tr>
-<tr class="row-even"><td rowspan="5"><ul class="simple">
+<tr class="row-even"><td rowspan="6"><ul class="simple">
 <li><p><strong>path</strong></p></li>
 </ul>
 </td>
@@ -1347,23 +1582,29 @@ to the python classes.</p>
 <tr class="row-odd"><td><p>examples</p></td>
 <td colspan="2"><p>./log</p></td>
 </tr>
-<tr class="row-even"><td><p>minLength</p></td>
+<tr class="row-even"><td><p>maxLength</p></td>
+<td colspan="2"><p>1024</p></td>
+</tr>
+<tr class="row-odd"><td><p>minLength</p></td>
 <td colspan="2"><p>1</p></td>
 </tr>
-<tr class="row-odd"><td rowspan="6"><ul class="simple">
+<tr class="row-even"><td rowspan="7"><ul class="simple">
 <li><p><strong>filenameTrailer</strong></p></li>
 </ul>
 </td>
 <td colspan="3"><p><em>Log Filename Trailer</em></p></td>
 </tr>
-<tr class="row-even"><td colspan="3"><p>Trailer for the log filename</p></td>
+<tr class="row-odd"><td colspan="3"><p>Trailer for the log filename</p></td>
 </tr>
-<tr class="row-odd"><td><p>examples</p></td>
+<tr class="row-even"><td><p>examples</p></td>
 <td colspan="2"><p>.log</p></td>
 </tr>
-<tr class="row-even"><td rowspan="3"><p>anyOf</p></td>
+<tr class="row-odd"><td rowspan="4"><p>anyOf</p></td>
 <td><p>type</p></td>
 <td><p><em>string</em></p></td>
+</tr>
+<tr class="row-even"><td><p>maxLength</p></td>
+<td><p>1024</p></td>
 </tr>
 <tr class="row-odd"><td><p>minLength</p></td>
 <td><p>1</p></td>
@@ -1383,9 +1624,9 @@ to the python classes.</p>
 <td colspan="2"><p><em>boolean</em></p></td>
 </tr>
 <tr class="row-even"><td><p>examples</p></td>
-<td colspan="2"><p>True</p></td>
+<td colspan="2"><p>true</p></td>
 </tr>
-<tr class="row-odd"><td rowspan="5"><ul class="simple">
+<tr class="row-odd"><td rowspan="6"><ul class="simple">
 <li><p><strong>maxBytes</strong></p></li>
 </ul>
 </td>
@@ -1399,34 +1640,40 @@ to the python classes.</p>
 <tr class="row-even"><td><p>examples</p></td>
 <td colspan="2"><p>1048576</p></td>
 </tr>
-<tr class="row-odd"><td><p>minimum</p></td>
+<tr class="row-odd"><td><p>maximum</p></td>
+<td colspan="2"><p>1073741824</p></td>
+</tr>
+<tr class="row-even"><td><p>minimum</p></td>
 <td colspan="2"><p>0</p></td>
 </tr>
-<tr class="row-even"><td rowspan="5"><ul class="simple">
+<tr class="row-odd"><td rowspan="6"><ul class="simple">
 <li><p><strong>backupCount</strong></p></li>
 </ul>
 </td>
 <td colspan="3"><p><em>Backup Count</em></p></td>
 </tr>
-<tr class="row-odd"><td colspan="3"><p>Number of backup log files to keep</p></td>
+<tr class="row-even"><td colspan="3"><p>Number of backup log files to keep</p></td>
 </tr>
-<tr class="row-even"><td><p>type</p></td>
+<tr class="row-odd"><td><p>type</p></td>
 <td colspan="2"><p><em>integer</em></p></td>
 </tr>
-<tr class="row-odd"><td><p>examples</p></td>
+<tr class="row-even"><td><p>examples</p></td>
 <td colspan="2"><p>5</p></td>
+</tr>
+<tr class="row-odd"><td><p>maximum</p></td>
+<td colspan="2"><p>1000</p></td>
 </tr>
 <tr class="row-even"><td><p>minimum</p></td>
 <td colspan="2"><p>0</p></td>
 </tr>
 <tr class="row-odd"><td><p>additionalProperties</p></td>
-<td colspan="3"><p>False</p></td>
+<td colspan="3"><p>false</p></td>
 </tr>
 </tbody>
 </table>
 </section>
 <section id="log-stream-handler">
-<span id="log-stream-handler"></span><h4>Log Stream Handler<a class="headerlink" href="#log-stream-handler" title="Link to this heading"></a></h4>
+<span id="id9"></span><h4>Log Stream Handler<a class="headerlink" href="#log-stream-handler" title="Link to this heading"></a></h4>
 <p>Log on output stream</p>
 <table class="docutils align-default">
 <tbody>
@@ -1453,13 +1700,13 @@ to the python classes.</p>
 <td><p>stream</p></td>
 </tr>
 <tr class="row-even"><td><p>additionalProperties</p></td>
-<td colspan="2"><p>False</p></td>
+<td colspan="2"><p>false</p></td>
 </tr>
 </tbody>
 </table>
 </section>
 <section id="log-time-file-rotate-handler">
-<span id="log-time-file-rotate-handler"></span><h4>Log Time File Rotate Handler<a class="headerlink" href="#log-time-file-rotate-handler" title="Link to this heading"></a></h4>
+<span id="id10"></span><h4>Log Time File Rotate Handler<a class="headerlink" href="#log-time-file-rotate-handler" title="Link to this heading"></a></h4>
 <p>Log on file and rotate by time</p>
 <table class="docutils align-default">
 <tbody>
@@ -1485,7 +1732,7 @@ to the python classes.</p>
 <tr class="row-odd"><td><p>const</p></td>
 <td colspan="2"><p>timeFileRotate</p></td>
 </tr>
-<tr class="row-even"><td rowspan="5"><ul class="simple">
+<tr class="row-even"><td rowspan="6"><ul class="simple">
 <li><p><strong>path</strong></p></li>
 </ul>
 </td>
@@ -1499,23 +1746,29 @@ to the python classes.</p>
 <tr class="row-odd"><td><p>examples</p></td>
 <td colspan="2"><p>./log</p></td>
 </tr>
-<tr class="row-even"><td><p>minLength</p></td>
+<tr class="row-even"><td><p>maxLength</p></td>
+<td colspan="2"><p>1024</p></td>
+</tr>
+<tr class="row-odd"><td><p>minLength</p></td>
 <td colspan="2"><p>1</p></td>
 </tr>
-<tr class="row-odd"><td rowspan="6"><ul class="simple">
+<tr class="row-even"><td rowspan="7"><ul class="simple">
 <li><p><strong>filenameTrailer</strong></p></li>
 </ul>
 </td>
 <td colspan="3"><p><em>Log Filename Trailer</em></p></td>
 </tr>
-<tr class="row-even"><td colspan="3"><p>Trailer for the log filename</p></td>
+<tr class="row-odd"><td colspan="3"><p>Trailer for the log filename</p></td>
 </tr>
-<tr class="row-odd"><td><p>examples</p></td>
+<tr class="row-even"><td><p>examples</p></td>
 <td colspan="2"><p>.log</p></td>
 </tr>
-<tr class="row-even"><td rowspan="3"><p>anyOf</p></td>
+<tr class="row-odd"><td rowspan="4"><p>anyOf</p></td>
 <td><p>type</p></td>
 <td><p><em>string</em></p></td>
+</tr>
+<tr class="row-even"><td><p>maxLength</p></td>
+<td><p>1024</p></td>
 </tr>
 <tr class="row-odd"><td><p>minLength</p></td>
 <td><p>1</p></td>
@@ -1535,7 +1788,7 @@ to the python classes.</p>
 <td colspan="2"><p><em>boolean</em></p></td>
 </tr>
 <tr class="row-even"><td><p>examples</p></td>
-<td colspan="2"><p>True</p></td>
+<td colspan="2"><p>true</p></td>
 </tr>
 <tr class="row-odd"><td rowspan="4"><ul class="simple">
 <li><p><strong>intervalType</strong></p></li>
@@ -1548,9 +1801,9 @@ to the python classes.</p>
 <tr class="row-odd"><td><p>examples</p></td>
 <td colspan="2"><p>days</p></td>
 </tr>
-<tr class="row-even"><td colspan="3"><p><a class="reference internal" href="#log-interval-type">Log Interval Type</a></p></td>
+<tr class="row-even"><td colspan="3"><p><a class="reference internal" href="#id5">Log Interval Type</a></p></td>
 </tr>
-<tr class="row-odd"><td rowspan="5"><ul class="simple">
+<tr class="row-odd"><td rowspan="6"><ul class="simple">
 <li><p><strong>interval</strong></p></li>
 </ul>
 </td>
@@ -1564,34 +1817,40 @@ to the python classes.</p>
 <tr class="row-even"><td><p>examples</p></td>
 <td colspan="2"><p>5</p></td>
 </tr>
-<tr class="row-odd"><td><p>minimum</p></td>
-<td colspan="2"><p>0</p></td>
+<tr class="row-odd"><td><p>maximum</p></td>
+<td colspan="2"><p>1000</p></td>
 </tr>
-<tr class="row-even"><td rowspan="5"><ul class="simple">
+<tr class="row-even"><td><p>minimum</p></td>
+<td colspan="2"><p>1</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="6"><ul class="simple">
 <li><p><strong>backupCount</strong></p></li>
 </ul>
 </td>
 <td colspan="3"><p><em>Backup Count</em></p></td>
 </tr>
-<tr class="row-odd"><td colspan="3"><p>Number of backup log files to keep</p></td>
+<tr class="row-even"><td colspan="3"><p>Number of backup log files to keep</p></td>
 </tr>
-<tr class="row-even"><td><p>type</p></td>
+<tr class="row-odd"><td><p>type</p></td>
 <td colspan="2"><p><em>integer</em></p></td>
 </tr>
-<tr class="row-odd"><td><p>examples</p></td>
+<tr class="row-even"><td><p>examples</p></td>
 <td colspan="2"><p>5</p></td>
+</tr>
+<tr class="row-odd"><td><p>maximum</p></td>
+<td colspan="2"><p>1000</p></td>
 </tr>
 <tr class="row-even"><td><p>minimum</p></td>
 <td colspan="2"><p>0</p></td>
 </tr>
 <tr class="row-odd"><td><p>additionalProperties</p></td>
-<td colspan="3"><p>False</p></td>
+<td colspan="3"><p>false</p></td>
 </tr>
 </tbody>
 </table>
 </section>
 <section id="nominal-sample-frequency">
-<span id="nominal-sample-frequency"></span><h4>Nominal Sample Frequency<a class="headerlink" href="#nominal-sample-frequency" title="Link to this heading"></a></h4>
+<span id="id11"></span><h4>Nominal Sample Frequency<a class="headerlink" href="#nominal-sample-frequency" title="Link to this heading"></a></h4>
 <p>Specifies the nominal sample frequency in Hertz (Hz)</p>
 <table class="docutils align-default">
 <tbody>
@@ -1605,7 +1864,7 @@ to the python classes.</p>
 </table>
 </section>
 <section id="redis-configuration">
-<span id="redis-configuration"></span><h4>Redis Configuration<a class="headerlink" href="#redis-configuration" title="Link to this heading"></a></h4>
+<span id="id12"></span><h4>Redis Configuration<a class="headerlink" href="#redis-configuration" title="Link to this heading"></a></h4>
 <p>Redis configuration</p>
 <table class="docutils align-default">
 <tbody>
@@ -1620,7 +1879,7 @@ to the python classes.</p>
 </td>
 <td><p><em>Redis Connection</em></p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#redis-connection-configuration">Redis Connection Configuration</a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#id13">Redis Connection Configuration</a></p></td>
 </tr>
 <tr class="row-odd"><td rowspan="2"><ul class="simple">
 <li><p><strong>streams</strong></p></li>
@@ -1628,16 +1887,16 @@ to the python classes.</p>
 </td>
 <td><p><em>Redis Stream</em></p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#redis-stream-configuration">Redis Stream Configuration</a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#id17">Redis Stream Configuration</a></p></td>
 </tr>
 <tr class="row-odd"><td><p>additionalProperties</p></td>
-<td><p>False</p></td>
+<td><p>false</p></td>
 </tr>
 </tbody>
 </table>
 </section>
 <section id="redis-connection-configuration">
-<span id="redis-connection-configuration"></span><h4>Redis Connection Configuration<a class="headerlink" href="#redis-connection-configuration" title="Link to this heading"></a></h4>
+<span id="id13"></span><h4>Redis Connection Configuration<a class="headerlink" href="#redis-connection-configuration" title="Link to this heading"></a></h4>
 <p>Redis connection configuration</p>
 <table class="docutils align-default">
 <tbody>
@@ -1646,137 +1905,53 @@ to the python classes.</p>
 </tr>
 <tr class="row-even"><td colspan="4"><p>properties</p></td>
 </tr>
-<tr class="row-odd"><td rowspan="5"><ul class="simple">
-<li><p><strong>host</strong></p></li>
-</ul>
-</td>
-<td colspan="3"><p><em>Redis Host</em></p></td>
-</tr>
-<tr class="row-even"><td colspan="3"><p>Redis host</p></td>
-</tr>
-<tr class="row-odd"><td><p>type</p></td>
-<td colspan="2"><p><em>string</em></p></td>
-</tr>
-<tr class="row-even"><td><p>examples</p></td>
-<td colspan="2"><p>redis.example.com</p></td>
-</tr>
-<tr class="row-odd"><td><p>minLength</p></td>
-<td colspan="2"><p>1</p></td>
-</tr>
-<tr class="row-even"><td rowspan="6"><ul class="simple">
-<li><p><strong>port</strong></p></li>
-</ul>
-</td>
-<td colspan="3"><p><em>Redis Port</em></p></td>
-</tr>
-<tr class="row-odd"><td colspan="3"><p>Redis port</p></td>
-</tr>
-<tr class="row-even"><td><p>type</p></td>
-<td colspan="2"><p><em>integer</em></p></td>
-</tr>
-<tr class="row-odd"><td><p>examples</p></td>
-<td colspan="2"><p>6379</p></td>
-</tr>
-<tr class="row-even"><td><p>maximum</p></td>
-<td colspan="2"><p>65535</p></td>
-</tr>
-<tr class="row-odd"><td><p>minimum</p></td>
-<td colspan="2"><p>0</p></td>
-</tr>
-<tr class="row-even"><td rowspan="5"><ul class="simple">
-<li><p><strong>username</strong></p></li>
-</ul>
-</td>
-<td colspan="3"><p><em>Redis Username</em></p></td>
-</tr>
-<tr class="row-odd"><td colspan="3"><p>Redis username</p></td>
-</tr>
-<tr class="row-even"><td><p>examples</p></td>
-<td colspan="2"><p>username</p></td>
-</tr>
-<tr class="row-odd"><td rowspan="2"><p>anyOf</p></td>
-<td><p>type</p></td>
-<td><p><em>string</em></p></td>
-</tr>
-<tr class="row-even"><td><p>type</p></td>
-<td><p><em>null</em></p></td>
-</tr>
-<tr class="row-odd"><td rowspan="5"><ul class="simple">
-<li><p><strong>password</strong></p></li>
-</ul>
-</td>
-<td colspan="3"><p><em>Redis Password</em></p></td>
-</tr>
-<tr class="row-even"><td colspan="3"><p>Redis password</p></td>
-</tr>
-<tr class="row-odd"><td><p>examples</p></td>
-<td colspan="2"><p>password</p></td>
-</tr>
-<tr class="row-even"><td rowspan="2"><p>anyOf</p></td>
-<td><p>type</p></td>
-<td><p><em>string</em></p></td>
-</tr>
-<tr class="row-odd"><td><p>type</p></td>
-<td><p><em>null</em></p></td>
-</tr>
-<tr class="row-even"><td rowspan="5"><ul class="simple">
+<tr class="row-odd"><td rowspan="6"><ul class="simple">
 <li><p><strong>db</strong></p></li>
 </ul>
 </td>
 <td colspan="3"><p><em>Redis Database</em></p></td>
 </tr>
-<tr class="row-odd"><td colspan="3"><p>Redis database</p></td>
+<tr class="row-even"><td colspan="3"><p>Redis database</p></td>
 </tr>
-<tr class="row-even"><td><p>type</p></td>
+<tr class="row-odd"><td><p>type</p></td>
 <td colspan="2"><p><em>integer</em></p></td>
 </tr>
-<tr class="row-odd"><td><p>examples</p></td>
+<tr class="row-even"><td><p>examples</p></td>
 <td colspan="2"><p>0</p></td>
+</tr>
+<tr class="row-odd"><td><p>maximum</p></td>
+<td colspan="2"><p>15</p></td>
 </tr>
 <tr class="row-even"><td><p>minimum</p></td>
 <td colspan="2"><p>0</p></td>
 </tr>
-<tr class="row-odd"><td rowspan="5"><ul class="simple">
+<tr class="row-odd"><td rowspan="6"><ul class="simple">
 <li><p><strong>socketTimeout</strong></p></li>
 </ul>
 </td>
 <td colspan="3"><p><em>Socket Timeout</em></p></td>
 </tr>
-<tr class="row-even"><td colspan="3"><p>Socket timeout in the receive operations</p></td>
+<tr class="row-even"><td colspan="3"><p>Socket timeout in seconds of the receive operations (at least 1); must exceed the input stream waitTimeout by at least 5 seconds</p></td>
 </tr>
 <tr class="row-odd"><td><p>type</p></td>
 <td colspan="2"><p><em>integer</em></p></td>
 </tr>
 <tr class="row-even"><td><p>examples</p></td>
-<td colspan="2"><p>30</p></td>
+<td colspan="2"><p>40</p></td>
 </tr>
-<tr class="row-odd"><td><p>minimum</p></td>
-<td colspan="2"><p>0</p></td>
+<tr class="row-odd"><td><p>maximum</p></td>
+<td colspan="2"><p>3600</p></td>
 </tr>
-<tr class="row-even"><td rowspan="5"><ul class="simple">
+<tr class="row-even"><td><p>minimum</p></td>
+<td colspan="2"><p>1</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="6"><ul class="simple">
 <li><p><strong>socketConnectTimeout</strong></p></li>
 </ul>
 </td>
 <td colspan="3"><p><em>Socket Connect Timeout</em></p></td>
 </tr>
-<tr class="row-odd"><td colspan="3"><p>Socket connect timeout</p></td>
-</tr>
-<tr class="row-even"><td><p>type</p></td>
-<td colspan="2"><p><em>integer</em></p></td>
-</tr>
-<tr class="row-odd"><td><p>examples</p></td>
-<td colspan="2"><p>30</p></td>
-</tr>
-<tr class="row-even"><td><p>minimum</p></td>
-<td colspan="2"><p>0</p></td>
-</tr>
-<tr class="row-odd"><td rowspan="5"><ul class="simple">
-<li><p><strong>socketKeepIdle</strong></p></li>
-</ul>
-</td>
-<td colspan="3"><p><em>Socket Keep Idle</em></p></td>
-</tr>
-<tr class="row-even"><td colspan="3"><p>Socket keep idle before first alive</p></td>
+<tr class="row-even"><td colspan="3"><p>Socket connect timeout in seconds (at least 1)</p></td>
 </tr>
 <tr class="row-odd"><td><p>type</p></td>
 <td colspan="2"><p><em>integer</em></p></td>
@@ -1784,45 +1959,71 @@ to the python classes.</p>
 <tr class="row-even"><td><p>examples</p></td>
 <td colspan="2"><p>30</p></td>
 </tr>
-<tr class="row-odd"><td><p>minimum</p></td>
-<td colspan="2"><p>0</p></td>
+<tr class="row-odd"><td><p>maximum</p></td>
+<td colspan="2"><p>3600</p></td>
 </tr>
-<tr class="row-even"><td rowspan="6"><ul class="simple">
+<tr class="row-even"><td><p>minimum</p></td>
+<td colspan="2"><p>1</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="6"><ul class="simple">
+<li><p><strong>socketKeepIdle</strong></p></li>
+</ul>
+</td>
+<td colspan="3"><p><em>Socket Keep Idle</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="3"><p>Socket idle time in seconds before the first keepalive probe (1-32767, Linux TCP_KEEPIDLE limit)</p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td colspan="2"><p><em>integer</em></p></td>
+</tr>
+<tr class="row-even"><td><p>examples</p></td>
+<td colspan="2"><p>30</p></td>
+</tr>
+<tr class="row-odd"><td><p>maximum</p></td>
+<td colspan="2"><p>32767</p></td>
+</tr>
+<tr class="row-even"><td><p>minimum</p></td>
+<td colspan="2"><p>1</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="6"><ul class="simple">
 <li><p><strong>socketKeepAlive</strong></p></li>
 </ul>
 </td>
 <td colspan="3"><p><em>Socket Keep Alive</em></p></td>
 </tr>
-<tr class="row-odd"><td colspan="3"><p>Socket keep alive time</p></td>
+<tr class="row-even"><td colspan="3"><p>Interval in seconds between keepalive probes (1-32767, Linux TCP_KEEPINTVL limit)</p></td>
 </tr>
-<tr class="row-even"><td><p>type</p></td>
+<tr class="row-odd"><td><p>type</p></td>
 <td colspan="2"><p><em>integer</em></p></td>
 </tr>
-<tr class="row-odd"><td><p>examples</p></td>
+<tr class="row-even"><td><p>examples</p></td>
 <td colspan="2"><p>30</p></td>
 </tr>
-<tr class="row-even"><td><p>maximum</p></td>
-<td colspan="2"><p>65535</p></td>
+<tr class="row-odd"><td><p>maximum</p></td>
+<td colspan="2"><p>32767</p></td>
 </tr>
-<tr class="row-odd"><td><p>minimum</p></td>
-<td colspan="2"><p>0</p></td>
+<tr class="row-even"><td><p>minimum</p></td>
+<td colspan="2"><p>1</p></td>
 </tr>
-<tr class="row-even"><td rowspan="5"><ul class="simple">
+<tr class="row-odd"><td rowspan="6"><ul class="simple">
 <li><p><strong>socketKeepCnt</strong></p></li>
 </ul>
 </td>
 <td colspan="3"><p><em>Socket Keep Count</em></p></td>
 </tr>
-<tr class="row-odd"><td colspan="3"><p>Socket keep alive count before drop the connection</p></td>
+<tr class="row-even"><td colspan="3"><p>Number of keepalive probes before dropping the connection (1-127, Linux TCP_KEEPCNT limit)</p></td>
 </tr>
-<tr class="row-even"><td><p>type</p></td>
+<tr class="row-odd"><td><p>type</p></td>
 <td colspan="2"><p><em>integer</em></p></td>
 </tr>
-<tr class="row-odd"><td><p>examples</p></td>
-<td colspan="2"><p>30</p></td>
+<tr class="row-even"><td><p>examples</p></td>
+<td colspan="2"><p>5</p></td>
+</tr>
+<tr class="row-odd"><td><p>maximum</p></td>
+<td colspan="2"><p>127</p></td>
 </tr>
 <tr class="row-even"><td><p>minimum</p></td>
-<td colspan="2"><p>0</p></td>
+<td colspan="2"><p>1</p></td>
 </tr>
 <tr class="row-odd"><td rowspan="4"><ul class="simple">
 <li><p><strong>sslEnable</strong></p></li>
@@ -1836,9 +2037,9 @@ to the python classes.</p>
 <td colspan="2"><p><em>boolean</em></p></td>
 </tr>
 <tr class="row-even"><td><p>examples</p></td>
-<td colspan="2"><p>True</p></td>
+<td colspan="2"><p>true</p></td>
 </tr>
-<tr class="row-odd"><td rowspan="6"><ul class="simple">
+<tr class="row-odd"><td rowspan="7"><ul class="simple">
 <li><p><strong>sslClientKeyFile</strong></p></li>
 </ul>
 </td>
@@ -1849,30 +2050,36 @@ to the python classes.</p>
 <tr class="row-odd"><td><p>examples</p></td>
 <td colspan="2"><p>/path/to/client.key</p></td>
 </tr>
-<tr class="row-even"><td rowspan="3"><p>anyOf</p></td>
+<tr class="row-even"><td rowspan="4"><p>anyOf</p></td>
 <td><p>type</p></td>
 <td><p><em>string</em></p></td>
 </tr>
-<tr class="row-odd"><td><p>minLength</p></td>
+<tr class="row-odd"><td><p>maxLength</p></td>
+<td><p>1024</p></td>
+</tr>
+<tr class="row-even"><td><p>minLength</p></td>
 <td><p>1</p></td>
 </tr>
-<tr class="row-even"><td><p>type</p></td>
+<tr class="row-odd"><td><p>type</p></td>
 <td><p><em>null</em></p></td>
 </tr>
-<tr class="row-odd"><td rowspan="6"><ul class="simple">
+<tr class="row-even"><td rowspan="7"><ul class="simple">
 <li><p><strong>sslClientKeyFilePassword</strong></p></li>
 </ul>
 </td>
 <td colspan="3"><p><em>SSL Client Key File Password</em></p></td>
 </tr>
-<tr class="row-even"><td colspan="3"><p>SSL Client key file password</p></td>
+<tr class="row-odd"><td colspan="3"><p>SSL Client key file password</p></td>
 </tr>
-<tr class="row-odd"><td><p>examples</p></td>
+<tr class="row-even"><td><p>examples</p></td>
 <td colspan="2"><p>password</p></td>
 </tr>
-<tr class="row-even"><td rowspan="3"><p>anyOf</p></td>
+<tr class="row-odd"><td rowspan="4"><p>anyOf</p></td>
 <td><p>type</p></td>
 <td><p><em>string</em></p></td>
+</tr>
+<tr class="row-even"><td><p>maxLength</p></td>
+<td><p>1024</p></td>
 </tr>
 <tr class="row-odd"><td><p>minLength</p></td>
 <td><p>1</p></td>
@@ -1880,7 +2087,7 @@ to the python classes.</p>
 <tr class="row-even"><td><p>type</p></td>
 <td><p><em>null</em></p></td>
 </tr>
-<tr class="row-odd"><td rowspan="6"><ul class="simple">
+<tr class="row-odd"><td rowspan="7"><ul class="simple">
 <li><p><strong>sslClientCertFile</strong></p></li>
 </ul>
 </td>
@@ -1891,44 +2098,50 @@ to the python classes.</p>
 <tr class="row-odd"><td><p>examples</p></td>
 <td colspan="2"><p>/path/to/client.crt</p></td>
 </tr>
-<tr class="row-even"><td rowspan="3"><p>anyOf</p></td>
+<tr class="row-even"><td rowspan="4"><p>anyOf</p></td>
 <td><p>type</p></td>
 <td><p><em>string</em></p></td>
 </tr>
-<tr class="row-odd"><td><p>minLength</p></td>
+<tr class="row-odd"><td><p>maxLength</p></td>
+<td><p>1024</p></td>
+</tr>
+<tr class="row-even"><td><p>minLength</p></td>
 <td><p>1</p></td>
 </tr>
-<tr class="row-even"><td><p>type</p></td>
+<tr class="row-odd"><td><p>type</p></td>
 <td><p><em>null</em></p></td>
 </tr>
-<tr class="row-odd"><td rowspan="4"><ul class="simple">
+<tr class="row-even"><td rowspan="4"><ul class="simple">
 <li><p><strong>sslCertRequested</strong></p></li>
 </ul>
 </td>
 <td colspan="3"><p><em>SSL Certificate Requested</em></p></td>
 </tr>
-<tr class="row-even"><td colspan="3"><p>SSL certificate requested to the server</p></td>
+<tr class="row-odd"><td colspan="3"><p>Verify the Redis server’s TLS certificate (CA chain and hostname). When disabled, any server certificate is accepted, which allows man-in-the-middle attacks (a warning is logged)</p></td>
 </tr>
-<tr class="row-odd"><td><p>type</p></td>
+<tr class="row-even"><td><p>type</p></td>
 <td colspan="2"><p><em>boolean</em></p></td>
 </tr>
-<tr class="row-even"><td><p>examples</p></td>
-<td colspan="2"><p>True</p></td>
+<tr class="row-odd"><td><p>examples</p></td>
+<td colspan="2"><p>true</p></td>
 </tr>
-<tr class="row-odd"><td rowspan="6"><ul class="simple">
+<tr class="row-even"><td rowspan="7"><ul class="simple">
 <li><p><strong>sslCaCertsFile</strong></p></li>
 </ul>
 </td>
 <td colspan="3"><p><em>SSL CA Certificates Path</em></p></td>
 </tr>
-<tr class="row-even"><td colspan="3"><p>SSL certification authority’s certificates file in PEM format</p></td>
+<tr class="row-odd"><td colspan="3"><p>SSL certification authority’s certificates file in PEM format</p></td>
 </tr>
-<tr class="row-odd"><td><p>examples</p></td>
+<tr class="row-even"><td><p>examples</p></td>
 <td colspan="2"><p>/path/to/ca_certs_file.crt</p></td>
 </tr>
-<tr class="row-even"><td rowspan="3"><p>anyOf</p></td>
+<tr class="row-odd"><td rowspan="4"><p>anyOf</p></td>
 <td><p>type</p></td>
 <td><p><em>string</em></p></td>
+</tr>
+<tr class="row-even"><td><p>maxLength</p></td>
+<td><p>1024</p></td>
 </tr>
 <tr class="row-odd"><td><p>minLength</p></td>
 <td><p>1</p></td>
@@ -1936,7 +2149,7 @@ to the python classes.</p>
 <tr class="row-even"><td><p>type</p></td>
 <td><p><em>null</em></p></td>
 </tr>
-<tr class="row-odd"><td rowspan="5"><ul class="simple">
+<tr class="row-odd"><td rowspan="6"><ul class="simple">
 <li><p><strong>healthCheckInterval</strong></p></li>
 </ul>
 </td>
@@ -1950,26 +2163,32 @@ to the python classes.</p>
 <tr class="row-even"><td><p>examples</p></td>
 <td colspan="2"><p>30</p></td>
 </tr>
-<tr class="row-odd"><td><p>minimum</p></td>
+<tr class="row-odd"><td><p>maximum</p></td>
+<td colspan="2"><p>3600</p></td>
+</tr>
+<tr class="row-even"><td><p>minimum</p></td>
 <td colspan="2"><p>0</p></td>
 </tr>
-<tr class="row-even"><td rowspan="6"><ul class="simple">
+<tr class="row-odd"><td rowspan="7"><ul class="simple">
 <li><p><strong>connectionAvailableTimeout</strong></p></li>
 </ul>
 </td>
 <td colspan="3"><p><em>Connection Available Timeout</em></p></td>
 </tr>
-<tr class="row-odd"><td colspan="3"><p>Connection available timeout in seconds. Null means forever</p></td>
+<tr class="row-even"><td colspan="3"><p>Connection available timeout in seconds (at least 1). Null means forever</p></td>
 </tr>
-<tr class="row-even"><td><p>examples</p></td>
+<tr class="row-odd"><td><p>examples</p></td>
 <td colspan="2"><p>10</p></td>
 </tr>
-<tr class="row-odd"><td rowspan="3"><p>anyOf</p></td>
+<tr class="row-even"><td rowspan="4"><p>anyOf</p></td>
 <td><p>type</p></td>
 <td><p><em>integer</em></p></td>
 </tr>
+<tr class="row-odd"><td><p>maximum</p></td>
+<td><p>3600</p></td>
+</tr>
 <tr class="row-even"><td><p>minimum</p></td>
-<td><p>0</p></td>
+<td><p>1</p></td>
 </tr>
 <tr class="row-odd"><td><p>type</p></td>
 <td><p><em>null</em></p></td>
@@ -1994,14 +2213,34 @@ to the python classes.</p>
 <tr class="row-odd"><td><p>minimum</p></td>
 <td colspan="2"><p>2</p></td>
 </tr>
+<tr class="row-even"><td rowspan="6"><ul class="simple">
+<li><p><strong>retryCount</strong></p></li>
+</ul>
+</td>
+<td colspan="3"><p><em>Retry Count</em></p></td>
+</tr>
+<tr class="row-odd"><td colspan="3"><p>Number of times to retry a failed connection attempt</p></td>
+</tr>
+<tr class="row-even"><td><p>type</p></td>
+<td colspan="2"><p><em>integer</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>examples</p></td>
+<td colspan="2"><p>3</p></td>
+</tr>
+<tr class="row-even"><td><p>maximum</p></td>
+<td colspan="2"><p>10</p></td>
+</tr>
+<tr class="row-odd"><td><p>minimum</p></td>
+<td colspan="2"><p>0</p></td>
+</tr>
 <tr class="row-even"><td><p>additionalProperties</p></td>
-<td colspan="3"><p>False</p></td>
+<td colspan="3"><p>false</p></td>
 </tr>
 </tbody>
 </table>
 </section>
 <section id="redis-stream-input-configuration">
-<span id="redis-stream-input-configuration"></span><h4>Redis Stream Input Configuration<a class="headerlink" href="#redis-stream-input-configuration" title="Link to this heading"></a></h4>
+<span id="id14"></span><h4>Redis Stream Input Configuration<a class="headerlink" href="#redis-stream-input-configuration" title="Link to this heading"></a></h4>
 <p>Redis stream input configuration</p>
 <table class="docutils align-default">
 <tbody>
@@ -2010,7 +2249,7 @@ to the python classes.</p>
 </tr>
 <tr class="row-even"><td colspan="3"><p>properties</p></td>
 </tr>
-<tr class="row-odd"><td rowspan="5"><ul class="simple">
+<tr class="row-odd"><td rowspan="6"><ul class="simple">
 <li><p><strong>streamId</strong></p></li>
 </ul>
 </td>
@@ -2024,33 +2263,39 @@ to the python classes.</p>
 <tr class="row-even"><td><p>examples</p></td>
 <td><p>stream id</p></td>
 </tr>
-<tr class="row-odd"><td><p>minLength</p></td>
+<tr class="row-odd"><td><p>maxLength</p></td>
+<td><p>1024</p></td>
+</tr>
+<tr class="row-even"><td><p>minLength</p></td>
 <td><p>1</p></td>
 </tr>
-<tr class="row-even"><td rowspan="5"><ul class="simple">
+<tr class="row-odd"><td rowspan="6"><ul class="simple">
 <li><p><strong>groupId</strong></p></li>
 </ul>
 </td>
 <td colspan="2"><p><em>Stream Group Id</em></p></td>
 </tr>
-<tr class="row-odd"><td colspan="2"><p>Stream group id</p></td>
+<tr class="row-even"><td colspan="2"><p>Stream group id</p></td>
 </tr>
-<tr class="row-even"><td><p>type</p></td>
+<tr class="row-odd"><td><p>type</p></td>
 <td><p><em>string</em></p></td>
 </tr>
-<tr class="row-odd"><td><p>examples</p></td>
+<tr class="row-even"><td><p>examples</p></td>
 <td><p>group id</p></td>
+</tr>
+<tr class="row-odd"><td><p>maxLength</p></td>
+<td><p>1024</p></td>
 </tr>
 <tr class="row-even"><td><p>minLength</p></td>
 <td><p>1</p></td>
 </tr>
-<tr class="row-odd"><td rowspan="5"><ul class="simple">
+<tr class="row-odd"><td rowspan="6"><ul class="simple">
 <li><p><strong>waitTimeout</strong></p></li>
 </ul>
 </td>
 <td colspan="2"><p><em>Receive Wait Timeout</em></p></td>
 </tr>
-<tr class="row-even"><td colspan="2"><p>Receive function wait timeout in ms in the loop</p></td>
+<tr class="row-even"><td colspan="2"><p>Receive function wait timeout in ms in the loop, minimum 10000 (10 seconds)</p></td>
 </tr>
 <tr class="row-odd"><td><p>type</p></td>
 <td><p><em>integer</em></p></td>
@@ -2058,17 +2303,20 @@ to the python classes.</p>
 <tr class="row-even"><td><p>examples</p></td>
 <td><p>30000</p></td>
 </tr>
-<tr class="row-odd"><td><p>minimum</p></td>
-<td><p>0</p></td>
+<tr class="row-odd"><td><p>maximum</p></td>
+<td><p>300000</p></td>
 </tr>
-<tr class="row-even"><td><p>additionalProperties</p></td>
-<td colspan="2"><p>False</p></td>
+<tr class="row-even"><td><p>minimum</p></td>
+<td><p>10000</p></td>
+</tr>
+<tr class="row-odd"><td><p>additionalProperties</p></td>
+<td colspan="2"><p>false</p></td>
 </tr>
 </tbody>
 </table>
 </section>
 <section id="redis-stream-output-configuration">
-<span id="redis-stream-output-configuration"></span><h4>Redis Stream Output Configuration<a class="headerlink" href="#redis-stream-output-configuration" title="Link to this heading"></a></h4>
+<span id="id15"></span><h4>Redis Stream Output Configuration<a class="headerlink" href="#redis-stream-output-configuration" title="Link to this heading"></a></h4>
 <p>Redis stream output configuration</p>
 <table class="docutils align-default">
 <tbody>
@@ -2077,7 +2325,7 @@ to the python classes.</p>
 </tr>
 <tr class="row-even"><td colspan="3"><p>properties</p></td>
 </tr>
-<tr class="row-odd"><td rowspan="5"><ul class="simple">
+<tr class="row-odd"><td rowspan="6"><ul class="simple">
 <li><p><strong>streamId</strong></p></li>
 </ul>
 </td>
@@ -2091,34 +2339,40 @@ to the python classes.</p>
 <tr class="row-even"><td><p>examples</p></td>
 <td><p>stream id</p></td>
 </tr>
-<tr class="row-odd"><td><p>minLength</p></td>
+<tr class="row-odd"><td><p>maxLength</p></td>
+<td><p>1024</p></td>
+</tr>
+<tr class="row-even"><td><p>minLength</p></td>
 <td><p>1</p></td>
 </tr>
-<tr class="row-even"><td rowspan="5"><ul class="simple">
+<tr class="row-odd"><td rowspan="6"><ul class="simple">
 <li><p><strong>maxLength</strong></p></li>
 </ul>
 </td>
 <td colspan="2"><p><em>Stream Max Length</em></p></td>
 </tr>
-<tr class="row-odd"><td colspan="2"><p>Stream max length</p></td>
+<tr class="row-even"><td colspan="2"><p>Stream max length</p></td>
 </tr>
-<tr class="row-even"><td><p>type</p></td>
+<tr class="row-odd"><td><p>type</p></td>
 <td><p><em>integer</em></p></td>
 </tr>
-<tr class="row-odd"><td><p>examples</p></td>
+<tr class="row-even"><td><p>examples</p></td>
 <td><p>1000</p></td>
 </tr>
+<tr class="row-odd"><td><p>maximum</p></td>
+<td><p>1000000</p></td>
+</tr>
 <tr class="row-even"><td><p>minimum</p></td>
-<td><p>0</p></td>
+<td><p>1</p></td>
 </tr>
 <tr class="row-odd"><td><p>additionalProperties</p></td>
-<td colspan="2"><p>False</p></td>
+<td colspan="2"><p>false</p></td>
 </tr>
 </tbody>
 </table>
 </section>
 <section id="redis-stream-outputs-configuration">
-<span id="redis-stream-outputs-configuration"></span><h4>Redis Stream Outputs Configuration<a class="headerlink" href="#redis-stream-outputs-configuration" title="Link to this heading"></a></h4>
+<span id="id16"></span><h4>Redis Stream Outputs Configuration<a class="headerlink" href="#redis-stream-outputs-configuration" title="Link to this heading"></a></h4>
 <p>Redis stream output list configuration</p>
 <table class="docutils align-default">
 <tbody>
@@ -2135,16 +2389,16 @@ to the python classes.</p>
 </tr>
 <tr class="row-even"><td><p>Stream for Crash Prediction events</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#redis-stream-output-configuration">Redis Stream Output Configuration</a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#id15">Redis Stream Output Configuration</a></p></td>
 </tr>
 <tr class="row-even"><td><p>additionalProperties</p></td>
-<td><p>False</p></td>
+<td><p>false</p></td>
 </tr>
 </tbody>
 </table>
 </section>
 <section id="redis-stream-configuration">
-<span id="redis-stream-configuration"></span><h4>Redis Stream Configuration<a class="headerlink" href="#redis-stream-configuration" title="Link to this heading"></a></h4>
+<span id="id17"></span><h4>Redis Stream Configuration<a class="headerlink" href="#redis-stream-configuration" title="Link to this heading"></a></h4>
 <p>Redis stream configuration</p>
 <table class="docutils align-default">
 <tbody>
@@ -2161,7 +2415,7 @@ to the python classes.</p>
 </tr>
 <tr class="row-even"><td><p>Outputs stream configuration</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#redis-stream-outputs-configuration">Redis Stream Outputs Configuration</a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#id16">Redis Stream Outputs Configuration</a></p></td>
 </tr>
 <tr class="row-even"><td rowspan="3"><ul class="simple">
 <li><p><strong>input</strong></p></li>
@@ -2171,10 +2425,10 @@ to the python classes.</p>
 </tr>
 <tr class="row-odd"><td><p>Input stream configuration</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#redis-stream-input-configuration">Redis Stream Input Configuration</a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#id14">Redis Stream Input Configuration</a></p></td>
 </tr>
 <tr class="row-odd"><td><p>additionalProperties</p></td>
-<td><p>False</p></td>
+<td><p>false</p></td>
 </tr>
 </tbody>
 </table>

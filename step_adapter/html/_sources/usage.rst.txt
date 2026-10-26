@@ -4,42 +4,36 @@ STEP Adapter Usage Guide
 Introduction
 ------------
 
-The **STEP Adapter** is a critical component of the Smart Transportation Ecosystem Platform (STEP) 
-that processes raw GNSS tracking data into smooth, regularly-sampled position arrays 
-optimized for Crash Prediction algorithms. This Redis-based microservice serves as a sophisticated 
-data preprocessing pipeline for real-time position data processing, including advanced 
-interpolation, validation, and streaming capabilities.
+The **STEP Adapter** is a component of the STEP (Safer Transport for Europe Platform) ecosystem
+that converts ITS messages into position arrays for the Crash Prediction algorithms. This
+Redis-based microservice reads CAM (Cooperative Awareness Messages) and CPM (Collective
+Perception Messages) from a Redis input stream, converts them into ``PositionArrayV1`` messages
+and publishes them to the crash prediction Redis stream.
 
 **Core Functionality:**
 
-The adapter operates as a comprehensive data processing pipeline that:
-
-  * **Vehicle Position Processing**: Transforms raw GNSS measurements into smooth position trajectories 
-    using cubic spline interpolation techniques for enhanced accuracy and consistency
-  * **ITS Message Processing**: Processes CAM (Cooperative Awareness Messages) and CPM (Collective 
-    Perception Messages) from communication systems
-  * **Real-time Stream Processing**: Integrates with Redis Streams for scalable message processing 
-    and Crash Prediction data distribution with high-throughput capabilities
-  * **Actor Dataset Management**: Maintains temporal actor datasets with automatic lifecycle 
-    management and memory optimization
-
-**Performance Characteristics:**
-
-The STEP Adapter is designed for high-performance real-time processing:
-
-  * **Output Frequencies**: Efficiently handles 1Hz to 10Hz sampling rates
-  * **Real-time Latency**: < 100 ms processing latency for typical configurations
-  * **Memory Management**: Bounded growth with sliding window approach preventing memory accumulation
-  * **Scalability**: Linear scaling with Redis Streams up to infrastructure limits
+  * **CAM Processing**: Keeps a short position history per sender, validates every new position
+    against the previous one and fills the gaps with positions interpolated by a cubic spline
+    at the configured output frequency
+  * **CPM Processing**: Converts every perceived object into one position array, from its measured
+    position and its predicted path resampled at the configured output frequency
+  * **Real-time Stream Processing**: Integrates with Redis Streams for message reception and
+    Crash Prediction data distribution
+  * **Actor Dataset Management**: Removes the senders without recent positions periodically
 
 **Key Components:**
 
-  * **Point Dataset Management**: High-level interface for managing position datasets 
-    with advanced interpolation capabilities
-  * **Redis Integration**: Specialized connection pooling and stream management for real-time messaging
-  * **Configuration System**: Hierarchical Pydantic-based configuration models with comprehensive validation
-  * **Interpolation Engine**: Core cubic spline interpolation system for generating smooth trajectories
-  * **Actor Management**: Vehicle metadata and dataset lifecycle management with automatic cleanup
+  * **ActorDataset / PointDataset**: Per-actor position history with coherence checks; the gaps
+    are filled by ``GapFiller``
+  * **GapFiller**: Output period resampling shared by CAM and CPM (cubic spline interpolation
+    and decimation)
+  * **ObjectPerceivedDataset**: Conversion of CPM perceived objects, resampled at the output
+    frequency
+  * **StepAdapterApp**: Reconnecting service running the stream receive, cleaner and Redis health
+    check tasks
+  * **Configuration System**: Pydantic-based configuration models with strict validation
+
+See :doc:`architecture` for the details.
 
 Prerequisites
 -------------
@@ -47,8 +41,7 @@ Prerequisites
 Before using the STEP Adapter, make sure you have:
 
     #. Python 3.13 or higher installed
-    #. Access to a Redis server for stream processing
-    #. Raw GNSS tracking data or ITS communication messages (CAM, CPM)
+    #. A Redis server for stream processing
     #. The step_adapter package installed in your environment
 
 Installation
@@ -69,35 +62,151 @@ Or if you're using a development version:
 Basic Concepts
 --------------
 
-STEP Adapter operates as a real-time position processing pipeline,
-transforming raw GNSS tracking data into optimized datasets for Crash Prediction. 
-Key concepts include:
+STEP Adapter consumes CAM and CPM messages published by step_client on a Redis input stream
+and publishes the resulting position arrays to the crash prediction Redis stream. Key concepts
+include:
 
-  * **Position Processing**: Transforms raw GNSS measurements into smooth position 
-    trajectories using cubic spline interpolation techniques for accurate tracking
-  * **ITS Message Processing**: Processes CAM (Cooperative Awareness Messages) and CPM (Collective 
-    Perception Messages) from communication systems
-  * **Redis Stream Processing**: Asynchronous message consumption from Redis streams 
-    for real-time processing of tracking data and position array generation
-  * **Actor Dataset Management**: Maintains temporal actor datasets with automatic 
-    data lifecycle management and cross-actor contamination prevention
-  * **Position Array Generation**: Creates regularly-sampled position arrays optimized 
-    for Crash Prediction algorithms and traffic monitoring systems
-  * **Data Interpolation**: Advanced cubic spline interpolation engine for generating 
-    smooth position trajectories from irregular GNSS data points
-  * **Event-Driven Architecture**: Asynchronous task groups handling concurrent 
-    stream reception and periodic dataset cleanup operations
-  * **Signal Handling**: Graceful shutdown capabilities with proper resource 
-    cleanup when interrupted by system signals
-  * **Automatic Reconnection**: Built-in retry mechanism with configurable 
-    intervals for handling Redis connection failures
+  * **Actor**: A CAM sender, identified by its station id (``ActorId``); each actor has its own
+    history of at most ``maxActorHistoryPointNumber`` positions
+  * **Coherence Checks**: A position too close in time to the previous one, or too far from the
+    local time, is discarded; a gap longer than ``inputMaxPeriod``, or an implied speed above
+    120 m/s, restarts the history of the actor
+  * **Interpolation**: When the gap from the previous position exceeds the output period plus
+    ``outputPeriodMaxDeviation``, the gap is filled with positions interpolated by a cubic spline
+    (see :doc:`spline_cubic` and :doc:`find_period`); the received position is always the last
+    point of the array
+  * **Perceived Objects**: Every perceived object of a CPM becomes one position array with its
+    measured position and predicted path, put on the output period grid: a longer CPM period is
+    interpolated, a shorter one decimated (at most 101 points); no history is kept
+  * **Periodic Cleanup**: Every ``cleanerInterval`` seconds, the actors whose last position is
+    older than ``inputOldestAllowedTime`` are removed
+  * **Signal Handling**: Graceful shutdown on ``SIGINT``/``SIGTERM`` (``CTRL_C``/``CTRL_BREAK``
+    on Windows), exit code ``3`` (``ABORTED``)
+  * **Automatic Reconnection**: A Redis error ends the current connection cycle and a new one
+    starts after ``reconnectInterval`` seconds, with empty actor histories (a message that cannot
+    be converted is only logged and skipped); an error a reconnect cannot fix ends the program
+    with exit code ``2`` (``ERROR``)
+
+.. _step_adapter_credentials:
+
+Environment Variables
+---------------------
+
+The Redis connection settings (database, timeouts, keepalive, SSL, pool) are kept in
+the JSON configuration file, in the ``redis.connection`` section (step_redis
+``RedisConnection``), while the Redis host, port and credentials are read from the
+environment, so that secrets are never written to the configuration file:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 15 60
+
+   * - Variable
+     - Required
+     - Description
+   * - ``REDIS_URL``
+     - yes
+     - Redis server host name or IP address, without protocol or port
+   * - ``REDIS_PORT``
+     - yes
+     - Redis server port (1-65535); usually 6380 with TLS
+       (``redis.connection.sslEnable`` true), 6379 without
+   * - ``REDIS_USERNAME``
+     - no
+     - ACL username, when the server requires authentication
+   * - ``REDIS_PASSWORD``
+     - no
+     - Password, when the server requires authentication
+
+The ``StepAdapterApp`` constructor reads them once, through step_redis
+``RedisCredential.from_env``, before the first connection cycle. A missing
+``REDIS_URL`` or ``REDIS_PORT``, a non-integer or out-of-range port, or an empty
+host raise ``ValueError``: since the credential is read outside the reconnect loop,
+a misconfiguration stops the program with exit code ``2`` (``ERROR``) instead of
+being retried forever.
+
+**How RedisCredential.from_env reads them.**
+
+* It first loads the ``.env`` file found in the **current working directory** or
+  in its nearest parent directory (``find_dotenv(usecwd=True)``): what counts is
+  the directory ``step_adapter`` is launched from, not the directory of the
+  installed package. Without a ``.env`` file only the environment is read.
+* A variable already set in the environment **wins** over the ``.env`` file:
+  ``load_dotenv`` adds the missing variables and never overrides an existing one.
+* An empty ``REDIS_USERNAME`` or ``REDIS_PASSWORD`` counts as unset: without a
+  username, authentication uses the ``default`` user, and without both no
+  authentication is performed.
+* The host and port are logged at INFO level, together with whether a username
+  is set; the username and the password never are.
+
+**Format of the .env file.**
+
+* One ``KEY=VALUE`` line per variable, no ``export`` needed;
+* ``#`` starts a comment;
+* quote a value only if it contains spaces or ``#`` (``REDIS_PASSWORD="a #b"``);
+* keep the file out of version control: list ``.env`` in ``.gitignore``, only
+  the ``.env.example`` template is versioned.
+
+**Template.** ``doc/source/env/.env.example`` is a commented template:
+
+.. literalinclude:: env/.env.example
+   :language: bash
+
+Download the template: :download:`.env.example <env/.env.example>`
+(save it as ``.env``). For the ``client_demo``, copy it to ``doc/examples``,
+the directory the demo is launched from:
+
+.. tab:: bash
+
+   .. code-block:: bash
+
+       cp doc/source/env/.env.example doc/examples/.env
+
+.. tab:: PowerShell
+
+   .. code-block:: powershell
+
+       Copy-Item doc/source/env/.env.example doc/examples/.env
+
+**Alternatives to the file.** Variables set in the shell or by a container runtime
+take precedence over ``.env``:
+
+.. tab:: bash
+
+   .. code-block:: bash
+
+       export REDIS_URL=redis.example.com
+       export REDIS_PORT=6380
+
+.. tab:: PowerShell
+
+   .. code-block:: powershell
+
+       $env:REDIS_URL = "redis.example.com"
+       $env:REDIS_PORT = "6380"
+
+.. tab:: Docker Compose
+
+   .. code-block:: yaml
+
+       services:
+         step_adapter:
+           env_file: .env          # or, one by one:
+           environment:
+             REDIS_URL: redis.example.com
+             REDIS_PORT: "6380"
+
+.. note::
+
+   Credentials that the server rejects, an ACL denial, a missing SSL file or an
+   untrusted certificate are classified by step_redis as ``StepRedisFatalError``:
+   the program ends with exit code ``2`` (``ERROR``) instead of reconnecting.
 
 Configuration
 -------------
 
-STEP Adapter requires configuration for Redis connections, 
-actor dataset management, and position processing parameters. 
-The configuration is managed through a JSON file.
+STEP Adapter requires configuration for the actor history, the interpolation, the Redis
+connection and streams, and the logging. The configuration is managed through a JSON file.
 
 Creating a Configuration File
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -106,35 +215,49 @@ To create a default configuration template:
 
 .. code-block:: bash
 
-    step_adapter --conf_template my_config_template.json
+    step_adapter --conf_template ./config
 
-This generates a template that you can customize for your specific needs.
+This writes ``step_adapter_config_v1_schema_template.json`` into the ``./config`` directory
+(created if missing), a template that you can customize for your specific needs.
 
 Key Configuration Parameters
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  
+
 * **Base Configuration**:
 
-  * instanceName: Unique name for this adapter instance
-  * stationId: Station identification number
-  * timeout: Timeout used for various operations
+  * ``templateVersion``: Configuration format version, only ``"1"``
+  * ``maxActorHistoryPointNumber``: Maximum number of points in the history of an actor (5-30)
+  * ``minActorHistoryAltitudeTrailingPointPercent``: Minimum trailing run of points with
+    altitude, as a percentage of the history points (or of the points of a CPM perceived
+    object), needed to interpolate the altitude when some points lack it (0-100, at least 4
+    points)
+  * ``inputMaxPeriod``: Maximum period in milliseconds between two positions of an actor (1000-4000)
+  * ``inputLocalTimeMaxDeviation``: Maximum deviation in seconds between the position time and
+    the local time (0-30)
+  * ``inputOldestAllowedTime``: Maximum age in seconds of the last position of an actor before
+    it is removed (0-30)
+  * ``outputNominalSampleFrequency``: Output frequency in Hz of the CAM and CPM position
+    arrays: 1, 2, 5 or 10
+  * ``outputPeriodMaxDeviation``: Maximum deviation in milliseconds from the output period (0-50)
+  * ``cleanerInterval``: Period in seconds of the actor cleanup (1-60)
+  * ``reconnectInterval``: Time in seconds between reconnection attempts (1-60)
 
-* **Redis Configuration**:
-  
-  * connection: Redis server connection details
-  * streams: Configuration for Redis streams (inputs and outputs)
-  
-* **Actor Dataset Configuration**:
+* **Redis Configuration** (``redis``):
 
-  * max_actor_history_length_ms: Maximum path length in milliseconds for position tracking
-  * output_period_ms: Output sampling period for position arrays
-  * cleanup_period_s: Cleanup interval for expired actor data
-  
-* **Log Configuration**:
+  * ``connection``: Database, timeouts, keepalive, SSL and pool settings; the host, port and
+    credentials are read from the environment (see :ref:`step_adapter_credentials`).
+    ``socketTimeout`` must exceed the input ``waitTimeout`` by at least 5 seconds.
+  * ``streams.input``: Input stream id, consumer group id and receive wait timeout in milliseconds
+  * ``streams.outputs.crashPrediction``: Crash prediction output stream id and maximum length
 
-  * level: Logging level (e.g., DEBUG, INFO, WARNING, ERROR)
-  * format: Log message format
-  * handlers: List of log handlers (e.g., console, file)
+* **Log Configuration** (``log``):
+
+  * ``globalLevel``: Global logging level (e.g., DEBUG, INFO, WARNING, ERROR)
+  * ``handlersConfig``: List of log handlers (stream, file, rotating file, null), each with its
+    own level, format and date format
+
+The instance name is not part of the configuration: it is given with ``-i``/``--instance`` and
+is also used as the Redis stream consumer name.
 
 Example Configuration
 ^^^^^^^^^^^^^^^^^^^^^
@@ -145,28 +268,31 @@ The schema of the example below is: :ref:`STEP Adapter Configuration Schema<step
   :language: JSON
 
 Running STEP Adapter as a Service
-----------------------------------
+---------------------------------
 
 To run the STEP Adapter as a standalone service:
 
 .. code-block:: bash
 
-    step_adapter --config /path/to/config.json
+    step_adapter --instance adapter_1 --config /path/to/config.json
 
 This will start the adapter, which will:
 
-    #. Connect to Redis
-    #. Process position data and ITS messages
-    #. Generate position arrays for Crash Prediction
+    #. Read the Redis host, port and credentials from the environment (see
+       :ref:`step_adapter_credentials`)
+    #. Connect to Redis and create the input stream
+    #. Convert the received CAM and CPM messages into position arrays
+    #. Publish the position arrays to the crash prediction stream
+    #. Remove the actors without recent positions every ``cleanerInterval`` seconds
 
 Command-Line Options
 --------------------
 
-The STEP Adapter supports several command-line options:
+The STEP Adapter supports several command-line options (see :doc:`commands`):
 
   * ``--version``, ``-v``: Show version information
   * ``--help``, ``-h``: Show help information
-  * ``--conf_schema``, ``-s``: Generate a JSON schema for the configuration
-  * ``--conf_template``, ``-t``: Generate a configuration template
-  * ``--config``, ``-c``: Path to configuration file
-  * ``--instance``, ``-i``: Specify the instance name
+  * ``--conf_schema``, ``-s``: Write the configuration JSON schema into a directory
+  * ``--conf_template``, ``-t``: Write the configuration template into a directory
+  * ``--config``, ``-c``: Path to configuration file (requires ``--instance``)
+  * ``--instance``, ``-i``: Specify the instance name (requires ``--config``)
