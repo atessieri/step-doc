@@ -467,7 +467,8 @@ Key features of ``StepClientConfig`` include:
 
     #. **Cross-field Validation**: ``RedisClientConfig`` checks that
        ``connection.socketTimeout`` (seconds) is at least ``streams.input.waitTimeout`` plus
-       ``READ_TIMEOUT_MARGIN_MS`` (5000 ms): the blocking ``XREADGROUP`` read is bounded by
+       ``RedisConnection.READ_TIMEOUT_MARGIN_MS`` (5000 ms, step_redis
+       ``RedisConnection.check_read_timeout``): the blocking ``XREADGROUP`` read is bounded by
        the socket timeout, and a read that times out first drops the connection and loses
        any message delivered in that instant (the input stream is read with ``noack``).
        ``RedisStreamInput.waitTimeout`` is at least 10000 ms, so the stream TTL (twice
@@ -479,8 +480,8 @@ Key features of ``StepClientConfig`` include:
     #. **Default Configuration**: Provides ``get_default()`` methods to generate sensible
        default configurations when specific values are not provided.
     #. **JSON Schema and Template Generation**: ``print_config_schema(path)`` writes
-       ``<STEP_CONFIG_SCHEMA>.json`` using the internal ``_ConfigGenerateJsonSchema``
-       generator; ``print_config_example(path)`` writes ``<STEP_CONFIG_SCHEMA>_template.json``
+       ``<STEP_CONFIG_SCHEMA>.json`` using step_cloud_schemas'
+       ``make_schema_generator`` generator; ``print_config_example(path)`` writes ``<STEP_CONFIG_SCHEMA>_template.json``
        from ``get_default()``.
 
 Credentials are deliberately not part of ``StepClientConfig``: step_lib ``MqttCredential``
