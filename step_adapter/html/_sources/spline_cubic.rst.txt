@@ -5,10 +5,10 @@ Cubic Spline Interpolation for Trajectories
 Overview
 ========
 
-The cubic spline interpolation in the Step Adapter module provides a sophisticated solution for smoothing
-sparse GPS/GNSS trajectory data into continuous, time-aligned position sequences. This implementation
-uses SciPy's ``CubicSpline`` class to perform smooth spatial interpolation across three dimensions:
-latitude, longitude, and altitude.
+The cubic spline interpolation in the Step Adapter module turns sparse trajectory data into
+continuous, time-aligned position sequences for the CPM perceived objects, in latitude, longitude
+and altitude, and provides the altitude of the CAM gaps. It uses SciPy's ``CubicSpline`` class. The
+latitude and longitude of the CAM gaps use a Hermite segment (see :doc:`spline_hermite`).
 
 Mathematical Foundation
 =======================
@@ -64,7 +64,9 @@ For a CAM position, ``PointDataset`` and ``GapFiller.fill()`` follow these steps
    from the period chosen by ``GapFiller.optimal_period()`` (see :doc:`find_period`)
 4. **Spline Creation**: ``GapFiller.interpolate()`` builds one vector-valued ``CubicSpline``, plus
    the trailing-run altitude spline when needed
-5. **Interpolation**: The splines evaluated at those timestamps with ``extrapolate=False``
+5. **Interpolation**: The splines evaluated at those timestamps with ``extrapolate=False``; only
+   their altitude is kept, because ``GapFiller.fill()`` replaces latitude and longitude with the
+   Hermite segment (see :doc:`spline_hermite`)
 6. **Output Generation**: ``GapFiller.fill()`` computes distance, speed and heading of the whole
    chain with one batched geodesic call and builds the interpolated positions
    (``POSITION_GNSS_ESTIMATED``), followed by the received position
@@ -93,7 +95,8 @@ at the output grid times without a real point: the grid of the output period spa
 (see :doc:`find_period`), so a longer CPM period is interpolated and a shorter one decimated. The
 measured position is kept unchanged, the real predicted points on the grid are kept with
 recomputed speed and heading, and the other grid points become ``POSITION_PERCEIVED_ESTIMATED``
-positions. Points already at the output period are returned as-is.
+positions. Points already at the output period keep their times, with recomputed speed and heading
+after the measured position.
 
 Performance Analysis
 ====================
@@ -214,7 +217,9 @@ Basic Usage Example
 Trajectory Interpolation Visualization
 --------------------------------------
 
-The following example demonstrates trajectory interpolation with cubic splines:
+The following example demonstrates trajectory interpolation with cubic splines, as applied to the
+whole history; the CAM gaps now use a Hermite segment for latitude and longitude (see
+:doc:`spline_hermite`):
 
 * Trajectory interpolation from 1 Hz to 10 Hz:
 
@@ -290,9 +295,9 @@ Limitations and Considerations
 
 **Boundary Effects**: Spline behavior at boundaries depends on boundary conditions (natural, clamped, or not-a-knot).
 
-**Oscillation**: With noisy data or poor point distribution, cubic splines can exhibit unwanted oscillations between data points.
+**Oscillation**: With noisy data or poor point distribution, cubic splines can exhibit unwanted oscillations between data points. In a stream, the velocity of the last point is also estimated without the following point, which is why the latitude and longitude of the CAM gaps use a Hermite segment (see :doc:`spline_hermite`).
 
-**Temporal Gaps**: Large gaps in time can cause unrealistic interpolation; for CAM a gap longer than ``inputMaxPeriod`` clears the history instead of interpolating across it, while no limit is applied to the gaps of a CPM predicted path (already a modelled trajectory).
+**Temporal Gaps**: Large gaps in time can cause unrealistic interpolation; for CAM a gap longer than ``inputMaxPeriod`` clears the history instead of interpolating across it, while for a CPM predicted path (already a modelled trajectory) only the whole time span is limited: the path beyond ``inputMaxCpmSpan`` is discarded.
 
 **Coordinate System**: Interpolation is performed in geographic coordinates (lat/lon), which may introduce distortions for large distances due to Earth's curvature.
 

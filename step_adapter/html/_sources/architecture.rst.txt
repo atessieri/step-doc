@@ -15,7 +15,7 @@ messages and publishes them to the crash prediction Redis stream:
 
    * **CAM**: every sender keeps a short position history; a new position is validated against
      the previous one and, when the gap from it is larger than the output period, the gap is
-     filled with positions interpolated by a cubic spline at the configured output frequency.
+     filled with positions interpolated by a Hermite segment at the configured output frequency.
    * **CPM**: every perceived object is converted into one position array, from its measured
      position and its predicted path, without any history between messages.
 
@@ -45,13 +45,15 @@ Core Dependencies
 **SciPy**
    Scientific computing library providing the mathematical foundation for position interpolation:
 
-      * **CubicSpline**: Cubic spline interpolation for smooth trajectory generation
+      * **CubicHermiteSpline**: Hermite segment for the latitude and longitude of the CAM gaps,
+        built on the reported speed and heading
+      * **CubicSpline**: Cubic spline interpolation of the CPM positions and of the altitude
       * **Vector-valued splines**: Latitude, longitude and (when every point has one) altitude
         share one spline, so a single tridiagonal system is solved for all of them
       * **No extrapolation**: The spline is evaluated with ``extrapolate=False``
 
    Used by ``GapFiller``, shared by ``PointDataset`` and ``ObjectPerceivedDataset``, to
-   generate the interpolated positions (see :doc:`spline_cubic`).
+   generate the interpolated positions (see :doc:`spline_cubic` and :doc:`spline_hermite`).
 
 **NumPy**
    Numerical computing library that provides efficient array operations:
@@ -130,8 +132,9 @@ Main Components:
       by CAM messages, with time-ordered cleanup of the expired actors
    #. **PointDataset/PointDatasetConfig**: Per-actor position history with coherence checks;
       the gaps are filled by ``GapFiller``
-   #. **GapFiller/GapFillerConfig**: Output period resampling shared by CAM and CPM: cubic
-      spline interpolation of longer periods, decimation of shorter ones
+   #. **GapFiller/GapFillerConfig**: Output period resampling shared by CAM and CPM: Hermite
+      interpolation of the CAM gaps, cubic spline interpolation of the longer CPM periods,
+      decimation of the shorter ones
    #. **ObjectPerceivedDataset/ObjectPerceivedDatasetConfig**: Stateless conversion of CPM
       perceived objects into position arrays resampled at the output period
    #. **numeric_bounds**: Numeric bounds shared by the JSON configuration,
@@ -250,20 +253,22 @@ failure decides the action of ``add_point()``:
      the coherence check.
    * **Interpolation path** (larger gap): ``GapFiller.fill()`` chooses the output period and
      the number of intervals (``GapFiller.optimal_period()``, see :doc:`find_period`),
-     evaluates the cubic spline fitted on the history at the k interpolated timestamps
-     (``GapFiller.interpolate()``) and returns the k interpolated positions
-     (``POSITION_GNSS_ESTIMATED``) followed by the received position, the last point being
-     always the measured one.
+     evaluates at the k interpolated timestamps the Hermite segment between the two positions
+     for latitude and longitude (see :doc:`spline_hermite`) and the cubic spline fitted on the
+     history for the altitude (``GapFiller.interpolate()``), and returns the k interpolated
+     positions (``POSITION_GNSS_ESTIMATED``) followed by the received position, the last point
+     being always the measured one.
 
-**Speed and Heading:** The speed and heading reported by the sender are never preserved: they
-are always recomputed from the geodesic displacement relative to the previous point (one batched
-geodesic call over the whole interpolation chain).
+**Speed and Heading:** The speed and heading reported by the sender are never preserved on the
+returned positions: they are always recomputed from the geodesic displacement relative to the
+previous point (one batched geodesic call over the whole interpolation chain). The queued records
+keep them, as the tangents of the Hermite segment.
 
 **Altitude:** Interpolated by ``GapFiller`` (see GapFiller) from the trailing run of points
 with altitude ending at the new position.
 
-**Vehicle Dimensions:** The vehicle length and width are updated on every accepted position when
-provided (``None`` keeps the stored value) and reset with the history.
+**Vehicle Dimensions:** ``PointDataset`` keeps none: the vehicle length and width of a position
+array are those of the CAM message, copied by ``ActorDataset.add_cam_message()``.
 
 **Thread Safety:**
 
@@ -278,17 +283,21 @@ The ``GapFiller`` class (module ``gap_filler``) puts positions at the output per
 calls (configuration and logger only) and is shared by both datasets:
 
    * **fill()** (streaming, CAM): fills the gap between the last queued position of an actor
-     and a new one with the k interpolated positions of the cubic spline fitted on the actor
-     history, followed by the new position. A gap shorter than the nominal period minus the
-     deviation never reaches it: ``PointDataset`` rejects the position (streaming decimation).
+     and a new one with k interpolated positions, a Hermite segment for latitude and longitude
+     and the cubic spline fitted on the actor history for the altitude, followed by the new
+     position. A gap shorter than the nominal period minus the deviation never reaches it:
+     ``PointDataset`` rejects the position (streaming decimation).
    * **resample()** (batch, CPM): resamples a whole time-ordered list of positions. Positions
-     already at the output period are returned as-is; otherwise the grid is
+     already at the output period keep their times, with recomputed speed and heading after the
+     first one; otherwise the grid is
      first time + floor(i * span / n), i in [0, n], with n chosen by ``optimal_period()`` over
      the whole span, so a longer input period is interpolated and a shorter one decimated. A
      grid time equal to an input time keeps the real position (an input period dividing the
      output one is a pure decimation); the others become ``POSITION_PERCEIVED_ESTIMATED``
-     positions from the spline fitted on every input position. The output is truncated to a
-     maximum number of points.
+     positions from the spline fitted on every input position. Only the grid points within the
+     maximum number of points are generated, so the cost does not depend on the span. Fewer than
+     two positions are returned as they are, and a maximum of one point returns only the first
+     position.
 
 **Speed and Heading:** The speed and heading of every output position after the first one are
 recomputed from the geodesic displacement relative to the previous point (one batched geodesic
@@ -316,24 +325,30 @@ objects of a ``CpmDataV1`` message into position arrays at the output period. Un
      followed by one ``POSITION_PERCEIVED_PREDICTED`` point per predicted path entry. All points
      share one ``Identification``: the CPM sender station id, the object type and its
      confidence. A point not strictly following the previous one is dropped with a warning.
+   * **Maximum CPM Span**: The path of a perceived object is cut ``inputMaxCpmSpan`` seconds
+     after its measured position, with a warning.
+   * **Skipped Objects**: An object without ``objectId`` or without predicted positions, or whose
+     kept points span less than the minimum output period
+     (``1000 / outputNominalSampleFrequency - outputPeriodMaxDeviation`` ms), is skipped with a
+     warning and not forwarded.
    * **Resampling**: ``GapFiller.resample()`` puts the points at the output period
      (interpolation of a longer CPM period, decimation of a shorter one), keeping the measured
      position unchanged and recomputing speed and heading of the following points; at most
-     ``PositionArrayV1.POINTS_MAX_LENGTH`` (101) points are kept, the others are dropped with a
-     warning. No limit is applied to the gap between two CPM points.
+     ``PositionArrayV1.POINTS_MAX_LENGTH`` (101) points are generated, the others are left out
+     with a warning. No limit is applied to the gap between two CPM points, apart from the
+     maximum CPM span.
    * **Source Type**: ``CAMERA_SRC``.
    * **Sample Frequency**: ``outputNominalSampleFrequency``.
    * **Dimensions**: ``objectDimensionX`` becomes the vehicle length and ``objectDimensionY`` the
      vehicle width (ETSI CPM convention: X is the longitudinal axis).
-   * **Skipped Objects**: An object without ``objectId`` or without predicted positions is skipped
-     with a warning.
 
 numeric_bounds
 ^^^^^^^^^^^^^^
 
 The ``numeric_bounds`` module is the single source of the inclusive bounds applied to the same
 quantity by the JSON configuration (pydantic ``ge``/``le`` of ``StepAdapterConfig``) and by
-``PointDatasetConfig.__post_init__`` and ``GapFillerConfig.__post_init__``:
+``PointDatasetConfig.__post_init__`` and ``GapFillerConfig.__post_init__``; the bound in seconds
+is converted into milliseconds by ``PointDatasetConfig``:
 
    .. list-table::
       :header-rows: 1
@@ -354,6 +369,9 @@ quantity by the JSON configuration (pydantic ``ge``/``le`` of ``StepAdapterConfi
       * - ``OUTPUT_MAX_PERIOD_DEVIATION_MS_MIN`` / ``OUTPUT_MAX_PERIOD_DEVIATION_MS_MAX``
         - 0 ms
         - 50 ms
+      * - ``INPUT_LOCAL_TIME_MAX_DEVIATION_S_MIN`` / ``INPUT_LOCAL_TIME_MAX_DEVIATION_S_MAX``
+        - 0 s
+        - 30 s
 
 StepAdapterConfig
 ^^^^^^^^^^^^^^^^^
@@ -387,6 +405,8 @@ serialization, and schema generation.
      the local time; a position beyond it is discarded (0-30)
    * ``inputOldestAllowedTime``: Maximum age in seconds of the last position of an actor before
      the cleaner removes it (0-30)
+   * ``inputMaxCpmSpan``: Maximum time span in seconds of the path of a CPM perceived object,
+     starting from its measured position; the part of the path beyond it is discarded (1-120)
    * ``outputNominalSampleFrequency``: Output frequency in Hz (1, 2, 5 or 10)
    * ``outputPeriodMaxDeviation``: Maximum deviation in milliseconds from the output period (0-50)
    * ``cleanerInterval``: Period in seconds of the actor cleanup (1-60)
@@ -439,8 +459,9 @@ the messaging infrastructure as a black box with well-defined interfaces.
    * **StepAdapterRedisStream**: Adapter input stream; ``receive_adapter_message()`` yields the
      ``AdapterCloudEventsCamDataV1`` and ``AdapterCloudEventsCpmDataV1`` messages published by
      ``step_client``
-   * **StepCrashPredictionRedisStream**: Crash prediction output stream; ``publish_position_array()``
-     publishes a ``PositionArrayV1`` to ``step_crash_prediction``
+   * **StepCrashPredictionRedisStream**: Crash prediction output stream; ``publish_position_arrays()``
+     publishes the ``PositionArrayV1`` messages of one input message to ``step_crash_prediction``
+     with a single Redis round trip
 
 **Integration Benefits:**
 
@@ -724,13 +745,16 @@ Key features of ``StepAdapterApp`` include:
       ``_REDIS_MAX_CONNECTIONS`` = 2 connections), then uses ``asyncio.TaskGroup`` to run three
       concurrent tasks - ``_stream_receive_run()`` (stream reception, conversion and publishing),
       ``_cleaner_run()`` (every ``cleanerInterval`` seconds, ``ActorDataset.clear_old_points()``)
-      and ``_redis_health_check_run()`` (Redis connection health check).
-   #. **Message Dispatch**: ``_stream_receive_run()`` creates the input stream, then routes each
-      received message: an ``AdapterCloudEventsCamDataV1`` to ``ActorDataset.add_cam_message()``
-      (at most one position array), an ``AdapterCloudEventsCpmDataV1`` to
-      ``ObjectPerceivedDataset.add_cpm_message()`` (one position array per perceived object); any
-      other type is skipped with a warning. Every resulting position array is published on the
-      crash prediction stream. Each message handling is timed by a ``LoggingTimer`` at INFO level.
+      and ``_redis_health_check_run()`` (Redis connection health check; a
+      ``healthCheckInterval`` of 0 disables the PING and the task only waits to be cancelled).
+   #. **Message Dispatch**: ``_stream_receive_run()`` creates the input stream, then hands each
+      received message to ``_message_to_position_arrays()``, which routes it: an
+      ``AdapterCloudEventsCamDataV1`` to ``ActorDataset.add_cam_message()`` (at most one position
+      array), an ``AdapterCloudEventsCpmDataV1`` to ``ObjectPerceivedDataset.add_cpm_message()``
+      (one position array per perceived object); any other type is skipped with a warning. The
+      position arrays of a message are published on the crash prediction stream with a single
+      Redis round trip (``publish_position_arrays()``). Each message handling is timed by a
+      ``LoggingTimer`` at INFO level, and the conversion alone is timed again per message type.
    #. **Stream Parameters**: ``_input_stream_params()`` builds the input stream parameters (stream,
       consumer group, wait timeout, the instance name as consumer, TTL from
       ``StepRedisStreamParams.ttl_seconds_from_wait_timeout()``), also used by the health check;
@@ -853,6 +877,7 @@ the key classes in the STEP Adapter architecture.
          -_crash_prediction_stream_params
          -_actor_dataset_create
          -_perceived_dataset_create
+         -_message_to_position_arrays
          -async _stream_receive_run
          -async _cleaner_run
          -async _redis_health_check_run
@@ -892,8 +917,11 @@ the key classes in the STEP Adapter architecture.
          -_check_minimum_period
          -_check_maximum_period
          -_check_speed
+         -_check_speed_from_confirmed_history
+         -_check_speed_from_unconfirmed_history
          -_create_positions_list
          -_populate_input_arrays
+         -_seed_first_position
          -_clear_history
       }
 
@@ -913,6 +941,11 @@ the key classes in the STEP Adapter architecture.
          +fill
          +resample
          +apply_motion
+         -_tangent_deg_per_ms
+         -_hermite_coordinates
+         -_resample_grid_times
+         -_truncate_positions
+         -_with_recomputed_motion
          -_build_chain_positions
          -_compute_chain_motion
       }
@@ -927,6 +960,7 @@ the key classes in the STEP Adapter architecture.
          +add_cpm_message
          -_to_position_array
          -_time_ordered_records
+         -_records_within_span
       }
 
       class ObjectPerceivedDatasetConfig <<dataclass>>
@@ -938,6 +972,7 @@ the key classes in the STEP Adapter architecture.
          +inputMaxPeriod
          +inputLocalTimeMaxDeviation
          +inputOldestAllowedTime
+         +inputMaxCpmSpan
          +outputNominalSampleFrequency
          +outputPeriodMaxDeviation
          +cleanerInterval
@@ -956,7 +991,7 @@ the key classes in the STEP Adapter architecture.
             +async receive_adapter_message
          }
          class StepCrashPredictionRedisStream {
-            +async publish_position_array
+            +async publish_position_arrays
          }
          class StepRedisStream {
             +async run_health_check
@@ -1017,14 +1052,14 @@ CAM Processing and Interpolation
          Coherence checks (period,
          speed, local time); then
          fast path or GapFiller.fill()
-         cubic spline interpolation,
+         Hermite interpolation,
          received position as last point
       end note
       PointDataset --> ActorDataset : positions or None
       ActorDataset -> ActorDataset : update temporal index
       ActorDataset --> App : PositionArrayV1 or None
       alt position array
-         App -> CrashStream : publish_position_array()
+         App -> CrashStream : publish_position_arrays()
       end
 
 CPM Processing
@@ -1059,8 +1094,8 @@ CPM Processing
          resampled predicted path
       end note
       OPD --> App : list[PositionArrayV1]
-      loop every position array
-         App -> CrashStream : publish_position_array()
+      alt at least one position array
+         App -> CrashStream : publish_position_arrays()
       end
 
 Periodic Cleanup
@@ -1093,8 +1128,8 @@ The complexity figures below use:
      ``inputMaxPeriod`` / (output nominal period - ``outputPeriodMaxDeviation``), at most 80
    * **m** = number of tracked actors
    * **r** = number of actors expired by one cleanup
-   * **o** = perceived objects in one CPM message, **p** = predicted path points per object,
-     **g** = resampled points per object (at most 101)
+   * **o** = perceived objects in one CPM message (at most 255), **p** = predicted path points
+     per object (at most 255), **g** = resampled points per object (at most 101)
 
 Data Structure Performance Characteristics
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1114,8 +1149,9 @@ For one CAM message (``ActorDataset.add_cam_message``):
 2. **Coherence Checks**: :math:`O(1)` - One geodesic distance/heading computation
 3. **Interpolation** (only when the gap exceeds the output period plus the deviation):
 
-   * **Spline Construction**: :math:`O(n)` - Tridiagonal solve over the history
-   * **Spline Evaluation**: :math:`O(k*log(n))` - Interval search for each interpolated timestamp
+   * **Spline Construction**: :math:`O(n)` - Tridiagonal solve over the history, for the altitude
+   * **Evaluation**: :math:`O(k*log(n))` - Interval search for each interpolated timestamp, plus
+     :math:`O(k)` for the Hermite segment
    * **Motion and Positions**: :math:`O(k)` - One batched geodesic call and k positions
 
 4. **Temporal Index Update**: :math:`O(log(m))`
@@ -1126,10 +1162,12 @@ per CAM message; :math:`O(log(m))` on the fast path.
 CPM Message Processing
 ^^^^^^^^^^^^^^^^^^^^^^
 
-For one CPM message (``ObjectPerceivedDataset.add_cpm_message``): :math:`O(o*(p + g*log(p)))`
-time and :math:`O(o*(p + g))` space: p points parsed, one spline over them evaluated at the
-estimated grid points, one position array of at most g points per perceived object; no state is
-kept.
+For one CPM message (``ObjectPerceivedDataset.add_cpm_message``):
+:math:`O(o*(p + g*log(p)))` time and :math:`O(o*g + p)` space: p points parsed, one spline over the
+p points evaluated at the estimated grid points, one position array of at most g points per
+perceived object. Only the kept grid points are generated. The parsed points of an object are
+released before the next one, so only the position arrays add up; no state is kept between
+messages.
 
 Actor Cleanup
 ^^^^^^^^^^^^^
@@ -1147,7 +1185,7 @@ Memory
 ^^^^^^
 
 The total memory is :math:`O(m*n)` for the actor histories, plus the transient
-:math:`O(n + k)` buffers of one CAM insertion or the :math:`O(o*(p + g))` buffers and output of
+:math:`O(n + k)` buffers of one CAM insertion or the :math:`O(o*g + p)` buffers and output of
 one CPM message.
 The actors are removed by the cleaner after ``inputOldestAllowedTime`` seconds without a new
 accepted position.
@@ -1159,6 +1197,9 @@ Bottleneck Analysis
   (CPU bound)
 * **Secondary Bottleneck**: Redis stream publication latency (network I/O bound), one publish
   round trip per message (pipeline over its position arrays, ``publish_position_arrays``)
+* **CPM Time Span**: at most 101 grid points are generated per perceived object, whatever its
+  predicted time span, and the path beyond ``inputMaxCpmSpan`` is discarded; m
+  is the only figure bounded by neither the configuration nor the message schemas
 * **Single Event Loop**: Messages are processed one at a time on one asyncio event loop; to
   scale, run more instances in the same consumer group
 * **Actor Partitioning**: The actor history is per instance: with several instances, the CAM

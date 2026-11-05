@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>test.test_gap_filler module &mdash; STEP Adapter 1.2.0 documentation</title>
+  <title>test.test_gap_filler module &mdash; STEP Adapter 1.2.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/tabs.css?v=4c969af8" />
@@ -16,7 +16,7 @@
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=6efca38a"></script>
+      <script src="../_static/documentation_options.js?v=ca842793"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/tabs.js?v=3ee01567"></script>
@@ -176,6 +176,20 @@
 <li class="toctree-l2"><a class="reference internal" href="../spline_cubic.html#limitations-and-considerations">Limitations and Considerations</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../spline_hermite.html">Hermite Interpolation for CAM Gaps</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../spline_hermite.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../spline_hermite.html#why-not-a-cubic-spline-for-cam">Why not a Cubic Spline for CAM</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../spline_hermite.html#mathematical-foundation">Mathematical Foundation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../spline_hermite.html#worked-example">Worked Example</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../spline_hermite.html#tangents">Tangents</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../spline_hermite.html#why-not-for-cpm">Why Not for CPM</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../spline_hermite.html#implementation">Implementation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../spline_hermite.html#comparison-with-the-cubic-spline">Comparison with the Cubic Spline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../spline_hermite.html#limitations">Limitations</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="../architecture.html">Architecture</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../architecture.html#overview">Overview</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../architecture.html#library">Library</a><ul>
@@ -302,6 +316,24 @@
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cam_data_v1_schema.html#vehicle-length-confidence-indication">Vehicle Length Confidence Indication</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cam_data_v1_schema.html#vehicle-role">Vehicle Role</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cam_data_v1_schema.html#yaw-rate">Yaw Rate</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../schemas_rst/cpm_message.html">CPM Message</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../schemas_rst/cpm_data_v1_schema.html">CPM Data V1 Schema</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../schemas_rst/cpm_data_v1_schema.html#cpm-data-version-1">CPM Data Version 1</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cpm_data_v1_schema.html#reference-altitude">Reference Altitude</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cpm_data_v1_schema.html#heading">Heading</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cpm_data_v1_schema.html#object-dimension">Object Dimension</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cpm_data_v1_schema.html#path-point-predicted">Path Point Predicted</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cpm_data_v1_schema.html#perceived-object">Perceived Object</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cpm_data_v1_schema.html#position-confidence-ellipse">Position Confidence Ellipse</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cpm_data_v1_schema.html#reference-position">Reference Position</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cpm_data_v1_schema.html#speed">Speed</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cpm_data_v1_schema.html#traffic-participant-type">Traffic Participant Type</a></li>
 </ul>
 </li>
 </ul>
@@ -437,6 +469,7 @@
 </ul>
 </li>
 <li class="toctree-l4"><a class="reference internal" href="../step_adapter_rst/step_adapter.object_perceived_dataset.html#step_adapter.object_perceived_dataset.ObjectPerceivedDatasetConfig"><code class="docutils literal notranslate"><span class="pre">ObjectPerceivedDatasetConfig</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.object_perceived_dataset.html#step_adapter.object_perceived_dataset.ObjectPerceivedDatasetConfig.input_max_cpm_span_ms"><code class="docutils literal notranslate"><span class="pre">ObjectPerceivedDatasetConfig.input_max_cpm_span_ms</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.object_perceived_dataset.html#step_adapter.object_perceived_dataset.ObjectPerceivedDatasetConfig.input_min_altitude_trailing_point_percent"><code class="docutils literal notranslate"><span class="pre">ObjectPerceivedDatasetConfig.input_min_altitude_trailing_point_percent</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.object_perceived_dataset.html#step_adapter.object_perceived_dataset.ObjectPerceivedDatasetConfig.output_nominal_sample_frequency"><code class="docutils literal notranslate"><span class="pre">ObjectPerceivedDatasetConfig.output_nominal_sample_frequency</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.object_perceived_dataset.html#step_adapter.object_perceived_dataset.ObjectPerceivedDatasetConfig.output_period_max_deviation_ms"><code class="docutils literal notranslate"><span class="pre">ObjectPerceivedDatasetConfig.output_period_max_deviation_ms</span></code></a></li>
@@ -568,6 +601,7 @@
 <li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.StepAdapterConfig.inputMaxPeriod"><code class="docutils literal notranslate"><span class="pre">StepAdapterConfig.inputMaxPeriod</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.StepAdapterConfig.inputLocalTimeMaxDeviation"><code class="docutils literal notranslate"><span class="pre">StepAdapterConfig.inputLocalTimeMaxDeviation</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.StepAdapterConfig.inputOldestAllowedTime"><code class="docutils literal notranslate"><span class="pre">StepAdapterConfig.inputOldestAllowedTime</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.StepAdapterConfig.inputMaxCpmSpan"><code class="docutils literal notranslate"><span class="pre">StepAdapterConfig.inputMaxCpmSpan</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.StepAdapterConfig.outputNominalSampleFrequency"><code class="docutils literal notranslate"><span class="pre">StepAdapterConfig.outputNominalSampleFrequency</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.StepAdapterConfig.outputPeriodMaxDeviation"><code class="docutils literal notranslate"><span class="pre">StepAdapterConfig.outputPeriodMaxDeviation</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.StepAdapterConfig.cleanerInterval"><code class="docutils literal notranslate"><span class="pre">StepAdapterConfig.cleanerInterval</span></code></a></li>
@@ -654,6 +688,8 @@
 <li class="toctree-l4"><a class="reference internal" href="#test.test_gap_filler.LATITUDE"><code class="docutils literal notranslate"><span class="pre">LATITUDE</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#test.test_gap_filler.LATITUDE_STEP"><code class="docutils literal notranslate"><span class="pre">LATITUDE_STEP</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#test.test_gap_filler.LONGITUDE"><code class="docutils literal notranslate"><span class="pre">LONGITUDE</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#test.test_gap_filler.METERS_PER_LATITUDE_DEGREE"><code class="docutils literal notranslate"><span class="pre">METERS_PER_LATITUDE_DEGREE</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#test.test_gap_filler.METERS_PER_LONGITUDE_DEGREE"><code class="docutils literal notranslate"><span class="pre">METERS_PER_LONGITUDE_DEGREE</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#test.test_gap_filler.OBJECT_ID"><code class="docutils literal notranslate"><span class="pre">OBJECT_ID</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#test.test_gap_filler.START_MS"><code class="docutils literal notranslate"><span class="pre">START_MS</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#test.test_gap_filler.STATION_ID"><code class="docutils literal notranslate"><span class="pre">STATION_ID</span></code></a></li>
@@ -667,9 +703,13 @@
 <li class="toctree-l5"><a class="reference internal" href="#test.test_gap_filler.TestGapFiller.test__altitude_trailing_point_number"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test__altitude_trailing_point_number()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#test.test_gap_filler.TestGapFiller.test__build_chain_positions"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test__build_chain_positions()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#test.test_gap_filler.TestGapFiller.test__compute_chain_motion"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test__compute_chain_motion()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#test.test_gap_filler.TestGapFiller.test__hermite_coordinates"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test__hermite_coordinates()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#test.test_gap_filler.TestGapFiller.test__required_altitude_trailing_point_number"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test__required_altitude_trailing_point_number()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#test.test_gap_filler.TestGapFiller.test__resample_grid_times"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test__resample_grid_times()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#test.test_gap_filler.TestGapFiller.test__speed_heading_from_motion"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test__speed_heading_from_motion()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#test.test_gap_filler.TestGapFiller.test__tangent_deg_per_ms"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test__tangent_deg_per_ms()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#test.test_gap_filler.TestGapFiller.test__truncate_positions"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test__truncate_positions()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#test.test_gap_filler.TestGapFiller.test__with_recomputed_motion"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test__with_recomputed_motion()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#test.test_gap_filler.TestGapFiller.test__wrap_heading_values"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test__wrap_heading_values()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#test.test_gap_filler.TestGapFiller.test__wrap_longitude_values"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test__wrap_longitude_values()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="#test.test_gap_filler.TestGapFiller.test_apply_motion"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test_apply_motion()</span></code></a></li>
@@ -714,6 +754,7 @@
 <li class="toctree-l4"><a class="reference internal" href="test.test_object_perceived_dataset.html#test.test_object_perceived_dataset.TestObjectPerceivedDataset"><code class="docutils literal notranslate"><span class="pre">TestObjectPerceivedDataset</span></code></a><ul>
 <li class="toctree-l5"><a class="reference internal" href="test.test_object_perceived_dataset.html#test.test_object_perceived_dataset.TestObjectPerceivedDataset.test___init__"><code class="docutils literal notranslate"><span class="pre">TestObjectPerceivedDataset.test___init__()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test.test_object_perceived_dataset.html#test.test_object_perceived_dataset.TestObjectPerceivedDataset.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestObjectPerceivedDataset.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test.test_object_perceived_dataset.html#test.test_object_perceived_dataset.TestObjectPerceivedDataset.test__records_within_span"><code class="docutils literal notranslate"><span class="pre">TestObjectPerceivedDataset.test__records_within_span()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test.test_object_perceived_dataset.html#test.test_object_perceived_dataset.TestObjectPerceivedDataset.test__time_ordered_records"><code class="docutils literal notranslate"><span class="pre">TestObjectPerceivedDataset.test__time_ordered_records()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test.test_object_perceived_dataset.html#test.test_object_perceived_dataset.TestObjectPerceivedDataset.test__to_position_array"><code class="docutils literal notranslate"><span class="pre">TestObjectPerceivedDataset.test__to_position_array()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test.test_object_perceived_dataset.html#test.test_object_perceived_dataset.TestObjectPerceivedDataset.test_add_cpm_message"><code class="docutils literal notranslate"><span class="pre">TestObjectPerceivedDataset.test_add_cpm_message()</span></code></a></li>
@@ -870,6 +911,21 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">Changelog</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../changelog.html#id1">1.2.1 - 2026-11-05</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../changelog.html#fixed">1.2.1 - Fixed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../changelog.html#added">1.2.1 - Added</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../changelog.html#changed">1.2.1 - Changed</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../changelog.html#id2">1.2.0 - 2026-10-26</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../changelog.html#id3">1.2.0 - Added</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../changelog.html#id4">1.2.0 - Changed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../changelog.html#removed">1.2.0 - Removed</a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 
         </div>
@@ -904,8 +960,10 @@
 (<code class="docutils literal notranslate"><span class="pre">GapFiller</span></code> never reads the local clock); only the logger is mocked. The
 coordinates move linearly in time, so the cubic spline (not-a-knot end conditions)
 reproduces them exactly and the interpolated values can be compared with the
-linear trend. The heading/longitude wrapping helpers are checked against the
-pydantic validators they mirror.</p>
+linear trend. The Hermite segments are compared with the analytic Hermite basis
+values, on tangents derived from the WGS84 degree lengths at <code class="docutils literal notranslate"><span class="pre">LATITUDE</span></code>. The
+heading/longitude wrapping helpers are checked against the pydantic validators they
+mirror.</p>
 <dl class="py data">
 <dt class="sig sig-object py" id="test.test_gap_filler.ACTOR">
 <span class="sig-prename descclassname"><span class="pre">test.test_gap_filler.</span></span><span class="sig-name descname"><span class="pre">ACTOR</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">ActorId(station_id=100,</span> <span class="pre">object_id=5)</span></span><a class="headerlink" href="#test.test_gap_filler.ACTOR" title="Link to this definition"></a></dt>
@@ -928,6 +986,18 @@ pydantic validators they mirror.</p>
 <dt class="sig sig-object py" id="test.test_gap_filler.LONGITUDE">
 <span class="sig-prename descclassname"><span class="pre">test.test_gap_filler.</span></span><span class="sig-name descname"><span class="pre">LONGITUDE</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">9.0</span></span><a class="headerlink" href="#test.test_gap_filler.LONGITUDE" title="Link to this definition"></a></dt>
 <dd><p>Longitude of the first test position, in decimal degrees.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="test.test_gap_filler.METERS_PER_LATITUDE_DEGREE">
+<span class="sig-prename descclassname"><span class="pre">test.test_gap_filler.</span></span><span class="sig-name descname"><span class="pre">METERS_PER_LATITUDE_DEGREE</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">111132.95</span></span><a class="headerlink" href="#test.test_gap_filler.METERS_PER_LATITUDE_DEGREE" title="Link to this definition"></a></dt>
+<dd><p>Length of one degree of latitude at <code class="docutils literal notranslate"><span class="pre">LATITUDE</span></code> on the WGS84 ellipsoid, in meters.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="test.test_gap_filler.METERS_PER_LONGITUDE_DEGREE">
+<span class="sig-prename descclassname"><span class="pre">test.test_gap_filler.</span></span><span class="sig-name descname"><span class="pre">METERS_PER_LONGITUDE_DEGREE</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">78846.81</span></span><a class="headerlink" href="#test.test_gap_filler.METERS_PER_LONGITUDE_DEGREE" title="Link to this definition"></a></dt>
+<dd><p>Length of one degree of longitude at <code class="docutils literal notranslate"><span class="pre">LATITUDE</span></code> on the WGS84 ellipsoid, in meters.</p>
 </dd></dl>
 
 <dl class="py data">
@@ -1058,6 +1128,36 @@ real end at 500 ms.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="test.test_gap_filler.TestGapFiller.test__hermite_coordinates">
+<span class="sig-name descname"><span class="pre">test__hermite_coordinates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mocker</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MockerFixture</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">last_heading</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_heading</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_longitude</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end_longitude</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">latitude_fraction</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tangent_coefficient</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chord_fraction</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_gap_filler.html#TestGapFiller.test__hermite_coordinates"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_gap_filler.TestGapFiller.test__hermite_coordinates" title="Link to this definition"></a></dt>
+<dd><p>Test the segment ends and the point at a quarter of a 500 ms segment.</p>
+<p>The positions move north along the chord; a reported heading is eastwards at
+11 m/s, a missing one falls back on the chord tangent. At t = 0.25 the Hermite
+basis values are h00 = 0.84375, h10 = 0.140625, h01 = 0.15625 and
+h11 = -0.046875.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mocker</strong> (<em>MockerFixture</em>) – The pytest-mock fixture.</p></li>
+<li><p><strong>last_heading</strong> (<em>float</em><em> | </em><em>None</em>) – Reported heading of the last position.</p></li>
+<li><p><strong>new_heading</strong> (<em>float</em><em> | </em><em>None</em>) – Reported heading of the new position.</p></li>
+<li><p><strong>start_longitude</strong> (<em>float</em>) – Longitude of the last position.</p></li>
+<li><p><strong>end_longitude</strong> (<em>float</em>) – Longitude of the new position, possibly wrapped.</p></li>
+<li><p><strong>latitude_fraction</strong> (<em>float</em>) – Expected fraction of the latitude change at the
+quarter point.</p></li>
+<li><p><strong>tangent_coefficient</strong> (<em>float</em>) – Expected longitude change at the quarter
+point, as a coefficient of the reported rate times the duration.</p></li>
+<li><p><strong>chord_fraction</strong> (<em>float</em>) – Expected fraction of the unwrapped longitude
+change at the quarter point.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="test.test_gap_filler.TestGapFiller.test__required_altitude_trailing_point_number">
 <span class="sig-name descname"><span class="pre">test__required_altitude_trailing_point_number</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mocker</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MockerFixture</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">percent</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">points_number</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expected</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_gap_filler.html#TestGapFiller.test__required_altitude_trailing_point_number"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_gap_filler.TestGapFiller.test__required_altitude_trailing_point_number" title="Link to this definition"></a></dt>
 <dd><p>Test the required run: percent of the points rounded up, at least 4.</p>
@@ -1068,6 +1168,31 @@ real end at 500 ms.</p>
 <li><p><strong>percent</strong> (<em>int</em>) – The configured minimum trailing point percent.</p></li>
 <li><p><strong>points_number</strong> (<em>int</em>) – The number of interpolation points.</p></li>
 <li><p><strong>expected</strong> (<em>int</em>) – The expected required run length.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="test.test_gap_filler.TestGapFiller.test__resample_grid_times">
+<span class="sig-name descname"><span class="pre">test__resample_grid_times</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mocker</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MockerFixture</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nominal_ms</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">deviation_ms</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">diff_ms</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_point_number</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expected_offsets</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">warned</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_enabled</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_gap_filler.html#TestGapFiller.test__resample_grid_times"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_gap_filler.TestGapFiller.test__resample_grid_times" title="Link to this definition"></a></dt>
+<dd><p>Test the grid times kept, the warnings of a truncated or not ideal grid and
+the ValueError of a last time not following the first one.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mocker</strong> (<em>MockerFixture</em>) – The pytest-mock fixture.</p></li>
+<li><p><strong>nominal_ms</strong> (<em>int</em>) – The configured nominal output period.</p></li>
+<li><p><strong>deviation_ms</strong> (<em>int</em>) – The configured output period deviation.</p></li>
+<li><p><strong>diff_ms</strong> (<em>int</em>) – Time between the first and the last position.</p></li>
+<li><p><strong>max_point_number</strong> (<em>int</em>) – Maximum number of grid points.</p></li>
+<li><p><strong>expected_offsets</strong> (<em>list</em><em>[</em><em>int</em><em>] </em><em>| </em><em>None</em>) – The expected grid times, as offsets
+from the first time, None when ValueError is expected.</p></li>
+<li><p><strong>warned</strong> (<em>bool</em>) – Whether a warning is expected when WARNING is enabled.</p></li>
+<li><p><strong>log_enabled</strong> (<em>bool</em>) – Whether the logger reports every level as enabled.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -1096,6 +1221,28 @@ real end at 500 ms.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="test.test_gap_filler.TestGapFiller.test__tangent_deg_per_ms">
+<span class="sig-name descname"><span class="pre">test__tangent_deg_per_ms</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mocker</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MockerFixture</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">speed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">heading</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">longitude</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expected_m_s</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_gap_filler.html#TestGapFiller.test__tangent_deg_per_ms"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_gap_filler.TestGapFiller.test__tangent_deg_per_ms" title="Link to this definition"></a></dt>
+<dd><p>Test the rates from the reported motion and the fallback on the chord.</p>
+<p>The chord speed is 10 m/s, so the reported speed is used up to 30 m/s.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mocker</strong> (<em>MockerFixture</em>) – The pytest-mock fixture.</p></li>
+<li><p><strong>speed</strong> (<em>float</em><em> | </em><em>None</em>) – Reported speed in m/s.</p></li>
+<li><p><strong>heading</strong> (<em>float</em><em> | </em><em>None</em>) – Reported heading in decimal degrees.</p></li>
+<li><p><strong>longitude</strong> (<em>float</em>) – Longitude of the position, in decimal degrees.</p></li>
+<li><p><strong>expected_m_s</strong> (<em>tuple</em><em>[</em><em>float</em><em>, </em><em>float</em><em>] </em><em>| </em><em>None</em>) – Expected northward and eastward
+speed in m/s, None when the chord tangent is expected.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="test.test_gap_filler.TestGapFiller.test__truncate_positions">
 <span class="sig-name descname"><span class="pre">test__truncate_positions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mocker</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MockerFixture</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_point_number</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expected_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_enabled</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_gap_filler.html#TestGapFiller.test__truncate_positions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_gap_filler.TestGapFiller.test__truncate_positions" title="Link to this definition"></a></dt>
 <dd><p>Test that only the first positions up to the maximum are kept.</p>
@@ -1107,6 +1254,26 @@ real end at 500 ms.</p>
 <li><p><strong>max_point_number</strong> (<em>int</em>) – Maximum number of returned positions.</p></li>
 <li><p><strong>expected_count</strong> (<em>int</em>) – Expected number of returned positions.</p></li>
 <li><p><strong>log_enabled</strong> (<em>bool</em>) – Whether the logger reports WARNING as enabled.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="test.test_gap_filler.TestGapFiller.test__with_recomputed_motion">
+<span class="sig-name descname"><span class="pre">test__with_recomputed_motion</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mocker</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MockerFixture</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_enabled</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_gap_filler.html#TestGapFiller.test__with_recomputed_motion"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_gap_filler.TestGapFiller.test__with_recomputed_motion" title="Link to this definition"></a></dt>
+<dd><p>Test that the first position is unchanged and the others get a new motion.</p>
+<p>Three timestamps are always given, as after a truncation of the positions. A
+single position is returned alone, without any geodesic call.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mocker</strong> (<em>MockerFixture</em>) – The pytest-mock fixture.</p></li>
+<li><p><strong>count</strong> (<em>int</em>) – Number of positions given.</p></li>
+<li><p><strong>log_enabled</strong> (<em>bool</em>) – Whether the logger reports DEBUG as enabled.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -1164,7 +1331,7 @@ real end at 500 ms.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="test.test_gap_filler.TestGapFiller.test_class_constants">
 <span class="sig-name descname"><span class="pre">test_class_constants</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_gap_filler.html#TestGapFiller.test_class_constants"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_gap_filler.TestGapFiller.test_class_constants" title="Link to this definition"></a></dt>
-<dd><p>Test the altitude interpolation and resampling constants.</p>
+<dd><p>Test the altitude interpolation, resampling and tangent constants.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>None</p>
@@ -1193,7 +1360,10 @@ real end at 500 ms.</p>
 followed by the new one, and the ValueError of a new position not following
 the last one.</p>
 <p>The history is three points at 0, 100 and 200 ms plus the new point
-<code class="docutils literal notranslate"><span class="pre">gap_ms</span></code> after the last one, all on the linear northward trend.</p>
+<code class="docutils literal notranslate"><span class="pre">gap_ms</span></code> after the last one, all on the linear northward trend except the
+first one: the interpolated latitudes stay on the trend because the history
+spline gives the altitude only, the path being the Hermite segment between
+the last and the new position.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -1315,8 +1485,9 @@ ValueError is expected.</p></li>
 <dt class="sig sig-object py" id="test.test_gap_filler.TestGapFiller.test_resample">
 <span class="sig-name descname"><span class="pre">test_resample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mocker</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MockerFixture</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offsets_ms</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_point_number</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expected_offsets</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expected_types</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">warned</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_enabled</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/test/test_gap_filler.html#TestGapFiller.test_resample"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#test.test_gap_filler.TestGapFiller.test_resample" title="Link to this definition"></a></dt>
 <dd><p>Test the resampling on the 5 Hz output grid (period 200 +/- 20 ms):
-passthrough, interpolation, decimation, mixed grid, non-ideal period,
-truncation and the ValueError of times not strictly increasing.</p>
+positions already at the output period, interpolation, decimation, mixed
+grid, non-ideal period, truncation and the ValueError of times not strictly
+increasing.</p>
 <p>The first record is the measured CPM position, the others predicted; the
 positions move north on the linear trend.</p>
 <dl class="field-list simple">

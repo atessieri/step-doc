@@ -13,7 +13,7 @@ and publishes them to the crash prediction Redis stream.
 **Core Functionality:**
 
   * **CAM Processing**: Keeps a short position history per sender, validates every new position
-    against the previous one and fills the gaps with positions interpolated by a cubic spline
+    against the previous one and fills the gaps with positions interpolated by a Hermite segment
     at the configured output frequency
   * **CPM Processing**: Converts every perceived object into one position array, from its measured
     position and its predicted path resampled at the configured output frequency
@@ -25,8 +25,8 @@ and publishes them to the crash prediction Redis stream.
 
   * **ActorDataset / PointDataset**: Per-actor position history with coherence checks; the gaps
     are filled by ``GapFiller``
-  * **GapFiller**: Output period resampling shared by CAM and CPM (cubic spline interpolation
-    and decimation)
+  * **GapFiller**: Output period resampling shared by CAM and CPM (Hermite and cubic spline
+    interpolation and decimation)
   * **ObjectPerceivedDataset**: Conversion of CPM perceived objects, resampled at the output
     frequency
   * **StepAdapterApp**: Reconnecting service running the stream receive, cleaner and Redis health
@@ -69,15 +69,18 @@ include:
   * **Actor**: A CAM sender, identified by its station id (``ActorId``); each actor has its own
     history of at most ``maxActorHistoryPointNumber`` positions
   * **Coherence Checks**: A position too close in time to the previous one, or too far from the
-    local time, is discarded; a gap longer than ``inputMaxPeriod``, or an implied speed above
-    120 m/s, restarts the history of the actor
+    local time, is discarded; a gap longer than ``inputMaxPeriod`` restarts the history of the
+    actor; an implied speed above 120 m/s restarts it against a single position and discards the
+    new position against a confirmed history of at least two positions
   * **Interpolation**: When the gap from the previous position exceeds the output period plus
-    ``outputPeriodMaxDeviation``, the gap is filled with positions interpolated by a cubic spline
-    (see :doc:`spline_cubic` and :doc:`find_period`); the received position is always the last
-    point of the array
+    ``outputPeriodMaxDeviation``, the gap is filled with positions interpolated by a Hermite segment
+    (see :doc:`spline_hermite`, :doc:`spline_cubic` and :doc:`find_period`); the received position
+    is always the last point of the array
   * **Perceived Objects**: Every perceived object of a CPM becomes one position array with its
     measured position and predicted path, put on the output period grid: a longer CPM period is
-    interpolated, a shorter one decimated (at most 101 points); no history is kept
+    interpolated, a shorter one decimated (at most 101 points); no history is kept. The path
+    beyond ``inputMaxCpmSpan`` is discarded, and an object whose kept points span less than the
+    minimum output period is not forwarded
   * **Periodic Cleanup**: Every ``cleanerInterval`` seconds, the actors whose last position is
     older than ``inputOldestAllowedTime`` are removed
   * **Signal Handling**: Graceful shutdown on ``SIGINT``/``SIGTERM`` (``CTRL_C``/``CTRL_BREAK``
@@ -236,6 +239,8 @@ Key Configuration Parameters
     the local time (0-30)
   * ``inputOldestAllowedTime``: Maximum age in seconds of the last position of an actor before
     it is removed (0-30)
+  * ``inputMaxCpmSpan``: Maximum time span in seconds of the path of a CPM perceived object,
+    starting from its measured position; the part of the path beyond it is discarded (1-120)
   * ``outputNominalSampleFrequency``: Output frequency in Hz of the CAM and CPM position
     arrays: 1, 2, 5 or 10
   * ``outputPeriodMaxDeviation``: Maximum deviation in milliseconds from the output period (0-50)

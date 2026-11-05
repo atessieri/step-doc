@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>step_adapter.gap_filler module &mdash; STEP Adapter 1.2.0 documentation</title>
+  <title>step_adapter.gap_filler module &mdash; STEP Adapter 1.2.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/tabs.css?v=4c969af8" />
@@ -16,7 +16,7 @@
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=6efca38a"></script>
+      <script src="../_static/documentation_options.js?v=ca842793"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/tabs.js?v=3ee01567"></script>
@@ -176,6 +176,20 @@
 <li class="toctree-l2"><a class="reference internal" href="../spline_cubic.html#limitations-and-considerations">Limitations and Considerations</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../spline_hermite.html">Hermite Interpolation for CAM Gaps</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../spline_hermite.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../spline_hermite.html#why-not-a-cubic-spline-for-cam">Why not a Cubic Spline for CAM</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../spline_hermite.html#mathematical-foundation">Mathematical Foundation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../spline_hermite.html#worked-example">Worked Example</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../spline_hermite.html#tangents">Tangents</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../spline_hermite.html#why-not-for-cpm">Why Not for CPM</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../spline_hermite.html#implementation">Implementation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../spline_hermite.html#comparison-with-the-cubic-spline">Comparison with the Cubic Spline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../spline_hermite.html#limitations">Limitations</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="../architecture.html">Architecture</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../architecture.html#overview">Overview</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../architecture.html#library">Library</a><ul>
@@ -302,6 +316,24 @@
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cam_data_v1_schema.html#vehicle-length-confidence-indication">Vehicle Length Confidence Indication</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cam_data_v1_schema.html#vehicle-role">Vehicle Role</a></li>
 <li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cam_data_v1_schema.html#yaw-rate">Yaw Rate</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../schemas_rst/cpm_message.html">CPM Message</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../schemas_rst/cpm_data_v1_schema.html">CPM Data V1 Schema</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../schemas_rst/cpm_data_v1_schema.html#cpm-data-version-1">CPM Data Version 1</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cpm_data_v1_schema.html#reference-altitude">Reference Altitude</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cpm_data_v1_schema.html#heading">Heading</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cpm_data_v1_schema.html#object-dimension">Object Dimension</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cpm_data_v1_schema.html#path-point-predicted">Path Point Predicted</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cpm_data_v1_schema.html#perceived-object">Perceived Object</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cpm_data_v1_schema.html#position-confidence-ellipse">Position Confidence Ellipse</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cpm_data_v1_schema.html#reference-position">Reference Position</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cpm_data_v1_schema.html#speed">Speed</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../schemas_rst/cpm_data_v1_schema.html#traffic-participant-type">Traffic Participant Type</a></li>
 </ul>
 </li>
 </ul>
@@ -437,6 +469,7 @@
 </ul>
 </li>
 <li class="toctree-l4"><a class="reference internal" href="step_adapter.object_perceived_dataset.html#step_adapter.object_perceived_dataset.ObjectPerceivedDatasetConfig"><code class="docutils literal notranslate"><span class="pre">ObjectPerceivedDatasetConfig</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter.object_perceived_dataset.html#step_adapter.object_perceived_dataset.ObjectPerceivedDatasetConfig.input_max_cpm_span_ms"><code class="docutils literal notranslate"><span class="pre">ObjectPerceivedDatasetConfig.input_max_cpm_span_ms</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="step_adapter.object_perceived_dataset.html#step_adapter.object_perceived_dataset.ObjectPerceivedDatasetConfig.input_min_altitude_trailing_point_percent"><code class="docutils literal notranslate"><span class="pre">ObjectPerceivedDatasetConfig.input_min_altitude_trailing_point_percent</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="step_adapter.object_perceived_dataset.html#step_adapter.object_perceived_dataset.ObjectPerceivedDatasetConfig.output_nominal_sample_frequency"><code class="docutils literal notranslate"><span class="pre">ObjectPerceivedDatasetConfig.output_nominal_sample_frequency</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="step_adapter.object_perceived_dataset.html#step_adapter.object_perceived_dataset.ObjectPerceivedDatasetConfig.output_period_max_deviation_ms"><code class="docutils literal notranslate"><span class="pre">ObjectPerceivedDatasetConfig.output_period_max_deviation_ms</span></code></a></li>
@@ -568,6 +601,7 @@
 <li class="toctree-l5"><a class="reference internal" href="step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.StepAdapterConfig.inputMaxPeriod"><code class="docutils literal notranslate"><span class="pre">StepAdapterConfig.inputMaxPeriod</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.StepAdapterConfig.inputLocalTimeMaxDeviation"><code class="docutils literal notranslate"><span class="pre">StepAdapterConfig.inputLocalTimeMaxDeviation</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.StepAdapterConfig.inputOldestAllowedTime"><code class="docutils literal notranslate"><span class="pre">StepAdapterConfig.inputOldestAllowedTime</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.StepAdapterConfig.inputMaxCpmSpan"><code class="docutils literal notranslate"><span class="pre">StepAdapterConfig.inputMaxCpmSpan</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.StepAdapterConfig.outputNominalSampleFrequency"><code class="docutils literal notranslate"><span class="pre">StepAdapterConfig.outputNominalSampleFrequency</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.StepAdapterConfig.outputPeriodMaxDeviation"><code class="docutils literal notranslate"><span class="pre">StepAdapterConfig.outputPeriodMaxDeviation</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.StepAdapterConfig.cleanerInterval"><code class="docutils literal notranslate"><span class="pre">StepAdapterConfig.cleanerInterval</span></code></a></li>
@@ -654,6 +688,8 @@
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.LATITUDE"><code class="docutils literal notranslate"><span class="pre">LATITUDE</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.LATITUDE_STEP"><code class="docutils literal notranslate"><span class="pre">LATITUDE_STEP</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.LONGITUDE"><code class="docutils literal notranslate"><span class="pre">LONGITUDE</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.METERS_PER_LATITUDE_DEGREE"><code class="docutils literal notranslate"><span class="pre">METERS_PER_LATITUDE_DEGREE</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.METERS_PER_LONGITUDE_DEGREE"><code class="docutils literal notranslate"><span class="pre">METERS_PER_LONGITUDE_DEGREE</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.OBJECT_ID"><code class="docutils literal notranslate"><span class="pre">OBJECT_ID</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.START_MS"><code class="docutils literal notranslate"><span class="pre">START_MS</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.STATION_ID"><code class="docutils literal notranslate"><span class="pre">STATION_ID</span></code></a></li>
@@ -667,9 +703,13 @@
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test__altitude_trailing_point_number"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test__altitude_trailing_point_number()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test__build_chain_positions"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test__build_chain_positions()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test__compute_chain_motion"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test__compute_chain_motion()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test__hermite_coordinates"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test__hermite_coordinates()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test__required_altitude_trailing_point_number"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test__required_altitude_trailing_point_number()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test__resample_grid_times"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test__resample_grid_times()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test__speed_heading_from_motion"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test__speed_heading_from_motion()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test__tangent_deg_per_ms"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test__tangent_deg_per_ms()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test__truncate_positions"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test__truncate_positions()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test__with_recomputed_motion"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test__with_recomputed_motion()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test__wrap_heading_values"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test__wrap_heading_values()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test__wrap_longitude_values"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test__wrap_longitude_values()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test_apply_motion"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test_apply_motion()</span></code></a></li>
@@ -714,6 +754,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../test_rst/test.test_object_perceived_dataset.html#test.test_object_perceived_dataset.TestObjectPerceivedDataset"><code class="docutils literal notranslate"><span class="pre">TestObjectPerceivedDataset</span></code></a><ul>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_object_perceived_dataset.html#test.test_object_perceived_dataset.TestObjectPerceivedDataset.test___init__"><code class="docutils literal notranslate"><span class="pre">TestObjectPerceivedDataset.test___init__()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_object_perceived_dataset.html#test.test_object_perceived_dataset.TestObjectPerceivedDataset.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestObjectPerceivedDataset.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_object_perceived_dataset.html#test.test_object_perceived_dataset.TestObjectPerceivedDataset.test__records_within_span"><code class="docutils literal notranslate"><span class="pre">TestObjectPerceivedDataset.test__records_within_span()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_object_perceived_dataset.html#test.test_object_perceived_dataset.TestObjectPerceivedDataset.test__time_ordered_records"><code class="docutils literal notranslate"><span class="pre">TestObjectPerceivedDataset.test__time_ordered_records()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_object_perceived_dataset.html#test.test_object_perceived_dataset.TestObjectPerceivedDataset.test__to_position_array"><code class="docutils literal notranslate"><span class="pre">TestObjectPerceivedDataset.test__to_position_array()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="../test_rst/test.test_object_perceived_dataset.html#test.test_object_perceived_dataset.TestObjectPerceivedDataset.test_add_cpm_message"><code class="docutils literal notranslate"><span class="pre">TestObjectPerceivedDataset.test_add_cpm_message()</span></code></a></li>
@@ -870,6 +911,21 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">Changelog</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../changelog.html#id1">1.2.1 - 2026-11-05</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../changelog.html#fixed">1.2.1 - Fixed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../changelog.html#added">1.2.1 - Added</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../changelog.html#changed">1.2.1 - Changed</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../changelog.html#id2">1.2.0 - 2026-10-26</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../changelog.html#id3">1.2.0 - Added</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../changelog.html#id4">1.2.0 - Changed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../changelog.html#removed">1.2.0 - Removed</a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 
         </div>
@@ -901,14 +957,17 @@
 <span id="step-adapter-gap-filler-module"></span><h1>step_adapter.gap_filler module<a class="headerlink" href="#module-step_adapter.gap_filler" title="Link to this heading"></a></h1>
 <p>Output period resampling shared by the CAM and CPM position datasets.</p>
 <p>Turns irregularly-timed positions into positions at the configured output period,
-using cubic spline interpolation between real measurements:</p>
+using Hermite interpolation of the CAM gaps and cubic spline interpolation of the
+CPM positions and of the altitude:</p>
 <blockquote>
 <div><ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">GapFiller.fill</span></code> (streaming, CAM): fills the gap between the last queued
 position of an actor and a new one with interpolated positions, used by
 <code class="docutils literal notranslate"><span class="pre">PointDataset</span></code> when the gap exceeds the nominal output period plus the
-deviation. A gap shorter than the nominal period minus the deviation never
-reaches it: <code class="docutils literal notranslate"><span class="pre">PointDataset</span></code> rejects the position (streaming decimation).</p></li>
+deviation. Latitude and longitude follow a Hermite segment built on the reported
+speed and heading, the altitude a cubic spline on the history. A gap shorter than
+the nominal period minus the deviation never reaches it: <code class="docutils literal notranslate"><span class="pre">PointDataset</span></code> rejects
+the position (streaming decimation).</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">GapFiller.resample</span></code> (batch, CPM): resamples a whole time-ordered list of
 positions on the output period grid, used by <code class="docutils literal notranslate"><span class="pre">ObjectPerceivedDataset</span></code>:
 longer input periods are interpolated, shorter ones decimated.</p></li>
@@ -926,7 +985,8 @@ instance can be shared.</p></li>
 <li><p>n = number of input points of one spline (CAM: queue plus new point, 2-31;
 CPM: measured plus predicted points).</p></li>
 <li><p>k = number of output points generated by one call (CAM: interpolated
-positions; CPM: grid points, at most the given maximum point number).</p></li>
+positions; CPM: grid points kept, at most the given maximum point number).</p></li>
+<li><p>c = number of points of one chain (fill: k + 2; resample: k).</p></li>
 </ul>
 </dd>
 <dt>Thread Safety:</dt><dd><p><code class="docutils literal notranslate"><span class="pre">GapFiller</span></code> keeps no mutable state, so concurrent calls are safe as long as
@@ -937,8 +997,10 @@ the logger is.</p>
 <dt class="field-odd">Complexity<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>- Time</strong> – O(n + k*log(n)), dominated by GapFiller.interpolate (spline
-construction O(n), evaluation O(k*log(n))).</p></li>
-<li><p><strong>- Space</strong> – O(n + k), the spline coefficients plus the k output positions.</p></li>
+construction O(n), evaluation O(k*log(n))), used by GapFiller.fill and
+GapFiller.resample.</p></li>
+<li><p><strong>- Space</strong> – O(n + k), dominated by GapFiller.fill and GapFiller.resample: the
+input arrays, the spline and the k output positions.</p></li>
 </ul>
 </dd>
 </dl>
@@ -953,9 +1015,9 @@ Complexity: time O(1), space O(k).</p></li>
 <li><p>MotionValues: Speed and heading computed from a displacement.
 Complexity: time O(1), space O(1).</p></li>
 <li><p>ChainMotion: Vectorized motion arrays of one position chain.
-Complexity: time O(1), space O(k).</p></li>
-<li><p>GapFiller: Stateless output period resampler.
-Complexity: time O(n + k*log(n)), space O(n + k).</p></li>
+Complexity: time O(1), space O(c).</p></li>
+<li><p>GapFiller: Stateless output period resampler. Complexity: time
+O(n + k*log(n)), space O(n + k).</p></li>
 </ul>
 </dd>
 </dl>
@@ -1032,7 +1094,7 @@ wrapped into [<code class="docutils literal notranslate"><span class="pre">HEADI
 <dt class="field-odd">Complexity<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>- Time</strong> – O(1), construction stores five array references.</p></li>
-<li><p><strong>- Space</strong> – O(k), the five referenced arrays have c - 1 rows each.</p></li>
+<li><p><strong>- Space</strong> – O(c), the five referenced arrays have c - 1 rows each.</p></li>
 </ul>
 </dd>
 </dl>
@@ -1042,14 +1104,14 @@ wrapped into [<code class="docutils literal notranslate"><span class="pre">HEADI
 <dt class="sig sig-object py" id="step_adapter.gap_filler.GapFiller">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">step_adapter.gap_filler.</span></span><span class="sig-name descname"><span class="pre">GapFiller</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config_par</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#step_adapter.gap_filler.GapFillerConfig" title="step_adapter.gap_filler.GapFillerConfig"><span class="pre">GapFillerConfig</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">logger</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Logger</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/step_adapter/gap_filler.html#GapFiller"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#step_adapter.gap_filler.GapFiller" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>Stateless output period resampler with cubic spline interpolation.</p>
+<p>Stateless output period resampler with Hermite and cubic spline interpolation.</p>
 <p>Holds only the configuration and the logger. <code class="docutils literal notranslate"><span class="pre">fill</span></code> interpolates the gap
-between two consecutive positions of a stream (CAM), <code class="docutils literal notranslate"><span class="pre">resample</span></code> puts a whole
-time-ordered list of positions on the output period grid (CPM). Estimated
-positions are typed <code class="docutils literal notranslate"><span class="pre">POSITION_GNSS_ESTIMATED</span></code> for a GNSS template,
-<code class="docutils literal notranslate"><span class="pre">POSITION_PERCEIVED_ESTIMATED</span></code> otherwise, and the speed/heading of every
-output position after the first one is recomputed from the geodesic
-displacement.</p>
+between two consecutive positions of a stream (CAM) with a Hermite segment for
+latitude and longitude and a cubic spline for the altitude; <code class="docutils literal notranslate"><span class="pre">resample</span></code> puts a
+whole time-ordered list of positions on the output period grid (CPM) with a cubic
+spline. Estimated positions are typed <code class="docutils literal notranslate"><span class="pre">POSITION_GNSS_ESTIMATED</span></code> for a GNSS
+template, <code class="docutils literal notranslate"><span class="pre">POSITION_PERCEIVED_ESTIMATED</span></code> otherwise, and the speed/heading of every
+output position after the first one is recomputed from the geodesic displacement.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="step_adapter.gap_filler.GapFiller.config_par">
 <span class="sig-name descname"><span class="pre">config_par</span></span><a class="headerlink" href="#step_adapter.gap_filler.GapFiller.config_par" title="Link to this definition"></a></dt>
@@ -1082,7 +1144,8 @@ warnings.</p>
 <dt class="field-odd">Complexity<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>- Time</strong> – O(n + k*log(n)), driven by fill and resample (see interpolate).</p></li>
-<li><p><strong>- Space</strong> – O(n + k), the spline coefficients plus the k output positions.</p></li>
+<li><p><strong>- Space</strong> – O(n + k), driven by fill and resample: the input arrays, the spline
+and the k output positions.</p></li>
 </ul>
 </dd>
 </dl>
@@ -1148,8 +1211,10 @@ speed/heading replaced.</p></li>
 <dt class="sig sig-object py" id="step_adapter.gap_filler.GapFiller.fill">
 <span class="sig-name descname"><span class="pre">fill</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">actor</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ActorId</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">history_times_ms</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">NDArray</span><span class="p"><span class="pre">[</span></span><span class="pre">int64</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">history_latitudes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">NDArray</span><span class="p"><span class="pre">[</span></span><span class="pre">float64</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">history_longitudes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">NDArray</span><span class="p"><span class="pre">[</span></span><span class="pre">float64</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">history_altitudes_m</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">NDArray</span><span class="p"><span class="pre">[</span></span><span class="pre">float64</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">last_record</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">PositionInfoRecord</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_record</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">PositionInfoRecord</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">PositionInfo</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/step_adapter/gap_filler.html#GapFiller.fill"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#step_adapter.gap_filler.GapFiller.fill" title="Link to this definition"></a></dt>
 <dd><p>Fill the gap between the last position of a stream and a new one.</p>
-<p>Gets the interpolated timestamps (<code class="docutils literal notranslate"><span class="pre">interpolation_timestamps</span></code>), evaluates
-the spline fitted on the history (<code class="docutils literal notranslate"><span class="pre">interpolate</span></code>) and builds the chain
+<p>Gets the interpolated timestamps (<code class="docutils literal notranslate"><span class="pre">interpolation_timestamps</span></code>), evaluates the
+Hermite segment between the two positions for latitude and longitude
+(<code class="docutils literal notranslate"><span class="pre">_hermite_coordinates</span></code>) and the spline fitted on the history for the altitude
+(<code class="docutils literal notranslate"><span class="pre">interpolate</span></code>), and builds the chain
 last position -&gt; interpolated positions -&gt; new position
 (<code class="docutils literal notranslate"><span class="pre">_build_chain_positions</span></code>): the k interpolated positions share stationInfo
 and objectId of <code class="docutils literal notranslate"><span class="pre">new_record</span></code> and are followed by <code class="docutils literal notranslate"><span class="pre">new_record</span></code> with
@@ -1309,8 +1374,8 @@ below 1 ms and never accumulates:</p>
 </ul>
 </div></blockquote>
 <p>Every interval is 99 or 100 ms. Adding the rounded period
-2999 // 30 = 99 thirty times instead would place the last timestamp at
-2871 ms, leaving a last interval of 2999 - 2871 = 128 ms, above 125.</p>
+2999 // 30 = 99 twenty-nine times instead would place the last timestamp
+at 2871 ms, leaving a last interval of 2999 - 2871 = 128 ms, above 125.</p>
 <p>Non-ideal period, 1 Hz (nominal 1000 ms, deviation 25 ms, intervals
 allowed in [975, 1025] ms), range from 0 ms to 1900 ms: no n fits
 (n = 1 gives 1900, n = 2 gives 950), so <code class="docutils literal notranslate"><span class="pre">optimal_period</span></code> picks n = 2,
@@ -1322,8 +1387,8 @@ leaving one interval of 1900 ms.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Complexity<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>- Time</strong> – O(k), k = n - 1 generated timestamps, for <code class="docutils literal notranslate"><span class="pre">np.arange</span></code> and the
-vectorized arithmetic.</p></li>
+<li><p><strong>- Time</strong> – O(k), k = interval count - 1 generated timestamps, for
+<code class="docutils literal notranslate"><span class="pre">np.arange</span></code> and the vectorized arithmetic.</p></li>
 <li><p><strong>- Space</strong> – O(k), for the returned array.</p></li>
 </ul>
 </dd>
@@ -1462,20 +1527,22 @@ and 2800 // 3 = 933, outside the range but the closest achievable.</p></li>
 <dt class="sig sig-object py" id="step_adapter.gap_filler.GapFiller.resample">
 <span class="sig-name descname"><span class="pre">resample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">actor</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ActorId</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">records</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">PositionInfoRecord</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_point_number</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">PositionInfo</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/step_adapter/gap_filler.html#GapFiller.resample"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#step_adapter.gap_filler.GapFiller.resample" title="Link to this definition"></a></dt>
 <dd><p>Resample time-ordered positions on the output period grid.</p>
-<p>Fewer than <code class="docutils literal notranslate"><span class="pre">RESAMPLE_POINT_NUMBER_MIN</span></code> positions, or positions whose every
-interval is already within [output period min, output period max], are
-returned as-is. Otherwise the grid is first time + floor(i * span / n), for
+<p>Fewer than <code class="docutils literal notranslate"><span class="pre">RESAMPLE_POINT_NUMBER_MIN</span></code> positions are returned as-is.
+Positions whose every interval is already within [output period min, output
+period max] keep their times, truncated to <code class="docutils literal notranslate"><span class="pre">max_point_number</span></code> with a
+warning (<code class="docutils literal notranslate"><span class="pre">_with_recomputed_motion</span></code>). Otherwise the grid is first time +
+floor(i * span / n), for
 i in [0, n], with n chosen by <code class="docutils literal notranslate"><span class="pre">optimal_period</span></code> over the whole span
-(<code class="docutils literal notranslate"><span class="pre">interpolation_timestamps</span></code> for the inner points, so a non-ideal period is
-logged as a warning): a longer input period is interpolated, a shorter one
+(<code class="docutils literal notranslate"><span class="pre">_resample_grid_times</span></code>, so a non-ideal period is logged as a warning and
+only the first <code class="docutils literal notranslate"><span class="pre">max_point_number</span></code> grid times are generated, with a warning
+when some are left out): a longer input period is interpolated, a shorter one
 decimated. A grid time equal to an input time keeps that real position (an
 input period that divides the output one is a pure decimation); the other
 grid times become estimated positions from the spline fitted on every input
 position (<code class="docutils literal notranslate"><span class="pre">interpolate</span></code>). The first position is returned unchanged; the
 speed/heading of every following position, real or estimated, is recomputed
 from the displacement from the previous grid point
-(<code class="docutils literal notranslate"><span class="pre">_build_chain_positions</span></code>). The output is truncated to
-<code class="docutils literal notranslate"><span class="pre">max_point_number</span></code> positions, with a warning.</p>
+(<code class="docutils literal notranslate"><span class="pre">_build_chain_positions</span></code>).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -1502,10 +1569,12 @@ truncation).</p>
 </dd>
 <dt class="field-odd">Complexity<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>- Time</strong> – O(n + k*log(n)), O(n) input arrays, O(k*log(n)) grid matching
-(<code class="docutils literal notranslate"><span class="pre">numpy.searchsorted</span></code>) and <code class="docutils literal notranslate"><span class="pre">interpolate</span></code>.</p></li>
-<li><p><strong>- Space</strong> – O(n + k), the input and grid arrays plus the k returned
-positions.</p></li>
+<li><p><strong>- Time</strong> – O(n + k*log(n)), O(n) input arrays, O(k) grid generation
+(<code class="docutils literal notranslate"><span class="pre">_resample_grid_times</span></code>), O(k*log(n)) grid matching
+(<code class="docutils literal notranslate"><span class="pre">numpy.searchsorted</span></code>) and <code class="docutils literal notranslate"><span class="pre">interpolate</span></code>; O(n) when no grid is
+needed.</p></li>
+<li><p><strong>- Space</strong> – O(n + k), the input arrays and the spline, plus the k grid times
+and returned positions; O(n) when no grid is needed.</p></li>
 </ul>
 </dd>
 </dl>

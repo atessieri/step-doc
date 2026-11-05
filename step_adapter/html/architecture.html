@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Architecture &mdash; STEP Adapter 1.2.0 documentation</title>
+  <title>Architecture &mdash; STEP Adapter 1.2.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="_static/tabs.css?v=4c969af8" />
@@ -16,7 +16,7 @@
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=6efca38a"></script>
+      <script src="_static/documentation_options.js?v=ca842793"></script>
       <script src="_static/doctools.js?v=fd6eb6e6"></script>
       <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="_static/tabs.js?v=3ee01567"></script>
@@ -26,7 +26,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="API Documentation Coverage Summary" href="docstring_coverage_report.html" />
-    <link rel="prev" title="Cubic Spline Interpolation for Trajectories" href="spline_cubic.html" /> 
+    <link rel="prev" title="Hermite Interpolation for CAM Gaps" href="spline_hermite.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -177,6 +177,20 @@
 <li class="toctree-l2"><a class="reference internal" href="spline_cubic.html#limitations-and-considerations">Limitations and Considerations</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="spline_hermite.html">Hermite Interpolation for CAM Gaps</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="spline_hermite.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="spline_hermite.html#why-not-a-cubic-spline-for-cam">Why not a Cubic Spline for CAM</a></li>
+<li class="toctree-l2"><a class="reference internal" href="spline_hermite.html#mathematical-foundation">Mathematical Foundation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="spline_hermite.html#worked-example">Worked Example</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="spline_hermite.html#tangents">Tangents</a></li>
+<li class="toctree-l2"><a class="reference internal" href="spline_hermite.html#why-not-for-cpm">Why Not for CPM</a></li>
+<li class="toctree-l2"><a class="reference internal" href="spline_hermite.html#implementation">Implementation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="spline_hermite.html#comparison-with-the-cubic-spline">Comparison with the Cubic Spline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="spline_hermite.html#limitations">Limitations</a></li>
+</ul>
+</li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Architecture</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#overview">Overview</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#library">Library</a><ul>
@@ -303,6 +317,24 @@
 <li class="toctree-l6"><a class="reference internal" href="schemas_rst/cam_data_v1_schema.html#vehicle-length-confidence-indication">Vehicle Length Confidence Indication</a></li>
 <li class="toctree-l6"><a class="reference internal" href="schemas_rst/cam_data_v1_schema.html#vehicle-role">Vehicle Role</a></li>
 <li class="toctree-l6"><a class="reference internal" href="schemas_rst/cam_data_v1_schema.html#yaw-rate">Yaw Rate</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="schemas_rst/cpm_message.html">CPM Message</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="schemas_rst/cpm_data_v1_schema.html">CPM Data V1 Schema</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cpm_data_v1_schema.html#cpm-data-version-1">CPM Data Version 1</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/cpm_data_v1_schema.html#reference-altitude">Reference Altitude</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/cpm_data_v1_schema.html#heading">Heading</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/cpm_data_v1_schema.html#object-dimension">Object Dimension</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/cpm_data_v1_schema.html#path-point-predicted">Path Point Predicted</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/cpm_data_v1_schema.html#perceived-object">Perceived Object</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/cpm_data_v1_schema.html#position-confidence-ellipse">Position Confidence Ellipse</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/cpm_data_v1_schema.html#reference-position">Reference Position</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/cpm_data_v1_schema.html#speed">Speed</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/cpm_data_v1_schema.html#traffic-participant-type">Traffic Participant Type</a></li>
 </ul>
 </li>
 </ul>
@@ -438,6 +470,7 @@
 </ul>
 </li>
 <li class="toctree-l4"><a class="reference internal" href="step_adapter_rst/step_adapter.object_perceived_dataset.html#step_adapter.object_perceived_dataset.ObjectPerceivedDatasetConfig"><code class="docutils literal notranslate"><span class="pre">ObjectPerceivedDatasetConfig</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.object_perceived_dataset.html#step_adapter.object_perceived_dataset.ObjectPerceivedDatasetConfig.input_max_cpm_span_ms"><code class="docutils literal notranslate"><span class="pre">ObjectPerceivedDatasetConfig.input_max_cpm_span_ms</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.object_perceived_dataset.html#step_adapter.object_perceived_dataset.ObjectPerceivedDatasetConfig.input_min_altitude_trailing_point_percent"><code class="docutils literal notranslate"><span class="pre">ObjectPerceivedDatasetConfig.input_min_altitude_trailing_point_percent</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.object_perceived_dataset.html#step_adapter.object_perceived_dataset.ObjectPerceivedDatasetConfig.output_nominal_sample_frequency"><code class="docutils literal notranslate"><span class="pre">ObjectPerceivedDatasetConfig.output_nominal_sample_frequency</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.object_perceived_dataset.html#step_adapter.object_perceived_dataset.ObjectPerceivedDatasetConfig.output_period_max_deviation_ms"><code class="docutils literal notranslate"><span class="pre">ObjectPerceivedDatasetConfig.output_period_max_deviation_ms</span></code></a></li>
@@ -569,6 +602,7 @@
 <li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.StepAdapterConfig.inputMaxPeriod"><code class="docutils literal notranslate"><span class="pre">StepAdapterConfig.inputMaxPeriod</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.StepAdapterConfig.inputLocalTimeMaxDeviation"><code class="docutils literal notranslate"><span class="pre">StepAdapterConfig.inputLocalTimeMaxDeviation</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.StepAdapterConfig.inputOldestAllowedTime"><code class="docutils literal notranslate"><span class="pre">StepAdapterConfig.inputOldestAllowedTime</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.StepAdapterConfig.inputMaxCpmSpan"><code class="docutils literal notranslate"><span class="pre">StepAdapterConfig.inputMaxCpmSpan</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.StepAdapterConfig.outputNominalSampleFrequency"><code class="docutils literal notranslate"><span class="pre">StepAdapterConfig.outputNominalSampleFrequency</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.StepAdapterConfig.outputPeriodMaxDeviation"><code class="docutils literal notranslate"><span class="pre">StepAdapterConfig.outputPeriodMaxDeviation</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.StepAdapterConfig.cleanerInterval"><code class="docutils literal notranslate"><span class="pre">StepAdapterConfig.cleanerInterval</span></code></a></li>
@@ -655,6 +689,8 @@
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_gap_filler.html#test.test_gap_filler.LATITUDE"><code class="docutils literal notranslate"><span class="pre">LATITUDE</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_gap_filler.html#test.test_gap_filler.LATITUDE_STEP"><code class="docutils literal notranslate"><span class="pre">LATITUDE_STEP</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_gap_filler.html#test.test_gap_filler.LONGITUDE"><code class="docutils literal notranslate"><span class="pre">LONGITUDE</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_gap_filler.html#test.test_gap_filler.METERS_PER_LATITUDE_DEGREE"><code class="docutils literal notranslate"><span class="pre">METERS_PER_LATITUDE_DEGREE</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_gap_filler.html#test.test_gap_filler.METERS_PER_LONGITUDE_DEGREE"><code class="docutils literal notranslate"><span class="pre">METERS_PER_LONGITUDE_DEGREE</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_gap_filler.html#test.test_gap_filler.OBJECT_ID"><code class="docutils literal notranslate"><span class="pre">OBJECT_ID</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_gap_filler.html#test.test_gap_filler.START_MS"><code class="docutils literal notranslate"><span class="pre">START_MS</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_gap_filler.html#test.test_gap_filler.STATION_ID"><code class="docutils literal notranslate"><span class="pre">STATION_ID</span></code></a></li>
@@ -668,9 +704,13 @@
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test__altitude_trailing_point_number"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test__altitude_trailing_point_number()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test__build_chain_positions"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test__build_chain_positions()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test__compute_chain_motion"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test__compute_chain_motion()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test__hermite_coordinates"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test__hermite_coordinates()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test__required_altitude_trailing_point_number"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test__required_altitude_trailing_point_number()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test__resample_grid_times"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test__resample_grid_times()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test__speed_heading_from_motion"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test__speed_heading_from_motion()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test__tangent_deg_per_ms"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test__tangent_deg_per_ms()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test__truncate_positions"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test__truncate_positions()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test__with_recomputed_motion"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test__with_recomputed_motion()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test__wrap_heading_values"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test__wrap_heading_values()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test__wrap_longitude_values"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test__wrap_longitude_values()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test_apply_motion"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test_apply_motion()</span></code></a></li>
@@ -715,6 +755,7 @@
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_object_perceived_dataset.html#test.test_object_perceived_dataset.TestObjectPerceivedDataset"><code class="docutils literal notranslate"><span class="pre">TestObjectPerceivedDataset</span></code></a><ul>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_object_perceived_dataset.html#test.test_object_perceived_dataset.TestObjectPerceivedDataset.test___init__"><code class="docutils literal notranslate"><span class="pre">TestObjectPerceivedDataset.test___init__()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_object_perceived_dataset.html#test.test_object_perceived_dataset.TestObjectPerceivedDataset.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestObjectPerceivedDataset.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_object_perceived_dataset.html#test.test_object_perceived_dataset.TestObjectPerceivedDataset.test__records_within_span"><code class="docutils literal notranslate"><span class="pre">TestObjectPerceivedDataset.test__records_within_span()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_object_perceived_dataset.html#test.test_object_perceived_dataset.TestObjectPerceivedDataset.test__time_ordered_records"><code class="docutils literal notranslate"><span class="pre">TestObjectPerceivedDataset.test__time_ordered_records()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_object_perceived_dataset.html#test.test_object_perceived_dataset.TestObjectPerceivedDataset.test__to_position_array"><code class="docutils literal notranslate"><span class="pre">TestObjectPerceivedDataset.test__to_position_array()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_object_perceived_dataset.html#test.test_object_perceived_dataset.TestObjectPerceivedDataset.test_add_cpm_message"><code class="docutils literal notranslate"><span class="pre">TestObjectPerceivedDataset.test_add_cpm_message()</span></code></a></li>
@@ -871,6 +912,21 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="changelog.html#id1">1.2.1 - 2026-11-05</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="changelog.html#fixed">1.2.1 - Fixed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="changelog.html#added">1.2.1 - Added</a></li>
+<li class="toctree-l3"><a class="reference internal" href="changelog.html#changed">1.2.1 - Changed</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="changelog.html#id2">1.2.0 - 2026-10-26</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="changelog.html#id3">1.2.0 - Added</a></li>
+<li class="toctree-l3"><a class="reference internal" href="changelog.html#id4">1.2.0 - Changed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="changelog.html#removed">1.2.0 - Removed</a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 
         </div>
@@ -912,7 +968,7 @@ messages and publishes them to the crash prediction Redis stream:</p>
 <div><ul class="simple">
 <li><p><strong>CAM</strong>: every sender keeps a short position history; a new position is validated against
 the previous one and, when the gap from it is larger than the output period, the gap is
-filled with positions interpolated by a cubic spline at the configured output frequency.</p></li>
+filled with positions interpolated by a Hermite segment at the configured output frequency.</p></li>
 <li><p><strong>CPM</strong>: every perceived object is converted into one position array, from its measured
 position and its predicted path, without any history between messages.</p></li>
 </ul>
@@ -943,14 +999,16 @@ and forbid extra fields.</p>
 <dt><strong>SciPy</strong></dt><dd><p>Scientific computing library providing the mathematical foundation for position interpolation:</p>
 <blockquote>
 <div><ul class="simple">
-<li><p><strong>CubicSpline</strong>: Cubic spline interpolation for smooth trajectory generation</p></li>
+<li><p><strong>CubicHermiteSpline</strong>: Hermite segment for the latitude and longitude of the CAM gaps,
+built on the reported speed and heading</p></li>
+<li><p><strong>CubicSpline</strong>: Cubic spline interpolation of the CPM positions and of the altitude</p></li>
 <li><p><strong>Vector-valued splines</strong>: Latitude, longitude and (when every point has one) altitude
 share one spline, so a single tridiagonal system is solved for all of them</p></li>
 <li><p><strong>No extrapolation</strong>: The spline is evaluated with <code class="docutils literal notranslate"><span class="pre">extrapolate=False</span></code></p></li>
 </ul>
 </div></blockquote>
 <p>Used by <code class="docutils literal notranslate"><span class="pre">GapFiller</span></code>, shared by <code class="docutils literal notranslate"><span class="pre">PointDataset</span></code> and <code class="docutils literal notranslate"><span class="pre">ObjectPerceivedDataset</span></code>, to
-generate the interpolated positions (see <a class="reference internal" href="spline_cubic.html"><span class="doc">Cubic Spline Interpolation for Trajectories</span></a>).</p>
+generate the interpolated positions (see <a class="reference internal" href="spline_cubic.html"><span class="doc">Cubic Spline Interpolation for Trajectories</span></a> and <a class="reference internal" href="spline_hermite.html"><span class="doc">Hermite Interpolation for CAM Gaps</span></a>).</p>
 </dd>
 <dt><strong>NumPy</strong></dt><dd><p>Numerical computing library that provides efficient array operations:</p>
 <blockquote>
@@ -1037,8 +1095,9 @@ interpolation, actor management, Redis integration, and configuration management
 by CAM messages, with time-ordered cleanup of the expired actors</p></li>
 <li><p><strong>PointDataset/PointDatasetConfig</strong>: Per-actor position history with coherence checks;
 the gaps are filled by <code class="docutils literal notranslate"><span class="pre">GapFiller</span></code></p></li>
-<li><p><strong>GapFiller/GapFillerConfig</strong>: Output period resampling shared by CAM and CPM: cubic
-spline interpolation of longer periods, decimation of shorter ones</p></li>
+<li><p><strong>GapFiller/GapFillerConfig</strong>: Output period resampling shared by CAM and CPM: Hermite
+interpolation of the CAM gaps, cubic spline interpolation of the longer CPM periods,
+decimation of the shorter ones</p></li>
 <li><p><strong>ObjectPerceivedDataset/ObjectPerceivedDatasetConfig</strong>: Stateless conversion of CPM
 perceived objects into position arrays resampled at the output period</p></li>
 <li><p><strong>numeric_bounds</strong>: Numeric bounds shared by the JSON configuration,
@@ -1169,19 +1228,21 @@ returned with speed and heading recomputed from the distance/heading already com
 the coherence check.</p></li>
 <li><p><strong>Interpolation path</strong> (larger gap): <code class="docutils literal notranslate"><span class="pre">GapFiller.fill()</span></code> chooses the output period and
 the number of intervals (<code class="docutils literal notranslate"><span class="pre">GapFiller.optimal_period()</span></code>, see <a class="reference internal" href="find_period.html"><span class="doc">Finding the Optimal Interpolation Period</span></a>),
-evaluates the cubic spline fitted on the history at the k interpolated timestamps
-(<code class="docutils literal notranslate"><span class="pre">GapFiller.interpolate()</span></code>) and returns the k interpolated positions
-(<code class="docutils literal notranslate"><span class="pre">POSITION_GNSS_ESTIMATED</span></code>) followed by the received position, the last point being
-always the measured one.</p></li>
+evaluates at the k interpolated timestamps the Hermite segment between the two positions
+for latitude and longitude (see <a class="reference internal" href="spline_hermite.html"><span class="doc">Hermite Interpolation for CAM Gaps</span></a>) and the cubic spline fitted on the
+history for the altitude (<code class="docutils literal notranslate"><span class="pre">GapFiller.interpolate()</span></code>), and returns the k interpolated
+positions (<code class="docutils literal notranslate"><span class="pre">POSITION_GNSS_ESTIMATED</span></code>) followed by the received position, the last point
+being always the measured one.</p></li>
 </ul>
 </div></blockquote>
-<p><strong>Speed and Heading:</strong> The speed and heading reported by the sender are never preserved: they
-are always recomputed from the geodesic displacement relative to the previous point (one batched
-geodesic call over the whole interpolation chain).</p>
+<p><strong>Speed and Heading:</strong> The speed and heading reported by the sender are never preserved on the
+returned positions: they are always recomputed from the geodesic displacement relative to the
+previous point (one batched geodesic call over the whole interpolation chain). The queued records
+keep them, as the tangents of the Hermite segment.</p>
 <p><strong>Altitude:</strong> Interpolated by <code class="docutils literal notranslate"><span class="pre">GapFiller</span></code> (see GapFiller) from the trailing run of points
 with altitude ending at the new position.</p>
-<p><strong>Vehicle Dimensions:</strong> The vehicle length and width are updated on every accepted position when
-provided (<code class="docutils literal notranslate"><span class="pre">None</span></code> keeps the stored value) and reset with the history.</p>
+<p><strong>Vehicle Dimensions:</strong> <code class="docutils literal notranslate"><span class="pre">PointDataset</span></code> keeps none: the vehicle length and width of a position
+array are those of the CAM message, copied by <code class="docutils literal notranslate"><span class="pre">ActorDataset.add_cam_message()</span></code>.</p>
 <p><strong>Thread Safety:</strong></p>
 <p>This component is not thread-safe and requires external synchronization for concurrent access
 from multiple threads.</p>
@@ -1194,17 +1255,21 @@ calls (configuration and logger only) and is shared by both datasets:</p>
 <blockquote>
 <div><ul class="simple">
 <li><p><strong>fill()</strong> (streaming, CAM): fills the gap between the last queued position of an actor
-and a new one with the k interpolated positions of the cubic spline fitted on the actor
-history, followed by the new position. A gap shorter than the nominal period minus the
-deviation never reaches it: <code class="docutils literal notranslate"><span class="pre">PointDataset</span></code> rejects the position (streaming decimation).</p></li>
+and a new one with k interpolated positions, a Hermite segment for latitude and longitude
+and the cubic spline fitted on the actor history for the altitude, followed by the new
+position. A gap shorter than the nominal period minus the deviation never reaches it:
+<code class="docutils literal notranslate"><span class="pre">PointDataset</span></code> rejects the position (streaming decimation).</p></li>
 <li><p><strong>resample()</strong> (batch, CPM): resamples a whole time-ordered list of positions. Positions
-already at the output period are returned as-is; otherwise the grid is
+already at the output period keep their times, with recomputed speed and heading after the
+first one; otherwise the grid is
 first time + floor(i * span / n), i in [0, n], with n chosen by <code class="docutils literal notranslate"><span class="pre">optimal_period()</span></code> over
 the whole span, so a longer input period is interpolated and a shorter one decimated. A
 grid time equal to an input time keeps the real position (an input period dividing the
 output one is a pure decimation); the others become <code class="docutils literal notranslate"><span class="pre">POSITION_PERCEIVED_ESTIMATED</span></code>
-positions from the spline fitted on every input position. The output is truncated to a
-maximum number of points.</p></li>
+positions from the spline fitted on every input position. Only the grid points within the
+maximum number of points are generated, so the cost does not depend on the span. Fewer than
+two positions are returned as they are, and a maximum of one point returns only the first
+position.</p></li>
 </ul>
 </div></blockquote>
 <p><strong>Speed and Heading:</strong> The speed and heading of every output position after the first one are
@@ -1230,17 +1295,22 @@ objects of a <code class="docutils literal notranslate"><span class="pre">CpmDat
 followed by one <code class="docutils literal notranslate"><span class="pre">POSITION_PERCEIVED_PREDICTED</span></code> point per predicted path entry. All points
 share one <code class="docutils literal notranslate"><span class="pre">Identification</span></code>: the CPM sender station id, the object type and its
 confidence. A point not strictly following the previous one is dropped with a warning.</p></li>
+<li><p><strong>Maximum CPM Span</strong>: The path of a perceived object is cut <code class="docutils literal notranslate"><span class="pre">inputMaxCpmSpan</span></code> seconds
+after its measured position, with a warning.</p></li>
+<li><p><strong>Skipped Objects</strong>: An object without <code class="docutils literal notranslate"><span class="pre">objectId</span></code> or without predicted positions, or whose
+kept points span less than the minimum output period
+(<code class="docutils literal notranslate"><span class="pre">1000</span> <span class="pre">/</span> <span class="pre">outputNominalSampleFrequency</span> <span class="pre">-</span> <span class="pre">outputPeriodMaxDeviation</span></code> ms), is skipped with a
+warning and not forwarded.</p></li>
 <li><p><strong>Resampling</strong>: <code class="docutils literal notranslate"><span class="pre">GapFiller.resample()</span></code> puts the points at the output period
 (interpolation of a longer CPM period, decimation of a shorter one), keeping the measured
 position unchanged and recomputing speed and heading of the following points; at most
-<code class="docutils literal notranslate"><span class="pre">PositionArrayV1.POINTS_MAX_LENGTH</span></code> (101) points are kept, the others are dropped with a
-warning. No limit is applied to the gap between two CPM points.</p></li>
+<code class="docutils literal notranslate"><span class="pre">PositionArrayV1.POINTS_MAX_LENGTH</span></code> (101) points are generated, the others are left out
+with a warning. No limit is applied to the gap between two CPM points, apart from the
+maximum CPM span.</p></li>
 <li><p><strong>Source Type</strong>: <code class="docutils literal notranslate"><span class="pre">CAMERA_SRC</span></code>.</p></li>
 <li><p><strong>Sample Frequency</strong>: <code class="docutils literal notranslate"><span class="pre">outputNominalSampleFrequency</span></code>.</p></li>
 <li><p><strong>Dimensions</strong>: <code class="docutils literal notranslate"><span class="pre">objectDimensionX</span></code> becomes the vehicle length and <code class="docutils literal notranslate"><span class="pre">objectDimensionY</span></code> the
 vehicle width (ETSI CPM convention: X is the longitudinal axis).</p></li>
-<li><p><strong>Skipped Objects</strong>: An object without <code class="docutils literal notranslate"><span class="pre">objectId</span></code> or without predicted positions is skipped
-with a warning.</p></li>
 </ul>
 </div></blockquote>
 </section>
@@ -1248,7 +1318,8 @@ with a warning.</p></li>
 <h3>numeric_bounds<a class="headerlink" href="#numeric-bounds" title="Link to this heading"></a></h3>
 <p>The <code class="docutils literal notranslate"><span class="pre">numeric_bounds</span></code> module is the single source of the inclusive bounds applied to the same
 quantity by the JSON configuration (pydantic <code class="docutils literal notranslate"><span class="pre">ge</span></code>/<code class="docutils literal notranslate"><span class="pre">le</span></code> of <code class="docutils literal notranslate"><span class="pre">StepAdapterConfig</span></code>) and by
-<code class="docutils literal notranslate"><span class="pre">PointDatasetConfig.__post_init__</span></code> and <code class="docutils literal notranslate"><span class="pre">GapFillerConfig.__post_init__</span></code>:</p>
+<code class="docutils literal notranslate"><span class="pre">PointDatasetConfig.__post_init__</span></code> and <code class="docutils literal notranslate"><span class="pre">GapFillerConfig.__post_init__</span></code>; the bound in seconds
+is converted into milliseconds by <code class="docutils literal notranslate"><span class="pre">PointDatasetConfig</span></code>:</p>
 <blockquote>
 <div><table class="docutils align-default">
 <colgroup>
@@ -1278,6 +1349,10 @@ quantity by the JSON configuration (pydantic <code class="docutils literal notra
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">OUTPUT_MAX_PERIOD_DEVIATION_MS_MIN</span></code> / <code class="docutils literal notranslate"><span class="pre">OUTPUT_MAX_PERIOD_DEVIATION_MS_MAX</span></code></p></td>
 <td><p>0 ms</p></td>
 <td><p>50 ms</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">INPUT_LOCAL_TIME_MAX_DEVIATION_S_MIN</span></code> / <code class="docutils literal notranslate"><span class="pre">INPUT_LOCAL_TIME_MAX_DEVIATION_S_MAX</span></code></p></td>
+<td><p>0 s</p></td>
+<td><p>30 s</p></td>
 </tr>
 </tbody>
 </table>
@@ -1316,6 +1391,8 @@ longer gap clears its history (1000-4000)</p></li>
 the local time; a position beyond it is discarded (0-30)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">inputOldestAllowedTime</span></code>: Maximum age in seconds of the last position of an actor before
 the cleaner removes it (0-30)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">inputMaxCpmSpan</span></code>: Maximum time span in seconds of the path of a CPM perceived object,
+starting from its measured position; the part of the path beyond it is discarded (1-120)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">outputNominalSampleFrequency</span></code>: Output frequency in Hz (1, 2, 5 or 10)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">outputPeriodMaxDeviation</span></code>: Maximum deviation in milliseconds from the output period (0-50)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">cleanerInterval</span></code>: Period in seconds of the actor cleanup (1-60)</p></li>
@@ -1373,8 +1450,9 @@ consumer name, TTL or maximum length)</p></li>
 <li><p><strong>StepAdapterRedisStream</strong>: Adapter input stream; <code class="docutils literal notranslate"><span class="pre">receive_adapter_message()</span></code> yields the
 <code class="docutils literal notranslate"><span class="pre">AdapterCloudEventsCamDataV1</span></code> and <code class="docutils literal notranslate"><span class="pre">AdapterCloudEventsCpmDataV1</span></code> messages published by
 <code class="docutils literal notranslate"><span class="pre">step_client</span></code></p></li>
-<li><p><strong>StepCrashPredictionRedisStream</strong>: Crash prediction output stream; <code class="docutils literal notranslate"><span class="pre">publish_position_array()</span></code>
-publishes a <code class="docutils literal notranslate"><span class="pre">PositionArrayV1</span></code> to <code class="docutils literal notranslate"><span class="pre">step_crash_prediction</span></code></p></li>
+<li><p><strong>StepCrashPredictionRedisStream</strong>: Crash prediction output stream; <code class="docutils literal notranslate"><span class="pre">publish_position_arrays()</span></code>
+publishes the <code class="docutils literal notranslate"><span class="pre">PositionArrayV1</span></code> messages of one input message to <code class="docutils literal notranslate"><span class="pre">step_crash_prediction</span></code>
+with a single Redis round trip</p></li>
 </ul>
 </div></blockquote>
 <p><strong>Integration Benefits:</strong></p>
@@ -1689,13 +1767,16 @@ program instead of being retried forever.</p></li>
 <code class="docutils literal notranslate"><span class="pre">_REDIS_MAX_CONNECTIONS</span></code> = 2 connections), then uses <code class="docutils literal notranslate"><span class="pre">asyncio.TaskGroup</span></code> to run three
 concurrent tasks - <code class="docutils literal notranslate"><span class="pre">_stream_receive_run()</span></code> (stream reception, conversion and publishing),
 <code class="docutils literal notranslate"><span class="pre">_cleaner_run()</span></code> (every <code class="docutils literal notranslate"><span class="pre">cleanerInterval</span></code> seconds, <code class="docutils literal notranslate"><span class="pre">ActorDataset.clear_old_points()</span></code>)
-and <code class="docutils literal notranslate"><span class="pre">_redis_health_check_run()</span></code> (Redis connection health check).</p></li>
-<li><p><strong>Message Dispatch</strong>: <code class="docutils literal notranslate"><span class="pre">_stream_receive_run()</span></code> creates the input stream, then routes each
-received message: an <code class="docutils literal notranslate"><span class="pre">AdapterCloudEventsCamDataV1</span></code> to <code class="docutils literal notranslate"><span class="pre">ActorDataset.add_cam_message()</span></code>
-(at most one position array), an <code class="docutils literal notranslate"><span class="pre">AdapterCloudEventsCpmDataV1</span></code> to
-<code class="docutils literal notranslate"><span class="pre">ObjectPerceivedDataset.add_cpm_message()</span></code> (one position array per perceived object); any
-other type is skipped with a warning. Every resulting position array is published on the
-crash prediction stream. Each message handling is timed by a <code class="docutils literal notranslate"><span class="pre">LoggingTimer</span></code> at INFO level.</p></li>
+and <code class="docutils literal notranslate"><span class="pre">_redis_health_check_run()</span></code> (Redis connection health check; a
+<code class="docutils literal notranslate"><span class="pre">healthCheckInterval</span></code> of 0 disables the PING and the task only waits to be cancelled).</p></li>
+<li><p><strong>Message Dispatch</strong>: <code class="docutils literal notranslate"><span class="pre">_stream_receive_run()</span></code> creates the input stream, then hands each
+received message to <code class="docutils literal notranslate"><span class="pre">_message_to_position_arrays()</span></code>, which routes it: an
+<code class="docutils literal notranslate"><span class="pre">AdapterCloudEventsCamDataV1</span></code> to <code class="docutils literal notranslate"><span class="pre">ActorDataset.add_cam_message()</span></code> (at most one position
+array), an <code class="docutils literal notranslate"><span class="pre">AdapterCloudEventsCpmDataV1</span></code> to <code class="docutils literal notranslate"><span class="pre">ObjectPerceivedDataset.add_cpm_message()</span></code>
+(one position array per perceived object); any other type is skipped with a warning. The
+position arrays of a message are published on the crash prediction stream with a single
+Redis round trip (<code class="docutils literal notranslate"><span class="pre">publish_position_arrays()</span></code>). Each message handling is timed by a
+<code class="docutils literal notranslate"><span class="pre">LoggingTimer</span></code> at INFO level, and the conversion alone is timed again per message type.</p></li>
 <li><p><strong>Stream Parameters</strong>: <code class="docutils literal notranslate"><span class="pre">_input_stream_params()</span></code> builds the input stream parameters (stream,
 consumer group, wait timeout, the instance name as consumer, TTL from
 <code class="docutils literal notranslate"><span class="pre">StepRedisStreamParams.ttl_seconds_from_wait_timeout()</span></code>), also used by the health check;
@@ -1805,8 +1886,8 @@ the key classes in the STEP Adapter architecture.</p>
 <div class="scrollable-diagram docutils container">
 <figure class="align-center">
 <p class="plantuml">
-<object data="_images/plantuml-32649462be44b7e04079a41b62622b611e5f700e.svg" type="image/svg+xml" style="width:2273px;height:1561px;background:#FFFFFF;">
-<img src="_images/plantuml-32649462be44b7e04079a41b62622b611e5f700e.png" alt="!theme plain
+<object data="_images/plantuml-c7fd3a8e1ed2dd74957010e3351b89e4495cb7cc.svg" type="image/svg+xml" style="width:2333px;height:1724px;background:#FFFFFF;">
+<img src="_images/plantuml-c7fd3a8e1ed2dd74957010e3351b89e4495cb7cc.png" alt="!theme plain
 skinparam classAttributeIconSize 0
 
 class StepAdapterApp {
@@ -1821,6 +1902,7 @@ class StepAdapterApp {
    -_crash_prediction_stream_params
    -_actor_dataset_create
    -_perceived_dataset_create
+   -_message_to_position_arrays
    -async _stream_receive_run
    -async _cleaner_run
    -async _redis_health_check_run
@@ -1860,8 +1942,11 @@ class PointDataset {
    -_check_minimum_period
    -_check_maximum_period
    -_check_speed
+   -_check_speed_from_confirmed_history
+   -_check_speed_from_unconfirmed_history
    -_create_positions_list
    -_populate_input_arrays
+   -_seed_first_position
    -_clear_history
 }
 
@@ -1881,6 +1966,11 @@ class GapFiller {
    +fill
    +resample
    +apply_motion
+   -_tangent_deg_per_ms
+   -_hermite_coordinates
+   -_resample_grid_times
+   -_truncate_positions
+   -_with_recomputed_motion
    -_build_chain_positions
    -_compute_chain_motion
 }
@@ -1895,6 +1985,7 @@ class ObjectPerceivedDataset {
    +add_cpm_message
    -_to_position_array
    -_time_ordered_records
+   -_records_within_span
 }
 
 class ObjectPerceivedDatasetConfig &lt;&lt;dataclass&gt;&gt;
@@ -1906,6 +1997,7 @@ class StepAdapterConfig {
    +inputMaxPeriod
    +inputLocalTimeMaxDeviation
    +inputOldestAllowedTime
+   +inputMaxCpmSpan
    +outputNominalSampleFrequency
    +outputPeriodMaxDeviation
    +cleanerInterval
@@ -1924,7 +2016,7 @@ package &quot;step_redis&quot; {
       +async receive_adapter_message
    }
    class StepCrashPredictionRedisStream {
-      +async publish_position_array
+      +async publish_position_arrays
    }
    class StepRedisStream {
       +async run_health_check
@@ -1972,8 +2064,8 @@ StepCrashPredictionRedisStream --|&gt; StepRedisStream"/>
 <div class="scrollable-diagram docutils container">
 <figure class="align-center">
 <p class="plantuml">
-<object data="_images/plantuml-3ccbaf89f563b719c4eee268ce032211e772fd3f.svg" type="image/svg+xml" style="width:1162px;height:488px;background:#FFFFFF;">
-<img src="_images/plantuml-3ccbaf89f563b719c4eee268ce032211e772fd3f.png" alt="participant &quot;STEP Client&quot; as Client
+<object data="_images/plantuml-8cedbea1a7180f56af8818b794870146cd266106.svg" type="image/svg+xml" style="width:1162px;height:488px;background:#FFFFFF;">
+<img src="_images/plantuml-8cedbea1a7180f56af8818b794870146cd266106.png" alt="participant &quot;STEP Client&quot; as Client
 participant &quot;StepAdapterRedisStream&quot; as AdapterStream
 participant &quot;StepAdapterApp&quot; as App
 participant &quot;ActorDataset&quot; as ActorDataset
@@ -1988,14 +2080,14 @@ note over PointDataset
    Coherence checks (period,
    speed, local time); then
    fast path or GapFiller.fill()
-   cubic spline interpolation,
+   Hermite interpolation,
    received position as last point
 end note
 PointDataset --&gt; ActorDataset : positions or None
 ActorDataset -&gt; ActorDataset : update temporal index
 ActorDataset --&gt; App : PositionArrayV1 or None
 alt position array
-   App -&gt; CrashStream : publish_position_array()
+   App -&gt; CrashStream : publish_position_arrays()
 end"/>
 
 </object></p>
@@ -2007,8 +2099,8 @@ end"/>
 <div class="scrollable-diagram docutils container">
 <figure class="align-center">
 <p class="plantuml">
-<object data="_images/plantuml-0c0393f0ef4903761d6a80dd05a8eadc27a78026.svg" type="image/svg+xml" style="width:1211px;height:511px;background:#FFFFFF;">
-<img src="_images/plantuml-0c0393f0ef4903761d6a80dd05a8eadc27a78026.png" alt="participant &quot;STEP Client&quot; as Client
+<object data="_images/plantuml-b7e2f0af5064082050f42786d51f25307b83ac86.svg" type="image/svg+xml" style="width:1211px;height:511px;background:#FFFFFF;">
+<img src="_images/plantuml-b7e2f0af5064082050f42786d51f25307b83ac86.png" alt="participant &quot;STEP Client&quot; as Client
 participant &quot;StepAdapterRedisStream&quot; as AdapterStream
 participant &quot;StepAdapterApp&quot; as App
 participant &quot;ObjectPerceivedDataset&quot; as OPD
@@ -2032,8 +2124,8 @@ note over OPD
    resampled predicted path
 end note
 OPD --&gt; App : list[PositionArrayV1]
-loop every position array
-   App -&gt; CrashStream : publish_position_array()
+alt at least one position array
+   App -&gt; CrashStream : publish_position_arrays()
 end"/>
 
 </object></p>
@@ -2073,8 +2165,8 @@ end"/>
 <code class="docutils literal notranslate"><span class="pre">inputMaxPeriod</span></code> / (output nominal period - <code class="docutils literal notranslate"><span class="pre">outputPeriodMaxDeviation</span></code>), at most 80</p></li>
 <li><p><strong>m</strong> = number of tracked actors</p></li>
 <li><p><strong>r</strong> = number of actors expired by one cleanup</p></li>
-<li><p><strong>o</strong> = perceived objects in one CPM message, <strong>p</strong> = predicted path points per object,
-<strong>g</strong> = resampled points per object (at most 101)</p></li>
+<li><p><strong>o</strong> = perceived objects in one CPM message (at most 255), <strong>p</strong> = predicted path points
+per object (at most 255), <strong>g</strong> = resampled points per object (at most 101)</p></li>
 </ul>
 </div></blockquote>
 <section id="data-structure-performance-characteristics">
@@ -2095,8 +2187,9 @@ automatically</p></li>
 <li><p><strong>Coherence Checks</strong>: <span class="math notranslate nohighlight">\(O(1)\)</span> - One geodesic distance/heading computation</p></li>
 <li><p><strong>Interpolation</strong> (only when the gap exceeds the output period plus the deviation):</p>
 <ul class="simple">
-<li><p><strong>Spline Construction</strong>: <span class="math notranslate nohighlight">\(O(n)\)</span> - Tridiagonal solve over the history</p></li>
-<li><p><strong>Spline Evaluation</strong>: <span class="math notranslate nohighlight">\(O(k*log(n))\)</span> - Interval search for each interpolated timestamp</p></li>
+<li><p><strong>Spline Construction</strong>: <span class="math notranslate nohighlight">\(O(n)\)</span> - Tridiagonal solve over the history, for the altitude</p></li>
+<li><p><strong>Evaluation</strong>: <span class="math notranslate nohighlight">\(O(k*log(n))\)</span> - Interval search for each interpolated timestamp, plus
+<span class="math notranslate nohighlight">\(O(k)\)</span> for the Hermite segment</p></li>
 <li><p><strong>Motion and Positions</strong>: <span class="math notranslate nohighlight">\(O(k)\)</span> - One batched geodesic call and k positions</p></li>
 </ul>
 </li>
@@ -2107,10 +2200,12 @@ per CAM message; <span class="math notranslate nohighlight">\(O(log(m))\)</span>
 </section>
 <section id="cpm-message-processing">
 <h3>CPM Message Processing<a class="headerlink" href="#cpm-message-processing" title="Link to this heading"></a></h3>
-<p>For one CPM message (<code class="docutils literal notranslate"><span class="pre">ObjectPerceivedDataset.add_cpm_message</span></code>): <span class="math notranslate nohighlight">\(O(o*(p + g*log(p)))\)</span>
-time and <span class="math notranslate nohighlight">\(O(o*(p + g))\)</span> space: p points parsed, one spline over them evaluated at the
-estimated grid points, one position array of at most g points per perceived object; no state is
-kept.</p>
+<p>For one CPM message (<code class="docutils literal notranslate"><span class="pre">ObjectPerceivedDataset.add_cpm_message</span></code>):
+<span class="math notranslate nohighlight">\(O(o*(p + g*log(p)))\)</span> time and <span class="math notranslate nohighlight">\(O(o*g + p)\)</span> space: p points parsed, one spline over the
+p points evaluated at the estimated grid points, one position array of at most g points per
+perceived object. Only the kept grid points are generated. The parsed points of an object are
+released before the next one, so only the position arrays add up; no state is kept between
+messages.</p>
 </section>
 <section id="actor-cleanup">
 <h3>Actor Cleanup<a class="headerlink" href="#actor-cleanup" title="Link to this heading"></a></h3>
@@ -2126,7 +2221,7 @@ rebuild of the list otherwise</p></li>
 <section id="memory">
 <h3>Memory<a class="headerlink" href="#memory" title="Link to this heading"></a></h3>
 <p>The total memory is <span class="math notranslate nohighlight">\(O(m*n)\)</span> for the actor histories, plus the transient
-<span class="math notranslate nohighlight">\(O(n + k)\)</span> buffers of one CAM insertion or the <span class="math notranslate nohighlight">\(O(o*(p + g))\)</span> buffers and output of
+<span class="math notranslate nohighlight">\(O(n + k)\)</span> buffers of one CAM insertion or the <span class="math notranslate nohighlight">\(O(o*g + p)\)</span> buffers and output of
 one CPM message.
 The actors are removed by the cleaner after <code class="docutils literal notranslate"><span class="pre">inputOldestAllowedTime</span></code> seconds without a new
 accepted position.</p>
@@ -2138,6 +2233,9 @@ accepted position.</p>
 (CPU bound)</p></li>
 <li><p><strong>Secondary Bottleneck</strong>: Redis stream publication latency (network I/O bound), one publish
 round trip per message (pipeline over its position arrays, <code class="docutils literal notranslate"><span class="pre">publish_position_arrays</span></code>)</p></li>
+<li><p><strong>CPM Time Span</strong>: at most 101 grid points are generated per perceived object, whatever its
+predicted time span, and the path beyond <code class="docutils literal notranslate"><span class="pre">inputMaxCpmSpan</span></code> is discarded; m
+is the only figure bounded by neither the configuration nor the message schemas</p></li>
 <li><p><strong>Single Event Loop</strong>: Messages are processed one at a time on one asyncio event loop; to
 scale, run more instances in the same consumer group</p></li>
 <li><p><strong>Actor Partitioning</strong>: The actor history is per instance: with several instances, the CAM
@@ -2151,7 +2249,7 @@ messages of one sender should reach the same instance to keep its trajectory con
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="spline_cubic.html" class="btn btn-neutral float-left" title="Cubic Spline Interpolation for Trajectories" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="spline_hermite.html" class="btn btn-neutral float-left" title="Hermite Interpolation for CAM Gaps" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="docstring_coverage_report.html" class="btn btn-neutral float-right" title="API Documentation Coverage Summary" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

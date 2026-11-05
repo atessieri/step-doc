@@ -298,7 +298,7 @@ Example log output:
 Warning Conditions
 ~~~~~~~~~~~~~~~~~~
 
-Non-ideal solutions trigger warnings in ``GapFiller.interpolation_timestamps()`` because:
+Non-ideal solutions trigger warnings in ``GapFiller.interpolation_timestamps()`` and ``GapFiller._resample_grid_times()`` because:
     - The period falls outside the configured deviation range
     - This may indicate configuration issues or unusual timing conditions
     - Users should review if this occurs frequently
@@ -350,11 +350,11 @@ CPM Resampling
 --------------
 
 ``GapFiller.resample()`` applies the same choice to the whole span of the points of a
-perceived object (first to last time): the :math:`n + 1` grid times are the two ends plus the
-:math:`n - 1` timestamps of ``GapFiller.interpolation_timestamps()``. A grid time equal to an
-input time keeps the real position, so an input period dividing the output one (e.g. 100 ms
-points at 5 Hz) is a pure decimation, while a longer input period is filled with interpolated
-positions.
+perceived object (first to last time): the :math:`n + 1` grid times, of which
+``GapFiller._resample_grid_times()`` generates only those within the maximum point number, follow
+the same formula. A grid time equal to an input time keeps the real position, so an input period
+dividing the output one (e.g. 100 ms points at 5 Hz) is a pure decimation, while a longer input
+period is filled with interpolated positions.
 
 See Also
 --------

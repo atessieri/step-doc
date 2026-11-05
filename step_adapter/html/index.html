@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>STEP Adapter: Overview &mdash; STEP Adapter 1.2.0 documentation</title>
+  <title>STEP Adapter: Overview &mdash; STEP Adapter 1.2.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="_static/tabs.css?v=4c969af8" />
@@ -16,7 +16,7 @@
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=6efca38a"></script>
+      <script src="_static/documentation_options.js?v=ca842793"></script>
       <script src="_static/doctools.js?v=fd6eb6e6"></script>
       <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="_static/tabs.js?v=3ee01567"></script>
@@ -175,6 +175,20 @@
 <li class="toctree-l2"><a class="reference internal" href="spline_cubic.html#limitations-and-considerations">Limitations and Considerations</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="spline_hermite.html">Hermite Interpolation for CAM Gaps</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="spline_hermite.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="spline_hermite.html#why-not-a-cubic-spline-for-cam">Why not a Cubic Spline for CAM</a></li>
+<li class="toctree-l2"><a class="reference internal" href="spline_hermite.html#mathematical-foundation">Mathematical Foundation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="spline_hermite.html#worked-example">Worked Example</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="spline_hermite.html#tangents">Tangents</a></li>
+<li class="toctree-l2"><a class="reference internal" href="spline_hermite.html#why-not-for-cpm">Why Not for CPM</a></li>
+<li class="toctree-l2"><a class="reference internal" href="spline_hermite.html#implementation">Implementation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="spline_hermite.html#comparison-with-the-cubic-spline">Comparison with the Cubic Spline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="spline_hermite.html#limitations">Limitations</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="architecture.html">Architecture</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="architecture.html#overview">Overview</a></li>
 <li class="toctree-l2"><a class="reference internal" href="architecture.html#library">Library</a><ul>
@@ -301,6 +315,24 @@
 <li class="toctree-l6"><a class="reference internal" href="schemas_rst/cam_data_v1_schema.html#vehicle-length-confidence-indication">Vehicle Length Confidence Indication</a></li>
 <li class="toctree-l6"><a class="reference internal" href="schemas_rst/cam_data_v1_schema.html#vehicle-role">Vehicle Role</a></li>
 <li class="toctree-l6"><a class="reference internal" href="schemas_rst/cam_data_v1_schema.html#yaw-rate">Yaw Rate</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="schemas_rst/cpm_message.html">CPM Message</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="schemas_rst/cpm_data_v1_schema.html">CPM Data V1 Schema</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="schemas_rst/cpm_data_v1_schema.html#cpm-data-version-1">CPM Data Version 1</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/cpm_data_v1_schema.html#reference-altitude">Reference Altitude</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/cpm_data_v1_schema.html#heading">Heading</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/cpm_data_v1_schema.html#object-dimension">Object Dimension</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/cpm_data_v1_schema.html#path-point-predicted">Path Point Predicted</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/cpm_data_v1_schema.html#perceived-object">Perceived Object</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/cpm_data_v1_schema.html#position-confidence-ellipse">Position Confidence Ellipse</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/cpm_data_v1_schema.html#reference-position">Reference Position</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/cpm_data_v1_schema.html#speed">Speed</a></li>
+<li class="toctree-l6"><a class="reference internal" href="schemas_rst/cpm_data_v1_schema.html#traffic-participant-type">Traffic Participant Type</a></li>
 </ul>
 </li>
 </ul>
@@ -436,6 +468,7 @@
 </ul>
 </li>
 <li class="toctree-l4"><a class="reference internal" href="step_adapter_rst/step_adapter.object_perceived_dataset.html#step_adapter.object_perceived_dataset.ObjectPerceivedDatasetConfig"><code class="docutils literal notranslate"><span class="pre">ObjectPerceivedDatasetConfig</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.object_perceived_dataset.html#step_adapter.object_perceived_dataset.ObjectPerceivedDatasetConfig.input_max_cpm_span_ms"><code class="docutils literal notranslate"><span class="pre">ObjectPerceivedDatasetConfig.input_max_cpm_span_ms</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.object_perceived_dataset.html#step_adapter.object_perceived_dataset.ObjectPerceivedDatasetConfig.input_min_altitude_trailing_point_percent"><code class="docutils literal notranslate"><span class="pre">ObjectPerceivedDatasetConfig.input_min_altitude_trailing_point_percent</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.object_perceived_dataset.html#step_adapter.object_perceived_dataset.ObjectPerceivedDatasetConfig.output_nominal_sample_frequency"><code class="docutils literal notranslate"><span class="pre">ObjectPerceivedDatasetConfig.output_nominal_sample_frequency</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.object_perceived_dataset.html#step_adapter.object_perceived_dataset.ObjectPerceivedDatasetConfig.output_period_max_deviation_ms"><code class="docutils literal notranslate"><span class="pre">ObjectPerceivedDatasetConfig.output_period_max_deviation_ms</span></code></a></li>
@@ -567,6 +600,7 @@
 <li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.StepAdapterConfig.inputMaxPeriod"><code class="docutils literal notranslate"><span class="pre">StepAdapterConfig.inputMaxPeriod</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.StepAdapterConfig.inputLocalTimeMaxDeviation"><code class="docutils literal notranslate"><span class="pre">StepAdapterConfig.inputLocalTimeMaxDeviation</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.StepAdapterConfig.inputOldestAllowedTime"><code class="docutils literal notranslate"><span class="pre">StepAdapterConfig.inputOldestAllowedTime</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.StepAdapterConfig.inputMaxCpmSpan"><code class="docutils literal notranslate"><span class="pre">StepAdapterConfig.inputMaxCpmSpan</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.StepAdapterConfig.outputNominalSampleFrequency"><code class="docutils literal notranslate"><span class="pre">StepAdapterConfig.outputNominalSampleFrequency</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.StepAdapterConfig.outputPeriodMaxDeviation"><code class="docutils literal notranslate"><span class="pre">StepAdapterConfig.outputPeriodMaxDeviation</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="step_adapter_rst/step_adapter.step_adapter_config.html#step_adapter.step_adapter_config.StepAdapterConfig.cleanerInterval"><code class="docutils literal notranslate"><span class="pre">StepAdapterConfig.cleanerInterval</span></code></a></li>
@@ -653,6 +687,8 @@
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_gap_filler.html#test.test_gap_filler.LATITUDE"><code class="docutils literal notranslate"><span class="pre">LATITUDE</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_gap_filler.html#test.test_gap_filler.LATITUDE_STEP"><code class="docutils literal notranslate"><span class="pre">LATITUDE_STEP</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_gap_filler.html#test.test_gap_filler.LONGITUDE"><code class="docutils literal notranslate"><span class="pre">LONGITUDE</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_gap_filler.html#test.test_gap_filler.METERS_PER_LATITUDE_DEGREE"><code class="docutils literal notranslate"><span class="pre">METERS_PER_LATITUDE_DEGREE</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_gap_filler.html#test.test_gap_filler.METERS_PER_LONGITUDE_DEGREE"><code class="docutils literal notranslate"><span class="pre">METERS_PER_LONGITUDE_DEGREE</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_gap_filler.html#test.test_gap_filler.OBJECT_ID"><code class="docutils literal notranslate"><span class="pre">OBJECT_ID</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_gap_filler.html#test.test_gap_filler.START_MS"><code class="docutils literal notranslate"><span class="pre">START_MS</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_gap_filler.html#test.test_gap_filler.STATION_ID"><code class="docutils literal notranslate"><span class="pre">STATION_ID</span></code></a></li>
@@ -666,9 +702,13 @@
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test__altitude_trailing_point_number"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test__altitude_trailing_point_number()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test__build_chain_positions"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test__build_chain_positions()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test__compute_chain_motion"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test__compute_chain_motion()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test__hermite_coordinates"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test__hermite_coordinates()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test__required_altitude_trailing_point_number"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test__required_altitude_trailing_point_number()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test__resample_grid_times"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test__resample_grid_times()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test__speed_heading_from_motion"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test__speed_heading_from_motion()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test__tangent_deg_per_ms"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test__tangent_deg_per_ms()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test__truncate_positions"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test__truncate_positions()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test__with_recomputed_motion"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test__with_recomputed_motion()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test__wrap_heading_values"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test__wrap_heading_values()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test__wrap_longitude_values"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test__wrap_longitude_values()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_gap_filler.html#test.test_gap_filler.TestGapFiller.test_apply_motion"><code class="docutils literal notranslate"><span class="pre">TestGapFiller.test_apply_motion()</span></code></a></li>
@@ -713,6 +753,7 @@
 <li class="toctree-l4"><a class="reference internal" href="test_rst/test.test_object_perceived_dataset.html#test.test_object_perceived_dataset.TestObjectPerceivedDataset"><code class="docutils literal notranslate"><span class="pre">TestObjectPerceivedDataset</span></code></a><ul>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_object_perceived_dataset.html#test.test_object_perceived_dataset.TestObjectPerceivedDataset.test___init__"><code class="docutils literal notranslate"><span class="pre">TestObjectPerceivedDataset.test___init__()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_object_perceived_dataset.html#test.test_object_perceived_dataset.TestObjectPerceivedDataset.test___slots__"><code class="docutils literal notranslate"><span class="pre">TestObjectPerceivedDataset.test___slots__()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_object_perceived_dataset.html#test.test_object_perceived_dataset.TestObjectPerceivedDataset.test__records_within_span"><code class="docutils literal notranslate"><span class="pre">TestObjectPerceivedDataset.test__records_within_span()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_object_perceived_dataset.html#test.test_object_perceived_dataset.TestObjectPerceivedDataset.test__time_ordered_records"><code class="docutils literal notranslate"><span class="pre">TestObjectPerceivedDataset.test__time_ordered_records()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_object_perceived_dataset.html#test.test_object_perceived_dataset.TestObjectPerceivedDataset.test__to_position_array"><code class="docutils literal notranslate"><span class="pre">TestObjectPerceivedDataset.test__to_position_array()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="test_rst/test.test_object_perceived_dataset.html#test.test_object_perceived_dataset.TestObjectPerceivedDataset.test_add_cpm_message"><code class="docutils literal notranslate"><span class="pre">TestObjectPerceivedDataset.test_add_cpm_message()</span></code></a></li>
@@ -869,6 +910,21 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="changelog.html#id1">1.2.1 - 2026-11-05</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="changelog.html#fixed">1.2.1 - Fixed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="changelog.html#added">1.2.1 - Added</a></li>
+<li class="toctree-l3"><a class="reference internal" href="changelog.html#changed">1.2.1 - Changed</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="changelog.html#id2">1.2.0 - 2026-10-26</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="changelog.html#id3">1.2.0 - Added</a></li>
+<li class="toctree-l3"><a class="reference internal" href="changelog.html#id4">1.2.0 - Changed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="changelog.html#removed">1.2.0 - Removed</a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 
         </div>
@@ -903,7 +959,7 @@
 <td><p><a class="reference external" href="https://gitlab.automotive.vodafone.com/vfa-init/pnrr/step_adapter"><img alt="Development Status" src="https://img.shields.io/badge/status-beta-yellow.svg" /></a> <img alt="Documentation Coverage" src="_images/docstr_coverage.svg" /> <img alt="Test Coverage" src="_images/test_coverage.svg" /></p></td>
 </tr>
 <tr class="row-even"><td><p><strong>Code Quality</strong></p></td>
-<td><p><a class="reference external" href="https://github.com/astral-sh/ruff"><img alt="Ruff" src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json" /></a> <a class="reference external" href="https://pycqa.github.io/isort/"><img alt="Isort" src="https://img.shields.io/badge/%20imports-isort-%231674b1" /></a> <a class="reference external" href="https://mypy.readthedocs.io/"><img alt="Mypy" src="https://img.shields.io/badge/typing-mypy-blue.svg" /></a> <a class="reference external" href="https://pylint.pycqa.org/"><img alt="Pylint" src="https://img.shields.io/badge/code%20quality-pylint-blue.svg" /></a></p></td>
+<td><p><a class="reference external" href="https://github.com/astral-sh/ruff"><img alt="Ruff" src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json" /></a> <a class="reference external" href="https://pycqa.github.io/isort/"><img alt="Isort" src="https://img.shields.io/badge/%20imports-isort-%231674b1" /></a> <a class="reference external" href="https://mypy.readthedocs.io/"><img alt="Mypy" src="https://img.shields.io/badge/typing-mypy-blue.svg" /></a> <a class="reference external" href="https://pyrefly.org/"><img alt="Pyrefly" src="https://img.shields.io/badge/typing-pyrefly-blue.svg" /></a> <a class="reference external" href="https://pylint.pycqa.org/"><img alt="Pylint" src="https://img.shields.io/badge/code%20quality-pylint-blue.svg" /></a></p></td>
 </tr>
 <tr class="row-odd"><td><p><strong>Documentation</strong></p></td>
 <td><p><a class="reference external" href="https://www.sphinx-doc.org/en/master/index.html"><img alt="Sphinx" src="https://img.shields.io/badge/docs-sphinx-blue.svg" /></a> <a class="reference external" href="https://google.github.io/styleguide/pyguide.html#s3.8-comments-and-docstrings"><img alt="Google Style" src="https://img.shields.io/badge/%20style-google-3666d6.svg" /></a></p></td>
@@ -926,10 +982,10 @@
 </colgroup>
 <tbody>
 <tr class="row-odd"><th class="stub"><p>Version</p></th>
-<td><p>1.2.0</p></td>
+<td><p>1.2.1</p></td>
 </tr>
 <tr class="row-even"><th class="stub"><p>Release Date</p></th>
-<td><p>2026-10-26</p></td>
+<td><p>2026-11-05</p></td>
 </tr>
 </tbody>
 </table>
@@ -987,8 +1043,9 @@ events published by step_client on a Redis input stream and publishes <code clas
 to the crash prediction Redis stream:</p>
 <ul class="simple">
 <li><p>for every CAM sender it keeps a short position history, validates each new position against
-the previous one and fills the gaps with positions interpolated by a <strong>cubic spline</strong> at the
-configured output frequency, the received position being always the last point;</p></li>
+the previous one and fills the gaps with positions interpolated by a <strong>Hermite segment</strong>
+built on the reported speed and heading, at the configured output frequency, the received
+position being always the last point;</p></li>
 <li><p>for every perceived object of a CPM it builds one position array from the measured position
 and the predicted path, resampled at the configured output frequency (interpolated when the CPM
 period is longer, decimated when shorter).</p></li>
@@ -1002,7 +1059,7 @@ period is longer, decimated when shorter).</p></li>
 <li><p><strong>Stream-based Architecture</strong>: Utilizes Redis streams with consumer groups and connection
 pooling; the input is read without acknowledgement (at most once delivery)</p></li>
 <li><p><strong>Vehicle Position Processing</strong>: Transforms raw GNSS measurements into smooth position
-trajectories using <strong>cubic spline</strong> interpolation techniques</p></li>
+trajectories using <strong>Hermite</strong> interpolation techniques</p></li>
 <li><p><strong>Multi-Message Support</strong>: Processes CAM (Cooperative Awareness Messages) and CPM (Collective
 Perception Messages)</p></li>
 <li><p><strong>Actor Dataset Management</strong>: Maintains a position history for each CAM sender, removing the
@@ -1012,13 +1069,14 @@ senders without recent positions periodically</p></li>
 <section id="interpolation-and-validation">
 <h3>Interpolation and Validation<a class="headerlink" href="#interpolation-and-validation" title="Link to this heading"></a></h3>
 <ul class="simple">
-<li><p><strong>Cubic Spline Interpolation</strong>: Advanced interpolation engine for generating smooth position
-trajectories from irregular GNSS data with configurable output frequencies</p></li>
+<li><p><strong>Hermite and Cubic Spline Interpolation</strong>: Hermite segments for the CAM gaps, cubic splines for
+the CPM positions and the altitude, with configurable output frequencies</p></li>
 <li><p><strong>Output Period Resampling</strong>: One <code class="docutils literal notranslate"><span class="pre">GapFiller</span></code> shared by CAM and CPM puts every position
 array at the configured sample frequency: interpolation of the CAM gaps, interpolation or
 decimation of the CPM predicted paths</p></li>
 <li><p><strong>Coherence Checks</strong>: Positions too close in time, or too far from the local time, are
-discarded; a too long gap or an implausible speed restarts the actor history</p></li>
+discarded; a too long gap restarts the actor history; an implausible speed restarts it against
+a single position and discards the new position against a confirmed history</p></li>
 <li><p><strong>Configurable Sampling</strong>: Output frequencies of 1, 2, 5 or 10 Hz</p></li>
 <li><p><strong>Bounded Memory Usage</strong>: At most 5-30 positions per actor, with automatic cleanup of the
 expired actors</p></li>
@@ -1057,13 +1115,13 @@ sender, created on the first accepted position</p></li>
 </section>
 <section id="point-dataset-manager">
 <h3>Point Dataset Manager<a class="headerlink" href="#point-dataset-manager" title="Link to this heading"></a></h3>
-<p>The <code class="docutils literal notranslate"><span class="pre">PointDataset</span></code> class manages the position history of one actor; its gaps are filled by
-cubic spline interpolation through <code class="docutils literal notranslate"><span class="pre">GapFiller</span></code>. It implements:</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">PointDataset</span></code> class manages the position history of one actor; its gaps are filled through
+<code class="docutils literal notranslate"><span class="pre">GapFiller</span></code>. It implements:</p>
 <blockquote>
 <div><ul class="simple">
 <li><p><strong>Coherence Checks</strong>: Minimum and maximum period, speed and local time checks of each new
 position</p></li>
-<li><p><strong>Gap Filling</strong>: Delegates the cubic spline interpolation of a gap to <code class="docutils literal notranslate"><span class="pre">GapFiller.fill()</span></code></p></li>
+<li><p><strong>Gap Filling</strong>: Delegates the interpolation of a gap to <code class="docutils literal notranslate"><span class="pre">GapFiller.fill()</span></code></p></li>
 <li><p><strong>Memory Management</strong>: A bounded deque of positions and pre-allocated NumPy buffers</p></li>
 <li><p><strong>Output Behavior</strong>: Returns interpolated positions followed by the actual received GNSS
 position as the final point; speed and heading are recomputed from the displacement</p></li>
@@ -1076,12 +1134,12 @@ positions</p></li>
 <section id="gap-filler">
 <h3>Gap Filler<a class="headerlink" href="#gap-filler" title="Link to this heading"></a></h3>
 <p>The <code class="docutils literal notranslate"><span class="pre">GapFiller</span></code> class puts positions at the output period (<code class="docutils literal notranslate"><span class="pre">outputNominalSampleFrequency</span></code>
-plus or minus <code class="docutils literal notranslate"><span class="pre">outputPeriodMaxDeviation</span></code>) with SciPy’s CubicSpline. It keeps no state and is
-shared by both datasets:</p>
+plus or minus <code class="docutils literal notranslate"><span class="pre">outputPeriodMaxDeviation</span></code>) with SciPy’s CubicHermiteSpline and CubicSpline. It
+keeps no state and is shared by both datasets:</p>
 <blockquote>
 <div><ul class="simple">
 <li><p><strong>fill()</strong> (CAM): fills the gap between the last position of an actor and a new one with
-interpolated positions, followed by the new one</p></li>
+interpolated positions (Hermite segment, altitude from a cubic spline), followed by the new one</p></li>
 <li><p><strong>resample()</strong> (CPM): puts a whole predicted path on the output period grid; a longer
 period is interpolated, a shorter one decimated, and a grid time equal to a real point
 keeps that point</p></li>
@@ -1093,7 +1151,9 @@ keeps that point</p></li>
 <h3>Perceived Object Dataset<a class="headerlink" href="#perceived-object-dataset" title="Link to this heading"></a></h3>
 <p>The <code class="docutils literal notranslate"><span class="pre">ObjectPerceivedDataset</span></code> class converts every perceived object of a CPM message into one
 position array (measured position plus predicted path, resampled by <code class="docutils literal notranslate"><span class="pre">GapFiller.resample()</span></code> to
-at most 101 points at the configured sample frequency), without keeping any history.</p>
+at most 101 points at the configured sample frequency), without keeping any history. The path
+beyond <code class="docutils literal notranslate"><span class="pre">inputMaxCpmSpan</span></code> is discarded, and an object whose kept points span less than the minimum
+output period is not forwarded.</p>
 </section>
 <section id="redis-integration">
 <h3>Redis Integration<a class="headerlink" href="#redis-integration" title="Link to this heading"></a></h3>
@@ -1146,7 +1206,7 @@ with detailed processing metrics</p></li>
 <div><ol class="arabic simple">
 <li><p><strong>Input Processing</strong>: Monitors the Redis input stream for CAM and CPM messages</p></li>
 <li><p><strong>Position Processing</strong>: Transforms CAM positions into smooth position trajectories
-using cubic spline interpolation; resamples the CPM perceived objects at the output period</p></li>
+using Hermite interpolation; resamples the CPM perceived objects at the output period</p></li>
 <li><p><strong>Actor Management</strong>: Maintains an individual dataset for each CAM sender</p></li>
 <li><p><strong>Output Generation</strong>: Publishes the position arrays to the crash prediction stream</p></li>
 <li><p><strong>Cleanup Operations</strong>: Periodically removes the expired actors</p></li>
@@ -1196,7 +1256,7 @@ CPM perceived objects converted one by one and resampled at the output period</p
 application runtime (<code class="docutils literal notranslate"><span class="pre">AppRunner</span></code>) and logging (<code class="docutils literal notranslate"><span class="pre">StepLogger</span></code>)</p></li>
 <li><p><strong>step_redis</strong>: Redis integration and connection management with stream operations</p></li>
 <li><p><strong>pydantic</strong>: Configuration validation and schema generation with type safety</p></li>
-<li><p><strong>scipy</strong>: Cubic spline interpolation algorithms for trajectory smoothing</p></li>
+<li><p><strong>scipy</strong>: Hermite and cubic spline interpolation algorithms for trajectory smoothing</p></li>
 <li><p><strong>numpy</strong>: Array operations for the interpolation and motion computation</p></li>
 <li><p><strong>sortedcontainers</strong>: Efficient sorted data structures for temporal data management</p></li>
 </ul>
@@ -1205,7 +1265,7 @@ application runtime (<code class="docutils literal notranslate"><span class="pre
 <h3>Development Dependencies<a class="headerlink" href="#development-dependencies" title="Link to this heading"></a></h3>
 <ul class="simple">
 <li><p><strong>pytest</strong> (with pytest-asyncio, pytest-cov, pytest-mock, pytest-timeout): Testing framework</p></li>
-<li><p><strong>ruff</strong>, <strong>mypy</strong>, <strong>pylint</strong>, <strong>isort</strong>, <strong>autoflake</strong>: Formatting, linting and type checking</p></li>
+<li><p><strong>ruff</strong>, <strong>mypy</strong>, <strong>pyrefly</strong>, <strong>pylint</strong>, <strong>isort</strong>, <strong>autoflake</strong>: Formatting, linting and type checking</p></li>
 <li><p><strong>tox</strong> (with tox-uv): Local automation</p></li>
 <li><p><strong>sphinx</strong> and its extensions: Documentation generation</p></li>
 </ul>
@@ -1253,11 +1313,12 @@ python<span class="w"> </span>-m<span class="w"> </span>step_adapter<span class=
 <p>The project includes unit tests covering:</p>
 <ul class="simple">
 <li><p><strong>Point Dataset</strong>: Coherence checks and gap filling of <code class="docutils literal notranslate"><span class="pre">PointDataset</span></code></p></li>
-<li><p><strong>Resampling</strong>: Period selection, cubic spline interpolation, altitude handling, CAM gap
-filling and CPM resampling of <code class="docutils literal notranslate"><span class="pre">GapFiller</span></code></p></li>
+<li><p><strong>Resampling</strong>: Period selection, Hermite and cubic spline interpolation, altitude handling,
+CAM gap filling and CPM resampling of <code class="docutils literal notranslate"><span class="pre">GapFiller</span></code></p></li>
 <li><p><strong>Perceived Objects</strong>: CPM conversion and resampling of <code class="docutils literal notranslate"><span class="pre">ObjectPerceivedDataset</span></code></p></li>
 <li><p><strong>Actor Dataset</strong>: CAM conversion, multi-actor management and cleanup of <code class="docutils literal notranslate"><span class="pre">ActorDataset</span></code></p></li>
 <li><p><strong>Configuration</strong>: Validation, default values, JSON schema and template generation</p></li>
+<li><p><strong>Service</strong>: Message routing, publishing, cleaner and health check tasks of <code class="docutils literal notranslate"><span class="pre">StepAdapterApp</span></code></p></li>
 <li><p><strong>Command Line</strong>: Argument handling and exit codes of <code class="docutils literal notranslate"><span class="pre">__main__</span></code></p></li>
 </ul>
 </section>

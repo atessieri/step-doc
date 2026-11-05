@@ -29,6 +29,9 @@ STEP Adapter: Overview
 .. |MYPY| image:: https://img.shields.io/badge/typing-mypy-blue.svg
    :target: https://mypy.readthedocs.io/
    :alt: Mypy
+.. |PYREFLY| image:: https://img.shields.io/badge/typing-pyrefly-blue.svg
+   :target: https://pyrefly.org/
+   :alt: Pyrefly
 .. |PYLINT| image:: https://img.shields.io/badge/code%20quality-pylint-blue.svg
    :target: https://pylint.pycqa.org/
    :alt: Pylint
@@ -49,7 +52,7 @@ STEP Adapter: Overview
 +----------------------+----------------------------------------------------------+
 | **Code Status**      | |DEV_STAT| |DOCSTRING_COVERAGE| |TEST_COVERAGE|          |
 +----------------------+----------------------------------------------------------+
-| **Code Quality**     | |RUFF| |ISORT| |MYPY| |PYLINT|                           |
+| **Code Quality**     | |RUFF| |ISORT| |MYPY| |PYREFLY| |PYLINT|                 |
 +----------------------+----------------------------------------------------------+
 | **Documentation**    | |SPHINX_DOCS| |GOOGLE_STYLE|                             |
 +----------------------+----------------------------------------------------------+
@@ -81,12 +84,14 @@ STEP Adapter: Overview
    package_script
    find_period
    spline_cubic
+   spline_hermite
    architecture
    docstring_coverage_report
    coverage_report
    schemas_rst/json_schemas
    step_adapter_rst/step_adapter
    test_rst/test
+   changelog
 
 
 
@@ -135,8 +140,9 @@ events published by step_client on a Redis input stream and publishes ``Position
 to the crash prediction Redis stream:
 
 - for every CAM sender it keeps a short position history, validates each new position against
-  the previous one and fills the gaps with positions interpolated by a **cubic spline** at the
-  configured output frequency, the received position being always the last point;
+  the previous one and fills the gaps with positions interpolated by a **Hermite segment**
+  built on the reported speed and heading, at the configured output frequency, the received
+  position being always the last point;
 - for every perceived object of a CPM it builds one position array from the measured position
   and the predicted path, resampled at the configured output frequency (interpolated when the CPM
   period is longer, decimated when shorter).
@@ -150,7 +156,7 @@ Real-time Data Processing
 - **Stream-based Architecture**: Utilizes Redis streams with consumer groups and connection
   pooling; the input is read without acknowledgement (at most once delivery)
 - **Vehicle Position Processing**: Transforms raw GNSS measurements into smooth position
-  trajectories using **cubic spline** interpolation techniques
+  trajectories using **Hermite** interpolation techniques
 - **Multi-Message Support**: Processes CAM (Cooperative Awareness Messages) and CPM (Collective
   Perception Messages)
 - **Actor Dataset Management**: Maintains a position history for each CAM sender, removing the
@@ -159,13 +165,14 @@ Real-time Data Processing
 Interpolation and Validation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- **Cubic Spline Interpolation**: Advanced interpolation engine for generating smooth position 
-  trajectories from irregular GNSS data with configurable output frequencies
+- **Hermite and Cubic Spline Interpolation**: Hermite segments for the CAM gaps, cubic splines for
+  the CPM positions and the altitude, with configurable output frequencies
 - **Output Period Resampling**: One ``GapFiller`` shared by CAM and CPM puts every position
   array at the configured sample frequency: interpolation of the CAM gaps, interpolation or
   decimation of the CPM predicted paths
 - **Coherence Checks**: Positions too close in time, or too far from the local time, are
-  discarded; a too long gap or an implausible speed restarts the actor history
+  discarded; a too long gap restarts the actor history; an implausible speed restarts it against
+  a single position and discards the new position against a confirmed history
 - **Configurable Sampling**: Output frequencies of 1, 2, 5 or 10 Hz
 - **Bounded Memory Usage**: At most 5-30 positions per actor, with automatic cleanup of the
   expired actors
@@ -202,12 +209,12 @@ It is not thread-safe: the program uses it from a single asyncio event loop.
 Point Dataset Manager
 ~~~~~~~~~~~~~~~~~~~~~
 
-The ``PointDataset`` class manages the position history of one actor; its gaps are filled by
-cubic spline interpolation through ``GapFiller``. It implements:
+The ``PointDataset`` class manages the position history of one actor; its gaps are filled through
+``GapFiller``. It implements:
 
   - **Coherence Checks**: Minimum and maximum period, speed and local time checks of each new
     position
-  - **Gap Filling**: Delegates the cubic spline interpolation of a gap to ``GapFiller.fill()``
+  - **Gap Filling**: Delegates the interpolation of a gap to ``GapFiller.fill()``
   - **Memory Management**: A bounded deque of positions and pre-allocated NumPy buffers
   - **Output Behavior**: Returns interpolated positions followed by the actual received GNSS
     position as the final point; speed and heading are recomputed from the displacement
@@ -219,11 +226,11 @@ Gap Filler
 ~~~~~~~~~~
 
 The ``GapFiller`` class puts positions at the output period (``outputNominalSampleFrequency``
-plus or minus ``outputPeriodMaxDeviation``) with SciPy's CubicSpline. It keeps no state and is
-shared by both datasets:
+plus or minus ``outputPeriodMaxDeviation``) with SciPy's CubicHermiteSpline and CubicSpline. It
+keeps no state and is shared by both datasets:
 
   - **fill()** (CAM): fills the gap between the last position of an actor and a new one with
-    interpolated positions, followed by the new one
+    interpolated positions (Hermite segment, altitude from a cubic spline), followed by the new one
   - **resample()** (CPM): puts a whole predicted path on the output period grid; a longer
     period is interpolated, a shorter one decimated, and a grid time equal to a real point
     keeps that point
@@ -234,7 +241,9 @@ Perceived Object Dataset
 
 The ``ObjectPerceivedDataset`` class converts every perceived object of a CPM message into one
 position array (measured position plus predicted path, resampled by ``GapFiller.resample()`` to
-at most 101 points at the configured sample frequency), without keeping any history.
+at most 101 points at the configured sample frequency), without keeping any history. The path
+beyond ``inputMaxCpmSpan`` is discarded, and an object whose kept points span less than the minimum
+output period is not forwarded.
 
 Redis Integration
 ~~~~~~~~~~~~~~~~~
@@ -281,7 +290,7 @@ The service follows an event-driven architecture pattern:
 
   #. **Input Processing**: Monitors the Redis input stream for CAM and CPM messages
   #. **Position Processing**: Transforms CAM positions into smooth position trajectories
-     using cubic spline interpolation; resamples the CPM perceived objects at the output period
+     using Hermite interpolation; resamples the CPM perceived objects at the output period
   #. **Actor Management**: Maintains an individual dataset for each CAM sender
   #. **Output Generation**: Publishes the position arrays to the crash prediction stream
   #. **Cleanup Operations**: Periodically removes the expired actors
@@ -326,7 +335,7 @@ Core Dependencies
   application runtime (``AppRunner``) and logging (``StepLogger``)
 - **step_redis**: Redis integration and connection management with stream operations
 - **pydantic**: Configuration validation and schema generation with type safety
-- **scipy**: Cubic spline interpolation algorithms for trajectory smoothing
+- **scipy**: Hermite and cubic spline interpolation algorithms for trajectory smoothing
 - **numpy**: Array operations for the interpolation and motion computation
 - **sortedcontainers**: Efficient sorted data structures for temporal data management
 
@@ -334,7 +343,7 @@ Development Dependencies
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - **pytest** (with pytest-asyncio, pytest-cov, pytest-mock, pytest-timeout): Testing framework
-- **ruff**, **mypy**, **pylint**, **isort**, **autoflake**: Formatting, linting and type checking
+- **ruff**, **mypy**, **pyrefly**, **pylint**, **isort**, **autoflake**: Formatting, linting and type checking
 - **tox** (with tox-uv): Local automation
 - **sphinx** and its extensions: Documentation generation
 
@@ -387,11 +396,12 @@ Testing
 The project includes unit tests covering:
 
 - **Point Dataset**: Coherence checks and gap filling of ``PointDataset``
-- **Resampling**: Period selection, cubic spline interpolation, altitude handling, CAM gap
-  filling and CPM resampling of ``GapFiller``
+- **Resampling**: Period selection, Hermite and cubic spline interpolation, altitude handling,
+  CAM gap filling and CPM resampling of ``GapFiller``
 - **Perceived Objects**: CPM conversion and resampling of ``ObjectPerceivedDataset``
 - **Actor Dataset**: CAM conversion, multi-actor management and cleanup of ``ActorDataset``
 - **Configuration**: Validation, default values, JSON schema and template generation
+- **Service**: Message routing, publishing, cleaner and health check tasks of ``StepAdapterApp``
 - **Command Line**: Argument handling and exit codes of ``__main__``
 
 Getting Started
