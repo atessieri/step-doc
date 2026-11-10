@@ -1,0 +1,297 @@
+=======================================
+Hermite Interpolation for Stream Gaps
+=======================================
+
+Overview
+========
+
+``GapFiller.fill()`` fills the gap between the last position of a stream and a new one with a cubic
+Hermite segment for latitude and longitude, built with SciPy's ``CubicHermiteSpline``. The altitude
+follows a straight line between the two positions (see `Altitude`_). No history is needed: the two
+positions are enough. The list resampling (``GapFiller.resample()``) keeps the cubic spline
+described in :doc:`spline_cubic`.
+
+Why not a Cubic Spline for a Stream
+===================================
+
+A cubic spline derives the velocity at every point from its neighbours. In a stream the new
+position has no following point yet, so its velocity is estimated from the previous ones. The
+published segment ends with that estimate. When the next position arrives a new spline computes a
+different velocity at the same point, and the next segment starts from it: heading and speed jump
+at every received position, and in a turn the path bulges and returns. The history size does not
+help, because the missing information is the following point.
+
+When the positions report speed and heading, the velocity at both ends of a segment is known when
+the new position arrives, with no added latency; when either is missing the chord is used (see
+`Tangents`_).
+
+Mathematical Foundation
+=======================
+
+A cubic polynomial has four coefficients, so the two positions :math:`p_A, p_B` and the two
+velocities :math:`v_A, v_B` define exactly one curve. With :math:`\Delta t = t_B - t_A` and the
+normalized time :math:`s = (t - t_A) / \Delta t`:
+
+.. math::
+
+   p(s) = h_{00}(s) p_A + h_{10}(s) \Delta t \, v_A + h_{01}(s) p_B + h_{11}(s) \Delta t \, v_B
+
+.. list-table::
+   :header-rows: 1
+   :widths: 15 30 15 40
+
+   * - Weight
+     - Formula
+     - Weighs
+     - Behavior
+   * - :math:`h_{00}`
+     - :math:`2s^3 - 3s^2 + 1`
+     - :math:`p_A`
+     - from 1 to 0
+   * - :math:`h_{01}`
+     - :math:`-2s^3 + 3s^2`
+     - :math:`p_B`
+     - from 0 to 1
+   * - :math:`h_{10}`
+     - :math:`s^3 - 2s^2 + s`
+     - :math:`v_A`
+     - zero at both ends, acts mainly at the start
+   * - :math:`h_{11}`
+     - :math:`s^3 - s^2`
+     - :math:`v_B`
+     - zero at both ends, acts mainly at the end
+
+At :math:`s = 0` only :math:`p_A` remains and at :math:`s = 1` only :math:`p_B`, so the segment
+always passes through both positions. Latitude and longitude have one polynomial each.
+
+Worked Example
+--------------
+
+A vehicle runs a quarter circle of radius 6 m in 1 s at about 9.4 m/s, with x towards east and y
+towards north: :math:`p_A = (0, 0)`, :math:`v_A = (9.4, 0)`, :math:`p_B = (6, -6)`,
+:math:`v_B = (0, -9.4)`.
+
+.. list-table::
+   :header-rows: 1
+
+   * - s
+     - Hermite (m)
+     - True circle (m)
+   * - 0
+     - (0, 0)
+     - (0, 0)
+   * - 0.25
+     - (2.26, -0.50)
+     - (2.30, -0.46)
+   * - 0.5
+     - (4.18, -1.83)
+     - (4.24, -1.76)
+   * - 0.75
+     - (5.50, -3.74)
+     - (5.54, -3.70)
+   * - 1
+     - (6, -6)
+     - (6, -6)
+
+Tangents
+========
+
+The tangent is expressed in the units of the segment, decimal degrees per millisecond. Starting
+from the position, ``Geocode.move_point_a_to_point_b()`` solves the forward geodesic problem on the
+WGS84 ellipsoid for the distance travelled in one second along the reported heading, the same
+ellipsoid used to recompute the output speed and heading. With :math:`(\varphi_1, \lambda_1)` the
+point reached from :math:`(\varphi_0, \lambda_0)`:
+
+.. math::
+
+   \dot{\varphi} = \frac{\varphi_1 - \varphi_0}{1000}, \qquad
+   \dot{\lambda} = \frac{\lambda_1 - \lambda_0}{1000}
+
+The longitude difference is unwrapped, so a move across the antimeridian stays continuous. The ETSI
+heading is the orientation of the velocity vector, so it already gives the direction of motion when
+driving backwards and the drive direction is not used.
+
+``GapFiller._tangent_deg_per_ms()`` uses the chord between the two positions instead when:
+
+- speed or heading is missing;
+- the speed is below ``GapFiller.TANGENT_SPEED_MIN_M_S``, where the heading is unreliable;
+- the speed exceeds the chord speed by more than ``GapFiller.TANGENT_CHORD_SPEED_RATIO_MAX`` times.
+  On a straight segment with equal tangents :math:`r` times the chord speed, the speed at the
+  midpoint is :math:`(1.5 - 0.5 r)` times the chord speed, so above :math:`r = 3` the path goes
+  backwards.
+
+When neither position reports its motion, both tangents are the chord and the segment is a straight
+line at constant speed.
+
+Altitude
+========
+
+The schemas report no vertical speed, so the altitude has no tangent to build a Hermite segment on,
+and the GNSS altitude noise (a few meters) makes a curve fitted on the history oscillate in the
+gap. The interpolated altitudes are therefore a straight line between the altitudes of the two
+positions (``numpy.interp``); when either position has no altitude, the interpolated positions have
+none.
+
+.. code-block:: python
+
+   # GapFiller.fill: straight line between the two altitudes, none when either is missing
+   altitudes_m = (
+       np.interp(
+           target_times_ms,
+           [time_last_ms, time_new_ms],
+           [last_reference.altitude.value, new_reference.altitude.value],
+       )
+       if (last_reference.altitude is not None) and (new_reference.altitude is not None)
+       else np.full(shape=target_times_ms.shape, fill_value=np.nan, dtype=np.float64)
+   )
+
+Why Not for Resampling
+======================
+
+A list resampled as a whole (``GapFiller.resample()``) has every point known, so a single cubic
+spline has no last point to estimate. Moreover its points may carry only time and position, so
+their tangents could only come from the neighbouring points, which is less accurate than a cubic
+spline on a smooth trajectory.
+
+Implementation
+==============
+
+``GapFiller.fill()`` follows these steps:
+
+1. **Timestamps**: The interpolated timestamps between the last position and the new one, from the
+   period chosen by ``GapFiller.optimal_period()`` (see :doc:`find_period`); a ``ValueError`` is
+   raised when the new position does not follow the last one
+2. **Latitude and Longitude**: The Hermite segment between the two positions, evaluated at those
+   timestamps
+3. **Altitude**: The straight line between the two altitudes (see `Altitude`_)
+4. **Output Generation**: ``GapFiller._build_chain_positions()`` computes distance, speed and
+   heading of the whole chain last position -> interpolated positions -> new position with one
+   batched geodesic call and builds the interpolated positions (``POSITION_GNSS_ESTIMATED`` for a
+   GNSS new position, ``POSITION_PERCEIVED_ESTIMATED`` otherwise), followed by the new position
+   (see `Real New Position`_)
+
+.. code-block:: python
+
+   # GapFiller._hermite_coordinates: both tangents known when the new position arrives
+   hermite = CubicHermiteSpline(
+       x=[time_last_ms, time_new_ms],
+       y=[
+           [last_reference.latitude, longitudes[0]],
+           [new_reference.latitude, longitudes[1]],
+       ],
+       dydx=[last_tangent, new_tangent],
+   )
+   coordinates = hermite(target_times_ms)
+
+No cubic spline is built: latitude and longitude follow the Hermite segment, the altitude a
+straight line, so ``fill`` takes no history.
+
+Real New Position
+-----------------
+
+The new position is returned unchanged when it reports both speed and heading: they are the end
+tangent of the Hermite segment, so the published motion is the one the segment arrives with. When
+either is missing, both are recomputed from the geodesic displacement from the last interpolated
+position (or from the last position when no position is interpolated). The interpolated positions
+always get the speed and heading of the displacement from the previous chain point.
+
+The rule belongs to ``GapFiller._build_chain_positions()``, so it holds for every real position of
+a chain, the resampled lists included:
+
+.. code-block:: python
+
+   # GapFiller._build_chain_positions: one chain point after the origin
+   if real_position is not None and real_position.speed and real_position.heading:
+       positions.append(real_position)              # unchanged
+       continue
+   speed, heading = Speed(...), Heading(...)        # displacement motion, validated
+   if real_position is not None:
+       positions.append(real_position.model_copy(update={"speed": speed, "heading": heading}))
+       continue
+   positions.append(PositionInfo(..., speed=speed, heading=heading))   # estimated
+
+The real and the estimated positions share the same validated speed and heading, built once per
+chain point from the batched geodesic call.
+
+Usage Example
+=============
+
+.. code-block:: python
+
+   import logging
+
+   from step_cloud_schemas import GapFiller, GapFillerConfig
+
+   gap_filler = GapFiller(
+       config_par=GapFillerConfig(
+           input_min_altitude_trailing_point_percent=25,  # used by resample only
+           output_nominal_period_ms=100,  # 10 Hz output rate
+           output_max_period_deviation_ms=25,
+       ),
+       logger=logging.getLogger(),
+   )
+
+   # last_record: last PositionInfoRecord of the stream, new_record: the new one
+   positions = gap_filler.fill(
+       actor=actor_id, last_record=last_record, new_record=new_record
+   )
+
+   # Interpolated positions followed by the new one
+   for pos in positions:
+       print(f"Time: {pos.time}, Lat: {pos.position.latitude}, "
+             f"Lon: {pos.position.longitude}")
+
+Deciding whether the gap is to be filled, that is whether the new position follows the last one
+and the gap is not too long, is up to the caller: otherwise the history is dropped instead of
+filled.
+
+Performance
+===========
+
+With k interpolated positions, one call costs :math:`O(k)` in time and space: the timestamps, the
+Hermite segment, the straight line, one batched geodesic call over the k + 1 pairs of the chain and
+the k + 1 returned positions. The cost does not depend on the history of the stream.
+
+Comparison with the Cubic Spline
+================================
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 35 35
+
+   * -
+     - Cubic spline on the history
+     - Hermite segment
+   * - Velocity at the points
+     - Computed from the neighbours
+     - Reported with the position, chord when missing
+   * - Data for one segment
+     - The whole history
+     - The two positions of the segment
+   * - Last received position
+     - Velocity estimated without the following point
+     - Velocity known
+   * - Velocity continuity across streamed segments
+     - Lost: every segment comes from a different spline
+     - Kept, unless a chord fallback applies
+   * - Curvature continuity
+     - Only within one spline
+     - Not guaranteed
+   * - Altitude
+     - Cubic spline on the history
+     - Straight line between the two positions
+
+Limitations
+===========
+
+**Reported Motion**: The result depends on the quality of the reported speed and heading; an
+inconsistency with the displacement between the positions leaves a small correction at the point.
+
+**Curvature**: The curvature can change abruptly at a received position.
+
+**Altitude**: The altitude is linear across the gap: a change of slope inside the gap is not
+followed.
+
+**Long Gaps**: The segment uses only its two ends, so across a long gap the path in the middle is
+an assumption; deciding whether a gap is too long, and dropping the history instead of filling it,
+is up to the caller.

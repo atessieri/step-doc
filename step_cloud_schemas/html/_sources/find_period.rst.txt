@@ -1,0 +1,365 @@
+.. _find_optimal_period:
+
+Finding the Optimal Interpolation Period
+=========================================
+
+Overview
+--------
+
+The ``GapFiller.optimal_period()`` method computes the best possible output period (in milliseconds) 
+and number of intervals between two timestamps to achieve evenly-spaced interpolated points. 
+The algorithm attempts to match the configured nominal output period while respecting allowed 
+deviation constraints.
+
+Problem Statement
+-----------------
+
+Given:
+    - ``time_last_ms``: Timestamp of the last recorded position (in milliseconds)
+    - ``time_new_ms``: Timestamp of the new incoming position (in milliseconds)
+    - ``output_nominal_period_ms``: Target period between interpolated points
+    - ``output_max_period_deviation_ms``: Maximum allowed deviation from nominal period
+
+Find:
+    - ``period_optimal``: The chosen output period in milliseconds
+    - ``interval_number_optimal``: The number of intervals between points
+    - ``period_ideal``: Boolean indicating if an exact solution was found
+
+Mathematical Formulation
+------------------------
+
+The problem is to find an integer :math:`n` (number of intervals) such that the period 
+:math:`p = \frac{d}{n}` is as close as possible to the target period :math:`P_{nominal}` 
+while staying within the range :math:`[P_{nominal} - \Delta_{max}, P_{nominal} + \Delta_{max}]`.
+
+Constraint Equation
+~~~~~~~~~~~~~~~~~~~
+
+We need to satisfy:
+
+.. math::
+
+   P_{nominal} - \Delta_{max} \leq \frac{d}{n} \leq P_{nominal} + \Delta_{max}
+
+Rearranging for :math:`n`:
+
+.. math::
+
+   \frac{d}{P_{nominal} + \Delta_{max}} \leq n \leq \frac{d}{P_{nominal} - \Delta_{max}}
+
+Valid Interval Range
+~~~~~~~~~~~~~~~~~~~~
+
+.. math::
+
+   n_{min} = \lceil \frac{d}{P_{nominal} + \Delta_{max}} \rceil
+
+   n_{max} = \lfloor \frac{d}{P_{nominal} - \Delta_{max}} \rfloor
+
+Algorithm Description
+---------------------
+
+The algorithm follows these steps:
+
+1. **Define Valid Period Range**
+
+   .. math::
+
+      P_{min} = P_{nominal} - \Delta_{max}
+
+      P_{max} = P_{nominal} + \Delta_{max}
+
+   where:
+      - :math:`P_{nominal}` is ``output_nominal_period_ms``
+      - :math:`\Delta_{max}` is ``output_max_period_deviation_ms``
+
+2. **Calculate Time Difference**
+
+   .. math::
+
+      d = t_{new} - t_{last}
+
+3. **Determine Valid Interval Range**
+
+   The number of intervals :math:`n` must satisfy:
+
+   .. math::
+
+      n_{min} = \lceil \frac{d}{P_{max}} \rceil \leq n \leq \lfloor \frac{d}{P_{min}} \rfloor = n_{max}
+
+   This ensures that the calculated period falls within the allowed range.
+
+4. **Calculate Ideal Interval Count**
+
+   .. math::
+
+      n_{ideal} = \frac{d}{P_{nominal}}
+
+5. **Decision Logic**
+
+   **Case A: Exact Solution Exists** (:math:`n_{min} \leq n_{max}`)
+
+   When a valid solution exists with the exact time difference, the candidates are the
+   floor and the ceiling of the ideal count, each clamped to the valid range:
+
+   .. math::
+
+      C = \{\max(n_{min}, \min(n_{max}, \lfloor n_{ideal} \rfloor)),\;
+            \max(n_{min}, \min(n_{max}, \lceil n_{ideal} \rceil))\}
+
+   - Set ``period_ideal = True``
+
+   **Case B: No Exact Solution** (:math:`n_{min} > n_{max}`)
+
+   The candidates are the boundary counts, :math:`n_{max}` only when it is at least one:
+
+   .. math::
+
+      C = \{n_{min}\} \cup \{n_{max} \mid n_{max} \geq 1\}
+
+   - Set ``period_ideal = False``
+
+   Note: In this case, the calculated period will fall outside the strict
+   deviation constraints, but it represents the best possible approximation.
+
+6. **Choose the Candidate**
+
+   .. math::
+
+      n_{optimal} = \arg\min_{n \in C} \left| \frac{d}{n} - P_{nominal} \right|
+      \quad \text{(the smaller } n \text{ on a tie)}
+
+      P_{optimal} = \lfloor \frac{d}{n_{optimal}} \rfloor
+
+Guarantees
+----------
+
+The algorithm guarantees that:
+
+1. All generated timestamps fall within :math:`[t_{last}, t_{new}]`
+2. For an ideal solution every interval, the last one included, is within
+   :math:`[P_{min}, P_{max}]`; otherwise the intervals are the closest achievable
+3. The total number of intervals optimally balances the nominal period target
+4. Period calculation uses integer division to ensure whole millisecond values
+5. The solution is mathematically optimal (O(1) complexity)
+
+Complexity Analysis
+-------------------
+
+Time Complexity
+~~~~~~~~~~~~~~~
+
+**O(1)** - All operations are constant time arithmetic:
+    - Range calculations: O(1)
+    - Ceiling/floor operations: O(1)
+    - Comparison and selection: O(1)
+    - Integer division: O(1)
+
+No loops or iterations are required, making this algorithm highly efficient.
+
+Space Complexity
+~~~~~~~~~~~~~~~~
+
+**O(1)** - Uses only a fixed number of local variables regardless of input size.
+
+Example Scenarios
+-----------------
+
+Example 1: Exact Solution
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Configuration:
+    - ``output_nominal_period_ms = 1000`` ms
+    - ``output_max_period_deviation_ms = 50`` ms
+    - Valid period range: [950 ms, 1050 ms]
+
+Input:
+    - ``time_last_ms = 1609459200000``
+    - ``time_new_ms = 1609459203000``
+    - ``diff_time = 3000`` ms
+
+Calculation:
+    - ``interval_number_ideal = 3000 / 1000 = 3``
+    - ``interval_number_min = ceil(3000 / 1050) = ceil(2.857) = 3``
+    - ``interval_number_max = floor(3000 / 950) = floor(3.158) = 3``
+    - Solution exists: :math:`3 \leq 3`
+    - ``interval_number_optimal = 3``
+    - ``period_optimal = 3000 // 3 = 1000`` ms
+
+Result:
+    - Returns ``(1000, 3, True)`` - exact solution found
+    - Period exactly matches nominal target
+
+Example 2: Approximation Needed
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Configuration:
+    - ``output_nominal_period_ms = 1000`` ms
+    - ``output_max_period_deviation_ms = 50`` ms
+    - Valid period range: [950 ms, 1050 ms]
+
+Input:
+    - ``time_last_ms = 1609459200000``
+    - ``time_new_ms = 1609459202800``
+    - ``diff_time = 2800`` ms
+
+Calculation:
+    - ``interval_number_ideal = 2800 / 1000 = 2.8``
+    - ``interval_number_min = ceil(2800 / 1050) = ceil(2.667) = 3``
+    - ``interval_number_max = floor(2800 / 950) = floor(2.947) = 2``
+    - No exact solution: :math:`3 > 2`
+    - Period with max: :math:`|2800/2 - 1000| = 400`
+    - Period with min: :math:`|2800/3 - 1000| = 66.7`
+    - Choose min (period closer to nominal): ``interval_number_optimal = 3``
+    - ``period_optimal = 2800 // 3 = 933`` ms
+
+Result:
+    - Returns ``(933, 3, False)`` - approximation at boundary
+    - Period is outside the strict [950, 1050] range
+    - Represents the best possible compromise
+
+Example 3: Large Time Gap
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Configuration:
+    - ``output_nominal_period_ms = 100`` ms
+    - ``output_max_period_deviation_ms = 10`` ms
+    - Valid period range: [90 ms, 110 ms]
+
+Input:
+    - ``diff_time = 1205`` ms
+
+Calculation:
+    - ``interval_number_ideal = 1205 / 100 = 12.05``
+    - ``interval_number_min = ceil(1205 / 110) = 11``
+    - ``interval_number_max = floor(1205 / 90) = 13``
+    - Solution exists: :math:`11 \leq 13`
+    - ``interval_number_optimal = 12`` (floor 12 gives 100.4 ms, ceiling 13 gives 92.7 ms)
+    - ``period_optimal = 1205 // 12 = 100`` ms (with remainder)
+
+Result:
+    - Returns ``(100, 12, True)`` - exact solution
+    - Period matches nominal target perfectly
+
+Example 4: Tight Constraint
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Configuration:
+    - ``output_nominal_period_ms = 100`` ms
+    - ``output_max_period_deviation_ms = 2`` ms
+    - Valid period range: [98 ms, 102 ms]
+
+Input:
+    - ``diff_time = 999`` ms
+
+Calculation:
+    - ``interval_number_ideal = 999 / 100 = 9.99``
+    - ``interval_number_min = ceil(999 / 102) = 10``
+    - ``interval_number_max = floor(999 / 98) = 10``
+    - Solution exists: :math:`10 \leq 10`
+    - ``interval_number_optimal = 10``
+    - ``period_optimal = 999 // 10 = 99`` ms
+
+Result:
+    - Returns ``(99, 10, True)`` - exact solution within tight constraints
+    - Period is within [98, 102] range
+
+Implementation Notes
+--------------------
+
+Integer Division Behavior
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``period_optimal`` is the floor division ``d // n`` and is used for logging only.
+``GapFiller.interpolation_timestamps()`` places timestamp :math:`i` at
+:math:`t_{last} + \lfloor i \cdot d / n \rfloor`, so every interval is
+:math:`\lfloor d/n \rfloor` or :math:`\lceil d/n \rceil`: the :math:`d \bmod n`
+remainder is spread over the intervals and, for an ideal solution, every interval
+(the last one included) stays within :math:`[P_{min}, P_{max}]`.
+
+Debug Logging
+~~~~~~~~~~~~~
+
+When debug logging is enabled, the method outputs:
+    - Whether the solution is ideal or optimal (approximation)
+    - Calculated period in milliseconds
+    - Number of intervals
+    - Time difference and range
+    - Error from nominal period
+
+Example log output:
+
+.. code-block:: text
+
+   ActorId(1234): period ideal: period=1000 ms, intervals=3 
+   for time diff time=3000 ms => range 1609459200000 - 1609459203000 ms, 
+   error=0 ms
+
+Warning Conditions
+~~~~~~~~~~~~~~~~~~
+
+Non-ideal solutions trigger warnings in ``GapFiller.interpolation_timestamps()`` and ``GapFiller._resample_grid_times()`` because:
+    - The period falls outside the configured deviation range
+    - This may indicate configuration issues or unusual timing conditions
+    - Users should review if this occurs frequently
+
+Optimization Considerations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The algorithm prioritizes:
+    1. **Constraint satisfaction**: Staying within period bounds when possible
+    2. **Minimal deviation**: Choosing intervals closest to ideal
+    3. **Computational efficiency**: O(1) time with no loops
+
+Mathematical Proof of Optimality
+---------------------------------
+
+Theorem
+~~~~~~~
+
+Given valid range :math:`n \in [n_{min}, n_{max}]`, the algorithm selects the 
+:math:`n_{optimal}` that minimizes :math:`|p - P_{nominal}|` where :math:`p = \frac{d}{n}`.
+
+Proof
+~~~~~
+
+1. :math:`f(n) = |d/n - P_{nominal}|` decreases for :math:`n < n_{ideal}` and increases for
+   :math:`n > n_{ideal}`, since :math:`d/n` decreases monotonically in :math:`n`.
+
+2. Over the integers of :math:`[n_{min}, n_{max}]`, the minimum of :math:`f` is therefore at
+   the largest valid integer not above :math:`n_{ideal}` or at the smallest valid integer
+   not below it: :math:`\lfloor n_{ideal} \rfloor` and :math:`\lceil n_{ideal} \rceil`,
+   each clamped to the range.
+
+3. :math:`d/n` is not linear in :math:`n`, so :math:`\text{round}(n_{ideal})` may pick the
+   worse of the two (e.g. :math:`d = 245`, :math:`P_{nominal} = 100`: :math:`n = 3` gives
+   81.7 ms, error 18.3, while :math:`\text{round}(2.45) = 2` gives 122.5 ms, error 22.5);
+   comparing both candidates directly gives the minimum.
+
+When No Valid Solution Exists
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If :math:`n_{min} > n_{max}`, the constraint cannot be satisfied with exact :math:`d`. 
+The algorithm chooses the boundary value closest to :math:`n_{ideal}`:
+
+- This minimizes the deviation from the target period
+- Provides the best possible approximation
+- Signals the caller via ``period_ideal = False``
+
+List Resampling
+---------------
+
+``GapFiller.resample()`` applies the same choice to the whole span of the points of a
+time-ordered list (first to last time): the :math:`n + 1` grid times, of which
+``GapFiller._resample_grid_times()`` generates only those within the maximum point number, follow
+the same formula. A grid time equal to an input time keeps the real position, so an input period
+dividing the output one (e.g. 100 ms points at 5 Hz) is a pure decimation, while a longer input
+period is filled with interpolated positions.
+
+See Also
+--------
+
+- ``GapFiller.interpolation_timestamps()`` - Uses this method to generate timestamp arrays
+- ``GapFiller.fill()`` - Uses it between the last and the new position of a stream
+- ``GapFiller.resample()`` - Uses it over the whole span of a time-ordered list
+- ``GapFillerConfig`` - Configuration parameters that control period constraints
