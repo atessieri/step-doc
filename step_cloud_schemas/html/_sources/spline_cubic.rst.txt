@@ -72,8 +72,35 @@ time-ordered list of positions, ``GapFiller.resample()`` follows these steps:
    heading of the whole grid with one batched geodesic call. The first position is kept
    unchanged; after it, a real position is unchanged when it reports both speed and heading,
    otherwise both are recomputed from the displacement (see the Real New Position section of
-   :doc:`spline_hermite`); the other grid points become estimated positions with the displacement
-   speed and heading
+   :doc:`spline_hermite`); the other grid points become estimated positions with the speed and
+   heading of the spline tangent (see Tangent Motion)
+7. **Heading Hold**: Below ``GapFiller.HEADING_SPEED_MIN_M_S`` (0.5 m/s) the computed heading is
+   replaced by the last reliable one (see the Heading Hold section of :doc:`spline_hermite`)
+
+Tangent Motion
+--------------
+
+The heading of the chord from the previous grid point is the mean direction of the step just
+travelled: on a curve it lags the direction at the point by about half the angle turned in one
+step (1.5° at 10 Hz and 15° at 1 Hz for a 30°/s turn), and the chord speed is slightly below the
+arc speed. The spline is already built for the estimated positions, so ``GapFiller.interpolate()``
+also evaluates its first derivative at their times (``InterpolatedArrays.latitude_rates`` and
+``longitude_rates``, in degrees per millisecond). ``GapFiller._tangent_motion()`` moves every
+estimated position along its tangent for one second and compares the two points with one
+vectorized geodesic call: the distance in meters is the speed in m/s, the forward azimuth the
+heading.
+
+.. math::
+
+   (\varphi', \lambda') = (\varphi + 1000\,\dot\varphi,\; \lambda + 1000\,\dot\lambda),
+   \qquad
+   v = d\big((\varphi, \lambda), (\varphi', \lambda')\big) / 1\,\text{s},
+   \qquad
+   \theta = \operatorname{azimuth}\big((\varphi, \lambda), (\varphi', \lambda')\big)
+
+The real positions of the grid keep the chord rule, and so do the lists already at the output
+period and the pure decimations, where no spline is built. At low output frequencies the
+headings of one position array may then come from both rules.
 
 Code Structure
 --------------

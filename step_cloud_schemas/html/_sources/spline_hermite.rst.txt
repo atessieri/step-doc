@@ -211,7 +211,22 @@ a chain, the resampled lists included:
    positions.append(PositionInfo(..., speed=speed, heading=heading))   # estimated
 
 The real and the estimated positions share the same validated speed and heading, built once per
-chain point from the batched geodesic call.
+chain point from the batched geodesic call (from the spline tangent for the estimated positions
+of ``resample``, see :doc:`spline_cubic`).
+
+Heading Hold
+------------
+
+The azimuth of a nearly null displacement is noise: an object standing still has no direction of
+motion. A heading is reliable when it is reported by a real position returned unchanged, or when
+it is computed for a speed of at least ``GapFiller.HEADING_SPEED_MIN_M_S`` (0.5 m/s, the same
+threshold as the Hermite tangents). ``GapFiller._held_headings()`` gives every other chain point
+the last reliable heading, starting from the heading of the chain origin (the last position for
+``fill``, the measured position for ``resample``); the points with no reliable heading before them
+take the first one after them, and a chain with no reliable heading at all has no heading. The
+speed is always the computed one. ``GapFiller.apply_motion()`` applies the same rule to a single
+position: below the threshold it holds ``previous_heading``, otherwise the heading reported with
+the position, otherwise None.
 
 Usage Example
 =============
