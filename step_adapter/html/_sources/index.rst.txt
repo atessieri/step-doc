@@ -83,8 +83,6 @@ STEP Adapter: Overview
    usage
    package_script
    find_period
-   spline_cubic
-   spline_hermite
    architecture
    docstring_coverage_report
    coverage_report
@@ -165,9 +163,10 @@ Real-time Data Processing
 Interpolation and Validation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- **Hermite and Cubic Spline Interpolation**: Hermite segments for the CAM gaps, cubic splines for
-  the CPM positions and the altitude, with configurable output frequencies
-- **Output Period Resampling**: One ``GapFiller`` shared by CAM and CPM puts every position
+- **Hermite and Cubic Spline Interpolation**: Hermite segments for the CAM gaps (altitude
+  interpolated linearly), cubic splines for the CPM positions, with configurable output frequencies
+- **Output Period Resampling**: One ``GapFiller`` (from ``step_cloud_schemas``) shared by CAM and
+  CPM puts every position
   array at the configured sample frequency: interpolation of the CAM gaps, interpolation or
   decimation of the CPM predicted paths
 - **Coherence Checks**: Positions too close in time, or too far from the local time, are
@@ -215,26 +214,30 @@ The ``PointDataset`` class manages the position history of one actor; its gaps a
   - **Coherence Checks**: Minimum and maximum period, speed and local time checks of each new
     position
   - **Gap Filling**: Delegates the interpolation of a gap to ``GapFiller.fill()``
-  - **Memory Management**: A bounded deque of positions and pre-allocated NumPy buffers
+  - **Memory Management**: A bounded deque of positions
   - **Output Behavior**: Returns interpolated positions followed by the actual received GNSS
-    position as the final point; speed and heading are recomputed from the displacement
-  - **Performance**: O(n + k*log(n)) time per position on the interpolation path, where n is the
-    history size (``maxActorHistoryPointNumber``, 5-30) and k the number of interpolated
+    position as the final point; speed and heading are recomputed from the displacement, unless
+    the received position after a filled gap reports both
+  - **Performance**: O(k) time per position on the interpolation path (O(n) on a restart), where
+    n is the history size (``maxActorHistoryPointNumber``, 5-30) and k the number of interpolated
     positions
 
 Gap Filler
 ~~~~~~~~~~
 
-The ``GapFiller`` class puts positions at the output period (``outputNominalSampleFrequency``
-plus or minus ``outputPeriodMaxDeviation``) with SciPy's CubicHermiteSpline and CubicSpline. It
-keeps no state and is shared by both datasets:
+The ``GapFiller`` class, provided by ``step_cloud_schemas`` (``step_cloud_schemas.gnss``),
+puts positions at the output period (``outputNominalSampleFrequency`` plus or minus
+``outputPeriodMaxDeviation``) with SciPy's CubicHermiteSpline and CubicSpline. It keeps no state
+and is shared by both datasets:
 
   - **fill()** (CAM): fills the gap between the last position of an actor and a new one with
-    interpolated positions (Hermite segment, altitude from a cubic spline), followed by the new one
+    interpolated positions (Hermite segment, altitude on a straight line), followed by the new
+    one; no history is needed
   - **resample()** (CPM): puts a whole predicted path on the output period grid; a longer
     period is interpolated, a shorter one decimated, and a grid time equal to a real point
     keeps that point
-  - **Speed and Heading**: Recomputed from the displacement for every position after the first
+  - **Speed and Heading**: Computed from the displacement for the estimated positions; a real
+    position after the first keeps the reported ones when it has both
 
 Perceived Object Dataset
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -243,7 +246,8 @@ The ``ObjectPerceivedDataset`` class converts every perceived object of a CPM me
 position array (measured position plus predicted path, resampled by ``GapFiller.resample()`` to
 at most 101 points at the configured sample frequency), without keeping any history. The path
 beyond ``inputMaxCpmSpan`` is discarded, and an object whose kept points span less than the minimum
-output period is not forwarded.
+output period is not forwarded. The points interpolated between the predicted ones are typed
+``POSITION_PERCEIVED_PREDICTED``, like the predicted path.
 
 Redis Integration
 ~~~~~~~~~~~~~~~~~
@@ -332,11 +336,14 @@ Core Dependencies
 ~~~~~~~~~~~~~~~~~
 
 - **step_cloud_schemas**: Message schemas and data structures for CAM, CPM processing, plus the
-  application runtime (``AppRunner``) and logging (``StepLogger``)
+  application runtime (``AppRunner``), logging (``StepLogger``) and output period resampling
+  (``GapFiller``)
 - **step_redis**: Redis integration and connection management with stream operations
 - **pydantic**: Configuration validation and schema generation with type safety
-- **scipy**: Hermite and cubic spline interpolation algorithms for trajectory smoothing
-- **numpy**: Array operations for the interpolation and motion computation
+- **scipy**: Hermite and cubic spline interpolation algorithms, used through
+  ``step_cloud_schemas.GapFiller``
+- **numpy**: Array operations for the interpolation and motion computation, used through
+  ``step_cloud_schemas.GapFiller``
 - **sortedcontainers**: Efficient sorted data structures for temporal data management
 
 Development Dependencies
@@ -396,8 +403,6 @@ Testing
 The project includes unit tests covering:
 
 - **Point Dataset**: Coherence checks and gap filling of ``PointDataset``
-- **Resampling**: Period selection, Hermite and cubic spline interpolation, altitude handling,
-  CAM gap filling and CPM resampling of ``GapFiller``
 - **Perceived Objects**: CPM conversion and resampling of ``ObjectPerceivedDataset``
 - **Actor Dataset**: CAM conversion, multi-actor management and cleanup of ``ActorDataset``
 - **Configuration**: Validation, default values, JSON schema and template generation
