@@ -5,13 +5,20 @@ Command Line Interface
 Overview
 ========
 
-The ``crash_prediction_log_extractor`` CLI parses crash-prediction log files and
-produces JSON output based on the ``CollectionsPoints`` schema.
+The ``crash_prediction_log_extractor`` CLI parses ``step_crash_prediction`` log
+files and writes, for every input file, the extracted scenario data as JSON
+(:ref:`CollectionSessions <collection_sessions_schema>`,
+:ref:`CollectionActors <collection_actors_schema>`,
+:ref:`CollectionSequences <collection_sequences_schema>`,
+:ref:`CollectionCheckpoints <collection_checkpoints_schema>`), together with
+interactive HTML maps and dashboards and a GPX file.
 
 It can also generate:
 
-* JSON schema artifacts for ``CollectionsPoints``
-* JSON example artifacts for ``CollectionsPoints``
+* JSON schema artifacts for the four payloads and for
+  :ref:`CrashPredictionLogExtractorConfig <crash_prediction_log_extractor_config_schema>`
+* JSON example artifacts for the same models (a configuration template for the
+  config)
 
 
 Basic usage
@@ -22,6 +29,8 @@ Basic usage
     crash_prediction_log_extractor [options]
 
 If no options are provided, the program prints help and exits with code ``1``.
+Several options may be combined; they run in the order schema, example,
+extraction.
 
 
 Options
@@ -34,33 +43,65 @@ Options
     Show the program version and exit.
 
 ``-s <schema folder>``, ``--schema <schema folder>``
-    Generate ``CollectionsPoints`` JSON schema files in the specified directory.
-    The directory is created if it does not exist.
+    Write the JSON schemas of ``CollectionSessions``, ``CollectionActors``,
+    ``CollectionSequences``, ``CollectionCheckpoints``, and
+    ``CrashPredictionLogExtractorConfig`` to the specified directory.
 
 ``-e <example folder>``, ``--example <example folder>``
-    Generate ``CollectionsPoints`` JSON example files in the specified directory.
-    The directory is created if it does not exist.
+    Write example JSON payloads for the same models to the specified directory.
 
-``-i <input file>``, ``--input_file <input file>``
-    Parse the input log file and extract collections data.
+``-c <config file>``, ``--config <config file>``
+    Path to the JSON
+    :ref:`configuration file <crash_prediction_log_extractor_config_schema>`.
+    The main fields are:
 
-``-o <output file>``, ``--output_file <output file>``
-    Path of the JSON output file.
+    * ``inputFilePathList``: log files to parse, each processed independently.
+    * ``mapFilePathList``: OSM map files drawn on the interactive maps.
+    * ``mapVehicleRoadTypeList``, ``mapSpecificCycleRoadTypeList``,
+      ``mapSpecificPedestrianRoadTypeList``: road types kept from the maps
+      (their union is used as filter).
+    * ``mapMaxZoom``: maximum zoom level of the maps (17-25).
+    * ``outputFolderPath``: directory of all output files; created if missing.
+    * ``maxToleranceTime``: forecast-matching tolerance in milliseconds (0-200).
+    * ``collisionRiskThreshold``: crash-marker risk threshold (1-7).
+    * ``jsonIndentation``: JSON indentation spaces (1-10); ``null`` produces
+      compact JSON.
+    * ``log``: logging configuration (``LogConfig``).
 
-    If omitted while using ``-i``, output is written to the current working
-    directory with the same stem as the input file and ``.json`` extension.
 
-``-f <log file>``, ``--log_file <log file>``
-    Write runtime logs to the specified log file.
+Output files
+============
 
-``-l <log level>``, ``--log_level <log level>``
-    Logging level used when ``-f`` is specified.
-    Accepted values: ``CRITICAL``, ``ERROR``, ``WARNING``, ``INFO``, ``DEBUG``.
-    Invalid values fallback to ``WARNING``.
+For every entry of ``inputFilePathList`` with stem ``<stem>``, the extraction
+writes to ``outputFolderPath``:
 
-``-d <indentation>``, ``--indentation <indentation>``
-    Number of spaces used for JSON indentation in the output file.
-    If omitted, the JSON output is compact (no indentation).
+.. list-table::
+   :header-rows: 1
+   :widths: 45 55
+
+   * - File
+     - Content
+   * - ``<stem>_sessions.json``
+     - :ref:`CollectionSessions <collection_sessions_schema>` payload
+   * - ``<stem>_sessions_map.html``
+     - Folium map browsing the sessions
+   * - ``<stem>_actors.json``
+     - :ref:`CollectionActors <collection_actors_schema>` payload
+   * - ``<stem>_actors_map.html``
+     - Folium map browsing the sessions per actor
+   * - ``<stem>.gpx``
+     - Multi-track GPX file, one track per actor
+   * - ``<stem>_sequences.json``
+     - :ref:`CollectionSequences <collection_sequences_schema>` payload
+   * - ``<stem>_distance_heading_dashboard.html``
+     - Plotly dashboard of forecast distance and heading errors
+   * - ``<stem>_checkpoints.json``
+     - :ref:`CollectionCheckpoints <collection_checkpoints_schema>` payload
+   * - ``<stem>_performance_dashboard.html``
+     - Plotly dashboard of the elapsed time between checkpoints
+
+A file from which no session is extracted produces no output file. The OSM map
+files are parsed again for every input file.
 
 
 Detailed command description
@@ -91,7 +132,7 @@ Schema generation
 
     crash_prediction_log_extractor --schema ./schemas
 
-Generates schema files for the ``CollectionsPoints`` data model.
+Writes the schema files of all models to the ``./schemas`` directory.
 
 Example generation
 ------------------
@@ -100,50 +141,22 @@ Example generation
 
     crash_prediction_log_extractor --example ./examples
 
-Generates example JSON files for the ``CollectionsPoints`` data model.
+Writes the example JSON files of all models to the ``./examples`` directory.
 
-Log extraction
---------------
-
-.. code-block:: bash
-
-    crash_prediction_log_extractor --input_file ./logs/crash_prediction.log --output_file ./out/collections.json
-
-Parses marker-based scenario blocks from the log and writes extracted
-collections payload as JSON.
-
-Log extraction with default output name
----------------------------------------
+Log extraction via config file
+------------------------------
 
 .. code-block:: bash
 
-    crash_prediction_log_extractor --input_file ./logs/crash_prediction.log
+    crash_prediction_log_extractor --config ./config/config.json
 
-If ``--output_file`` is omitted, output is created as:
+Reads the configuration file, configures logging from its ``log`` field, creates
+``outputFolderPath``, and runs the whole pipeline for every input log file.
+Relative paths in the configuration are resolved against the current working
+directory.
 
-.. code-block:: text
-
-    ./crash_prediction.json
-
-in the current working directory.
-
-Logging options
----------------
-
-.. code-block:: bash
-
-    crash_prediction_log_extractor -i ./logs/crash_prediction.log -o ./out/collections.json -f ./run/extractor.log -l DEBUG
-
-Writes runtime logs to ``./run/extractor.log`` at the selected log level.
-
-JSON indentation
-----------------
-
-.. code-block:: bash
-
-    crash_prediction_log_extractor -i ./logs/crash_prediction.log -o ./out/collections.json -d 2
-
-Writes the output JSON with 2-space indentation.
+If an unhandled exception occurs, the files already processed keep their
+outputs and the remaining files are skipped.
 
 
 Exit codes
@@ -154,7 +167,8 @@ The program returns the following exit codes:
 * ``0`` (OK): Successful termination.
 * ``1`` (USAGE): No arguments provided.
 * ``2`` (ERROR): Unhandled exception during execution.
-* ``3`` (ABORTED): Interrupted by user/system (for example ``Ctrl+C``).
+* ``3`` (ABORTED): Interrupted by the user (``KeyboardInterrupt``, for example
+  ``Ctrl+C``).
 
 
 Examples
@@ -172,20 +186,15 @@ Generate example files:
 
     crash_prediction_log_extractor -e ./examples
 
-Extract to explicit output path:
+Run the bundled example (from the ``doc/examples`` folder):
 
 .. code-block:: bash
 
-    crash_prediction_log_extractor -i ./logs/crash_prediction.log -o ./out/collections.json
+    cd doc/examples
+    crash_prediction_log_extractor -c ./config/config.json
 
-Run multiple operations in one command:
-
-.. code-block:: bash
-
-    crash_prediction_log_extractor -s ./schemas -e ./examples -i ./logs/crash_prediction.log -o ./out/collections.json
-
-Run extraction with logging and indented output:
+Generate schemas and examples, then run extraction in one command:
 
 .. code-block:: bash
 
-    crash_prediction_log_extractor -i ./logs/crash_prediction.log -o ./out/collections.json -f ./run/extractor.log -l INFO -d 2
+    crash_prediction_log_extractor -s ./schemas -e ./examples -c ./config/config.json

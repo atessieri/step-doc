@@ -1,15 +1,16 @@
 Crash Prediction Log Extractor: Overview
 ========================================
 
+.. raw:: html
+
+   <a class="back-to-portal" href="../../index.html">Back to STEP Documentation</a>
+
 .. |DEV_STAT| image:: https://img.shields.io/badge/status-beta-yellow.svg
    :target: https://gitlab.automotive.vodafone.com/vfa-init/pnrr/crash_prediction_log_extractor
    :alt: Development Status
 .. |GOOGLE_STYLE| image:: https://img.shields.io/badge/%20style-google-3666d6.svg
    :target: https://google.github.io/styleguide/pyguide.html#s3.8-comments-and-docstrings
    :alt: Google Style
-.. |DOC_FORMATTER| image:: https://img.shields.io/badge/%20formatter-docformatter-green.svg
-   :target: https://github.com/PyCQA/docformatter
-   :alt: Docstring Style
 .. |ISORT| image:: https://img.shields.io/badge/%20imports-isort-%231674b1
    :target: https://pycqa.github.io/isort/
    :alt: Isort
@@ -28,6 +29,9 @@ Crash Prediction Log Extractor: Overview
 .. |MYPY| image:: https://img.shields.io/badge/typing-mypy-blue.svg
    :target: https://mypy.readthedocs.io/
    :alt: Mypy
+.. |PYREFLY| image:: https://img.shields.io/badge/typing-pyrefly-blue.svg
+   :target: https://pyrefly.org/
+   :alt: Pyrefly
 .. |PYLINT| image:: https://img.shields.io/badge/code%20quality-pylint-blue.svg
    :target: https://pylint.pycqa.org/
    :alt: Pylint
@@ -35,7 +39,7 @@ Crash Prediction Log Extractor: Overview
    :target: https://www.sphinx-doc.org/en/master/index.html
    :alt: Sphinx
 .. |TOX| image:: https://img.shields.io/badge/local%20automation-tox-brightgreen.svg
-   :target: https://tox.readthedocs.io/
+   :target: https://tox.wiki/en/latest/
    :alt: Tox
 .. |TEST_COVERAGE| image:: ./badges/test_coverage.svg
    :alt: Test Coverage
@@ -48,9 +52,9 @@ Crash Prediction Log Extractor: Overview
 +----------------------+----------------------------------------------------------+
 | **Code Status**      | |DEV_STAT| |DOCSTRING_COVERAGE| |TEST_COVERAGE|          |
 +----------------------+----------------------------------------------------------+
-| **Code Quality**     | |RUFF| |ISORT| |MYPY| |PYLINT|                           |
+| **Code Quality**     | |RUFF| |ISORT| |MYPY| |PYREFLY| |PYLINT|                 |
 +----------------------+----------------------------------------------------------+
-| **Documentation**    | |SPHINX_DOCS| |GOOGLE_STYLE| |DOC_FORMATTER|             |
+| **Documentation**    | |SPHINX_DOCS| |GOOGLE_STYLE|                             |
 +----------------------+----------------------------------------------------------+
 | **Testing**          | |PYTEST|                                                 |
 +----------------------+----------------------------------------------------------+
@@ -79,21 +83,34 @@ Crash Prediction Log Extractor: Overview
    usage
    package_script
    architecture
+   docstring_coverage_report
+   coverage_report
    schemas_rst/json_schemas
    crash_prediction_log_extractor_rst/crash_prediction_log_extractor
    test_rst/test
+   changelog
 
 The **crash_prediction_log_extractor** package is a STEP utility that parses
-``step_crash_prediction`` logs and converts marker-based scenario traces into a
-validated ``CollectionsPoints`` JSON payload.
+``step_crash_prediction`` service logs and converts the scenario marker lines
+they contain into structured JSON payloads, interactive HTML maps and
+dashboards, and a GPX file.
 
 Purpose
 -------
 
 The project provides a deterministic, file-based extraction workflow for
-post-processing crash prediction runs. It reads plain-text logs, identifies
-scenario markers, assembles per-actor trajectory and crash-event data, and
-exports structured JSON suitable for debugging, analysis, and downstream tools.
+post-processing crash prediction runs. For every input log file it:
+
+#. Reads the plain-text UTF-8 log file.
+#. Parses every scenario block into one ``Session`` of a
+   :ref:`CollectionSessions <collection_sessions_schema>` payload
+   (``LogExtractor``).
+#. Derives :ref:`CollectionActors <collection_actors_schema>`,
+   :ref:`CollectionSequences <collection_sequences_schema>`, and
+   :ref:`CollectionCheckpoints <collection_checkpoints_schema>` from the
+   sessions (``DataRetriever``).
+#. Writes the JSON payloads, the Folium maps (``InteractiveMap``), the Plotly
+   dashboards (``InteractiveChart``), and the GPX tracks (``GpxBuilder``).
 
 Key Features
 ------------
@@ -102,36 +119,40 @@ Marker-Based Parsing
 ~~~~~~~~~~~~~~~~~~~~
 
 - **Scenario parsing**: Detects ``--Scenario start--`` / ``--Scenario end--``
-  boundaries in mixed runtime log output
-- **Section parsing**: Parses ``normalized`` and ``anomaly`` sections for both
-  ``real`` and ``forecasted`` trajectories
-- **Crash parsing**: Extracts crash blocks with risk values and all actors
-  involved in each crash event
-- **Deterministic behavior**: Ignores non-marker lines and applies fixed parser
-  state transitions
+  boundaries and the ``--Scenario t: <ISO8601>--`` time in mixed runtime log
+  output, independently of the log level
+- **Section parsing**: Parses the ``normalized real``, ``normalized
+  forecasted``, and ``anomaly real`` section blocks
+- **Crash parsing**: Extracts crash records with time, position, risk (1-7),
+  and at least two distinct involved actors
+- **Checkpoint parsing**: Collects ``--Checkpoint: <name>, timer: <ms>--``
+  processing timings
+- **Deterministic behavior**: Ignores non-marker lines and applies fixed
+  finite-state parser transitions
 
 Typed Data Model and Validation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- **Strict payload models**: Uses Pydantic models for ``Position``,
-  ``CrashInfo``, ``SessionData``, ``CollectionSections``, and
-  ``CollectionsPoints``
-- **Schema and example generation**: CLI can emit JSON schema and sample JSON
-  artifacts for integration and validation workflows
-- **Precision-aware serialization**: Coordinates, speed, heading, and risk are
-  serialized with consistent rounding rules
-- **Actor identity integration**: Uses ``ActorId`` from ``step_cloud_schemas``
-  across parser and output models
+- **Strict payload models**: Frozen Pydantic models for sessions, actors,
+  sequences, checkpoints, and the configuration, forbidding extra fields
+- **Schema and example generation**: The CLI emits JSON schemas and example
+  payloads of every model
+- **Precision-aware serialization**: Coordinates are rounded to 7 decimals,
+  speed, heading, and forecast errors to 2 decimals
+- **Shared types**: ``TrafficParticipantType``, ``PositionType``, and
+  ``LogConfig`` come from ``step_cloud_schemas``
 
-CLI Operations
-~~~~~~~~~~~~~~
+Analysis Outputs
+~~~~~~~~~~~~~~~~
 
-- **Extraction mode**: Parse an input log file and write extracted collections
-  data to JSON
-- **Schema mode**: Generate JSON schema files for ``CollectionsPoints``
-- **Example mode**: Generate example JSON payload files
-- **Configurable logging**: Optional log file output with selectable
-  ``CRITICAL``/``ERROR``/``WARNING``/``INFO``/``DEBUG`` levels
+- **Forecast sequences**: Each real position is paired with the positions
+  forecasted for that instant by earlier sessions, with distance and heading
+  errors
+- **Interactive maps**: Folium maps of sessions and actors over the OSM road
+  network, one selectable layer per road type
+- **Dashboards**: Self-contained Plotly dashboards of forecast accuracy and of
+  the elapsed time between processing checkpoints
+- **GPX tracks**: One track per actor, compatible with step_publisher_pkl
 
 Core Components
 ---------------
@@ -139,66 +160,45 @@ Core Components
 CLI Entry Point
 ~~~~~~~~~~~~~~~
 
-The ``__main__.py`` module provides command parsing and execution routing.
-It supports combined operations in a single run (for example schema generation,
-example generation, and extraction), and returns explicit exit codes for
-success, usage errors, unhandled exceptions, and user interruption.
+The ``__main__.py`` module provides command parsing and execution routing. It
+supports combined operations in a single run (schema generation, example
+generation, and extraction), and returns explicit exit codes for success,
+usage errors, unhandled exceptions, and user interruption.
 
 Log Extractor
 ~~~~~~~~~~~~~
 
 The ``LogExtractor`` class in ``log_extractor.py`` is the parser engine. It
-uses regular expressions and finite-state parsing to extract:
+uses regular expressions and the ``ParserScenarioState``,
+``ParserSectionDataState``, and ``ParserCrashState`` finite-state machines to
+build one ``Session`` per complete scenario with at least one actor.
 
-- actor identifiers
-- real and forecasted positions
-- crash risks and actor involvement
-
-It then merges parsed scenarios into one final ``CollectionsPoints`` payload.
-
-Collections Model Layer
-~~~~~~~~~~~~~~~~~~~~~~~
-
-The ``collections_points.py`` module defines immutable, validated models and
-artifact utilities. It centralizes:
-
-- data contracts for extraction output
-- JSON schema generation
-- example payload generation
-- JSON file writing helpers
-
-Logging Utilities
+Collection Models
 ~~~~~~~~~~~~~~~~~
 
-The ``step_logger.py`` module provides UTC-based log formatting, console/file
-handlers, and a forced-write utility for informational messages that must be
-emitted regardless of default logger level.
+The ``collection_sessions.py``, ``collection_actors.py``,
+``collection_sequences.py``, and ``collection_checkpoints.py`` modules define
+the versioned payloads and their JSON, schema, and example writers. The
+``crash_prediction_log_extractor_config.py`` module defines the configuration
+model and its schema/template writers.
 
-Architecture
-------------
+Data Retriever
+~~~~~~~~~~~~~~
 
-Processing Pipeline
-~~~~~~~~~~~~~~~~~~~
+The ``DataRetriever`` class in ``data_retriever.py`` regroups the sessions per
+actor, builds the forecast sequences within the ``maxToleranceTime``
+tolerance, and extracts the per-session checkpoints.
 
-The extraction pipeline follows these steps:
+Renderers
+~~~~~~~~~
 
-#. Read log file line-by-line
-#. Detect marker lines with regex patterns
-#. Parse section/crash content via finite-state machines
-#. Build and merge actor session data
-#. Emit final ``CollectionsPoints`` JSON output
-
-Parser State Machines
-~~~~~~~~~~~~~~~~~~~~~
-
-The parser is implemented with dedicated state enums:
-
-- ``ParserScenarioState`` for scenario boundaries
-- ``ParserSectionDataState`` for section data blocks
-- ``ParserCrashState`` for crash blocks
-
-This design keeps parsing explicit and predictable even when logs contain
-non-marker operational lines.
+- ``InteractiveMap`` (``interactive_map.py``): Folium maps of sessions and
+  actors
+- ``InteractiveChart`` (``interactive_chart.py``): Plotly distance/heading and
+  performance dashboards
+- ``GpxBuilder`` (``gpx_builder.py``): multi-track GPX file
+- ``templates``: static HTML, CSS, and JavaScript assets of maps and
+  dashboards
 
 Dependencies
 ------------
@@ -207,10 +207,14 @@ Runtime Dependencies
 ~~~~~~~~~~~~~~~~~~~~
 
 - ``pydantic`` for strict models and schema generation
-- ``step_cloud_schemas`` for the shared ``ActorId`` type
+- ``step_cloud_schemas`` for shared types, time/geodesic helpers, and logging
+- ``osmnx`` and ``geopandas`` for OSM road networks
+- ``folium`` and ``branca`` for interactive maps
+- ``plotly`` for dashboards
+- ``gpx`` for GPX output
 
 Development Tooling
 ~~~~~~~~~~~~~~~~~~~
 
-The project tooling includes ``pytest``, ``ruff``, ``mypy``, ``pylint``,
-``isort``, ``tox``, and Sphinx-based documentation generation.
+The project tooling includes ``pytest``, ``ruff``, ``mypy``, ``pyrefly``,
+``pylint``, ``isort``, ``tox``, and Sphinx-based documentation generation.

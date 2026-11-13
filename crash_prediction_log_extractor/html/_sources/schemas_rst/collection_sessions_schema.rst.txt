@@ -1,0 +1,112 @@
+Collection Sessions V1 Schema
+=============================
+
+The Collection Sessions Version 1 schema defines the primary payload produced by
+``crash_prediction_log_extractor``: one ``Session`` per parsed scenario, holding
+every actor observed in that time window together with the scenario crashes and
+processing checkpoints. It is written as ``<stem>_sessions.json`` and is the
+source from which the actors, sequences, and checkpoints payloads are derived.
+The JSON Schema is generated from the Pydantic models of the
+``collection_sessions`` module.
+
+Overview
+--------
+
+Data hierarchy::
+
+    CollectionSessions
+    `-- sessions                                (list[Session])
+        `-- Session                             (one per time window)
+            |-- actorsSession                   (list[ActorSession])
+            |   `-- ActorSession                (one per actor)
+            |       |-- actorId                 (ActorIdModel)
+            |       `-- data                    (SessionData)
+            |           |-- realPositions       (list[Position])
+            |           `-- forecastedPositions (list[Position])
+            |-- crashesInfo                     (list[CrashInfo])
+            |   `-- CrashInfo                   (one per crash event)
+            |       `-- actorsInvolved          (list[ActorIdModel])
+            `-- checkpoints                     (list[CheckpointDataModel])
+
+The root object ``CollectionSessions`` contains:
+
+* ``formatVersion``: fixed to ``1``
+* ``sessions``: ``Session`` containers, 0 to 1 000 000 entries
+
+Each ``Session`` contains:
+
+* ``sessionTime``: ISO-8601 timestamp of the scenario time window
+* ``actorsSession``: one ``ActorSession`` per observed actor, 1 to 10 000 entries
+* ``crashesInfo``: crash events of the session, 0 to 10 000 entries
+* ``checkpoints``: ordered ``CheckpointDataModel`` entries, 0 to 100 entries
+
+Each ``ActorSession`` contains:
+
+* ``actorId``: actor identifier (``ActorIdModel``)
+* ``data``: actor session data (``SessionData``)
+
+Each ``SessionData`` contains:
+
+* ``sessionIndex``: zero-based session index for the actor (uint32 range)
+* ``sessionTime``: ISO-8601 session timestamp
+* ``dataType``: ``normalized`` or ``anomaly``
+* ``realPositions``: real positions, 1 to 10 000 entries
+* ``forecastedPositions``: forecasted positions, 0 to 10 000 entries
+  (filled for ``normalized`` data only)
+
+The ``ActorIdModel`` object contains:
+
+* ``stationId``: station identifier, from ``0`` to ``4 294 967 295``
+* ``objectId``: perceived-object identifier, from ``0`` to ``65 535``, or ``null``
+* ``actorType``: ``TrafficParticipantType`` of the actor
+* ``actorTypeConfidence``: confidence of ``actorType``, from ``0`` to ``100``,
+  or ``null`` (always required)
+
+The ``Position`` object contains:
+
+* ``time``: ISO-8601 timestamp
+* ``latitude``: from ``-90`` to ``90`` degrees
+* ``longitude``: from ``-180`` to ``180`` degrees
+* ``speed``: from ``0`` to ``163.82`` m/s, or ``null``
+* ``heading``: from ``0`` to ``360`` degrees, or ``null``
+* ``positionType``: ``PositionType`` (GNSS, estimated, predicted, or perceived)
+
+The ``CrashInfo`` object contains:
+
+* ``estimatedTimestamp``: ISO-8601 estimated crash time
+* ``estimatedLatitude`` / ``estimatedLongitude``: estimated crash position
+* ``risk``: information quality value from ``1`` to ``7``
+* ``actorsInvolved``: 2 to 100 actor identifiers
+
+The ``CheckpointDataModel`` object is described in the
+:ref:`Collection Checkpoints schema <collection_checkpoints_schema>`.
+
+Validation Notes
+----------------
+
+* Models are strict (no type coercion), frozen, and forbid unknown fields;
+  enum fields are accepted in lax mode so raw string values validate.
+* Before validation, out-of-range latitudes are clamped and longitudes and
+  headings are wrapped into range.
+* On serialization, coordinates are rounded to 7 decimals and speed/heading
+  to 2 decimals.
+* ``ActorIdModel`` equality uses all fields; the actor identity
+  (``stationId`` and ``objectId`` only) is exposed as ``ActorKey``.
+
+Example
+-------
+
+This example is created using JSON Schema **version 1**. For implementation
+details, refer to the Python models in ``collection_sessions``.
+
+.. literalinclude:: ../schemas_examples/collection_sessions_v1_schema_example.json
+  :language: JSON
+
+JSON Schema
+-----------
+
+.. _collection_sessions_schema:
+
+This is JSON Schema **version 1**
+
+.. jsonschema:: ../json_schemas/collection_sessions_v1_schema.json

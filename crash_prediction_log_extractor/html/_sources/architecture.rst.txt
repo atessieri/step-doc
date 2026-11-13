@@ -2,26 +2,40 @@ Architecture
 ============
 
 This document describes the architecture of ``crash_prediction_log_extractor``,
-a Python library and CLI that parses marker-based
-``step_crash_prediction`` logs and produces ``CollectionsPoints`` JSON payloads.
+a Python library and CLI that parses marker-based ``step_crash_prediction`` logs
+and produces JSON payloads, interactive HTML maps and dashboards, and a GPX
+file.
 
 Overview
 --------
 
-The library implements a deterministic, file-based parsing pipeline:
+The library implements a deterministic, file-based pipeline, run once per input
+log file:
 
-#. Read a log file line-by-line.
-#. Detect scenario and section markers using regular expressions.
-#. Build in-memory typed session data for each actor.
-#. Merge sessions into a validated ``CollectionsPoints`` payload.
-#. Optionally write JSON output, schema, or example artifacts from the CLI.
+#. Read a plain-text UTF-8 log file line by line.
+#. Parse every scenario block into one ``Session`` of a
+   :ref:`CollectionSessions <collection_sessions_schema>` payload
+   (``LogExtractor``).
+#. Derive :ref:`CollectionActors <collection_actors_schema>`,
+   :ref:`CollectionSequences <collection_sequences_schema>`, and
+   :ref:`CollectionCheckpoints <collection_checkpoints_schema>` from the
+   sessions (``DataRetriever``).
+#. Write the JSON payloads, the Folium maps (``InteractiveMap``), the Plotly
+   dashboards (``InteractiveChart``), and the GPX tracks (``GpxBuilder``).
 
-The architecture is intentionally small and layered:
+The architecture is layered:
 
 * **Orchestration layer**: CLI entry point in ``__main__.py``
-* **Parsing layer**: ``LogExtractor`` and parser state machines
-* **Data model layer**: Pydantic models in ``collections_points.py``
-* **Observability layer**: UTC logging utilities in ``step_logger.py``
+* **Parsing layer**: ``LogExtractor`` and its parser state machines
+  (``log_extractor.py``)
+* **Data model layer**: Pydantic models in ``collection_sessions.py``,
+  ``collection_actors.py``, ``collection_sequences.py``,
+  ``collection_checkpoints.py``, and the configuration model in
+  ``crash_prediction_log_extractor_config.py``
+* **Transformation layer**: ``DataRetriever`` (``data_retriever.py``)
+* **Rendering layer**: ``InteractiveMap`` (``interactive_map.py``),
+  ``InteractiveChart`` (``interactive_chart.py``), ``GpxBuilder``
+  (``gpx_builder.py``), and the static assets of the ``templates`` package
 
 Library
 -------
@@ -30,48 +44,33 @@ Core Dependencies
 ^^^^^^^^^^^^^^^^^
 
 **pydantic**
-   Provides strict, immutable payload models and JSON-schema generation for:
-
-   * ``Position``
-   * ``CrashInfo``
-   * ``SessionData``
-   * ``CollectionSections``
-   * ``CollectionsPoints``
+   Strict, frozen payload and configuration models with JSON-schema generation.
 
 **step_cloud_schemas**
-   Provides ``ActorId`` used as the actor identity primitive across parser and
-   output models.
+   Shared types and helpers: ``TrafficParticipantType``, ``PositionType``,
+   ``LogConfig``, the schema generator, ``ItsTime`` (ISO 8601 / epoch
+   conversions), ``Geocode`` (distances and bearings), and ``StepLogger``
+   (logger configuration and forced writes).
+
+**osmnx** and **geopandas**
+   Parse the OSM XML map files into road-network ``GeoDataFrame`` edges.
+
+**folium** and **branca**
+   Build the Leaflet-based HTML maps and inject panels and scripts.
+
+**plotly**
+   Provides the plotly.js bundle inlined in the dashboards.
+
+**gpx**
+   Writes the multi-track GPX file.
 
 **Python Standard Library**
-   Used extensively for core behavior:
-
-   * ``argparse`` for CLI options
-   * ``logging`` for runtime diagnostics
-   * ``pathlib`` for file-system operations
-   * ``re`` for marker parsing
-   * ``dataclasses`` and ``enum`` for parser internals
-
-Architecture Integration
-^^^^^^^^^^^^^^^^^^^^^^^^
-
-The dependency selection supports the extractor goals:
-
-* **Schema safety** via strict Pydantic models
-* **Deterministic parsing** via explicit regex + finite-state parsing
-* **Simple deployment** with no external services required
-* **Traceable execution** via configurable file/console logging
+   ``argparse`` (CLI), ``logging``, ``pathlib``, ``re`` (marker parsing),
+   ``bisect`` (forecast window search), ``dataclasses`` and ``enum`` (parser
+   internals), ``importlib.resources`` (template loading).
 
 Components
 ----------
-
-Main Components:
-
-   #. **CLI Entry Point** (``__main__.py``): argument parsing, execution routing,
-      and exit-code management
-   #. **LogExtractor** (``log_extractor.py``): marker parser and scenario merger
-   #. **CollectionsPoints Models** (``collections_points.py``): typed payload,
-      schema generation, and example generation
-   #. **Step Logger** (``step_logger.py``): UTC logger setup and forced info writes
 
 CLI Entry Point
 ^^^^^^^^^^^^^^^
@@ -80,91 +79,148 @@ The ``main()`` function in ``__main__.py`` orchestrates all user operations.
 
 **Responsibilities:**
 
-   #. Parse CLI arguments (schema/example generation, extraction, logging).
-   #. Configure runtime logger (stdout and optional file handler).
-   #. Run extraction through ``LogExtractor`` when ``--input_file`` is provided.
-   #. Write output JSON and report operation status.
-   #. Return typed exit codes:
+#. Print help and return ``USAGE`` when no argument is given.
+#. Write the JSON schemas (``-s``) and examples (``-e``) of all models.
+#. With ``-c``, validate the configuration, configure the logger from its
+   ``log`` field, create ``outputFolderPath``, and run
+   ``_create_write_files`` for every entry of ``inputFilePathList``, with the
+   union of the three road-type lists as map filter.
+#. Return typed exit codes (``ExitCode``):
 
-      * ``0``: success
-      * ``1``: usage (no args)
-      * ``2``: unhandled exception
-      * ``3``: interrupted execution
+   * ``0`` (``OK``): success
+   * ``1`` (``USAGE``): no arguments
+   * ``2`` (``ERROR``): unhandled exception
+   * ``3`` (``ABORTED``): ``KeyboardInterrupt``
+
+``_create_write_files`` runs, for one log file, the sessions step (JSON and
+map), the actors step (JSON, map, and GPX), the sequences step (JSON and
+distance/heading dashboard), and the checkpoints step (JSON and performance
+dashboard). A file from which no session is extracted produces no output.
 
 LogExtractor
 ^^^^^^^^^^^^
 
-``LogExtractor`` is the core parser service. It scans a text log stream and
-extracts data from markers only.
+``LogExtractor`` is the parser engine. Instantiate it with the log file path and
+a ``logging.Logger``, call ``extract()``, then read the result from the
+``collections`` property. It is not thread-safe.
 
-**Internal parser structure:**
+**Parser state machines:**
 
-* ``ParserScenarioState``: scenario-level boundaries
-* ``ParserSectionDataState``: section-level parsing for
-  ``normalized|anomaly`` x ``real|forecasted``
-* ``ParserCrashState``: parsing of crash blocks and risk/actor tuples
+* ``ParserScenarioState``: ``WAIT_FOR_START_SCENARIO`` →
+  ``WAIT_FOR_SESSION_TIME`` → ``WAIT_FOR_END_SCENARIO`` → ``DONE``
+* ``ParserSectionDataState``: ``WAIT_START_SECTION_DATA`` →
+  ``WAIT_END_SECTION_DATA`` → ``DONE``, for each of the three blocks in
+  ``DATA_MARKERS`` (``ParserTableDataMarkerItem`` of ``DataType`` x
+  ``SectionDataType``)
+* ``ParserCrashState``: ``WAIT_START_CRASH`` → ``WAIT_RISK`` →
+  ``WAIT_END_CRASH`` → ``DONE``
 
 **Regex marker families:**
 
-* Scenario markers: ``--Scenario (start|end)--``
-* Section markers: ``--Section (anomaly|normalized) (real|forecasted) (start|end)--``
-* Crash section markers: ``--Section crash (start|end)--``
-* Crash markers: ``--Crash (start|end)--`` and ``--Risk: ...--``
-* Actor markers: ``--Id: sid <station_id>, oid <object_id|None>--``
-* Point markers: ``--t: <time>, p: (<lat>, <lon>), s: <speed|None>, h: <heading|None>--``
+* Scenario: ``--Scenario (start|end)--`` and ``--Scenario t: <ISO8601>--``
+* Section data:
+  ``--Section (normalized real|normalized forecasted|anomaly real) (start|end)--``
+* Crash section: ``--Section crash (start|end)--``
+* Crash record: ``--Crash (start|end)--`` and
+  ``--Time: <ISO8601>, pos: (<lat>, <lon>), risk: <1-7>--``
+* Actor:
+  ``--sid: <station_id>, oid: <object_id|None>, type: <TrafficParticipantType>, confidence: <0-100|None>--``
+* Point:
+  ``--t: <ISO8601>, p: (<lat>, <lon>), t: <PositionType>, s: <speed|None>, h: <heading|None>--``
+* Checkpoint: ``--Checkpoint: <name>, timer: <ms>--``
 
-**Session assembly pipeline:**
+**Session assembly rules:**
 
-#. Parse one scenario with ``_extract_section()``.
-#. Populate temporary dictionaries for each section type.
-#. Parse crash entries and map involved actors.
-#. Merge per-actor ``SessionData``.
-#. Append scenario sessions to global actor collections.
-#. Emit final ``CollectionsPoints`` at end of file.
+* Every complete scenario with at least one actor becomes one ``Session``.
+* An actor's ``dataType`` is ``normalized`` when it has normalized real points,
+  otherwise ``anomaly``; the two are never combined.
+* Forecasted positions are kept for normalized data only.
+* A missing speed/heading is derived from the actor's previous point
+  (``SpeedHeading``).
+* A crash record needs at least ``MINIMUM_ACTORS_IN_CRASH`` (2) distinct
+  actors to be kept.
+* Checkpoints with an unknown name are skipped with a warning.
 
-**Merge rule:**
-
-When an actor appears in both normalized and anomaly data in the same scenario,
-anomaly data overwrites normalized data for that actor in that scenario merge.
-
-CollectionsPoints Models
-^^^^^^^^^^^^^^^^^^^^^^^^
-
-The data-model layer defines immutable payload objects:
-
-* ``Position``: time, latitude, longitude, optional speed/heading
-* ``CrashInfo``: risk and involved actor list
-* ``SessionData``: last real timestamp + trajectory + crash info
-* ``CollectionSections``: actor id + list of sessions
-* ``CollectionsPoints``: root payload with ``formatVersion`` and collections
-
-Model behavior includes:
-
-* strict validation and ``extra='forbid'``
-* numeric serializers for fixed precision output
-* schema generation via ``ConfigGenerateJsonSchema``
-* artifact writing:
-
-  * ``print_to_file()``
-  * ``print_schema()``
-  * ``print_example()``
-
-Step Logger
+Data Models
 ^^^^^^^^^^^
 
-``step_logger.py`` provides centralized logging behavior.
+All models are strict, frozen, forbid extra fields, and expose
+``print_to_file()``, ``print_schema()``, and ``print_example()`` (the
+configuration exposes a template instead of an example).
 
-**Design points:**
+* ``collection_sessions``: ``ActorIdModel`` (with ``ActorKey`` identity),
+  ``Position``, ``CrashInfo``, ``DataType``, ``SessionData``,
+  ``ActorSession``, ``Session``, ``CollectionSessions``
+* ``collection_actors``: ``ActorSessionData``, ``CollectionActor``,
+  ``CollectionActors``
+* ``collection_sequences``: ``ForecastedPosition``, ``SequenceElement``,
+  ``ActorSequence``, ``CollectionSequences``
+* ``collection_checkpoints``: ``CheckpointType``, ``CheckpointDataModel``,
+  ``SessionCheckpoints``, ``CollectionCheckpoints``
+* ``crash_prediction_log_extractor_config``: ``MapRoadType``,
+  ``CrashPredictionLogExtractorConfig``
 
-* UTC timestamp formatting via ``UtcFormatter``
-* stdout handler for immediate error visibility
-* optional file handler for detailed execution tracing
-* ``logger_force_write()`` to emit info messages regardless of current levels
+DataRetriever
+^^^^^^^^^^^^^
+
+``DataRetriever`` derives the secondary payloads from a ``CollectionSessions``
+document:
+
+* ``get_collection_actors``: regroups the sessions per actor; each session keeps
+  only the crashes involving that actor.
+* ``get_collection_sequences``: for each actor, merges the real positions of its
+  sessions into one chronological list (skipping positions at or before the
+  last appended timestamp) and pairs each real position with the forecasted
+  positions of earlier sessions (``ForecastedPoints``) matched within
+  ``maxToleranceTime``, with their distance and heading errors.
+* ``get_collection_checkpoints``: extracts the per-session checkpoints.
+
+ISO 8601 to epoch-millisecond conversions are memoized for the lifetime of the
+instance. It is not thread-safe.
+
+InteractiveMap
+^^^^^^^^^^^^^^
+
+``InteractiveMap`` parses and filters the OSM road networks once at
+construction (``MapData`` with ``MapBounds`` per file). Each map
+(``collection_sessions_create_map``, ``collection_actors_create_map``) draws the
+road network of the first loaded OSM file whose bounds overlap the collection,
+one selectable layer per road type, and injects the serialized collection as
+chunked ``<script>`` blocks (64 Mi characters each) so large logs stay below
+the browser string-length limit. Crashes below ``collisionRiskThreshold`` are
+drawn in gray, the others in yellow.
+
+InteractiveChart
+^^^^^^^^^^^^^^^^
+
+``InteractiveChart`` fills the dashboard templates by placeholder substitution
+and inlines the full plotly.js bundle, so every file is self-contained:
+
+* ``distance_heading_write_html``: distance-error and heading-error series per
+  actor and per forecast index, from ``CollectionSequences``.
+* ``checkpoints_write_html``: elapsed time between two selectable checkpoints
+  across sessions, with statistics, from ``CollectionCheckpoints``.
+
+GpxBuilder
+^^^^^^^^^^
+
+``GpxBuilder.build_file`` writes one track per actor, named
+``Path actor <stationId>_<objectId>`` (``none`` when there is no object id),
+in the format written by step_message_save's ``GpxWriter`` and read by
+step_publisher_pkl. Consecutive sessions are merged into one chronological
+segment; tracks are sorted by station id then object id; heading and speed are
+written to the Garmin TrackPointExtension v2 ``course``/``speed`` elements.
+Actors without track points are skipped.
+
+Templates
+^^^^^^^^^
+
+The ``templates`` package contains no Python code; it is an
+``importlib.resources`` anchor for the HTML templates, JavaScript scripts, and
+CSS stylesheets of the maps and dashboards.
 
 Component Diagram
 -----------------
-
-The following component diagram illustrates how runtime pieces collaborate.
 
 .. container:: scrollable-diagram
 
@@ -174,35 +230,53 @@ The following component diagram illustrates how runtime pieces collaborate.
       package "crash_prediction_log_extractor" {
          [CLI (__main__.py)] as CLI
          [LogExtractor] as Extractor
-         [CollectionsPoints Models] as Models
-         [step_logger] as Logger
+         [DataRetriever] as Retriever
+         [InteractiveMap] as Map
+         [InteractiveChart] as Chart
+         [GpxBuilder] as Gpx
+         [Collection Models] as Models
+         [Config Model] as Config
+         [templates] as Templates
       }
 
-      package "External Input/Output" {
-         [Log File] as LogFile
-         [JSON Output] as JsonOut
-         [Schema/Example Files] as Artifacts
+      package "External Input" {
+         [Config File] as ConfigFile
+         [Log Files] as LogFile
+         [OSM Map Files] as OsmFile
       }
 
-      package "Dependency" {
-         [ActorId (step_cloud_schemas)] as ActorId
+      package "External Output" {
+         [JSON Files] as JsonOut
+         [HTML Maps / Dashboards] as HtmlOut
+         [GPX File] as GpxOut
       }
 
-      CLI --> Logger : configure/get logger
+      package "step_cloud_schemas" {
+         [StepLogger / ItsTime / Geocode / ActorId types] as Step
+      }
+
+      ConfigFile --> CLI : -c
+      CLI --> Config : validate
       CLI --> Extractor : extract()
-      CLI --> Models : print_schema()/print_example()
-      CLI --> JsonOut : write output file
-
       LogFile --> Extractor : line-by-line read
-      Extractor --> Models : build CollectionsPoints
-      Extractor --> Logger : parser logs
-      Models --> Artifacts : schema/example generation
-      Models --> ActorId : actor identity type
+      Extractor --> Models : CollectionSessions
+      CLI --> Retriever : actors / sequences / checkpoints
+      Retriever --> Models
+      OsmFile --> Map : parsed once
+      CLI --> Map : create maps
+      CLI --> Chart : write dashboards
+      CLI --> Gpx : build_file()
+      Map --> Templates
+      Chart --> Templates
+      Models --> JsonOut : print_to_file()
+      Map --> HtmlOut
+      Chart --> HtmlOut
+      Gpx --> GpxOut
+      CLI --> Step : logging
+      Models --> Step : shared types
 
 Class Diagram
 -------------
-
-The class diagram below highlights the key internal structures.
 
 .. container:: scrollable-diagram
 
@@ -224,73 +298,92 @@ The class diagram below highlights the key internal structures.
       enum ParserCrashState
       enum SectionDataType
       enum DataType
+      enum CheckpointType
 
       class LogExtractor {
-         -_input_file: Path
-         -_logger: Logger
-         -_collections: CollectionsPoints?
-         -_session_normalized_real_data
-         -_session_normalized_forecasted_data
-         -_session_anomaly_real_data
-         -_session_crash_data
-         +collections
+         +input_file: Path
+         +logger: Logger
+         +collections: CollectionSessions?
          +extract()
-         -_extract_section()
-         -_extract_section_data()
-         -_extract_section_crash_data()
-         -_extract_crash_data()
-         -_merge_session_data()
       }
 
-      class ParserTableDataMarkerItem {
-         +data_type: DataType
-         +section_data_type: SectionDataType
-         +data_collection
+      class DataRetriever {
+         +max_tolerance_time_ms: int
+         +get_collection_actors()
+         +get_collection_sequences()
+         +get_collection_checkpoints()
       }
 
-      class CollectionsPoints {
+      class InteractiveMap {
+         +collection_sessions_create_map()
+         +collection_actors_create_map()
+      }
+
+      class InteractiveChart {
+         +distance_heading_write_html()
+         +checkpoints_write_html()
+      }
+
+      class GpxBuilder {
+         +build_file()
+      }
+
+      class CollectionSessions {
          +formatVersion
-         +collections
-         +print_to_file()
-         +print_schema()
-         +print_example()
+         +sessions: list[Session]
       }
-
-      class CollectionSections {
-         +actorId
-         +sessions
+      class Session {
+         +sessionTime
+         +actorsSession: list[ActorSession]
+         +crashesInfo: list[CrashInfo]
+         +checkpoints: list[CheckpointDataModel]
       }
-
+      class ActorSession {
+         +actorId: ActorIdModel
+         +data: SessionData
+      }
       class SessionData {
-         +lastRealTime
-         +dataType
-         +realPositions
-         +forecastedPositions
-         +crashInfo
+         +sessionIndex
+         +sessionTime
+         +dataType: DataType
+         +realPositions: list[Position]
+         +forecastedPositions: list[Position]
       }
-
+      class CollectionActors
+      class CollectionSequences
+      class CollectionCheckpoints
+      class CheckpointDataModel
       class Position
       class CrashInfo
-      class ActorId <<from step_cloud_schemas>>
+      class ActorIdModel
 
       LogExtractor --> ParserScenarioState
       LogExtractor --> ParserSectionDataState
       LogExtractor --> ParserCrashState
-      LogExtractor --> ParserTableDataMarkerItem
-      LogExtractor --> CollectionsPoints
-      LogExtractor --> SessionData
-      LogExtractor --> Position
-      LogExtractor --> CrashInfo
-      CrashInfo --> ActorId
-      CollectionSections --> ActorId
-      CollectionsPoints --> CollectionSections
+      LogExtractor --> SectionDataType
+      LogExtractor --> CollectionSessions
+      CollectionSessions --> Session
+      Session --> ActorSession
+      Session --> CrashInfo
+      Session --> CheckpointDataModel
+      CheckpointDataModel --> CheckpointType
+      ActorSession --> ActorIdModel
+      ActorSession --> SessionData
+      SessionData --> DataType
       SessionData --> Position
-      SessionData --> CrashInfo
+      CrashInfo --> ActorIdModel
+      DataRetriever --> CollectionSessions
+      DataRetriever --> CollectionActors
+      DataRetriever --> CollectionSequences
+      DataRetriever --> CollectionCheckpoints
+      InteractiveMap --> CollectionSessions
+      InteractiveMap --> CollectionActors
+      InteractiveChart --> CollectionSequences
+      InteractiveChart --> CollectionCheckpoints
+      GpxBuilder --> CollectionActors
 
 Sequence Diagrams
 -----------------
-
-The following sequence diagrams show the two main operational flows.
 
 Extraction Flow
 ^^^^^^^^^^^^^^^
@@ -303,21 +396,37 @@ Extraction Flow
       participant "User" as User
       participant "CLI main()" as CLI
       participant "LogExtractor" as Extractor
-      participant "Log File" as File
-      participant "CollectionsPoints" as Payload
+      participant "DataRetriever" as Retriever
+      participant "InteractiveMap" as Map
+      participant "InteractiveChart" as Chart
+      participant "GpxBuilder" as Gpx
+      participant "File System" as FS
 
-      User -> CLI : crash_prediction_log_extractor -i input.log -o out.json
-      CLI -> Extractor : __init__(input_file, logger)
-      CLI -> Extractor : extract()
-      Extractor -> File : read lines
-      loop for each scenario block
-         Extractor -> Extractor : _extract_section_data() x4
-         Extractor -> Extractor : _extract_section_crash_data()
-         Extractor -> Extractor : _merge_session_data()
+      User -> CLI : crash_prediction_log_extractor -c config.json
+      CLI -> FS : read configuration
+      loop for each input log file
+         CLI -> Map : __init__(map files, road filter)
+         CLI -> Extractor : extract()
+         Extractor -> FS : read log lines
+         CLI <- Extractor : CollectionSessions
+         CLI -> FS : <stem>_sessions.json
+         CLI -> Map : collection_sessions_create_map()
+         CLI -> FS : <stem>_sessions_map.html
+         CLI -> Retriever : get_collection_actors()
+         CLI -> FS : <stem>_actors.json
+         CLI -> Map : collection_actors_create_map()
+         CLI -> FS : <stem>_actors_map.html
+         CLI -> Gpx : build_file()
+         Gpx -> FS : <stem>.gpx
+         CLI -> Retriever : get_collection_sequences()
+         CLI -> FS : <stem>_sequences.json
+         CLI -> Chart : distance_heading_write_html()
+         Chart -> FS : <stem>_distance_heading_dashboard.html
+         CLI -> Retriever : get_collection_checkpoints()
+         CLI -> FS : <stem>_checkpoints.json
+         CLI -> Chart : checkpoints_write_html()
+         Chart -> FS : <stem>_performance_dashboard.html
       end
-      Extractor -> Payload : build CollectionsPoints
-      CLI <- Extractor : collections
-      CLI -> Payload : print_to_file(out.json)
 
 Schema and Example Generation Flow
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -329,45 +438,51 @@ Schema and Example Generation Flow
 
       participant "User" as User
       participant "CLI main()" as CLI
-      participant "CollectionsPoints" as Payload
+      participant "Models" as Models
       participant "File System" as FS
 
       User -> CLI : crash_prediction_log_extractor -s schema_dir -e example_dir
-      CLI -> Payload : print_schema(schema_dir)
-      Payload -> FS : write *_schema.json
-      CLI -> Payload : print_example(example_dir)
-      Payload -> FS : write *_schema_example.json
+      CLI -> Models : print_schema(schema_dir)
+      Models -> FS : write *_v1_schema.json
+      CLI -> Models : print_example(example_dir)
+      Models -> FS : write *_v1_schema_example.json / *_template.json
 
 Performance Considerations
 --------------------------
 
-The parser is designed for predictability and linear file traversal.
+The complexity figures below come from the module docstrings.
+
+Let:
+
+* :math:`B` = size of the log file, :math:`K` = crash records,
+  :math:`a` = actors per crash record
+* :math:`M` = total size of the OSM files, :math:`E` = road edges of the
+  matched map, :math:`n` = size of the serialized outputs
+* :math:`s` = sessions of an actor, :math:`Q` = forecasted positions of an
+  actor, :math:`P` = real positions appended to its sequence, :math:`F` =
+  forecasts inside one matching window, :math:`k` = prior sessions matched per
+  real position
 
 Time Complexity
 ^^^^^^^^^^^^^^^
 
-Let:
-
-* :math:`L` = total lines in log file
-* :math:`A` = actors in one scenario
-* :math:`C` = crash records in one scenario
-
-Then:
-
-* **File scanning**: :math:`O(L)` (single forward traversal)
-* **Scenario merge**: approximately :math:`O(A * C)` for actor-to-crash association
-  during ``crashInfo`` filtering
-* **Overall extraction**: dominated by :math:`O(L)` in typical workloads
+* **Log extraction**: :math:`O(B + K \cdot a^2)`
+* **Maps**: :math:`O(M + n + E)`
+* **Sequences** (dominant): :math:`O(s \cdot Q + P \cdot F)` per actor, the
+  only cost that grows with the product of two data sizes
+* **JSON, dashboards**: :math:`O(n)`
+* **GPX**: :math:`O(a \log a + N + S \log p)`
 
 Space Complexity
 ^^^^^^^^^^^^^^^^
 
-* Temporary per-scenario buffers scale with parsed points and crashes for that scenario
-* Final payload scales with total extracted sessions across all scenarios
+* **Log extraction**: :math:`O(P)` parsed positions, crashes, and checkpoints
+* **Sequences**: :math:`O(P \cdot k + Q)` per actor
+* **Pipeline**: :math:`O(M + P + n + E \cdot h)`, one input file at a time
 
 Practical Notes
 ^^^^^^^^^^^^^^^
 
-* Parsing is robust to non-marker lines (ignored)
-* Truncated/malformed sections stop extraction gracefully and can still yield partial results
-* Logging detail can be increased through ``-f`` and ``-l`` for diagnostics
+* Parsing is robust to non-marker lines (ignored), independently of log level.
+* Incomplete scenarios and scenarios without actors produce no session.
+* Logging detail is controlled by the ``log`` field of the configuration file.

@@ -5,13 +5,18 @@ Overview
 --------
 
 ``crash_prediction_log_extractor`` is a command-line tool that parses
-``step_crash_prediction`` log files and produces a structured JSON payload
-(``CollectionsPoints``) containing:
+``step_crash_prediction`` log files and converts the scenario marker lines they
+contain into:
 
-* per-actor trajectories,
-* separated into ``normalized`` and ``anomaly`` sessions,
-* with ``real`` points (and ``forecasted`` points for ``normalized`` sessions),
-* and crash events (risk + involved actors).
+* a :ref:`CollectionSessions <collection_sessions_schema>` payload, one session
+  per scenario, with every actor's real and forecasted positions, the scenario
+  crashes, and the processing checkpoints;
+* the derived :ref:`CollectionActors <collection_actors_schema>`,
+  :ref:`CollectionSequences <collection_sequences_schema>`, and
+  :ref:`CollectionCheckpoints <collection_checkpoints_schema>` payloads;
+* interactive Folium maps of sessions and actors over the OSM road network;
+* Plotly dashboards of forecast accuracy and processing performance;
+* a GPX file with one track per actor.
 
 The executable command installed by the package is:
 
@@ -23,32 +28,83 @@ The executable command installed by the package is:
 What the program does
 ---------------------
 
-The extractor reads a text log file line by line and processes only marker lines
-embedded in normal log output. A complete scenario block is expected in this order:
+The extractor is marker-driven. It reads the log file line by line and reacts
+only when one of the expected marker patterns is found anywhere in the line; it
+is not filtered by log level, and non-marker lines are ignored. Each log line is
+expected to look like::
+
+    YYYY-MM-DD HH:MM:SS.mmm [LEVEL][pid=...][thread=...][module=...][function=...]: <marker>
+
+A complete scenario block is expected in this order:
 
 #. ``--Scenario start--``
-#. 3 section data blocks:
+#. ``--Scenario t: <ISO8601>--`` (scenario time, required)
+#. three section data blocks, always in this order:
 
-   * ``--Section normalized real start-- ... end--``
-   * ``--Section normalized forecasted start-- ... end--``
-   * ``--Section anomaly real start-- ... end--``
+   * ``--Section normalized real start-- ... --Section normalized real end--``
+   * ``--Section normalized forecasted start-- ... --Section normalized forecasted end--``
+   * ``--Section anomaly real start-- ... --Section anomaly real end--``
 
-#. crash section: ``--Section crash start-- ... end--``
+#. crash section: ``--Section crash start-- ... --Section crash end--``
 #. ``--Scenario end--``
 
-Inside section blocks, it reads actor identifiers and points:
+``--Checkpoint: <name>, timer: <ms>--`` lines may be interleaved anywhere in the
+scenario except inside individual crash records. Accepted names are the
+``CheckpointType`` values (see the
+:ref:`checkpoints schema <collection_checkpoints_schema>`); other names are
+skipped with a warning.
 
-* Actor: ``--Id: sid <station_id>, oid <object_id|None>--``
-* Point: ``--t: <ISO8601>, p: (<lat>, <lon>), s: <speed|None>, h: <heading|None>--``
+Inside section data blocks, each actor line is followed by its points:
 
-Inside crash blocks, it reads:
+* Actor:
+  ``--sid: <station_id>, oid: <object_id|None>, type: <TrafficParticipantType>, confidence: <0-100|None>--``
+* Point:
+  ``--t: <ISO8601>, p: (<lat>, <lon>), t: <PositionType>, s: <speed|None>, h: <heading|None>--``
 
-* ``--Crash start--`` / ``--Crash end--``
-* ``--Time: <ISO8601>, pos: (<lat>, <lon>), risk: <0.000-1.000>--``
-* one or more actor ``--Id: ...--`` lines.
+Inside the crash section, each crash record is:
 
-All parsed scenarios are merged into one final ``CollectionsPoints`` object and,
-when extraction is requested, saved as JSON.
+.. code-block:: text
+
+    --Crash start--
+    --Time: <ISO8601>, pos: (<lat>, <lon>), risk: <1-7>--
+    --sid: ...--  (at least two distinct actors)
+    --Crash end--
+
+Full minimal scenario example::
+
+    ... [INFO]...: --Scenario start--
+    ... [INFO]...: --Scenario t: 2026-02-24T05:25:51.339Z--
+    ... [INFO]...: --Checkpoint: scenario start, timer: 1000.000--
+    ... [INFO]...: --Section normalized real start--
+    ... [INFO]...: --sid: 37, oid: None, type: passengerCar, confidence: 90--
+    ... [INFO]...: --t: 2026-02-24T05:25:51.339Z, p: (45.610087, 8.863476), t: GNSS, s: 0.00, h: 21.10--
+    ... [INFO]...: --Section normalized real end--
+    ... [INFO]...: --Section normalized forecasted start--
+    ... [INFO]...: --Section normalized forecasted end--
+    ... [INFO]...: --Section anomaly real start--
+    ... [INFO]...: --Section anomaly real end--
+    ... [INFO]...: --Section crash start--
+    ... [INFO]...: --Crash start--
+    ... [INFO]...: --Time: 2026-02-24T05:25:51.339Z, pos: (45.610087, 8.863476), risk: 5--
+    ... [INFO]...: --sid: 36, oid: None, type: passengerCar, confidence: 90--
+    ... [INFO]...: --sid: 37, oid: None, type: pedestrian, confidence: 80--
+    ... [INFO]...: --Crash end--
+    ... [INFO]...: --Section crash end--
+    ... [INFO]...: --Checkpoint: scenario end, timer: 1002.000--
+    ... [INFO]...: --Scenario end--
+
+Every complete scenario with at least one actor becomes one ``Session``. For
+each actor of a scenario the session data holds:
+
+* ``dataType``: ``normalized`` when the actor has normalized real points,
+  otherwise ``anomaly`` (anomaly real points are only a fallback; the two are
+  never combined);
+* ``realPositions`` and, for normalized data only, ``forecastedPositions``; a
+  missing speed/heading is derived from the actor's previous point.
+
+The scenario's ``crashesInfo`` and ``checkpoints`` are stored once per session;
+``CollectionActors`` then keeps, per actor and session, only the crashes listing
+that actor in ``actorsInvolved``.
 
 
 CLI syntax
@@ -71,33 +127,23 @@ Command-line options
     Show package version and exit.
 
 ``-s <schema folder>``, ``--schema <schema folder>``
-    Generate ``CollectionsPoints`` JSON schema files in the target directory.
-    The directory is created if needed.
+    Write the JSON schemas of ``CollectionSessions``, ``CollectionActors``,
+    ``CollectionSequences``, ``CollectionCheckpoints``, and
+    :ref:`CrashPredictionLogExtractorConfig <crash_prediction_log_extractor_config_schema>`
+    to the target directory.
 
 ``-e <example folder>``, ``--example <example folder>``
-    Generate example JSON files for ``CollectionsPoints`` in the target directory.
-    The directory is created if needed.
+    Write example JSON payloads for the same models to the target directory.
 
-``-i <input file>``, ``--input_file <input file>``
-    Parse the input log file and build extracted collections data.
+``-c <config file>``, ``--config <config file>``
+    Path to the JSON
+    :ref:`configuration file <crash_prediction_log_extractor_config_schema>`
+    listing the input log files, the OSM map files and road-type filters, the
+    output folder, ``maxToleranceTime``, ``collisionRiskThreshold``,
+    ``jsonIndentation``, and ``log``.
 
-``-o <output file>``, ``--output_file <output file>``
-    Output JSON file path for extracted data.
-
-    If omitted, output is created in the **current working directory** using the
-    input filename stem and ``.json`` extension.
-
-``-f <log file>``, ``--log_file <log file>``
-    Write runtime logs to the specified log file (folder is created if needed).
-
-``-l <log level>``, ``--log_level <log level>``
-    Logging level for file logging when ``-f`` is used.
-    Accepted values are ``CRITICAL``, ``ERROR``, ``WARNING``, ``INFO``, ``DEBUG``
-    (case-insensitive). Invalid values fallback to ``WARNING``.
-
-``-d <indentation>``, ``--indentation <indentation>``
-    Number of spaces used for JSON indentation in the output file.
-    If omitted, the JSON output is compact (no indentation).
+The output files written for each input log file are listed in
+:doc:`commands`.
 
 
 Examples
@@ -115,37 +161,18 @@ Generate example JSON:
 
     crash_prediction_log_extractor -e ./examples
 
-Extract collections from a log file (explicit output):
+Run the bundled example (log file, maps, and configuration in ``doc/examples``):
 
 .. code-block:: bash
 
-    crash_prediction_log_extractor -i ./logs/crash_prediction.log -o ./out/collections.json
+    cd doc/examples
+    crash_prediction_log_extractor -c ./config/config.json
 
-Extract collections using default output name:
-
-.. code-block:: bash
-
-    crash_prediction_log_extractor -i ./logs/crash_prediction.log
-
-This creates ``./crash_prediction.json`` in the current working directory.
-
-Extract with file logging and debug level:
+Generate schemas and examples, then run extraction in one command:
 
 .. code-block:: bash
 
-    crash_prediction_log_extractor -i ./logs/crash_prediction.log -o ./out/collections.json -f ./run/extractor.log -l DEBUG
-
-Extract with indented JSON output:
-
-.. code-block:: bash
-
-    crash_prediction_log_extractor -i ./logs/crash_prediction.log -o ./out/collections.json -d 2
-
-Combine operations in one run (schema + example + extraction):
-
-.. code-block:: bash
-
-    crash_prediction_log_extractor -s ./schemas -e ./examples -i ./logs/crash_prediction.log -o ./out/collections.json
+    crash_prediction_log_extractor -s ./schemas -e ./examples -c ./config/config.json
 
 
 Exit codes

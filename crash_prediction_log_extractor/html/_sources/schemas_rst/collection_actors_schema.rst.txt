@@ -1,0 +1,71 @@
+Collection Actors V1 Schema
+===========================
+
+The Collection Actors Version 1 schema regroups the
+:ref:`Collection Sessions <collection_sessions_schema>` payload per actor: every
+actor carries the list of sessions in which it was observed, and each session
+holds its real positions, forecasted positions, and only the crash events that
+involve that actor. It is written as ``<stem>_actors.json`` by
+``DataRetriever.get_collection_actors``. The JSON Schema is generated from the
+Pydantic models of the ``collection_actors`` module.
+
+Overview
+--------
+
+Data hierarchy::
+
+    CollectionActors
+    `-- collections                         (list[CollectionActor])
+        `-- CollectionActor                 (one per actor)
+            |-- actorId                     (ActorIdModel)
+            `-- sessions                    (list[ActorSessionData])
+                `-- ActorSessionData        (one per session)
+                    |-- realPositions       (list[Position])
+                    |-- forecastedPositions (list[Position])
+                    `-- crashInfo           (list[CrashInfo])
+
+The root object ``CollectionActors`` contains:
+
+* ``formatVersion``: fixed to ``1``
+* ``collections``: ``CollectionActor`` entries, 0 to 10 000 entries
+
+Each ``CollectionActor`` contains:
+
+* ``actorId``: actor identifier (``ActorIdModel``)
+* ``sessions``: ``ActorSessionData`` entries, 1 to 1 000 000 entries
+
+Each ``ActorSessionData`` contains:
+
+* ``sessionIndex``: zero-based session index for the actor (uint32 range)
+* ``sessionTime``: ISO-8601 session timestamp
+* ``dataType``: ``normalized`` or ``anomaly``
+* ``realPositions``: real positions, 1 to 10 000 entries
+* ``forecastedPositions``: forecasted positions, 0 to 10 000 entries
+* ``crashInfo``: crash events involving the actor, 0 to 10 000 entries
+
+``ActorIdModel``, ``Position``, and ``CrashInfo`` are shared with the
+:ref:`Collection Sessions schema <collection_sessions_schema>`.
+
+Validation Notes
+----------------
+
+* Models are strict (no type coercion), frozen, and forbid unknown fields.
+* Position and crash field constraints are those of the sessions payload.
+
+Example
+-------
+
+This example is created using JSON Schema **version 1**. For implementation
+details, refer to the Python models in ``collection_actors``.
+
+.. literalinclude:: ../schemas_examples/collection_actors_v1_schema_example.json
+  :language: JSON
+
+JSON Schema
+-----------
+
+.. _collection_actors_schema:
+
+This is JSON Schema **version 1**
+
+.. jsonschema:: ../json_schemas/collection_actors_v1_schema.json

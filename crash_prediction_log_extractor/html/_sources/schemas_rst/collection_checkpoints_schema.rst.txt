@@ -1,0 +1,81 @@
+Collection Checkpoints V1 Schema
+================================
+
+The Collection Checkpoints Version 1 schema records the per-session processing
+timings of ``step_crash_prediction``: each session lists the pipeline
+checkpoints reached while it was processed, with their monotonic timer values.
+It is written as ``<stem>_checkpoints.json`` by
+``DataRetriever.get_collection_checkpoints`` and feeds the performance
+dashboard. The JSON Schema is generated from the Pydantic models of the
+``collection_checkpoints`` module.
+
+Overview
+--------
+
+Data hierarchy::
+
+    CollectionCheckpoints
+    `-- sessions                        (list[SessionCheckpoints])
+        `-- SessionCheckpoints          (one per session)
+            `-- checkpoints             (list[CheckpointDataModel])
+                `-- CheckpointDataModel (one per checkpoint)
+
+The root object ``CollectionCheckpoints`` contains:
+
+* ``formatVersion``: fixed to ``1``
+* ``sessions``: ``SessionCheckpoints`` entries, 1 to 1 000 000 entries
+
+Each ``SessionCheckpoints`` contains:
+
+* ``sessionIndex``: zero-based session index (uint32 range)
+* ``sessionTime``: ISO-8601 session timestamp
+* ``actorNumber``: number of actors observed in the session, 1 to 10 000
+* ``checkpoints``: ordered checkpoint events, 0 to 100 entries
+
+Each ``CheckpointDataModel`` contains:
+
+* ``checkpoint_type``: a ``CheckpointType`` value
+* ``timer``: monotonic timer value in milliseconds, from ``0`` to ``2**53 - 1``
+
+The accepted ``CheckpointType`` values are:
+
+* ``scenario start``
+* ``scenario norm start``
+* ``scenario norm to dataframe``
+* ``forecasting norm``
+* ``forecasted snapping``
+* ``log forecasted norm``
+* ``scenario norm end``
+* ``scenario anomaly start``
+* ``scenario anomaly end``
+* ``send forecasted data``
+* ``process collision detection start``
+* ``process collision detection end``
+* ``send crash detection results``
+* ``scenario end``
+
+Validation Notes
+----------------
+
+* Models are strict (no type coercion), frozen, and forbid unknown fields;
+  ``checkpoint_type`` is accepted in lax mode so raw string values validate.
+* A checkpoint marker with any other name is skipped by the log extractor
+  with a warning.
+
+Example
+-------
+
+This example is created using JSON Schema **version 1**. For implementation
+details, refer to the Python models in ``collection_checkpoints``.
+
+.. literalinclude:: ../schemas_examples/collection_checkpoints_v1_schema_example.json
+  :language: JSON
+
+JSON Schema
+-----------
+
+.. _collection_checkpoints_schema:
+
+This is JSON Schema **version 1**
+
+.. jsonschema:: ../json_schemas/collection_checkpoints_v1_schema.json

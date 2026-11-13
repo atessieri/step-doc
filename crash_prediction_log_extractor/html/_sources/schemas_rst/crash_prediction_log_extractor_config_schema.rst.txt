@@ -1,0 +1,107 @@
+Crash Prediction Log Extractor Config V1 Schema
+================================================
+
+The Crash Prediction Log Extractor Configuration Version 1 schema defines the
+configuration file passed to ``crash_prediction_log_extractor -c``. It lists the
+input log files, the OSM map files and the road types to keep from them, the
+output folder, the forecast-matching tolerance, the crash-marker risk threshold,
+optional JSON formatting, and logging settings. The JSON Schema is generated
+from the Pydantic models of the ``crash_prediction_log_extractor_config``
+module.
+
+Overview
+--------
+
+The root object ``CrashPredictionLogExtractorConfig`` contains (all fields are
+required):
+
+* ``templateVersion``: fixed to ``"1"``; any other version is rejected
+* ``inputFilePathList``: paths of the ``step_crash_prediction`` log files, each
+  processed independently; 1 to 1000 non-empty entries
+* ``mapFilePathList``: paths of the OSM map files drawn on the interactive
+  maps; 0 to 1000 non-empty entries
+* ``mapMaxZoom``: maximum zoom level of the interactive maps, from ``17`` to
+  ``25``
+* ``mapVehicleRoadTypeList``: ``MapRoadType`` values for vehicles, or ``null``
+  (treated as an empty list)
+* ``mapSpecificCycleRoadTypeList``: ``MapRoadType`` values specific for cycles,
+  or ``null``
+* ``mapSpecificPedestrianRoadTypeList``: ``MapRoadType`` values specific for
+  pedestrians, or ``null``
+* ``outputFolderPath``: directory where all output files (JSON, HTML, GPX) are
+  written; created if missing
+* ``maxToleranceTime``: tolerance in milliseconds for matching forecasted
+  positions against real positions, from ``0`` to ``200``
+* ``collisionRiskThreshold``: information quality threshold of the crash
+  markers, from ``1`` to ``7``; crashes below it are drawn in gray, the others
+  in yellow
+* ``jsonIndentation``: JSON indentation spaces, from ``1`` to ``10``, or
+  ``null`` for compact JSON
+* ``log``: logging configuration (``LogConfig`` from ``step_cloud_schemas``)
+
+The map road-type filter is the union of the three road-type lists.
+``MapRoadType`` values match the OpenStreetMap ``highway=*`` tag:
+
+* roads: ``motorway``, ``trunk``, ``primary``, ``secondary``, ``tertiary``,
+  ``unclassified``, ``residential``
+* link roads: ``motorway_link``, ``trunk_link``, ``primary_link``,
+  ``secondary_link``, ``tertiary_link``
+* special road types: ``living_street``, ``service``, ``pedestrian``,
+  ``track``, ``bus_guideway``, ``escape``, ``raceway``, ``road``, ``busway``
+* paths: ``footway``, ``bridleway``, ``steps``, ``corridor``, ``path``,
+  ``via_ferrata``, ``cycleway``
+* lifecycle states: ``proposed``, ``construction``
+
+The ``LogConfig`` object contains:
+
+* ``globalLevel``: global log level, one of ``CRITICAL``, ``ERROR``,
+  ``WARNING``, ``INFO``, ``DEBUG``
+* ``handlersConfig``: one or more ``LogHandlerConfig`` entries
+
+Each ``LogHandlerConfig`` entry contains:
+
+* ``handler``: one of the handler types below, selected by ``handlerType``
+* ``level``: log level for this handler
+* ``format``: Python logging format string
+* ``dateFormat``: Python date format string
+
+Log handler types (discriminated by ``handlerType``):
+
+* ``stream``: writes to stdout/stderr
+* ``null``: discards all messages
+* ``file``: writes to a single file; requires ``path``, ``filenameTrailer``,
+  ``append``
+* ``sizeFileRotate``: rotates by file size; requires ``path``,
+  ``filenameTrailer``, ``append``, ``maxBytes``, ``backupCount``
+* ``timeFileRotate``: rotates by time interval; requires ``path``,
+  ``filenameTrailer``, ``append``, ``intervalType``, ``interval``,
+  ``backupCount``
+
+Validation Notes
+----------------
+
+* Models are strict (no type coercion), frozen (``frozen=True``), and forbid
+  unknown fields (``extra="forbid"``); enum fields are accepted in lax mode so
+  raw string values validate.
+* Numeric fields are range-checked; string and list fields are
+  length-checked.
+* All fields must be passed by keyword.
+
+Example
+-------
+
+This configuration template is created using JSON Schema **version 1**. For
+implementation details, refer to the Python models in
+``crash_prediction_log_extractor_config``.
+
+.. literalinclude:: ../schemas_examples/crash_prediction_log_extractor_config_v1_schema_template.json
+  :language: JSON
+
+JSON Schema
+-----------
+
+.. _crash_prediction_log_extractor_config_schema:
+
+This is JSON Schema **version 1**
+
+.. jsonschema:: ../json_schemas/crash_prediction_log_extractor_config_v1_schema.json
