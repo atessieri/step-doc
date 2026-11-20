@@ -82,9 +82,10 @@ The ``main()`` function in ``__main__.py`` orchestrates all user operations.
 #. Print help and return ``USAGE`` when no argument is given.
 #. Write the JSON schemas (``-s``) and examples (``-e``) of all models.
 #. With ``-c``, validate the configuration, configure the logger from its
-   ``log`` field, create ``outputFolderPath``, and run
-   ``_create_write_files`` for every entry of ``inputFilePathList``, with the
-   union of the three road-type lists as map filter.
+   ``log`` field, create ``outputFolderPath``, build one ``InteractiveMap``
+   (the OSM map files are parsed once) with the union of the three road-type
+   lists as map filter, and run ``_create_write_files`` with it for every
+   entry of ``inputFilePathList``.
 #. Return typed exit codes (``ExitCode``):
 
    * ``0`` (``OK``): success
@@ -189,6 +190,14 @@ one selectable layer per road type, and injects the serialized collection as
 chunked ``<script>`` blocks (64 Mi characters each) so large logs stay below
 the browser string-length limit. Crashes below ``collisionRiskThreshold`` are
 drawn in gray, the others in yellow.
+
+The raster tiles come from OpenStreetMap unless ``mapTileUrl`` is set. In that
+case the Folium map has no tile layer of its own and the bundled
+``tile_layer.js`` script adds, in the browser, a tile layer of the custom
+server: every tile failing or not loaded within ``mapTileTimeout`` milliseconds
+is loaded from OpenStreetMap instead, tile by tile, and the OpenStreetMap
+attribution is added to the map the first time it is used. No network request
+is made from Python.
 
 InteractiveChart
 ^^^^^^^^^^^^^^^^
@@ -405,7 +414,7 @@ Extraction Flow
       User -> CLI : crash_prediction_log_extractor -c config.json
       CLI -> FS : read configuration
       loop for each input log file
-         CLI -> Map : __init__(map files, road filter)
+         CLI -> Map : __init__(map files, road filter, tile server)
          CLI -> Extractor : extract()
          Extractor -> FS : read log lines
          CLI <- Extractor : CollectionSessions
@@ -457,11 +466,15 @@ Let:
 * :math:`B` = size of the log file, :math:`K` = crash records,
   :math:`a` = actors per crash record
 * :math:`M` = total size of the OSM files, :math:`E` = road edges of the
-  matched map, :math:`n` = size of the serialized outputs
+  matched map, :math:`h` = ``highway`` values per edge, :math:`n` = size of
+  the serialized outputs
 * :math:`s` = sessions of an actor, :math:`Q` = forecasted positions of an
   actor, :math:`P` = real positions appended to its sequence, :math:`F` =
   forecasts inside one matching window, :math:`k` = prior sessions matched per
   real position
+* for the GPX file only: :math:`A` = actors, :math:`N` = total real
+  positions, :math:`S` = total sessions, :math:`p` = real positions per
+  session
 
 Time Complexity
 ^^^^^^^^^^^^^^^
@@ -471,7 +484,7 @@ Time Complexity
 * **Sequences** (dominant): :math:`O(s \cdot Q + P \cdot F)` per actor, the
   only cost that grows with the product of two data sizes
 * **JSON, dashboards**: :math:`O(n)`
-* **GPX**: :math:`O(a \log a + N + S \log p)`
+* **GPX**: :math:`O(A \log A + N + S \log p)`
 
 Space Complexity
 ^^^^^^^^^^^^^^^^

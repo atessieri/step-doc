@@ -4,8 +4,9 @@ Crash Prediction Log Extractor Config V1 Schema
 The Crash Prediction Log Extractor Configuration Version 1 schema defines the
 configuration file passed to ``crash_prediction_log_extractor -c``. It lists the
 input log files, the OSM map files and the road types to keep from them, the
-output folder, the forecast-matching tolerance, the crash-marker risk threshold,
-optional JSON formatting, and logging settings. The JSON Schema is generated
+optional custom raster tile server (with per-tile OpenStreetMap fallback in the
+browser), the output folder, the forecast-matching tolerance, the crash-marker
+risk threshold, optional JSON formatting, and logging settings. The JSON Schema is generated
 from the Pydantic models of the ``crash_prediction_log_extractor_config``
 module.
 
@@ -22,6 +23,15 @@ required):
   maps; 0 to 1000 non-empty entries
 * ``mapMaxZoom``: maximum zoom level of the interactive maps, from ``17`` to
   ``25``
+* ``mapTileUrl``: URL template of a custom raster tile server (``{z}``,
+  ``{x}``, ``{y}`` placeholders, optionally ``{s}``), or ``null`` for the
+  public OpenStreetMap tiles. In the browser, every tile of the custom server
+  failing or not loaded within ``mapTileTimeout`` is loaded from OpenStreetMap
+  instead, tile by tile, and the OpenStreetMap attribution is added to the map
+* ``mapTileAttribution``: attribution (HTML allowed) of the custom tile
+  server; required when ``mapTileUrl`` is set, ``null`` otherwise
+* ``mapTileTimeout``: timeout in milliseconds of each custom tile in the
+  browser before it is loaded from OpenStreetMap, from ``100`` to ``60000``
 * ``mapVehicleRoadTypeList``: ``MapRoadType`` values for vehicles, or ``null``
   (treated as an empty list)
 * ``mapSpecificCycleRoadTypeList``: ``MapRoadType`` values specific for cycles,
@@ -85,6 +95,8 @@ Validation Notes
   raw string values validate.
 * Numeric fields are range-checked; string and list fields are
   length-checked.
+* ``mapTileUrl`` and ``mapTileAttribution`` must be both set or both
+  ``null``.
 * All fields must be passed by keyword.
 
 Example
