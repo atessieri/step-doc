@@ -21,6 +21,7 @@ The library uses the following external libraries:
 
     * **Pydantic**
     * **Pyproj**
+    * **uvloop** (POSIX only)
 
 ----------------
 Pydantic Library
@@ -88,6 +89,39 @@ Example usage:
         point1[0], point1[1], point2[0], point2[1]
     )
     print(f"Distance: {distance_m / 1000.0} km")
+
+--------------
+uvloop Library
+--------------
+
+:xref:`uvloop` is a drop-in replacement of the default ``asyncio`` event loop,
+built on top of libuv. It is installed only outside Windows (dependency marker
+``sys_platform != 'win32'``) and is used through
+:func:`~step_cloud_schemas.runtime.event_loop.get_loop_factory`, which keeps the
+event loop choice of every STEP application in one place:
+
+    * **Windows**: a standard ``asyncio`` loop. ``SelectorEventLoop`` by default,
+      since the default ``ProactorEventLoop`` lacks ``loop.add_reader`` /
+      ``loop.add_writer`` (needed by aiomqtt and ``zmq.asyncio``);
+      ``ProactorEventLoop`` with ``get_loop_factory(subprocess=True)``, for the
+      applications starting asyncio subprocesses (``create_subprocess_exec``),
+      which ``SelectorEventLoop`` cannot run on Windows.
+    * **Elsewhere**: ``uvloop.new_event_loop``, which supports both readers/writers
+      and subprocesses, so ``subprocess`` is ignored.
+
+Example usage:
+
+.. code-block:: python
+
+    from asyncio import Runner
+
+    from step_cloud_schemas import get_loop_factory
+
+    async def main() -> int:
+        return 42
+
+    with Runner(loop_factory=get_loop_factory()) as runner:
+        print(runner.run(main()))
 
 -----------
 Flow Format
@@ -198,8 +232,15 @@ The structure is made of the following elements:
     #.  **AppRunner**: Singleton, generic in the result type ``R`` of the application.
         The constructor stores the settings and installs the process-wide hooks
         (signal handlers and ``sys.unraisablehook``). The method ``run`` takes an
-        ``AbstractApp[R]``, opens an ``asyncio.Runner``, installs the loop exception
-        handler, creates the ``stop_event`` and runs ``_main_async``.
+        ``AbstractApp[R]``, opens an ``asyncio.Runner`` with the stored
+        ``loop_factory``, installs the loop exception handler, creates the
+        ``stop_event`` and runs ``_main_async``.
+    #.  **get_loop_factory**: Function of the ``event_loop`` module returning the
+        event loop factory passed as ``loop_factory`` to ``AppRunner``:
+        ``SelectorEventLoop`` on Windows (``ProactorEventLoop`` with
+        ``subprocess=True``), ``uvloop.new_event_loop`` elsewhere. ``AppRunner``
+        does not call it itself: the application chooses the factory, so a
+        ``loop_factory`` of ``None`` still means the ``asyncio`` default loop.
     #.  **SingletonMeta**: Metaclass of ``AppRunner`` and ``WindowsOsShutdownState``.
         The hooks are process-wide, so a single instance of each class exists.
     #.  **WindowsOsShutdownState**: Singleton holding the loop and the ``stop_event``
@@ -271,6 +312,10 @@ The following class diagram shows the structure:
 
       class _ShutdownRequestedError
 
+      class event_loop <<module>> {
+         +get_loop_factory(*, subprocess: bool = False): Callable[[], AbstractEventLoop]
+      }
+
       abstract class "AbstractApp<R>" as AbstractApp {
          +{abstract} work(): R
          +{abstract} on_shutdown(stop_signal: Signals): R
@@ -302,7 +347,8 @@ The following class diagram shows the structure:
       SingletonMeta <.. WindowsOsShutdownState : metaclass
       AppRunner ..> WindowsOsShutdownState : publish / clear /\nrequest_shutdown (Windows)
       AppRunner ..> _ShutdownRequestedError : raises / catches
-      AppRunner ..> Runner : opens per run
+      AppRunner ..> Runner : opens per run\nwith loop_factory
+      event_loop ..> AppRunner : loop_factory\n(chosen by the application)
       AppRunner ..> TaskGroup : work + watcher tasks
       AppRunner ..> Event : stop_event per run
       WindowsOsShutdownState o-- Event : stop_event
@@ -313,7 +359,8 @@ The following class diagram shows the structure:
 
 A run goes through the following steps:
 
-    1.  ``run(app)`` opens the ``asyncio.Runner``, creates the ``stop_event`` and publishes
+    1.  ``run(app)`` opens the ``asyncio.Runner`` (its loop is created by ``loop_factory``,
+        typically ``get_loop_factory()``), creates the ``stop_event`` and publishes
         it to the signal handlers before the loop runs: with ``loop.add_signal_handler``
         for ``SIGINT``/``SIGTERM`` on POSIX, with ``WindowsOsShutdownState.publish`` for
         ``SIGINT``/``SIGBREAK`` on Windows.

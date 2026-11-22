@@ -195,10 +195,9 @@ already handled. The application object is built later and handed to ``run``:
 
 .. code-block:: python
 
-    import asyncio
     import logging
 
-    from step_cloud_schemas import IS_WINDOWS, AppRunner, StepLogger
+    from step_cloud_schemas import AppRunner, StepLogger, get_loop_factory
 
 
     def main() -> int:
@@ -206,11 +205,12 @@ already handled. The application object is built later and handed to ``run``:
         logger = StepLogger.get_logger(name=None, config=None, instance_name=None)
         try:
             # Installs the signal handlers and sys.unraisablehook for the whole run.
-            # aiomqtt (paho) relies on loop.add_reader/add_writer, which the
-            # default Windows ProactorEventLoop does not implement
+            # get_loop_factory(): SelectorEventLoop on Windows (aiomqtt relies on
+            # loop.add_reader/add_writer, missing in ProactorEventLoop), uvloop
+            # elsewhere; get_loop_factory(subprocess=True) for asyncio subprocesses
             app_runner = AppRunner[ExitCode](
                 logger_param=logger,
-                loop_factory=asyncio.SelectorEventLoop if IS_WINDOWS else None,
+                loop_factory=get_loop_factory(),
             )
             # ... command line parsing, configuration loading ...
             logger = StepLogger.get_logger(
@@ -385,7 +385,12 @@ All arguments but *logger_param* are optional:
   unraisable handlers.
 * *loop_factory* (``Callable[[], AbstractEventLoop] | None``) — factory of the
   event loop created by every ``run``, forwarded to ``asyncio.Runner``.
-  ``None`` (default) uses the asyncio default loop.
+  ``None`` (default) uses the asyncio default loop. Pass
+  ``get_loop_factory()`` (see
+  :func:`~step_cloud_schemas.runtime.event_loop.get_loop_factory`), or
+  ``get_loop_factory(subprocess=True)`` for the applications starting asyncio
+  subprocesses, to get ``SelectorEventLoop``/``ProactorEventLoop`` on Windows
+  and uvloop elsewhere.
 * *exception_handler*
   (``Callable[[AbstractEventLoop, dict[str, Any]], object] | None``) —
   installed with ``loop.set_exception_handler`` on the loop of every ``run``.
