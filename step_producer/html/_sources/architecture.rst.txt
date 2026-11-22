@@ -537,8 +537,9 @@ Key features of the main application include:
 
    #. **Logging Setup**: Reconfigures ``StepLogger`` from the loaded configuration and logs
       the program, ``step_cloud_schemas`` and ``step_redis`` versions.
-   #. **Application Run**: Builds ``AppRunner[ExitCode]`` (selector event loop on Windows,
-      as for the other STEP programs) and runs ``StepProducerApp``, returning its exit code.
+   #. **Application Run**: Builds ``AppRunner[ExitCode]`` (event loop from
+      ``get_loop_factory``: selector on Windows, uvloop elsewhere, as for the other STEP
+      programs) and runs ``StepProducerApp``, returning its exit code.
    #. **Exception Handling**: ``KeyboardInterrupt`` returns ``ABORTED``; any other unhandled
       exception (e.g. an invalid configuration file or a missing ``REDIS_URL``/``REDIS_PORT``
       variable) is logged with its traceback and returns ``ERROR``.
@@ -626,7 +627,7 @@ The class diagram below shows the public interface of the three classes and how
 
       note bottom of AppRunner
          main() builds AppRunner[ExitCode]
-         (SelectorEventLoop on Windows)
+         (loop_factory = get_loop_factory())
          and calls run(StepProducerApp(...))
       end note
 
@@ -672,7 +673,8 @@ The class diagram below shows the public interface of the three classes and how
         - ``logger_param``: Logger used by the default exception and unraisable handlers.
         - ``loop_factory``: Factory of the event loop created by every ``run``, forwarded to
           ``asyncio.Runner``; ``None`` uses the asyncio default loop. The STEP Producer passes
-          ``asyncio.SelectorEventLoop`` on Windows, as the other STEP programs do.
+          ``get_loop_factory()`` (selector event loop on Windows, uvloop elsewhere), as the
+          other STEP programs do.
         - ``exception_handler``: Event loop exception handler; ``None`` logs the exception on
           the logger.
         - ``unraisable_handler``: Installed as ``sys.unraisablehook``; ``None`` logs the exception
