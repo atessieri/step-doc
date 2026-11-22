@@ -1023,6 +1023,30 @@ The *asyncio* module provides tools for creating and managing asynchronous task 
 for developing non-blocking network communication.
 In the asynchronous approach, only the communication using context manager is supported.
 
+Event loop
+----------
+
+Run the coroutines in an ``asyncio.Runner`` created with
+``step_cloud_schemas.get_loop_factory()``: on Windows it returns
+``SelectorEventLoop``, since the default ``ProactorEventLoop`` lacks the
+``add_reader``/``add_writer`` support aiomqtt needs (without it the connection
+silently stalls until the CONNACK timeout); elsewhere it returns uvloop.
+
+.. code-block:: python
+
+    from asyncio import Runner
+
+    from step_cloud_schemas import get_loop_factory
+
+
+    async def main() -> None:
+        # e.g. the "async with create_async_com_manager(...)" block shown below
+        ...
+
+
+    with Runner(loop_factory=get_loop_factory()) as runner:
+        runner.run(main())
+
 Configuration
 -------------
 
