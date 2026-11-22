@@ -56,66 +56,86 @@ The typical usage pattern involves:
 
 .. code-block:: python
 
-    import asyncio
-    from logging import getLogger
+    from enum import IntEnum
+    from logging import Logger, getLogger
+    from signal import Signals
+
+    from step_cloud_schemas import AbstractApp, AppRunner, get_loop_factory
     from step_redis import StepRedisPoolParams, StepRedisPool, StepRedisStream, StepRedisStreamParams
 
-    async def main():
-        logger = getLogger()
 
-        # 1. Configure connection parameters
-        redis_params = StepRedisPoolParams(
-            host="redis.example.com",
-            port=6379,
-            username="user",  # Optional
-            password="secret",
-            db=0,
-            socket_timeout=40,
-            socket_connect_timeout=30,
-            socket_keep_idle=30,
-            socket_keep_alive=30,
-            socket_keep_cnt=5,
-            ssl_enable=True,
-            ssl_client_key_file="/path/to/key.pem",  # Optional
-            ssl_client_key_file_password=None,  # Optional
-            ssl_client_cert_file="/path/to/cert.pem",  # Optional
-            ssl_cert_requested=False,
-            ssl_ca_certs_file="/path/to/ca.pem",  # Optional
-            health_check_interval=20,
-            max_connections=10,
-            connection_available_timeout=2,
-            protocol=3,
-            retry_count=3,
-        )
+    class ExitCode(IntEnum):
+        OK = 0
+        ABORTED = 3
 
-        # 2. Configure stream parameters
-        stream_params = StepRedisStreamParams(
-            stream_id="demo_stream",
-            group_id="demo_group",
-            wait_timeout_ms=30000,
-            published_message_max_retained=1000,
-            consumer_name="demo_consumer_1",
-            ttl_seconds=60,
-        )
 
-        # 3. Create and use connection pool as context manager
-        async with StepRedisPool(params=redis_params, logger=logger) as pool:
-            # 4. Create a stream interface
-            async with StepRedisStream(pool=pool, config=stream_params, logger=logger) as stream:
-                # 5. Create a stream and consumer group
-                await stream.create_input_stream()
+    class StreamApp(AbstractApp[ExitCode]):
+        def __init__(self, logger: Logger) -> None:
+            self._logger = logger
 
-                # 6. Publish a message, then several in a single round trip
-                await stream.publish_message(message="Hello, Redis!")
-                await stream.publish_messages(messages=["first", "second"])
+        async def work(self) -> ExitCode:
+            logger = self._logger
 
-                # 7. Receive a message
-                async for message in stream.receive_message():
-                    logger.info("Received message: %s", message)
-                    break
+            # 1. Configure connection parameters
+            redis_params = StepRedisPoolParams(
+                host="redis.example.com",
+                port=6379,
+                username="user",  # Optional
+                password="secret",
+                db=0,
+                socket_timeout=40,
+                socket_connect_timeout=30,
+                socket_keep_idle=30,
+                socket_keep_alive=30,
+                socket_keep_cnt=5,
+                ssl_enable=True,
+                ssl_client_key_file="/path/to/key.pem",  # Optional
+                ssl_client_key_file_password=None,  # Optional
+                ssl_client_cert_file="/path/to/cert.pem",  # Optional
+                ssl_cert_requested=False,
+                ssl_ca_certs_file="/path/to/ca.pem",  # Optional
+                health_check_interval=20,
+                max_connections=10,
+                connection_available_timeout=2,
+                protocol=3,
+                retry_count=3,
+            )
+
+            # 2. Configure stream parameters
+            stream_params = StepRedisStreamParams(
+                stream_id="demo_stream",
+                group_id="demo_group",
+                wait_timeout_ms=30000,
+                published_message_max_retained=1000,
+                consumer_name="demo_consumer_1",
+                ttl_seconds=60,
+            )
+
+            # 3. Create and use connection pool as context manager
+            async with StepRedisPool(params=redis_params, logger=logger) as pool:
+                # 4. Create a stream interface
+                async with StepRedisStream(pool=pool, config=stream_params, logger=logger) as stream:
+                    # 5. Create a stream and consumer group
+                    await stream.create_input_stream()
+
+                    # 6. Publish a message, then several in a single round trip
+                    await stream.publish_message(message="Hello, Redis!")
+                    await stream.publish_messages(messages=["first", "second"])
+
+                    # 7. Receive a message
+                    async for message in stream.receive_message():
+                        logger.info("Received message: %s", message)
+                        break
+            return ExitCode.OK
+
+        def on_shutdown(self, stop_signal: Signals) -> ExitCode:
+            return ExitCode.ABORTED
+
 
     if __name__ == "__main__":
-        asyncio.run(main())
+        logger = getLogger()
+        app_runner = AppRunner[ExitCode](logger_param=logger, loop_factory=get_loop_factory())
+        app_runner.run(app=StreamApp(logger=logger))
 
 .. _step_redis_credentials:
 
@@ -243,11 +263,13 @@ generate a configuration template.
 
 .. code-block:: python
 
-    import asyncio
-    from logging import getLogger
+    from enum import IntEnum
+    from logging import Logger, getLogger
     from pathlib import Path
+    from signal import Signals
 
     from pydantic import BaseModel
+    from step_cloud_schemas import AbstractApp, AppRunner, get_loop_factory
 
     from step_redis import (
         RedisConnection,
@@ -266,41 +288,56 @@ generate a configuration template.
         waitTimeout: int
 
 
-    async def main() -> None:
-        logger = getLogger()
-        config = AppConfig.model_validate_json(
-            Path("config.json").read_text(encoding="utf-8")
-        )
-        # Host, port and credential from the environment (or a .env file)
-        credential = RedisCredential.from_env(logger=logger)
-        pool_params = StepRedisPoolParams.from_connection(
-            config=config.connection,
-            credential=credential,
-            max_connections=2,
-            logger=logger,
-        )
-        stream_params = StepRedisStreamParams(
-            stream_id="demo_stream",
-            group_id="demo_group",
-            wait_timeout_ms=config.waitTimeout,
-            published_message_max_retained=1000,
-            consumer_name="demo_consumer_1",
-            ttl_seconds=StepRedisStreamParams.ttl_seconds_from_wait_timeout(
-                wait_timeout_ms=config.waitTimeout
-            ),
-        )
-        async with (
-            StepRedisPool(params=pool_params, logger=logger) as pool,
-            StepRedisStream(pool=pool, config=stream_params, logger=logger) as stream,
-        ):
-            await stream.create_input_stream()
-            async for message in stream.receive_message():
-                logger.info("Received message: %s", message)
-                break
+    class ExitCode(IntEnum):
+        OK = 0
+        ABORTED = 3
+
+
+    class ConfiguredStreamApp(AbstractApp[ExitCode]):
+        def __init__(self, logger: Logger) -> None:
+            self._logger = logger
+
+        async def work(self) -> ExitCode:
+            logger = self._logger
+            config = AppConfig.model_validate_json(
+                Path("config.json").read_text(encoding="utf-8")
+            )
+            # Host, port and credential from the environment (or a .env file)
+            credential = RedisCredential.from_env(logger=logger)
+            pool_params = StepRedisPoolParams.from_connection(
+                config=config.connection,
+                credential=credential,
+                max_connections=2,
+                logger=logger,
+            )
+            stream_params = StepRedisStreamParams(
+                stream_id="demo_stream",
+                group_id="demo_group",
+                wait_timeout_ms=config.waitTimeout,
+                published_message_max_retained=1000,
+                consumer_name="demo_consumer_1",
+                ttl_seconds=StepRedisStreamParams.ttl_seconds_from_wait_timeout(
+                    wait_timeout_ms=config.waitTimeout
+                ),
+            )
+            async with (
+                StepRedisPool(params=pool_params, logger=logger) as pool,
+                StepRedisStream(pool=pool, config=stream_params, logger=logger) as stream,
+            ):
+                await stream.create_input_stream()
+                async for message in stream.receive_message():
+                    logger.info("Received message: %s", message)
+                    break
+            return ExitCode.OK
+
+        def on_shutdown(self, stop_signal: Signals) -> ExitCode:
+            return ExitCode.ABORTED
 
 
     if __name__ == "__main__":
-        asyncio.run(main())
+        logger = getLogger()
+        app_runner = AppRunner[ExitCode](logger_param=logger, loop_factory=get_loop_factory())
+        app_runner.run(app=ConfiguredStreamApp(logger=logger))
 
 Error Handling
 ~~~~~~~~~~~~~~
@@ -468,16 +505,19 @@ Running the Demo Application
 
 ``StreamDemoApp`` is an ``AbstractApp`` run by ``AppRunner`` (from
 ``step_cloud_schemas``), which owns the event loop and turns SIGINT/SIGTERM into a
-cooperative shutdown:
+cooperative shutdown. The loop is created by the factory returned by
+``get_loop_factory`` (uvloop, or ``SelectorEventLoop`` on Windows):
 
 .. code-block:: python
 
-    from step_cloud_schemas import AppRunner
+    from step_cloud_schemas import AppRunner, get_loop_factory
     from stream_demo.stream_demo_app import ExitCode, StreamDemoApp
 
     def main() -> int:
         logger = _create_logger()
-        app_runner = AppRunner[ExitCode](logger_param=logger)
+        app_runner = AppRunner[ExitCode](
+            logger_param=logger, loop_factory=get_loop_factory()
+        )
         return app_runner.run(app=StreamDemoApp(logger=logger)).value
 
 Copy :download:`env/.env.redis.examples <env/.env.redis.examples>` to
@@ -495,7 +535,8 @@ The log is written to ``stream_demo.log`` in the current directory.
 The demo showcases best practices for Redis stream usage, including:
 
     #. Credentials read from the environment, never hardcoded
-    #. Cooperative shutdown on SIGINT/SIGTERM through ``AppRunner``
+    #. Cooperative shutdown on SIGINT/SIGTERM through ``AppRunner``, on the
+       event loop of ``get_loop_factory``
     #. Comprehensive error handling
     #. Efficient resource management with async context managers
     #. Stream TTL management for automatic cleanup

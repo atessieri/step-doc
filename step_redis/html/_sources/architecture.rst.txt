@@ -639,66 +639,85 @@ Base Stream Usage
 
 .. code-block:: python
 
-   import asyncio
    import logging
+   from enum import IntEnum
+   from signal import Signals
+
+   from step_cloud_schemas import AbstractApp, AppRunner, get_loop_factory
    from step_redis.step_redis_pool import StepRedisPoolParams, StepRedisPool
    from step_redis.step_redis_stream import StepRedisStream, StepRedisStreamParams
 
-   async def main():
-       # Setup logging
-       logging.basicConfig(level=logging.DEBUG)
-       logger = logging.getLogger()
 
-       # Configure Redis connection parameters
-       pool_params = StepRedisPoolParams(
-           host="redis.example.com",
-           port=6379,
-           username="user",
-           password="password",
-           db=0,
-           ssl_enable=True,
-           socket_timeout=30,
-           socket_connect_timeout=10,
-           socket_keep_idle=60,
-           socket_keep_alive=10,
-           socket_keep_cnt=3,
-           ssl_client_key_file=None,
-           ssl_client_key_file_password=None,
-           ssl_client_cert_file=None,
-           ssl_cert_requested=False,
-           ssl_ca_certs_file=None,
-           health_check_interval=30,
-           max_connections=50,
-           connection_available_timeout=None,
-           protocol=3,
-           retry_count=3,
-       )
+   class ExitCode(IntEnum):
+       OK = 0
+       ABORTED = 3
 
-       # Configure Redis stream parameters
-       stream_params = StepRedisStreamParams(
-           stream_id="my_stream",
-           group_id="my_group",
-           wait_timeout_ms=5000,
-           published_message_max_retained=1000,
-           consumer_name="consumer1",
-           ttl_seconds=3600,
-       )
 
-       # Create a Redis pool and stream
-       async with StepRedisPool(params=pool_params, logger=logger) as pool:
-           async with StepRedisStream(pool, stream_params, logger) as stream:
-               # Create the input stream and consumer group
-               await stream.create_input_stream()
+   class StreamApp(AbstractApp[ExitCode]):
+       def __init__(self, logger: logging.Logger) -> None:
+           self._logger = logger
 
-               # Publish a message
-               await stream.publish_message("Hello, Redis!")
+       async def work(self) -> ExitCode:
+           logger = self._logger
 
-               # Consume a message
-               async for message in stream.receive_message():
-                   print(f"Received: {message}")
-                   break
+           # Configure Redis connection parameters
+           pool_params = StepRedisPoolParams(
+               host="redis.example.com",
+               port=6379,
+               username="user",
+               password="password",
+               db=0,
+               ssl_enable=True,
+               socket_timeout=30,
+               socket_connect_timeout=10,
+               socket_keep_idle=60,
+               socket_keep_alive=10,
+               socket_keep_cnt=3,
+               ssl_client_key_file=None,
+               ssl_client_key_file_password=None,
+               ssl_client_cert_file=None,
+               ssl_cert_requested=False,
+               ssl_ca_certs_file=None,
+               health_check_interval=30,
+               max_connections=50,
+               connection_available_timeout=None,
+               protocol=3,
+               retry_count=3,
+           )
 
-   asyncio.run(main())
+           # Configure Redis stream parameters
+           stream_params = StepRedisStreamParams(
+               stream_id="my_stream",
+               group_id="my_group",
+               wait_timeout_ms=5000,
+               published_message_max_retained=1000,
+               consumer_name="consumer1",
+               ttl_seconds=3600,
+           )
+
+           # Create a Redis pool and stream
+           async with StepRedisPool(params=pool_params, logger=logger) as pool:
+               async with StepRedisStream(pool, stream_params, logger) as stream:
+                   # Create the input stream and consumer group
+                   await stream.create_input_stream()
+
+                   # Publish a message
+                   await stream.publish_message("Hello, Redis!")
+
+                   # Consume a message
+                   async for message in stream.receive_message():
+                       print(f"Received: {message}")
+                       break
+           return ExitCode.OK
+
+       def on_shutdown(self, stop_signal: Signals) -> ExitCode:
+           return ExitCode.ABORTED
+
+
+   logging.basicConfig(level=logging.DEBUG)
+   logger = logging.getLogger()
+   app_runner = AppRunner[ExitCode](logger_param=logger, loop_factory=get_loop_factory())
+   app_runner.run(app=StreamApp(logger=logger))
 
 Health Check Task Usage
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -713,114 +732,155 @@ details on this method's behavior.
 
    import asyncio
    import logging
+   from enum import IntEnum
+   from signal import Signals
+
+   from step_cloud_schemas import AbstractApp, AppRunner, get_loop_factory
    from step_redis.step_redis_pool import StepRedisPoolParams, StepRedisPool
    from step_redis.step_redis_stream import StepRedisStream, StepRedisStreamParams
+
 
    async def consume(stream: StepRedisStream) -> None:
        async for message in stream.receive_message():
            print(f"Received: {message}")
 
-   async def main():
-       logging.basicConfig(level=logging.DEBUG)
-       logger = logging.getLogger()
 
-       pool_params = StepRedisPoolParams(
-           host="redis.example.com",
-           port=6379,
-           username="user",
-           password="password",
-           db=0,
-           ssl_enable=True,
-           socket_timeout=30,
-           socket_connect_timeout=10,
-           socket_keep_idle=60,
-           socket_keep_alive=10,
-           socket_keep_cnt=3,
-           ssl_client_key_file=None,
-           ssl_client_key_file_password=None,
-           ssl_client_cert_file=None,
-           ssl_cert_requested=False,
-           ssl_ca_certs_file=None,
-           # Interval, in seconds, between active PING probes sent by
-           # run_health_check(). Set to 0 to disable active probing.
-           health_check_interval=30,
-           max_connections=50,
-           connection_available_timeout=None,
-           protocol=3,
-           retry_count=3,
-       )
+   class ExitCode(IntEnum):
+       OK = 0
+       ABORTED = 3
 
-       stream_params = StepRedisStreamParams(
-           stream_id="my_stream",
-           group_id="my_group",
-           wait_timeout_ms=5000,
-           published_message_max_retained=1000,
-           consumer_name="consumer1",
-           ttl_seconds=3600,
-       )
 
-       async with (
-           StepRedisPool(params=pool_params, logger=logger) as pool,
-           StepRedisStream(pool, stream_params, logger) as stream,
-       ):
-           await stream.create_input_stream()
+   class HealthCheckApp(AbstractApp[ExitCode]):
+       def __init__(self, logger: logging.Logger) -> None:
+           self._logger = logger
 
-           # run_health_check() loops forever (or blocks forever if
-           # health_check_interval == 0), so it must run alongside other
-           # tasks rather than being awaited on its own. A failed PING
-           # raises, which cancels the sibling consume() task too.
-           async with asyncio.TaskGroup() as tg:
-               tg.create_task(stream.run_health_check())
-               tg.create_task(consume(stream))
+       async def work(self) -> ExitCode:
+           logger = self._logger
 
-   asyncio.run(main())
+           pool_params = StepRedisPoolParams(
+               host="redis.example.com",
+               port=6379,
+               username="user",
+               password="password",
+               db=0,
+               ssl_enable=True,
+               socket_timeout=30,
+               socket_connect_timeout=10,
+               socket_keep_idle=60,
+               socket_keep_alive=10,
+               socket_keep_cnt=3,
+               ssl_client_key_file=None,
+               ssl_client_key_file_password=None,
+               ssl_client_cert_file=None,
+               ssl_cert_requested=False,
+               ssl_ca_certs_file=None,
+               # Interval, in seconds, between active PING probes sent by
+               # run_health_check(). Set to 0 to disable active probing.
+               health_check_interval=30,
+               max_connections=50,
+               connection_available_timeout=None,
+               protocol=3,
+               retry_count=3,
+           )
+
+           stream_params = StepRedisStreamParams(
+               stream_id="my_stream",
+               group_id="my_group",
+               wait_timeout_ms=5000,
+               published_message_max_retained=1000,
+               consumer_name="consumer1",
+               ttl_seconds=3600,
+           )
+
+           async with (
+               StepRedisPool(params=pool_params, logger=logger) as pool,
+               StepRedisStream(pool, stream_params, logger) as stream,
+           ):
+               await stream.create_input_stream()
+
+               # run_health_check() loops forever (or blocks forever if
+               # health_check_interval == 0), so it must run alongside other
+               # tasks rather than being awaited on its own. A failed PING
+               # raises, which cancels the sibling consume() task too.
+               async with asyncio.TaskGroup() as tg:
+                   tg.create_task(stream.run_health_check())
+                   tg.create_task(consume(stream))
+           return ExitCode.OK
+
+       def on_shutdown(self, stop_signal: Signals) -> ExitCode:
+           return ExitCode.ABORTED
+
+
+   logging.basicConfig(level=logging.DEBUG)
+   logger = logging.getLogger()
+   app_runner = AppRunner[ExitCode](logger_param=logger, loop_factory=get_loop_factory())
+   app_runner.run(app=HealthCheckApp(logger=logger))
 
 Specialized Stream Usage
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: python
 
-   import asyncio
    import logging
+   from enum import IntEnum
+   from signal import Signals
+
+   from step_cloud_schemas import AbstractApp, AppRunner, CamDataV1, get_loop_factory
    from step_redis.step_redis_pool import StepRedisPoolParams, StepRedisPool
    from step_redis.step_adapter_redis_stream import (
        StepAdapterRedisStream,
        StepRedisStreamParams,
    )
-   from step_cloud_schemas import CamDataV1
 
-   async def main():
-       logger = logging.getLogger()
-       
-       # Configure pool and stream
-       pool_params = StepRedisPoolParams(
-           host="localhost",
-           port=6379,
-           password="password",
-           db=0,
-           # ... other parameters
-       )
-       
-       stream_params = StepRedisStreamParams(
-           stream_id="adapter_stream",
-           group_id="adapter_group",
-           wait_timeout_ms=5000,
-           published_message_max_retained=1000,
-           consumer_name="adapter_consumer",
-           ttl_seconds=3600,
-       )
-       
-       # Use specialized adapter stream
-       async with StepRedisPool(params=pool_params, logger=logger) as pool:
-           async with StepAdapterRedisStream(pool, stream_params, logger) as stream:
-               # Create the stream
-               await stream.create_input_stream()
-               
-               # Publish a CAM message
-               cam_message = CamDataV1(...)  # Create CAM message
-               await stream.publish_cam_message(cam_message)
 
-   asyncio.run(main())
+   class ExitCode(IntEnum):
+       OK = 0
+       ABORTED = 3
+
+
+   class AdapterStreamApp(AbstractApp[ExitCode]):
+       def __init__(self, logger: logging.Logger) -> None:
+           self._logger = logger
+
+       async def work(self) -> ExitCode:
+           logger = self._logger
+
+           # Configure pool and stream
+           pool_params = StepRedisPoolParams(
+               host="localhost",
+               port=6379,
+               password="password",
+               db=0,
+               # ... other parameters
+           )
+
+           stream_params = StepRedisStreamParams(
+               stream_id="adapter_stream",
+               group_id="adapter_group",
+               wait_timeout_ms=5000,
+               published_message_max_retained=1000,
+               consumer_name="adapter_consumer",
+               ttl_seconds=3600,
+           )
+
+           # Use specialized adapter stream
+           async with StepRedisPool(params=pool_params, logger=logger) as pool:
+               async with StepAdapterRedisStream(pool, stream_params, logger) as stream:
+                   # Create the stream
+                   await stream.create_input_stream()
+
+                   # Publish a CAM message
+                   cam_message = CamDataV1(...)  # Create CAM message
+                   await stream.publish_cam_message(cam_message)
+           return ExitCode.OK
+
+       def on_shutdown(self, stop_signal: Signals) -> ExitCode:
+           return ExitCode.ABORTED
+
+
+   logger = logging.getLogger()
+   app_runner = AppRunner[ExitCode](logger_param=logger, loop_factory=get_loop_factory())
+   app_runner.run(app=AdapterStreamApp(logger=logger))
 
 Error Handling
 --------------
